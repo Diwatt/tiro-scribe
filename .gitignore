@@ -18,7 +18,15 @@ DerivedData
 *.hmap
 *.ipa
 *.xcuserstate
+*.xcworkspace
+!default.xcworkspace
 ios/.xcode.env.local
+ios/Pods/
+# Note: Podfile.lock is typically committed in React Native projects for dependency consistency
+# If you want to ignore it instead, uncomment the next line:
+# ios/Podfile.lock
+ios/build/
+ios/DerivedData/
 
 # Android/IntelliJ
 build/
@@ -30,6 +38,12 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+android/.gradle/
+android/app/build/
+android/app/release/
+android/app/.cxx/
+android/.idea/
+android/local.properties
 
 # node.js
 node_modules/
@@ -45,8 +59,7 @@ yarn-error.log
 # Bundle artifact
 *.jsbundle
 
-# CocoaPods
-/ios/Pods/
+# CocoaPods (already covered above, but kept for clarity)
 
 # Temporary files
 *.tmp

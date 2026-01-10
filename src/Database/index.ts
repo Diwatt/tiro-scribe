@@ -11,7 +11,7 @@ const adapter = new SQLiteAdapter({
   schema,
   // migrations
   // (optional) migrations: migrations,
-  // (optional) dbName: 'open_luborsky',
+  // (optional) dbName: 'tiro_scribe',
   // (optional) jsi: true, // Use JSI for better performance
 });
 

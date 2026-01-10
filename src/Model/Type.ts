@@ -1,5 +1,5 @@
 /**
- * Core type definitions for the Open Luborsky Mobile application
+ * Core type definitions for the Tiro Scribe application
  */
 
 export interface SpeakerVector {

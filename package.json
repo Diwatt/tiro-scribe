@@ -1,14 +1,21 @@
 {
-  "name": "open-luborsky-mobile",
+  "name": "tiro-scribe",
   "version": "0.1.0",
   "private": true,
   "description": "Privacy-first clinical research app with on-device AI processing",
   "main": "index.js",
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "bash scripts/run-ios.sh",
+    "pod-install": "cd ios && pod install && cd ..",
+    "postinstall": "node scripts/check-pods.js || true",
+    "clean": "pnpm run clean:ios && pnpm run clean:android && pnpm run clean:metro",
+    "clean:ios": "cd ios && rm -rf build Pods Podfile.lock && cd ..",
+    "clean:android": "cd android && ./gradlew clean && cd ..",
+    "clean:metro": "rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null || true",
     "lint": "eslint .",
     "start": "react-native start",
+    "start:reset": "react-native start --reset-cache",
     "test": "jest",
     "type-check": "tsc --noEmit"
   },
