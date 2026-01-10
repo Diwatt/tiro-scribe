@@ -19,6 +19,19 @@ if [ ! -d "$IOS_DIR" ]; then
   exit 1
 fi
 
+# Check if CocoaPods is installed
+if ! command -v pod &> /dev/null; then
+  echo "❌ CocoaPods is not installed."
+  echo ""
+  echo "Please install CocoaPods first:"
+  echo "  sudo gem install cocoapods"
+  echo ""
+  echo "Or using Homebrew:"
+  echo "  brew install cocoapods"
+  echo ""
+  exit 1
+fi
+
 # Check if Pods are installed
 if [ ! -d "$PODS_DIR" ] || [ -z "$(ls -A $PODS_DIR 2>/dev/null)" ]; then
   echo "📦 CocoaPods dependencies not found. Installing..."

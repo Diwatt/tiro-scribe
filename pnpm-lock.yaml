@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@nozbe/simdjson':
+        specifier: ^3.9.4
+        version: 3.9.4
       '@nozbe/watermelondb':
         specifier: ^0.27.1
         version: 0.27.1
@@ -42,8 +45,8 @@ importers:
         specifier: ^2.14.0
         version: 2.30.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0)
       react-native-reanimated:
-        specifier: ^3.6.1
-        version: 3.19.5(@babel/core@7.28.5)(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0)
+        specifier: ~3.5.4
+        version: 3.5.4(@babel/core@7.28.5)(@babel/plugin-proposal-nullish-coalescing-operator@7.18.6(@babel/core@7.28.5))(@babel/plugin-proposal-optional-chaining@7.21.0(@babel/core@7.28.5))(@babel/plugin-transform-arrow-functions@7.27.1(@babel/core@7.28.5))(@babel/plugin-transform-shorthand-properties@7.27.1(@babel/core@7.28.5))(@babel/plugin-transform-template-literals@7.27.1(@babel/core@7.28.5))(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0)
       react-native-safe-area-context:
         specifier: ^4.8.2
         version: 4.14.1(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0)
@@ -620,6 +623,12 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
+  '@babel/plugin-transform-object-assign@7.27.1':
+    resolution: {integrity: sha512-LP6tsnirA6iy13uBKiYgjJsfQrodmlSrpZModtlo1Vk8sOO68gfo7dfA9TGJyEgxTiO7czK4EGZm8FJEZtk4kQ==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': ^7.0.0-0
+
   '@babel/plugin-transform-object-rest-spread@7.28.4':
     resolution: {integrity: sha512-373KA2HQzKhQCYiRVIRr+3MjpCObqzDlyrM6u4I201wL8Mp2wHf7uB8GhDwis03k2ti8Zr65Zyyqs1xOxUF/Ew==}
     engines: {node: '>=6.9.0'}
@@ -992,6 +1001,9 @@ packages:
 
   '@nozbe/simdjson@3.1.0-wmelon1':
     resolution: {integrity: sha512-PQaHHQyvASrcrfzqkZ4ona43m0UjN81NuTWt6rJkOUePGDjxc8MNp2Q7jcod1CIdTsXJ13wRWeFbquwNfhpIQQ==}
+
+  '@nozbe/simdjson@3.9.4':
+    resolution: {integrity: sha512-/3oCP8GBpdyeiBMEnuI6S0yl0yekD6Qxfed67hZqU1GIVn3o/vZgE8qANm69THfw7JgHLS9zjx56F/dO3q+koA==}
 
   '@nozbe/sqlite@3.40.1':
     resolution: {integrity: sha512-uKJOW4sQi3neCmgKhqLr0IJKlb2y5q2p05U5CEDJrCxSyD2uVYvSdh7IMrPjF4sWtzc/Lnk462M4vde7Dn5NSw==}
@@ -3228,16 +3240,15 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-is-edge-to-edge@1.1.7:
-    resolution: {integrity: sha512-EH6i7E8epJGIcu7KpfXYXiV2JFIYITtq+rVS8uEb+92naMRBdxhTuS8Wn2Q7j9sqyO0B+Xbaaf9VdipIAmGW4w==}
-    peerDependencies:
-      react: '*'
-      react-native: '*'
-
-  react-native-reanimated@3.19.5:
-    resolution: {integrity: sha512-bd4AwIkBAaY4BjrgpSoKjEaRG/tXD756F5nGuiH5IMBSKN8tRdUEA8hWZCyIo/R6/kha/tVSoCqodVUACh7ZWw==}
+  react-native-reanimated@3.5.4:
+    resolution: {integrity: sha512-8we9LLDO1o4Oj9/DICeEJ2K1tjfqkJagqQUglxeUAkol/HcEJ6PGxIrpBcNryLqCDYEcu6FZWld/FzizBIw6bg==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
+      '@babel/plugin-proposal-nullish-coalescing-operator': ^7.0.0-0
+      '@babel/plugin-proposal-optional-chaining': ^7.0.0-0
+      '@babel/plugin-transform-arrow-functions': ^7.0.0-0
+      '@babel/plugin-transform-shorthand-properties': ^7.0.0-0
+      '@babel/plugin-transform-template-literals': ^7.0.0-0
       react: '*'
       react-native: '*'
 
@@ -4523,6 +4534,11 @@ snapshots:
       '@babel/core': 7.28.5
       '@babel/helper-plugin-utils': 7.27.1
 
+  '@babel/plugin-transform-object-assign@7.27.1(@babel/core@7.28.5)':
+    dependencies:
+      '@babel/core': 7.28.5
+      '@babel/helper-plugin-utils': 7.27.1
+
   '@babel/plugin-transform-object-rest-spread@7.28.4(@babel/core@7.28.5)':
     dependencies:
       '@babel/core': 7.28.5
@@ -5114,6 +5130,8 @@ snapshots:
 
   '@nozbe/simdjson@3.1.0-wmelon1': {}
 
+  '@nozbe/simdjson@3.9.4': {}
+
   '@nozbe/sqlite@3.40.1': {}
 
   '@nozbe/watermelondb@0.27.1':
@@ -5478,7 +5496,9 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - '@babel/preset-env'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.73.2': {}
 
@@ -8085,28 +8105,20 @@ snapshots:
       react: 18.2.0
       react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0)
 
-  react-native-is-edge-to-edge@1.1.7(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0):
-    dependencies:
-      react: 18.2.0
-      react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0)
-
-  react-native-reanimated@3.19.5(@babel/core@7.28.5)(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0):
+  react-native-reanimated@3.5.4(@babel/core@7.28.5)(@babel/plugin-proposal-nullish-coalescing-operator@7.18.6(@babel/core@7.28.5))(@babel/plugin-proposal-optional-chaining@7.21.0(@babel/core@7.28.5))(@babel/plugin-transform-arrow-functions@7.27.1(@babel/core@7.28.5))(@babel/plugin-transform-shorthand-properties@7.27.1(@babel/core@7.28.5))(@babel/plugin-transform-template-literals@7.27.1(@babel/core@7.28.5))(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0):
     dependencies:
       '@babel/core': 7.28.5
+      '@babel/plugin-proposal-nullish-coalescing-operator': 7.18.6(@babel/core@7.28.5)
+      '@babel/plugin-proposal-optional-chaining': 7.21.0(@babel/core@7.28.5)
       '@babel/plugin-transform-arrow-functions': 7.27.1(@babel/core@7.28.5)
-      '@babel/plugin-transform-class-properties': 7.27.1(@babel/core@7.28.5)
-      '@babel/plugin-transform-classes': 7.28.4(@babel/core@7.28.5)
-      '@babel/plugin-transform-nullish-coalescing-operator': 7.27.1(@babel/core@7.28.5)
-      '@babel/plugin-transform-optional-chaining': 7.28.5(@babel/core@7.28.5)
+      '@babel/plugin-transform-object-assign': 7.27.1(@babel/core@7.28.5)
       '@babel/plugin-transform-shorthand-properties': 7.27.1(@babel/core@7.28.5)
       '@babel/plugin-transform-template-literals': 7.27.1(@babel/core@7.28.5)
-      '@babel/plugin-transform-unicode-regex': 7.27.1(@babel/core@7.28.5)
       '@babel/preset-typescript': 7.28.5(@babel/core@7.28.5)
       convert-source-map: 2.0.0
       invariant: 2.2.4
       react: 18.2.0
       react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0)
-      react-native-is-edge-to-edge: 1.1.7(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(react@18.2.0))(react@18.2.0)
     transitivePeerDependencies:
       - supports-color
 

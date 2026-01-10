@@ -5,6 +5,8 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+source 'https://cdn.cocoapods.org/'
+
 platform :ios, '15.0'
 prepare_react_native_project!
 
