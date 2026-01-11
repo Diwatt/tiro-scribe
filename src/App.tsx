@@ -4,7 +4,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PaperProvider } from 'react-native-paper';
 import { AppNavigator } from './Navigation/AppNavigator';
+import { AppTheme } from './theme/AppTheme';
 import {
   BiocodeService,
   AnonymizerService,
@@ -65,7 +67,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AppNavigator />
+      <PaperProvider theme={AppTheme}>
+        <AppNavigator />
+      </PaperProvider>
     </SafeAreaProvider>
   );
 }

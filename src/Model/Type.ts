@@ -55,3 +55,14 @@ export interface TherapistSalt {
   therapistId: string;
   salt: string;
 }
+
+/**
+ * Queue Item Status Enum
+ * Status values for processing queue items
+ */
+export enum QueueItemStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
