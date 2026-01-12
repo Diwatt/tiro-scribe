@@ -2,17 +2,17 @@
  * Main application component
  */
 
-import React, { useEffect, useState } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PaperProvider } from 'react-native-paper';
-import { AppNavigator } from './Navigation/AppNavigator';
-import { AppTheme } from './theme/AppTheme';
+import React, {useEffect, useState} from 'react';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {PaperProvider} from 'react-native-paper';
+import {AppNavigator} from './Navigation/AppNavigator';
+import {AppTheme} from './theme/AppTheme';
 import {
-  BiocodeService,
-  AnonymizerService,
-  AudioProcessingService,
+    BiocodeService,
+    AnonymizerService,
+    AudioProcessingService,
 } from './Service';
-import { ONNX_MODEL_PATHS } from './Util/Constant';
+import {ONNX_MODEL_PATHS} from './Util/Constant';
 
 // TODO: Import native modules when available
 // import WhisperRN from 'whisper.rn';
@@ -20,14 +20,14 @@ import { ONNX_MODEL_PATHS } from './Util/Constant';
 // import OnnxRuntime from 'onnxruntime-react-native';
 
 export default function App() {
-  const [servicesInitialized, setServicesInitialized] = useState(false);
+    const [servicesInitialized, setServicesInitialized] = useState(false);
 
-  useEffect(() => {
-    async function initializeServices() {
-      try {
-        // Initialize services with native modules
-        // TODO: Uncomment when native modules are installed
-        /*
+    useEffect(() => {
+        async function initializeServices() {
+            try {
+                // Initialize services with native modules
+                // TODO: Uncomment when native modules are installed
+                /*
         const whisperRN = new WhisperRN();
         const sherpaOnnx = new SherpaOnnx();
         const onnxRuntime = new OnnxRuntime();
@@ -51,25 +51,25 @@ export default function App() {
         // setServices({ biocodeService, anonymizerService, audioProcessingService });
         */
 
-        setServicesInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize services:', error);
-      }
+                setServicesInitialized(true);
+            } catch (error) {
+                console.error('Failed to initialize services:', error);
+            }
+        }
+
+        initializeServices();
+    }, []);
+
+    if (!servicesInitialized) {
+        // TODO: Show loading screen
+        return null;
     }
 
-    initializeServices();
-  }, []);
-
-  if (!servicesInitialized) {
-    // TODO: Show loading screen
-    return null;
-  }
-
-  return (
-    <SafeAreaProvider>
-      <PaperProvider theme={AppTheme}>
-        <AppNavigator />
-      </PaperProvider>
-    </SafeAreaProvider>
-  );
+    return (
+        <SafeAreaProvider>
+            <PaperProvider theme={AppTheme}>
+                <AppNavigator />
+            </PaperProvider>
+        </SafeAreaProvider>
+    );
 }

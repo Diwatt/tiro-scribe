@@ -2,4 +2,4 @@
  * Screens exports
  */
 
-export { RecordingScreen } from './RecordingScreen';
+export {RecordingScreen} from './RecordingScreen';
