@@ -1,9 +1,9 @@
 /**
  * AudioPipelineAdapter
- * Adapter to connect QueueService with AudioProcessingService
+ * Adapter to connect Queue with AudioProcessing
  */
 
-import {AudioProcessingService} from './AudioProcessingService';
+import {AudioProcessing} from './AudioProcessing';
 import {ProcessingPayload} from '@Model/Type';
 
 /**
@@ -14,28 +14,28 @@ export interface AudioPipeline {
 }
 
 /**
- * Adapter implementation that wraps AudioProcessingService
- * This adapter converts AudioProcessingService.processAudio() to the simpler
- * process() interface expected by QueueService
+ * Adapter implementation that wraps AudioProcessing
+ * This adapter converts AudioProcessing.processAudio() to the simpler
+ * process() interface expected by Queue
  */
 export class AudioPipelineAdapter implements AudioPipeline {
-    private audioProcessingService: AudioProcessingService;
-    private encounterId: string;
+    private audioProcessingService: AudioProcessing;
+    private encounterUuid: string;
     private sessionStartDate: Date;
 
     constructor(
-        audioProcessingService: AudioProcessingService,
-        encounterId: string,
+        audioProcessingService: AudioProcessing,
+        encounterUuid: string,
         sessionStartDate: Date,
     ) {
         this.audioProcessingService = audioProcessingService;
-        this.encounterId = encounterId;
+        this.encounterUuid = encounterUuid;
         this.sessionStartDate = sessionStartDate;
     }
 
     /**
      * Process audio file
-     * This method is called by QueueService for each queue item
+     * This method is called by Queue for each queue item
      * @param filePath - Path to the audio file
      */
     async process(filePath: string): Promise<void> {
@@ -43,7 +43,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
         const payload: ProcessingPayload =
             await this.audioProcessingService.processAudio(
                 filePath,
-                this.encounterId,
+                this.encounterUuid,
                 this.sessionStartDate,
             );
 
@@ -55,7 +55,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
 
 /**
  * Mock AudioPipeline for testing/development
- * Use this when AudioProcessingService is not yet initialized
+ * Use this when AudioProcessing is not yet initialized
  */
 export class MockAudioPipeline implements AudioPipeline {
     async process(filePath: string): Promise<void> {

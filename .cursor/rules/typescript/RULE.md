@@ -1,81 +1,86 @@
 ---
-description: "TypeScript coding standards and type safety requirements"
+description: "TypeScript coding standards and conventions"
 alwaysApply: true
+globs: ["**/*.ts", "**/*.tsx"]
 ---
 
 # TypeScript Rules
 
-## Type Safety Requirements
+## File Organization
 
-1. **Strict Mode**: Always use `strict: true` in tsconfig.json
-2. **No `any` Types**: Avoid `any` - use `unknown` or proper types
-3. **Explicit Return Types**: Define return types for all functions
-4. **Interface over Type**: Prefer `interface` for object shapes, `type` for unions/intersections
+- **One interface per file**: Each interface must be in its own file
+- **One abstract class per file**: Each abstract class must be in its own file
+- **Naming convention**: Use `Abstract` prefix for abstract classes, not `Base`
+  - ✅ `AbstractModel.ts` (contains `AbstractModel` class)
+  - ✅ `InterfaceModel.ts` (contains `InterfaceModel` interface)
+  - ❌ `BaseModel.ts` (contains both interface and abstract class)
+  - ❌ `BaseWatermelonModel` (use `AbstractModel` instead)
+  - ❌ `IWatermelonModel.ts` (use `InterfaceModel.ts` instead)
 
-## Type Definitions
+## Export Rules
 
-### Service Interfaces
-Define interfaces for native modules in service files:
+- **NO default exports**: Always use named exports
+  - ✅ `export class MyClass { ... }`
+  - ✅ `export function myFunction() { ... }`
+  - ❌ `export default class MyClass { ... }`
+  - ❌ `export default function myFunction() { ... }`
+  
+- **Rationale**: Default exports cause issues with:
+  - Tree-shaking and bundling
+  - Circular dependencies
+  - Refactoring and IDE support
+  - Type inference in some cases
+
+## Examples
+
+### Correct Structure
 
 ```typescript
-interface NativeModuleInterface {
-  methodName(param: Type): Promise<ReturnType>;
+// src/Model/InterfaceModel.ts
+export interface InterfaceModel {
+    readonly table: string;
+    readonly schema: TableSchema;
+}
+
+// src/Model/AbstractModel.ts
+export abstract class AbstractModel extends Model {
+    static abstract table: string;
+    static abstract schema: TableSchema;
+}
+
+// src/Model/MyModel.ts
+export class MyModel extends AbstractModel {
+    // ...
 }
 ```
 
-### Model Types
-Define all data models in `@models/types.ts`:
+### Incorrect Structure
 
 ```typescript
-export interface ProcessingPayload {
-  biocode: string;
-  cleanTranscript: string;
-  confidence: number;
-  sessionId: string;
-  timestamp: number;
-}
+// ❌ Don't put interface and abstract in same file
+// src/Model/BaseModel.ts
+export interface InterfaceModel { ... }
+export abstract class AbstractModel { ... }
+
+// ❌ Don't use "Base" prefix
+export abstract class BaseModel { ... }
+
+// ❌ Don't use "I" prefix for interfaces (use InterfaceModel pattern)
+export interface IModel { ... }
+
+// ❌ Don't use default exports
+export default class MyModel { ... }
 ```
 
-## Path Aliases
+## Access Modifiers
 
-Use path aliases for imports:
-- `@services/*` → `src/core/services/*`
-- `@models/*` → `src/core/models/*`
-- `@utils/*` → `src/core/utils/*`
-- `@features/*` → `src/features/*`
-- `@navigation/*` → `src/navigation/*`
-- `@core/*` → `src/core/*`
+- **Explicit public modifiers**: Always use `public` modifier for public members
+  - ✅ `public property: string;`
+  - ✅ `public method(): void { ... }`
+  - ✅ `public static getTable(): string { ... }`
+  - ❌ `property: string;` (implicit public - not allowed)
+  - ❌ `method(): void { ... }` (implicit public - not allowed)
 
-## Enums
-
-Use `enum` for fixed sets of values:
-
-```typescript
-export enum EntityType {
-  PERSON = 'PERSON',
-  LOCATION = 'LOCATION',
-  // ...
-}
-```
-
-## Optional vs Nullable
-
-- Use `?` for optional properties: `property?: string`
-- Use `| null` for explicitly nullable: `property: string | null`
-- Prefer optional over nullable when possible
-
-## Async/Await
-
-- Always use `async/await` over `.then()` chains
-- Always handle errors with try/catch
-- Return `Promise<T>` explicitly for async functions
-
-## Generic Types
-
-Use generics for reusable components/services:
-
-```typescript
-interface Service<TInput, TOutput> {
-  process(input: TInput): Promise<TOutput>;
-}
-```
+- **Protected and private**: Use `protected` or `private` as appropriate
+  - ✅ `protected internalProperty: string;`
+  - ✅ `private helperMethod(): void { ... }`

@@ -1,5 +1,5 @@
 /**
- * QueueService - Singleton service for managing the offline processing queue
+ * Queue - Singleton service for managing the offline processing queue
  *
  * Handles:
  * - Adding items to the processing queue
@@ -8,11 +8,15 @@
  * - Queue statistics
  */
 
-import {database} from '@Database/index';
-import QueueItem from '@Model/QueueItem';
+import {database} from './Database';
+import {QueueItem} from '@Model/QueueItem';
 import {QueueItemStatus} from '@Model/Type';
 import {Q} from '@nozbe/watermelondb';
 import type {AudioPipeline} from './AudioPipelineAdapter';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 /**
  * Queue Statistics
@@ -25,7 +29,7 @@ export interface QueueStats {
     total: number;
 }
 
-class QueueServiceClass {
+class QueueClass {
     private isProcessing: boolean = false;
     private processingInterval: NodeJS.Timeout | null = null;
     private audioPipeline: AudioPipeline | null = null;
@@ -40,12 +44,12 @@ class QueueServiceClass {
 
     /**
      * Add a new item to the processing queue
-     * @param encounterId - Encounter identifier
+     * @param encounterUuid - Encounter UUID identifier
      * @param audioPath - Local path to the audio file
      * @returns The created QueueItem
      */
     async addToQueue(
-        encounterId: string,
+        encounterUuid: string,
         audioPath: string,
     ): Promise<QueueItem> {
         const now = Date.now();
@@ -55,7 +59,7 @@ class QueueServiceClass {
             const collection =
                 database.collections.get<QueueItem>('queue_items');
             queueItem = await collection.create(item => {
-                item.encounterId = encounterId;
+                item.encounterUuid = encounterUuid;
                 item.filePath = audioPath;
                 item.status = QueueItemStatus.PENDING;
                 item.retryCount = 0;
@@ -80,7 +84,7 @@ class QueueServiceClass {
         // Check if audio pipeline is available
         if (!this.audioPipeline) {
             console.warn(
-                'QueueService: AudioPipeline not set. Cannot process items.',
+                'Queue: AudioPipeline not set. Cannot process items.',
             );
             return false;
         }
@@ -127,6 +131,7 @@ class QueueServiceClass {
             await database.write(async () => {
                 await itemToProcess!.update(item => {
                     item.status = QueueItemStatus.PROCESSING;
+                    item.updatedAt = dayjs.utc().toDate();
                 });
             });
 
@@ -139,6 +144,7 @@ class QueueServiceClass {
                     await itemToProcess!.update(item => {
                         item.status = QueueItemStatus.COMPLETED;
                         item.errorLog = undefined;
+                        item.updatedAt = dayjs.utc().toDate();
                     });
                 });
 
@@ -154,6 +160,7 @@ class QueueServiceClass {
                     await itemToProcess!.update(item => {
                         item.retryCount = newRetryCount;
                         item.errorLog = errorMessage;
+                        item.updatedAt = dayjs.utc().toDate();
 
                         if (newRetryCount >= 3) {
                             item.status = QueueItemStatus.FAILED;
@@ -168,7 +175,7 @@ class QueueServiceClass {
                 return true; // Item was processed (even if it failed)
             }
         } catch (error) {
-            console.error('QueueService: Error processing queue item:', error);
+            console.error('Queue: Error processing queue item:', error);
             this.isProcessing = false;
             return false;
         }
@@ -242,4 +249,4 @@ class QueueServiceClass {
 }
 
 // Export singleton instance
-export const QueueService = new QueueServiceClass();
+export const Queue = new QueueClass();

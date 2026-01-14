@@ -1,67 +1,70 @@
 /**
  * QueueItem Model
  * WatermelonDB model for processing queue items
- * Contains both the model class and its schema definition
+ * Schema and model properties defined together in one class
  */
 
 import {Model} from '@nozbe/watermelondb';
 import {field, date} from '@nozbe/watermelondb/decorators';
-import {tableSchema} from '@nozbe/watermelondb';
+import type {TableSchemaSpec} from '@nozbe/watermelondb/Schema';
 import {QueueItemStatus} from './Type';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
-/**
- * QueueItem table schema definition
- * Exported as static property for WatermelonDB registration
- */
-export const QueueItemSchema = tableSchema({
-    name: 'queue_items',
-    columns: [
-        {name: 'encounter_id', type: 'string', isIndexed: true},
-        {name: 'file_path', type: 'string'},
-        {name: 'status', type: 'string', isIndexed: true}, // 'PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'
-        {name: 'retry_count', type: 'number'},
-        {name: 'error_log', type: 'string', isOptional: true},
-        {name: 'created_at', type: 'number'},
-        {name: 'updated_at', type: 'number'},
-    ],
-});
+dayjs.extend(utc);
 
 /**
  * QueueItem Model Class
- * WatermelonDB model for processing queue items
+ * Defines both schema specification and model fields in one class
  */
-export default class QueueItem extends Model {
-    static table = 'queue_items';
+export class QueueItem extends Model {
+    /**
+     * Database table name (static property)
+     */
+    public static readonly tableName = 'queue_items';
 
-    // Schema definition for WatermelonDB registration
-    static schema = QueueItemSchema;
+    /**
+     * Schema specification (static property)
+     */
+    public static readonly schemaSpec: TableSchemaSpec = {
+        name: 'queue_items',
+        columns: [
+            {name: 'encounter_uuid', type: 'string' as const, isIndexed: true},
+            {name: 'file_path', type: 'string' as const},
+            {name: 'status', type: 'string' as const, isIndexed: true},
+            {name: 'retry_count', type: 'number' as const},
+            {name: 'error_log', type: 'string' as const, isOptional: true},
+            {name: 'created_at', type: 'number' as const},
+            {name: 'updated_at', type: 'number' as const},
+        ],
+    };
 
-    @field('encounter_id')
-    encounterId!: string;
+    @field('encounter_uuid')
+    public encounterUuid: string = '';
 
     @field('file_path')
-    filePath!: string;
+    public filePath: string = '';
 
     @field('status')
-    status!: QueueItemStatus;
+    public status: QueueItemStatus = QueueItemStatus.PENDING;
 
     @field('retry_count')
-    retryCount!: number;
+    public retryCount: number = 0;
 
     @field('error_log')
-    errorLog?: string;
+    public errorLog: string | null = null;
 
     @date('created_at')
-    createdAt!: Date;
+    public createdAt: Date = dayjs.utc().toDate();
 
     @date('updated_at')
-    updatedAt!: Date;
+    public updatedAt: Date = dayjs.utc().toDate();
 
     /**
      * Helper getter to check if item is processable
      * Returns true if status is PENDING or FAILED with retry_count < 3
      */
-    get isProcessable(): boolean {
+    public get isProcessable(): boolean {
         if (this.status === QueueItemStatus.PENDING) {
             return true;
         }

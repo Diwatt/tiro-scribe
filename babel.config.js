@@ -19,7 +19,6 @@ module.exports = {
                     '@Model': './src/Model',
                     '@Util': './src/Util',
                     '@Store': './src/Store',
-                    '@Database': './src/Database',
                     '@Navigation': './src/Navigation',
                     '@Recording': './src/Recording',
                 },

@@ -8,8 +8,8 @@ import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, Surface, useTheme} from 'react-native-paper';
 import {RecordButton} from '@/Components';
 import {useAudioRecording} from '@Recording/Hook/AudioRecording';
-// TODO: Import AudioProcessingService when available
-// import { AudioProcessingService } from '@Service/AudioProcessingService';
+// TODO: Import AudioProcessing when available
+// import { AudioProcessing } from '@Service';
 
 /**
  * RecordingScreen Component
@@ -23,10 +23,10 @@ export const RecordingScreen: React.FC = () => {
     const theme = useTheme();
     const [isPaused, setIsPaused] = useState(false);
 
-    // TODO: Initialize AudioProcessingService when available
+    // TODO: Initialize AudioProcessing when available
     // For now, we'll create a mock implementation
     // const audioProcessingService = useMemo(() => {
-    //   return new AudioProcessingService(biocodeService, anonymizerService);
+    //   return new AudioProcessing(biocodeService, anonymizerService);
     // }, []);
 
     // Mock implementation until services are available
@@ -34,7 +34,7 @@ export const RecordingScreen: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // TODO: Replace with actual hook when AudioProcessingService is available
+    // TODO: Replace with actual hook when AudioProcessing is available
     // const { isRecording, isProcessing, error, startRecording, stopRecording } =
     //   useAudioRecording(audioProcessingService);
 

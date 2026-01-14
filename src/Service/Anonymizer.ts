@@ -1,5 +1,5 @@
 /**
- * AnonymizerService - Hybrid NLP Anonymization
+ * Anonymizer - Hybrid NLP Anonymization
  *
  * Implements a three-layer anonymization approach:
  * 1. Layer 1 (AI): ONNX BERT-NER model for detecting PER (Persons) and LOC (Locations)
@@ -24,13 +24,13 @@ interface ONNXNERResult {
     confidence: number;
 }
 
-export class AnonymizerService {
+export class Anonymizer {
     private onnxRuntime: OnnxRuntimeInterface | null = null;
     private sessionStartDate: Date | null = null;
     private relationCounter: Map<string, number> = new Map();
 
     /**
-     * Initialize the AnonymizerService with ONNX Runtime
+     * Initialize the Anonymizer with ONNX Runtime
      * @param onnxModule - The native ONNX Runtime module instance
      * @param modelPath - Path to the quantized BERT-NER model
      */

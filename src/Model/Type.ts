@@ -40,7 +40,7 @@ export interface ProcessingPayload {
     biocode: string;
     cleanTranscript: string;
     confidence: number;
-    encounterId: string;
+    encounterUuid: string;
     timestamp: number;
 }
 

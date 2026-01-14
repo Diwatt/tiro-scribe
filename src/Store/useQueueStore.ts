@@ -5,9 +5,9 @@
  */
 
 import {create} from 'zustand';
-import {QueueService, QueueStats} from '@Service/QueueService';
-import {database} from '@Database/index';
-import QueueItem from '@Model/QueueItem';
+import {Queue, QueueStats} from '@Service';
+import {database} from '@Service';
+import {QueueItem} from '@Model/QueueItem';
 import {QueueItemStatus} from '@Model/Type';
 import {Q} from '@nozbe/watermelondb';
 
@@ -47,8 +47,8 @@ export const useQueueStore = create<QueueStoreState>((set, get) => ({
      * Refresh queue statistics from the database
      */
     refreshStats: async () => {
-        const stats = await QueueService.getQueueStats();
-        const isProcessing = QueueService.isQueueProcessing();
+        const stats = await Queue.getQueueStats();
+        const isProcessing = Queue.isQueueProcessing();
         set({stats, isProcessing});
     },
 
@@ -56,7 +56,7 @@ export const useQueueStore = create<QueueStoreState>((set, get) => ({
      * Start automatic queue processing
      */
     startProcessing: () => {
-        QueueService.startProcessing();
+        Queue.startProcessing();
         set({isProcessing: true});
     },
 
@@ -64,7 +64,7 @@ export const useQueueStore = create<QueueStoreState>((set, get) => ({
      * Stop automatic queue processing
      */
     stopProcessing: () => {
-        QueueService.stopProcessing();
+        Queue.stopProcessing();
         set({isProcessing: false});
     },
 

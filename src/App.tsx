@@ -7,11 +7,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {PaperProvider} from 'react-native-paper';
 import {AppNavigator} from './Navigation/AppNavigator';
 import {AppTheme} from './theme/AppTheme';
-import {
-    BiocodeService,
-    AnonymizerService,
-    AudioProcessingService,
-} from './Service';
+import {Biocode, Anonymizer, AudioProcessing} from './Service';
 import {ONNX_MODEL_PATHS} from './Util/Constant';
 
 // TODO: Import native modules when available
@@ -41,7 +37,7 @@ export default function App() {
           ONNX_MODEL_PATHS.BERT_NER
         );
 
-        const audioProcessingService = new AudioProcessingService(
+        const audioProcessingService = new AudioProcessing(
           biocodeService,
           anonymizerService
         );

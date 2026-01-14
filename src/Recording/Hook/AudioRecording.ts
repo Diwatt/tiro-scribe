@@ -2,11 +2,11 @@
  * Custom hook for audio recording functionality
  *
  * This hook manages the audio recording lifecycle and integrates
- * with the AudioProcessingService for on-device processing.
+ * with the AudioProcessing for on-device processing.
  */
 
 import {useState, useCallback} from 'react';
-import {AudioProcessingService} from '@Service/AudioProcessingService';
+import {AudioProcessing} from '@Service';
 import {useAppStore} from '@Store/AppStore';
 import {ProcessingPayload} from '@Model/Type';
 
@@ -20,7 +20,7 @@ interface UseAudioRecordingReturn {
 }
 
 export function useAudioRecording(
-    audioProcessingService: AudioProcessingService,
+    audioProcessingService: AudioProcessing,
 ): UseAudioRecordingReturn {
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);

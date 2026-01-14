@@ -1,16 +1,16 @@
 /**
- * AudioProcessingService - Orchestrates the complete audio processing pipeline
+ * AudioProcessing - Orchestrates the complete audio processing pipeline
  *
  * Data Flow:
  * 1. Microphone -> Raw Audio File
  * 2. Raw Audio File -> Whisper -> Raw Text
- * 3. Raw Text -> AnonymizerService -> Clean Text
+ * 3. Raw Text -> Anonymizer -> Clean Text
  * 4. Raw Audio -> Sherpa -> Biocode
  * 5. Final Payload: { biocode, cleanTranscript, confidence }
  */
 
-import {BiocodeService} from './BiocodeService';
-import {AnonymizerService} from './AnonymizerService';
+import {Biocode} from './Biocode';
+import {Anonymizer} from './Anonymizer';
 import {AudioProcessingResult, ProcessingPayload} from '../Model/Type';
 
 // Type definitions for whisper.rn (to be implemented with native module)
@@ -21,21 +21,21 @@ interface WhisperRNInterface {
     }>;
 }
 
-export class AudioProcessingService {
+export class AudioProcessing {
     private whisperRN: WhisperRNInterface | null = null;
-    private biocodeService: BiocodeService;
-    private anonymizerService: AnonymizerService;
+    private biocodeService: Biocode;
+    private anonymizerService: Anonymizer;
 
     constructor(
-        biocodeService: BiocodeService,
-        anonymizerService: AnonymizerService,
+        biocodeService: Biocode,
+        anonymizerService: Anonymizer,
     ) {
         this.biocodeService = biocodeService;
         this.anonymizerService = anonymizerService;
     }
 
     /**
-     * Initialize the AudioProcessingService with whisper.rn native module
+     * Initialize the AudioProcessing with whisper.rn native module
      * @param whisperModule - The native whisper.rn module instance
      */
     async initialize(whisperModule: WhisperRNInterface): Promise<void> {
@@ -45,18 +45,18 @@ export class AudioProcessingService {
     /**
      * Process audio file through the complete pipeline
      * @param audioPath - Path to the raw audio file
-     * @param encounterId - Unique encounter identifier
+     * @param encounterUuid - Unique encounter UUID identifier
      * @param sessionStartDate - Start date/time of the encounter for temporal fuzzing
      * @returns Complete processing payload
      */
     async processAudio(
         audioPath: string,
-        encounterId: string,
+        encounterUuid: string,
         sessionStartDate: Date,
     ): Promise<ProcessingPayload> {
         if (!this.whisperRN) {
             throw new Error(
-                'AudioProcessingService not initialized. Call initialize() first.',
+                'AudioProcessing not initialized. Call initialize() first.',
             );
         }
 
@@ -83,7 +83,7 @@ export class AudioProcessingService {
             biocode: biocodeResult.biocode,
             cleanTranscript: anonymizationResult.cleanText,
             confidence: overallConfidence,
-            encounterId,
+            encounterUuid,
             timestamp: Date.now(),
         };
 
@@ -102,7 +102,7 @@ export class AudioProcessingService {
     ): Promise<AudioProcessingResult> {
         if (!this.whisperRN) {
             throw new Error(
-                'AudioProcessingService not initialized. Call initialize() first.',
+                'AudioProcessing not initialized. Call initialize() first.',
             );
         }
 

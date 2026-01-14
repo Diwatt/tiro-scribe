@@ -3,4 +3,10 @@
  */
 
 export * from './Type';
-export {default as QueueItem, QueueItemSchema} from './QueueItem';
+export * from './InterfaceModel';
+export * from './AbstractModel';
+export {QueueItem} from './QueueItem';
+export {Therapist} from './Therapist';
+export {Subject} from './Subject';
+export {Encounter, EncounterStatus} from './Encounter';
+export {TranscriptionSegment} from './TranscriptionSegment';
