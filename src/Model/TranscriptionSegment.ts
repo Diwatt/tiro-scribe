@@ -4,9 +4,9 @@
  * Stores individual segments with timing and confidence data
  */
 
+import {Model} from '@nozbe/watermelondb';
 import {field, date, relation} from '@nozbe/watermelondb/decorators';
 import type {TableSchemaSpec} from '@nozbe/watermelondb/Schema';
-import {AbstractModel} from './AbstractModel';
 import {Encounter} from './Encounter';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -17,7 +17,7 @@ dayjs.extend(utc);
  * TranscriptionSegment Model Class
  * Defines both schema specification and model fields in one class
  */
-export class TranscriptionSegment extends AbstractModel {
+export class TranscriptionSegment extends Model {
     /**
      * Database table name (static property)
      */

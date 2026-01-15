@@ -9,13 +9,10 @@ globs: ["**/*.ts", "**/*.tsx"]
 ## File Organization
 
 - **One interface per file**: Each interface must be in its own file
-- **One abstract class per file**: Each abstract class must be in its own file
-- **Naming convention**: Use `Abstract` prefix for abstract classes, not `Base`
-  - ✅ `AbstractModel.ts` (contains `AbstractModel` class)
+- **Naming convention**: Use descriptive names for interfaces
   - ✅ `InterfaceModel.ts` (contains `InterfaceModel` interface)
-  - ❌ `BaseModel.ts` (contains both interface and abstract class)
-  - ❌ `BaseWatermelonModel` (use `AbstractModel` instead)
-  - ❌ `IWatermelonModel.ts` (use `InterfaceModel.ts` instead)
+  - ❌ `IModel.ts` (don't use "I" prefix)
+  - ❌ `BaseModel.ts` (don't use "Base" prefix)
 
 ## Export Rules
 
@@ -38,18 +35,20 @@ globs: ["**/*.ts", "**/*.tsx"]
 ```typescript
 // src/Model/InterfaceModel.ts
 export interface InterfaceModel {
-    readonly table: string;
-    readonly schema: TableSchema;
-}
-
-// src/Model/AbstractModel.ts
-export abstract class AbstractModel extends Model {
-    static abstract table: string;
-    static abstract schema: TableSchema;
+    readonly tableName: string;
+    readonly schemaSpec: TableSchemaSpec;
 }
 
 // src/Model/MyModel.ts
-export class MyModel extends AbstractModel {
+import {Model} from '@nozbe/watermelondb';
+import type {InterfaceModel} from './InterfaceModel';
+
+export class MyModel extends Model implements InterfaceModel {
+    public static readonly tableName = 'my_table';
+    public static readonly schemaSpec: TableSchemaSpec = {
+        name: 'my_table',
+        columns: [...],
+    };
     // ...
 }
 ```
@@ -57,19 +56,17 @@ export class MyModel extends AbstractModel {
 ### Incorrect Structure
 
 ```typescript
-// ❌ Don't put interface and abstract in same file
-// src/Model/BaseModel.ts
-export interface InterfaceModel { ... }
-export abstract class AbstractModel { ... }
+// ❌ Don't use "I" prefix for interfaces
+export interface IModel { ... }
 
 // ❌ Don't use "Base" prefix
 export abstract class BaseModel { ... }
 
-// ❌ Don't use "I" prefix for interfaces (use InterfaceModel pattern)
-export interface IModel { ... }
-
 // ❌ Don't use default exports
 export default class MyModel { ... }
+
+// ❌ Don't create unnecessary abstract classes
+export abstract class AbstractModel extends Model { ... }
 ```
 
 ## Access Modifiers

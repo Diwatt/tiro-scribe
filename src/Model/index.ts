@@ -4,7 +4,6 @@
 
 export * from './Type';
 export * from './InterfaceModel';
-export * from './AbstractModel';
 export {QueueItem} from './QueueItem';
 export {Therapist} from './Therapist';
 export {Subject} from './Subject';
