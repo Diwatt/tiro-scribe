@@ -8,11 +8,12 @@ globs: ["**/services/**/*.ts", "**/services/**/*.tsx"]
 
 ## Native Module Integration
 
-This project uses three core AI native modules:
+This project uses ONNX Runtime for all AI model inference:
 
-1. **whisper.rn** - Speech-to-Text transcription
-2. **sherpa-onnx-react-native** - Speaker recognition and diarization
-3. **onnxruntime-react-native** - NLP/NER model inference
+1. **onnxruntime-react-native** - Core inference engine for all models:
+   - Speaker recognition models (Sherpa-ONNX format)
+   - BERT-NER models for text anonymization
+   - Transcription models (when available)
 
 ## Service Initialization Pattern
 
@@ -38,18 +39,20 @@ class MyService {
 
 ## BiocodeService Specifics
 
-- **Speaker Vector Extraction**: Use `sherpa-onnx.extractSpeakerVector(audioPath)`
-- **Cosine Similarity**: Implement fallback calculation if native module doesn't provide it
+- **Speaker Vector Extraction**: Use ONNX Runtime to load Sherpa-ONNX speaker recognition models
+- **Model Loading**: Models are downloaded automatically via `ModelDownloader` on first launch
+- **Cosine Similarity**: Implemented manually (no native module dependency)
 - **Salting**: Always use `Hash(SpeakerVector + TherapistID_Salt)` for patient ID generation
 - **Deterministic Hashing**: Use SHA-256 for consistent biocode generation
 
 ## AnonymizerService Specifics
 
 ### Layer 1: ONNX BERT-NER
-- Load quantized model: `onnxRuntime.loadModel(modelPath)`
-- Run inference: `onnxRuntime.runInference(text)`
+- Load quantized model: `ort.InferenceSession.create(modelPath)`
+- Run inference: Use ONNX Runtime session.run() with proper input tensors
 - Extract entities: Filter for `PER` (Person) and `LOC` (Location) labels
 - Confidence threshold: Use model confidence scores
+- Models downloaded automatically via `ModelDownloader`
 
 ### Layer 2: Heuristic Rules
 - Family relations: `mother`, `father`, `dad`, `mom`, `sister`, `brother`, etc.
@@ -72,9 +75,10 @@ class MyService {
 
 ## Model Paths
 
-- Store model paths in `@utils/constants.ts`
-- Use relative paths from app bundle
-- Models should be bundled with the app (not downloaded at runtime for security)
+- Store model paths in `@Util/Constant.ts`
+- Models are downloaded automatically on first launch via `ModelDownloader`
+- Models cached in document directory for offline use
+- Configure model URLs in `ModelDownloader.MODEL_CONFIGS`
 
 ## Performance Considerations
 

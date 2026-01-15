@@ -2,8 +2,11 @@
  * Application-wide constants
  */
 
+// Model paths are now managed by ModelDownloader
+// These are kept for backward compatibility
 export const ONNX_MODEL_PATHS = {
     BERT_NER: 'models/bert-ner-quantized.onnx',
+    SPEAKER_RECOGNITION: 'models/speaker-recognition.onnx',
 } as const;
 
 export const ENTITY_TOKENS = {

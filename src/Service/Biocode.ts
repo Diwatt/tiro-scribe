@@ -8,14 +8,10 @@
  */
 
 import CryptoJS from 'crypto-js';
+import * as ort from 'onnxruntime-react-native';
+import * as FileSystem from 'expo-file-system';
 import {SpeakerVector, BiocodeResult} from '../Model/Type';
 import {Therapist} from '../Model/Therapist';
-
-// Type definitions for sherpa-onnx (to be implemented with native module)
-interface SherpaOnnxInterface {
-    extractSpeakerVector(audioPath: string): Promise<SpeakerVector>;
-    compareVectors(vector1: number[], vector2: number[]): Promise<number>;
-}
 
 /**
  * Projected vector result
@@ -26,16 +22,68 @@ export interface ProjectedVector {
 }
 
 export class Biocode {
-    private sherpaOnnx: SherpaOnnxInterface | null = null;
+    private speakerSession: ort.InferenceSession | null = null;
+    private modelPath: string | null = null;
     private projectionMatrix: number[][] | null = null;
     private therapistUuid: string | null = null;
 
     /**
-     * Initialize the Biocode with sherpa-onnx native module
-     * @param sherpaOnnxModule - The native sherpa-onnx module instance
+     * Initialize the Biocode with ONNX Runtime and speaker recognition model
+     * @param modelPath - Path to the Sherpa-ONNX speaker recognition model (.onnx file)
      */
-    async initialize(sherpaOnnxModule: SherpaOnnxInterface): Promise<void> {
-        this.sherpaOnnx = sherpaOnnxModule;
+    async initialize(modelPath: string): Promise<void> {
+        try {
+            // Resolve the model path (handle both local and bundled assets)
+            const resolvedPath = await this.resolveModelPath(modelPath);
+            
+            // Load the ONNX model using ONNX Runtime
+            this.speakerSession = await ort.InferenceSession.create(resolvedPath, {
+                executionProviders: ['cpu'], // Use CPU execution provider
+            });
+            
+            this.modelPath = resolvedPath;
+        } catch (error) {
+            throw new Error(
+                `Failed to initialize speaker recognition model: ${error}`,
+            );
+        }
+    }
+
+    /**
+     * Resolve model path - downloads model if needed
+     */
+    private async resolveModelPath(modelPath: string): Promise<string> {
+        // If it's already an absolute path or starts with file://, use it directly
+        if (modelPath.startsWith('file://') || modelPath.startsWith('/')) {
+            return modelPath;
+        }
+
+        // Check if file exists in document directory (for downloaded models)
+        // Use the same pattern as ModelDownloader
+        const documentDir = (FileSystem as typeof FileSystem & {documentDirectory?: string}).documentDirectory || '';
+        const documentPath = `${documentDir}${modelPath}`;
+        const fileInfo = await FileSystem.getInfoAsync(documentPath);
+        
+        if (fileInfo.exists) {
+            return documentPath;
+        }
+
+        // Try to download the model if it's a known model
+        const {ModelDownloader, MODEL_CONFIGS} = await import('../Util/ModelDownloader');
+        
+        // Check if this is a known model config
+        const modelKey = Object.keys(MODEL_CONFIGS).find(
+            key => MODEL_CONFIGS[key].localPath === modelPath
+        );
+        
+        if (modelKey) {
+            // Download the model
+            return await ModelDownloader.ensureModelDownloaded(MODEL_CONFIGS[modelKey]);
+        }
+
+        throw new Error(
+            `Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`,
+        );
     }
 
     /**
@@ -191,24 +239,139 @@ export class Biocode {
     }
 
     /**
-     * Extract speaker vector from audio file
+     * Extract speaker vector from audio file using ONNX Runtime
      * @param audioPath - Path to the audio file
      * @returns Speaker vector with confidence score
      */
     async extractSpeakerVector(audioPath: string): Promise<SpeakerVector> {
-        if (!this.sherpaOnnx) {
+        if (!this.speakerSession) {
             throw new Error(
                 'Biocode not initialized. Call initialize() first.',
             );
         }
 
         try {
-            const result =
-                await this.sherpaOnnx.extractSpeakerVector(audioPath);
-            return result;
+            // Step 1: Load and preprocess audio
+            const audioFeatures = await this.preprocessAudio(audioPath);
+
+            // Step 2: Run inference with ONNX Runtime
+            const embedding = await this.runSpeakerInference(audioFeatures);
+
+            // Step 3: Normalize the embedding vector
+            const normalizedEmbedding = this.normalizeVector(embedding);
+
+            // Calculate confidence based on vector magnitude
+            const confidence = Math.min(1.0, Math.sqrt(
+                normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)
+            ));
+
+            return {
+                vector: normalizedEmbedding,
+                confidence,
+            };
         } catch (error) {
             throw new Error(`Failed to extract speaker vector: ${error}`);
         }
+    }
+
+    /**
+     * Preprocess audio file to extract features (mel spectrogram)
+     * This is a simplified version - you may need to use a native audio processing library
+     * or implement proper mel spectrogram extraction
+     */
+    private async preprocessAudio(audioPath: string): Promise<Float32Array> {
+        // TODO: Implement proper audio preprocessing
+        // For now, this is a placeholder. You'll need to:
+        // 1. Load audio file (WAV format, 16kHz, mono)
+        // 2. Convert to mel spectrogram features
+        // 3. Return as Float32Array with shape [batch, time, features]
+        
+        // Placeholder: Return dummy features
+        // In production, use a library like:
+        // - expo-audio for loading audio
+        // - A native module for mel spectrogram extraction
+        // - Or use Sherpa-ONNX's preprocessing utilities
+        
+        throw new Error(
+            'Audio preprocessing not implemented. You need to implement mel spectrogram extraction.',
+        );
+    }
+
+    /**
+     * Run speaker recognition inference using ONNX Runtime
+     */
+    private async runSpeakerInference(
+        features: Float32Array,
+    ): Promise<number[]> {
+        if (!this.speakerSession) {
+            throw new Error('Session not initialized');
+        }
+
+        // Get model input/output names
+        const inputName = this.speakerSession.inputNames[0];
+        const outputName = this.speakerSession.outputNames[0];
+
+        // Get input shape from model metadata
+        // Use a default shape - actual shape will be determined by the model
+        // You may need to adjust this based on your specific model
+        const inputShape: readonly number[] = [1, 80, 100]; // Default: [batch, mel_bins, time_frames]
+        
+        // Reshape features to match model input shape
+        // Typical shape: [batch, time_frames, mel_bins] or [batch, features]
+        const reshapedFeatures = this.reshapeFeatures(features, inputShape);
+
+        // Create input tensor
+        const tensor = new ort.Tensor('float32', reshapedFeatures, inputShape);
+
+        // Run inference
+        const results = await this.speakerSession.run({
+            [inputName]: tensor,
+        });
+
+        // Extract embedding from output
+        const outputTensor = results[outputName];
+        const embedding = Array.from(outputTensor.data as Float32Array);
+
+        return embedding;
+    }
+
+    /**
+     * Reshape features array to match model input shape
+     */
+    private reshapeFeatures(
+        features: Float32Array,
+        targetShape: readonly number[],
+    ): Float32Array {
+        // Calculate total elements
+        const totalElements = targetShape.reduce((a, b) => a * b, 1);
+        
+        // If features don't match, pad or truncate
+        if (features.length < totalElements) {
+            // Pad with zeros
+            const padded = new Float32Array(totalElements);
+            padded.set(features);
+            return padded;
+        } else if (features.length > totalElements) {
+            // Truncate
+            return features.slice(0, totalElements);
+        }
+        
+        return features;
+    }
+
+    /**
+     * Normalize vector to unit length (L2 normalization)
+     */
+    private normalizeVector(vector: number[]): number[] {
+        const magnitude = Math.sqrt(
+            vector.reduce((sum, val) => sum + val * val, 0),
+        );
+        
+        if (magnitude === 0) {
+            return vector;
+        }
+        
+        return vector.map(val => val / magnitude);
     }
 
     /**
@@ -225,11 +388,7 @@ export class Biocode {
             throw new Error('Vectors must have the same length');
         }
 
-        if (this.sherpaOnnx?.compareVectors) {
-            return await this.sherpaOnnx.compareVectors(vector1, vector2);
-        }
-
-        // Fallback: Manual cosine similarity calculation
+        // Calculate cosine similarity manually
         let dotProduct = 0;
         let magnitude1 = 0;
         let magnitude2 = 0;

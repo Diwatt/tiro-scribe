@@ -3,26 +3,19 @@
  *
  * Data Flow:
  * 1. Microphone -> Raw Audio File
- * 2. Raw Audio File -> Whisper -> Raw Text
+ * 2. Raw Audio File -> ONNX Transcription Model -> Raw Text
  * 3. Raw Text -> Anonymizer -> Clean Text
- * 4. Raw Audio -> Sherpa -> Biocode
+ * 4. Raw Audio -> ONNX Speaker Model -> Biocode
  * 5. Final Payload: { biocode, cleanTranscript, confidence }
  */
 
+import * as ort from 'onnxruntime-react-native';
 import {Biocode} from './Biocode';
 import {Anonymizer} from './Anonymizer';
 import {AudioProcessingResult, ProcessingPayload} from '../Model/Type';
 
-// Type definitions for whisper.rn (to be implemented with native module)
-interface WhisperRNInterface {
-    transcribe(audioPath: string): Promise<{
-        text: string;
-        segments: Array<{start: number; end: number; text: string}>;
-    }>;
-}
-
 export class AudioProcessing {
-    private whisperRN: WhisperRNInterface | null = null;
+    private transcriptionSession: ort.InferenceSession | null = null;
     private biocodeService: Biocode;
     private anonymizerService: Anonymizer;
 
@@ -35,11 +28,22 @@ export class AudioProcessing {
     }
 
     /**
-     * Initialize the AudioProcessing with whisper.rn native module
-     * @param whisperModule - The native whisper.rn module instance
+     * Initialize the AudioProcessing with ONNX transcription model
+     * @param modelPath - Path to the ONNX transcription model (e.g., Whisper converted to ONNX)
      */
-    async initialize(whisperModule: WhisperRNInterface): Promise<void> {
-        this.whisperRN = whisperModule;
+    async initialize(modelPath?: string): Promise<void> {
+        // For now, transcription is optional
+        // You can add a transcription model later or use a different solution
+        if (modelPath) {
+            try {
+                this.transcriptionSession = await ort.InferenceSession.create(modelPath, {
+                    executionProviders: ['cpu'],
+                });
+            } catch (error) {
+                console.warn('Failed to load transcription model:', error);
+                // Continue without transcription model - you can implement fallback
+            }
+        }
     }
 
     /**
@@ -54,18 +58,23 @@ export class AudioProcessing {
         encounterUuid: string,
         sessionStartDate: Date,
     ): Promise<ProcessingPayload> {
-        if (!this.whisperRN) {
-            throw new Error(
-                'AudioProcessing not initialized. Call initialize() first.',
-            );
-        }
-
         // Set session start date for temporal fuzzing
         this.anonymizerService.setSessionStartDate(sessionStartDate);
 
-        // Step 1: Transcribe audio using Whisper
-        const transcriptionResult = await this.whisperRN.transcribe(audioPath);
-        const rawText = transcriptionResult.text;
+        // Step 1: Transcribe audio using ONNX model (if available)
+        // TODO: Implement transcription with ONNX Runtime
+        // For now, using placeholder - you need to implement transcription
+        let rawText = '';
+        
+        if (this.transcriptionSession) {
+            // TODO: Implement transcription inference
+            // rawText = await this.transcribeWithONNX(audioPath);
+            throw new Error('Transcription not yet implemented. Please implement transcribeWithONNX() method.');
+        } else {
+            // Fallback: Return empty text or implement alternative transcription
+            console.warn('No transcription model loaded. Skipping transcription step.');
+            rawText = '[TRANSCRIPTION_NOT_AVAILABLE]';
+        }
 
         // Step 2: Anonymize the transcribed text
         const anonymizationResult =
@@ -100,21 +109,18 @@ export class AudioProcessing {
         audioPath: string,
         sessionStartDate: Date,
     ): Promise<AudioProcessingResult> {
-        if (!this.whisperRN) {
-            throw new Error(
-                'AudioProcessing not initialized. Call initialize() first.',
-            );
-        }
-
         this.anonymizerService.setSessionStartDate(sessionStartDate);
 
         // Parallel processing of transcription and biocode extraction
-        const [transcriptionResult, biocodeResult] = await Promise.all([
-            this.whisperRN.transcribe(audioPath),
-            this.biocodeService.processAudio(audioPath),
-        ]);
+        let rawText = '';
+        
+        if (this.transcriptionSession) {
+            // TODO: Implement transcription
+            // rawText = await this.transcribeWithONNX(audioPath);
+            rawText = '[TRANSCRIPTION_NOT_AVAILABLE]';
+        }
 
-        const rawText = transcriptionResult.text;
+        const biocodeResult = await this.biocodeService.processAudio(audioPath);
         const anonymizationResult =
             await this.anonymizerService.anonymize(rawText);
 

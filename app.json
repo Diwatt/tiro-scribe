@@ -1,4 +1,78 @@
 {
-  "name": "TiroScribe",
-  "displayName": "Tiro Scribe"
+  "expo": {
+    "name": "Tiro Scribe",
+    "slug": "tiro-scribe",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tiroscribe.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Tiro Scribe needs access to your microphone to record clinical sessions for research purposes.",
+        "NSPhotoLibraryUsageDescription": "Tiro Scribe needs access to your photo library to save processed audio files.",
+        "NSDocumentsFolderUsageDescription": "Tiro Scribe needs access to your documents folder to store encrypted research data."
+      }
+    },
+    "android": {
+      "package": "com.tiroscribe.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "@lovesworking/watermelondb-expo-plugin-sdk-52-plus",
+        {
+          "disableJsi": false,
+          "excludeSimArch": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "newArchEnabled": true,
+          "android": {
+            "packagingOptions": {
+              "pickFirst": [
+                "**/libc++_shared.so",
+                "**/libfbjni.so",
+                "**/libonnxruntime.so"
+              ]
+            },
+            "minSdkVersion": 24,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "kotlinVersion": "2.0.21",
+            "jvmArgs": [
+              "-Xmx4096m",
+              "-XX:MaxMetaspaceSize=1024m"
+            ]
+          },
+          "ios": {
+            "deploymentTarget": "15.1",
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Tiro Scribe needs access to your microphone to record clinical sessions for research purposes."
+        }
+      ],
+      "expo-file-system",
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": null
+      }
+    }
+  }
 }

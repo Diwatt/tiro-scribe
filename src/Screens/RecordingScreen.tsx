@@ -7,9 +7,9 @@ import React, {useState} from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, Surface, useTheme} from 'react-native-paper';
 import {RecordButton} from '@/Components';
-import {useAudioRecording} from '@Recording/Hook/AudioRecording';
-// TODO: Import AudioProcessing when available
-// import { AudioProcessing } from '@Service';
+import {useSecureWorkflow} from '@Recording/Hook/useSecureWorkflow';
+import {useServices} from '../Context/ServicesContext';
+import {useAppStore} from '@Store/AppStore';
 
 /**
  * RecordingScreen Component
@@ -22,44 +22,50 @@ import {useAudioRecording} from '@Recording/Hook/AudioRecording';
 export const RecordingScreen: React.FC = () => {
     const theme = useTheme();
     const [isPaused, setIsPaused] = useState(false);
+    const {biocodeService, anonymizerService, audioProcessingService} = useServices();
+    const {startNewSession} = useAppStore();
 
-    // TODO: Initialize AudioProcessing when available
-    // For now, we'll create a mock implementation
-    // const audioProcessingService = useMemo(() => {
-    //   return new AudioProcessing(biocodeService, anonymizerService);
-    // }, []);
+    // Use secure workflow hook
+    const {
+        isRecording,
+        isProcessing,
+        error: workflowError,
+        startRecording,
+        stopRecording,
+        processRecording,
+    } = useSecureWorkflow({
+        biocodeService: biocodeService!,
+        anonymizerService: anonymizerService!,
+        audioProcessingService: audioProcessingService!,
+    });
 
-    // Mock implementation until services are available
-    const [isRecording, setIsRecording] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // TODO: Replace with actual hook when AudioProcessing is available
-    // const { isRecording, isProcessing, error, startRecording, stopRecording } =
-    //   useAudioRecording(audioProcessingService);
+    const error = workflowError || 
+        (!biocodeService || !anonymizerService || !audioProcessingService
+            ? 'Services not initialized'
+            : null);
 
     const handleRecordPress = async () => {
+        if (!biocodeService || !anonymizerService || !audioProcessingService) {
+            console.error('Services not initialized');
+            return;
+        }
+
         try {
             if (isRecording) {
                 // Stop recording
-                setIsRecording(false);
-                setIsProcessing(true);
-                // TODO: Implement actual stop recording logic
-                // await stopRecording();
-                // Simulate processing delay
-                setTimeout(() => {
-                    setIsProcessing(false);
-                }, 1000);
+                await stopRecording();
+                
+                // Process the recording
+                const sessionId = startNewSession();
+                const sessionStartDate = new Date();
+                
+                await processRecording(sessionId, sessionStartDate);
             } else {
                 // Start recording
-                setError(null);
-                setIsRecording(true);
-                // TODO: Implement actual start recording logic
-                // await startRecording();
+                await startRecording();
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Recording failed');
-            setIsRecording(false);
+            console.error('Recording error:', err);
         }
     };
 
