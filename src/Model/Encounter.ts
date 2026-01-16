@@ -52,32 +52,32 @@ export class Encounter extends Model {
     };
 
     @field('uuid')
-    public uuid: string = '';
+    public uuid!: string;
 
     @field('subject_id')
-    public subjectId: string = '';
+    public subjectId!: string;
 
     @field('therapist_id')
-    public therapistId: string = '';
+    public therapistId!: string;
 
     @field('status')
-    public status: EncounterStatus = EncounterStatus.SCHEDULED;
+    public status!: EncounterStatus;
 
     @date('start_date')
-    public startDate: Date = dayjs.utc().toDate();
+    public startDate!: Date;
 
     @date('end_date')
-    public endDate: Date | null = null;
+    public endDate!: Date | null;
 
     @relation('subjects', 'subject_id')
-    public subject: Subject | null = null;
+    public subject!: Subject | null;
 
     @relation('therapists', 'therapist_id')
-    public therapist: Therapist | null = null;
+    public therapist!: Therapist | null;
 
     @date('created_at')
-    public createdAt: Date = dayjs.utc().toDate();
+    public createdAt!: Date;
 
     @date('updated_at')
-    public updatedAt: Date = dayjs.utc().toDate();
+    public updatedAt!: Date;
 }

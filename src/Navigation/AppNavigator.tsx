@@ -7,9 +7,9 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {RecordingScreen} from '@/Screens/RecordingScreen';
+import {HomeScreen} from '@/Screens/HomeScreen';
 
 // Placeholder screens (to be implemented)
-const HomeScreen = () => null;
 const SessionsScreen = () => null;
 const SettingsScreen = () => null;
 

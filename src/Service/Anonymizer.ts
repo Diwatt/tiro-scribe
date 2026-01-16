@@ -7,8 +7,11 @@
  * 3. Layer 3 (Temporal Fuzzing): Date/time shifting to relative timestamps
  */
 
-import {parse, format, addDays, differenceInDays} from 'date-fns';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import {AnonymizationResult, AnonymizedEntity, EntityType} from '../Model/Type';
+
+dayjs.extend(customParseFormat);
 
 // Type definitions for ONNX Runtime (to be implemented with native module)
 interface OnnxRuntimeInterface {
@@ -308,18 +311,21 @@ export class Anonymizer {
         try {
             let parsedDate: Date | null = null;
 
-            // Try parsing various date formats
+            // Try parsing various date formats (dayjs format syntax)
             const formats = [
-                'MMMM d, yyyy',
-                'MM/dd/yyyy',
-                'dd/MM/yyyy',
-                'yyyy',
+                'MMMM D, YYYY', // "January 12, 2024"
+                'MM/DD/YYYY', // "01/12/2024"
+                'DD/MM/YYYY', // "12/01/2024"
+                'YYYY', // "2024"
             ];
 
             for (const fmt of formats) {
                 try {
-                    parsedDate = parse(dateString, fmt, new Date());
-                    if (parsedDate && !isNaN(parsedDate.getTime())) break;
+                    const parsed = dayjs(dateString, fmt, true);
+                    if (parsed.isValid()) {
+                        parsedDate = parsed.toDate();
+                        break;
+                    }
                 } catch {
                     continue;
                 }
@@ -336,9 +342,9 @@ export class Anonymizer {
                 return null;
             }
 
-            const daysDiff = differenceInDays(
-                parsedDate,
-                this.sessionStartDate,
+            const daysDiff = dayjs(parsedDate).diff(
+                dayjs(this.sessionStartDate),
+                'day',
             );
 
             if (daysDiff === 0) {

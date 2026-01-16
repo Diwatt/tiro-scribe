@@ -45,7 +45,7 @@ export class Therapist extends Model {
     };
 
     @field('uuid')
-    public uuid: string = '';
+    public uuid!: string;
 
     /**
      * Password hash (never store plain password)
@@ -53,16 +53,16 @@ export class Therapist extends Model {
      * The projection_key is derived from password in memory, never stored.
      */
     @field('password_hash')
-    public passwordHash: string = '';
+    public passwordHash!: string;
 
     @field('name')
-    public name: string | null = null;
+    public name!: string | null;
 
     @date('created_at')
-    public createdAt: Date = dayjs.utc().toDate();
+    public createdAt!: Date;
 
     @date('updated_at')
-    public updatedAt: Date = dayjs.utc().toDate();
+    public updatedAt!: Date;
 
     /**
      * Get projection key derived from therapist's password

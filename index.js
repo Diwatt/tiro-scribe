@@ -5,6 +5,6 @@
 
 import {AppRegistry} from 'react-native';
 import App from './src/App';
-import {name as appName} from './app.json';
 
-AppRegistry.registerComponent(appName, () => App);
+// Register the app component with the name "main" as expected by native code
+AppRegistry.registerComponent('main', () => App);

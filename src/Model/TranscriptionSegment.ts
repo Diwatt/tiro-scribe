@@ -41,29 +41,29 @@ export class TranscriptionSegment extends Model {
     };
 
     @field('uuid')
-    public uuid: string = '';
+    public uuid!: string;
 
     @field('encounter_id')
-    public encounterId: string = '';
+    public encounterId!: string;
 
     @field('text')
-    public text: string = '';
+    public text!: string;
 
     @field('start_time')
-    public startTime: number = 0;
+    public startTime!: number;
 
     @field('end_time')
-    public endTime: number = 0;
+    public endTime!: number;
 
     @field('confidence')
-    public confidence: number | null = null;
+    public confidence!: number | null;
 
     @relation('encounters', 'encounter_id')
-    public encounter: Encounter | null = null;
+    public encounter!: Encounter | null;
 
     @date('created_at')
-    public createdAt: Date = dayjs.utc().toDate();
+    public createdAt!: Date;
 
     @date('updated_at')
-    public updatedAt: Date = dayjs.utc().toDate();
+    public updatedAt!: Date;
 }

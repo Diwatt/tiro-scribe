@@ -40,25 +40,25 @@ export class QueueItem extends Model {
     };
 
     @field('encounter_uuid')
-    public encounterUuid: string = '';
+    public encounterUuid!: string;
 
     @field('file_path')
-    public filePath: string = '';
+    public filePath!: string;
 
     @field('status')
-    public status: QueueItemStatus = QueueItemStatus.PENDING;
+    public status!: QueueItemStatus;
 
     @field('retry_count')
-    public retryCount: number = 0;
+    public retryCount!: number;
 
     @field('error_log')
-    public errorLog: string | null = null;
+    public errorLog!: string | null;
 
     @date('created_at')
-    public createdAt: Date = dayjs.utc().toDate();
+    public createdAt!: Date;
 
     @date('updated_at')
-    public updatedAt: Date = dayjs.utc().toDate();
+    public updatedAt!: Date;
 
     /**
      * Helper getter to check if item is processable

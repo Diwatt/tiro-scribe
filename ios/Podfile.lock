@@ -2086,6 +2086,51 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNSVG (15.15.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNSVG/common (= 15.15.1)
+    - Yoga
+  - RNSVG/common (15.15.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNWorklets (0.5.1):
     - hermes-engine
     - RCTRequired
@@ -2251,6 +2296,7 @@ DEPENDENCIES:
   - "RNGestureHandler (from `../node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-comm_pwj4f65xqdkvousembd24co2ii/node_modules/react-native-gesture-handler`)"
   - "RNReanimated (from `../node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+core@7.28_r5wwmuomdr3c4m7ewnie732x3i/node_modules/react-native-reanimated`)"
   - "RNScreens (from `../node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cl_cqsiwrbitcttghpgzu2xavk4lq/node_modules/react-native-screens`)"
+  - "RNSVG (from `../node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@2_cbmfjqjel3gosununro3ac66dm/node_modules/react-native-svg`)"
   - "RNWorklets (from `../node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28.6_@react-_2fbfeqwum4gn2clu6jqmspbboe/node_modules/react-native-worklets`)"
   - "simdjson (from `../node_modules/.pnpm/@nozbe+simdjson@3.9.4/node_modules/@nozbe/simdjson`)"
   - "WatermelonDB (from `../node_modules/.pnpm/@nozbe+watermelondb@0.28.0/node_modules/@nozbe/watermelondb`)"
@@ -2434,6 +2480,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+core@7.28_r5wwmuomdr3c4m7ewnie732x3i/node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cl_cqsiwrbitcttghpgzu2xavk4lq/node_modules/react-native-screens"
+  RNSVG:
+    :path: "../node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@2_cbmfjqjel3gosununro3ac66dm/node_modules/react-native-svg"
   RNWorklets:
     :path: "../node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28.6_@react-_2fbfeqwum4gn2clu6jqmspbboe/node_modules/react-native-worklets"
   simdjson:
@@ -2531,6 +2579,7 @@ SPEC CHECKSUMS:
   RNGestureHandler: c3831b3b1b5014c6afab7fff7e4171394a3419ab
   RNReanimated: 46e44b0a12e430d1b47477fdf95a9fda353cd2e2
   RNScreens: 33bbd1d0f86ed957557620dc94054b71db0a94ee
+  RNSVG: f21a6a473945a8f2ffc90b5589ebdf9dfd2309c6
   RNWorklets: a679098639ce65f7864c4ee129028ac641267ee8
   simdjson: 7bb9e33d87737cec966e7b427773c67baa4458fe
   WatermelonDB: 75e467adbaf2cb2809780fb3eda7ce4964e11778

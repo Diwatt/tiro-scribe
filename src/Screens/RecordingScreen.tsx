@@ -6,10 +6,10 @@
 import React, {useState} from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, Surface, useTheme} from 'react-native-paper';
+import {observer} from '@legendapp/state/react';
 import {RecordButton} from '@/Components';
-import {useSecureWorkflow} from '@Recording/Hook/useSecureWorkflow';
-import {useServices} from '../Context/ServicesContext';
-import {useAppStore} from '@Store/AppStore';
+import {useAudioRecording} from '@Recording/Hook/useAudioRecording';
+import {TiroScribeException} from '@/Exception';
 
 /**
  * RecordingScreen Component
@@ -19,52 +19,31 @@ import {useAppStore} from '@Store/AppStore';
  * - RecordButton for start/stop actions
  * - Error handling display
  */
-export const RecordingScreen: React.FC = () => {
+export const RecordingScreen: React.FC = observer(() => {
     const theme = useTheme();
-    const [isPaused, setIsPaused] = useState(false);
-    const {biocodeService, anonymizerService, audioProcessingService} = useServices();
-    const {startNewSession} = useAppStore();
+    const [error, setError] = useState<string | null>(null);
 
-    // Use secure workflow hook
-    const {
-        isRecording,
-        isProcessing,
-        error: workflowError,
-        startRecording,
-        stopRecording,
-        processRecording,
-    } = useSecureWorkflow({
-        biocodeService: biocodeService!,
-        anonymizerService: anonymizerService!,
-        audioProcessingService: audioProcessingService!,
-    });
-
-    const error = workflowError || 
-        (!biocodeService || !anonymizerService || !audioProcessingService
-            ? 'Services not initialized'
-            : null);
+    // Use audio recording store (OOP class with Legend-State observables)
+    const audioRecording = useAudioRecording();
 
     const handleRecordPress = async () => {
-        if (!biocodeService || !anonymizerService || !audioProcessingService) {
-            console.error('Services not initialized');
-            return;
-        }
-
+        setError(null);
         try {
-            if (isRecording) {
+            if (audioRecording.isRecording) {
                 // Stop recording
-                await stopRecording();
-                
-                // Process the recording
-                const sessionId = startNewSession();
-                const sessionStartDate = new Date();
-                
-                await processRecording(sessionId, sessionStartDate);
+                await audioRecording.stopRecording();
             } else {
                 // Start recording
-                await startRecording();
+                await audioRecording.startRecording();
             }
         } catch (err) {
+            const errorMessage =
+                err instanceof TiroScribeException
+                    ? err.message
+                    : err instanceof Error
+                      ? err.message
+                      : 'An unexpected error occurred';
+            setError(errorMessage);
             console.error('Recording error:', err);
         }
     };
@@ -110,18 +89,12 @@ export const RecordingScreen: React.FC = () => {
                             style={[
                                 styles.statusValue,
                                 {
-                                    color: isRecording
+                                    color: audioRecording.isRecording
                                         ? theme.colors.error
-                                        : isProcessing
-                                          ? theme.colors.tertiary
-                                          : theme.colors.primary,
+                                        : theme.colors.primary,
                                 },
                             ]}>
-                            {isProcessing
-                                ? 'Processing...'
-                                : isRecording
-                                  ? 'Recording'
-                                  : 'Ready'}
+                            {audioRecording.isRecording ? 'Recording' : 'Ready'}
                         </Text>
                     </View>
 
@@ -151,7 +124,7 @@ export const RecordingScreen: React.FC = () => {
                             styles.infoText,
                             {color: theme.colors.onSurfaceVariant},
                         ]}>
-                        {isRecording
+                        {audioRecording.isRecording
                             ? 'Recording in progress. Tap the button to stop.'
                             : 'Tap the button below to start recording.'}
                     </Text>
@@ -159,15 +132,14 @@ export const RecordingScreen: React.FC = () => {
             </ScrollView>
 
             <RecordButton
-                isRecording={isRecording}
-                isPaused={isPaused}
+                isRecording={audioRecording.isRecording}
                 onPress={handleRecordPress}
-                disabled={isProcessing}
+                disabled={false}
                 position="bottom-right"
             />
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {

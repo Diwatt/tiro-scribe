@@ -1,10 +1,10 @@
 /**
- * Queue Store - Zustand store for queue UI state management
+ * Queue Store - OOP class for queue UI state management using Legend-State
  *
  * Provides reactive state for queue statistics and processing status
  */
 
-import {create} from 'zustand';
+import {observable, Observable} from '@legendapp/state';
 import {Queue, QueueStats} from '@Service';
 import {database} from '@Service';
 import {QueueItem} from '@Model/QueueItem';
@@ -14,65 +14,82 @@ import {Q} from '@nozbe/watermelondb';
 interface QueueStoreState {
     stats: QueueStats;
     isProcessing: boolean;
-    refreshStats: () => Promise<void>;
-    startProcessing: () => void;
-    stopProcessing: () => void;
-    getPendingItems: () => Promise<QueueItem[]>;
-    getFailedItems: () => Promise<QueueItem[]>;
 }
 
 /**
- * Zustand store for queue management
- *
- * @example
- * ```tsx
- * const { stats, refreshStats, startProcessing } = useQueueStore();
- *
- * useEffect(() => {
- *   refreshStats();
- * }, []);
- * ```
+ * QueueStore - Singleton class for managing queue UI state
+ * 
+ * Uses Legend-State observables for reactive state management
+ * with an OOP interface
  */
-export const useQueueStore = create<QueueStoreState>((set, get) => ({
-    stats: {
-        pending: 0,
-        processing: 0,
-        completed: 0,
-        failed: 0,
-        total: 0,
-    },
-    isProcessing: false,
+class QueueStore {
+    private state: Observable<QueueStoreState>;
+
+    constructor() {
+        this.state = observable<QueueStoreState>({
+            stats: {
+                pending: 0,
+                processing: 0,
+                completed: 0,
+                failed: 0,
+                total: 0,
+            },
+            isProcessing: false,
+        });
+    }
+
+    /**
+     * Get the observable state for use in React components
+     */
+    getState(): Observable<QueueStoreState> {
+        return this.state;
+    }
+
+    /**
+     * Get current queue statistics
+     */
+    getStats(): QueueStats {
+        return this.state.stats.get();
+    }
+
+    /**
+     * Check if queue is processing
+     */
+    getIsProcessing(): boolean {
+        return this.state.isProcessing.get();
+    }
 
     /**
      * Refresh queue statistics from the database
      */
-    refreshStats: async () => {
+    async refreshStats(): Promise<void> {
         const stats = await Queue.getQueueStats();
         const isProcessing = Queue.isQueueProcessing();
-        set({stats, isProcessing});
-    },
+        this.state.stats.set(stats);
+        this.state.isProcessing.set(isProcessing);
+    }
 
     /**
      * Start automatic queue processing
      */
-    startProcessing: () => {
+    startProcessing(): void {
         Queue.startProcessing();
-        set({isProcessing: true});
-    },
+        this.state.isProcessing.set(true);
+    }
 
     /**
      * Stop automatic queue processing
      */
-    stopProcessing: () => {
+    stopProcessing(): void {
         Queue.stopProcessing();
-        set({isProcessing: false});
-    },
+        this.state.isProcessing.set(false);
+    }
 
     /**
      * Get all pending queue items
      * @returns Array of pending QueueItem instances
      */
-    getPendingItems: async (): Promise<QueueItem[]> => {
+    async getPendingItems(): Promise<QueueItem[]> {
         const queueCollection =
             database.collections.get<QueueItem>('queue_items');
         return await queueCollection
@@ -81,13 +98,13 @@ export const useQueueStore = create<QueueStoreState>((set, get) => ({
                 Q.sortBy('created_at', Q.asc),
             )
             .fetch();
-    },
+    }
 
     /**
      * Get all failed queue items
      * @returns Array of failed QueueItem instances
      */
-    getFailedItems: async (): Promise<QueueItem[]> => {
+    async getFailedItems(): Promise<QueueItem[]> {
         const queueCollection =
             database.collections.get<QueueItem>('queue_items');
         return await queueCollection
@@ -96,5 +113,45 @@ export const useQueueStore = create<QueueStoreState>((set, get) => ({
                 Q.sortBy('created_at', Q.desc),
             )
             .fetch();
-    },
-}));
+    }
+}
+
+// Export singleton instance
+export const queueStore = new QueueStore();
+
+/**
+ * Hook for queue management
+ * 
+ * Components using this hook should be wrapped with observer() from @legendapp/state/react
+ * for proper reactivity, or access state directly
+ * 
+ * @example
+ * ```tsx
+ * const { stats, refreshStats, startProcessing } = useQueueStore();
+ * 
+ * useEffect(() => {
+ *   refreshStats();
+ * }, []);
+ * ```
+ */
+export function useQueueStore() {
+    const state = queueStore.getState();
+
+    return {
+        // State values (access these in components wrapped with observer() for reactivity)
+        get stats() {
+            return state.stats.get();
+        },
+        get isProcessing() {
+            return state.isProcessing.get();
+        },
+        // State observable for direct access (use in observer components)
+        state: state,
+        // Methods
+        refreshStats: queueStore.refreshStats.bind(queueStore),
+        startProcessing: queueStore.startProcessing.bind(queueStore),
+        stopProcessing: queueStore.stopProcessing.bind(queueStore),
+        getPendingItems: queueStore.getPendingItems.bind(queueStore),
+        getFailedItems: queueStore.getFailedItems.bind(queueStore),
+    };
+}
