@@ -2,7 +2,7 @@
  * Unit tests for RecordingManager
  */
 
-import {RecordingManager} from '../RecordingManager';
+import {RecordingManager} from '../../../src/Recording/RecordingManager';
 import {
     RecordingPermissionError,
     RecorderNotInitializedError,

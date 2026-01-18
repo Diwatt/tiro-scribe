@@ -26,10 +26,10 @@ interface ServicesProviderProps {
     services: ServicesContextType;
 }
 
-export const ServicesProvider: React.FC<ServicesProviderProps> = ({
+export function ServicesProvider({
     children,
     services,
-}) => {
+}: ServicesProviderProps): React.JSX.Element {
     return (
         <ServicesContext.Provider value={services}>
             {children}

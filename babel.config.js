@@ -32,6 +32,13 @@ module.exports = function (api) {
                     },
                 },
             ],
+            // Inline environment variables at build time
+            [
+                'transform-inline-environment-variables',
+                {
+                    include: ['STORYBOOK_ENABLED'],
+                },
+            ],
             'react-native-reanimated/plugin',
         ],
     };

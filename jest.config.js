@@ -18,7 +18,6 @@ module.exports = {
         'src/**/*.{ts,tsx}',
         '!src/**/*.d.ts',
         '!src/**/*.stories.{ts,tsx}',
-        '!src/**/__tests__/**',
     ],
-    testMatch: ['**/__tests__/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    testMatch: ['**/tests/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
 };

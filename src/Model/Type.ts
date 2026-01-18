@@ -66,3 +66,16 @@ export enum QueueItemStatus {
     COMPLETED = 'COMPLETED',
     FAILED = 'FAILED',
 }
+
+/**
+ * Pipeline Stage Enum
+ * Stages of the audio processing pipeline
+ */
+export enum PipelineStage {
+    RECORDING = 'recording',
+    RECOGNITION = 'recognition',
+    FORMATTING = 'formatting',
+    ANONYMIZING = 'anonymizing',
+    SECURING = 'securing',
+    COMPLETED = 'completed',
+}

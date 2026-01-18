@@ -4,7 +4,6 @@ import {
     StyleSheet,
     ScrollView,
     RefreshControl,
-    Platform,
     TouchableOpacity,
 } from 'react-native';
 import {
@@ -13,21 +12,18 @@ import {
     useTheme,
     FAB,
     ProgressBar,
-    ActivityIndicator,
-    IconButton,
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {observer} from '@legendapp/state/react';
 import {useAudioRecording} from '@Recording/useAudioRecording';
 import {
-    Mic,
-    ShieldCheck,
     CheckCircle2,
     Loader2,
     Clock,
     FileText,
     ChevronRight,
 } from 'lucide-react-native';
+import {StatusReady, StatusProcessing} from '@/Components';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/en';
@@ -41,13 +37,6 @@ dayjs.extend(relativeTime);
 
 export const Home = observer((): React.JSX.Element => {
     const theme = useTheme();
-    const statusIdleColors = (theme.colors as any).statusIdle as {
-        bg: string;
-        text: string;
-        accent: string;
-        iconBg: string;
-        shadowColor: string;
-    };
     const navigation = useNavigation();
     const [refreshing, setRefreshing] = useState(false);
     const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
@@ -113,69 +102,18 @@ export const Home = observer((): React.JSX.Element => {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={statusIdleColors.text} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={(theme.colors as any).statusIdle.text} />
                 }
             >
-                <Surface style={[
-                    styles.heroCard,
-                    {
-                        backgroundColor: statusIdleColors.bg,
-                        shadowColor: statusIdleColors.shadowColor,
-                    },
-                ]}>
-                    <View style={styles.heroWatermark}>
-                        <ShieldCheck size={140} color={statusIdleColors.text} opacity={0.05} />
-                    </View>
-
-                    {isProcessing ? (
-                        <View>
-                            <View style={styles.rowBetween}>
-                                <View style={[styles.badgeProcessing, {backgroundColor: statusIdleColors.text}]}>
-                                    <ActivityIndicator size={14} color="#FFF" />
-                                    <Text style={styles.badgeText}>PROCESSING</Text>
-                                </View>
-                                <Text style={[styles.heroTime, {color: statusIdleColors.text}]}>~ 4 min</Text>
-                            </View>
-
-                            <Text style={[styles.heroTitle, {color: statusIdleColors.text}]}>
-                                Processing subject
-                            </Text>
-                            <Text style={[styles.heroSubtitle, {color: statusIdleColors.text}]}>
-                                {currentItem ? `ID: ${currentItem.encounterUuid.slice(0,8)}...` : "Preparing..."}
-                            </Text>
-
-                            {currentItem && (
-                                <View style={styles.progressContainer}>
-                                    <View style={styles.rowBetween}>
-                                        <Text style={[styles.progressLabel, {color: statusIdleColors.text}]}>
-                                            {currentItem.pipelineStage || 'Initialization'}
-                                        </Text>
-                                        <Text style={[styles.progressLabel, {color: statusIdleColors.text}]}>
-                                            {currentItem.progressPercent}%
-                                        </Text>
-                                    </View>
-                                    <ProgressBar 
-                                        progress={(currentItem.progressPercent || 0) / 100} 
-                                        color={statusIdleColors.text} 
-                                        style={styles.progressBar} 
-                                    />
-                                </View>
-                            )}
-                        </View>
-                    ) : (
-                        <View style={styles.heroContentZen}>
-                            <View style={[styles.iconCircle, { backgroundColor: statusIdleColors.iconBg }]}>
-                                <ShieldCheck size={32} color={statusIdleColors.text} />
-                            </View>
-                            <View style={{flex: 1}}>
-                                <Text style={[styles.heroTitle, {color: statusIdleColors.text}]}>System Ready</Text>
-                                <Text style={[styles.heroSubtitle, {color: statusIdleColors.text}]}>
-                                    Secure Offline Mode active.
-                                </Text>
-                            </View>
-                        </View>
-                    )}
-                </Surface>
+                {isProcessing ? (
+                    <StatusProcessing
+                        progress={currentItem?.progressPercent}
+                        currentTask={currentItem ? `${currentItem.pipelineStage || 'Initialization'}` : 'Preparing...'}
+                        timeEstimate="~ 4 min"
+                    />
+                ) : (
+                    <StatusReady />
+                )}
 
                 <Text style={[styles.sectionTitle, {color: theme.colors.onBackground}]}>Queue ({queueItems.length})</Text>
 
@@ -250,8 +188,8 @@ export const Home = observer((): React.JSX.Element => {
                 style={[
                     styles.fab,
                     {
-                        backgroundColor: statusIdleColors.text,
-                        shadowColor: statusIdleColors.shadowColor,
+                        backgroundColor: (theme.colors as any).statusIdle.text,
+                        shadowColor: (theme.colors as any).statusIdle.shadowColor,
                     },
                 ]}
                 color="#FFFFFF"
@@ -269,81 +207,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 60,
-    },
-    heroCard: {
-        borderRadius: 32,
-        padding: 24,
-        marginBottom: 32,
-        overflow: 'hidden',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-        elevation: 6,
-    },
-    heroWatermark: {
-        position: 'absolute',
-        right: -20,
-        bottom: -30,
-        zIndex: 0,
-    },
-    heroContentZen: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    iconCircle: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    heroTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        letterSpacing: -0.5,
-    },
-    heroSubtitle: {
-        fontSize: 15,
-        opacity: 0.8,
-        marginTop: 4,
-    },
-    rowBetween: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 1,
-    },
-    badgeProcessing: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        gap: 8,
-    },
-    badgeText: {
-        color: '#FFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    },
-    heroTime: {
-        fontWeight: 'bold',
-        opacity: 0.6,
-    },
-    progressContainer: {
-        marginTop: 20,
-    },
-    progressLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 8,
-    },
-    progressBar: {
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.5)',
     },
     sectionTitle: {
         fontSize: 18,

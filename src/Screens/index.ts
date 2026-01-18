@@ -3,4 +3,8 @@
  */
 
 export {RecordingScreen} from './RecordingScreen';
-export {HomeScreen} from './HomeScreen';
+export {Home} from './Home';
+export {LockScreen} from './LockScreen';
+export {SubjectsScreen} from './SubjectsScreen';
+export {SettingsScreen} from './SettingsScreen';
+export {TranscriptDetailScreen} from './TranscriptDetailScreen';

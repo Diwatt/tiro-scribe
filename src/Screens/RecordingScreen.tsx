@@ -8,7 +8,7 @@ import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, Surface, useTheme} from 'react-native-paper';
 import {observer} from '@legendapp/state/react';
 import {RecordButton} from '@/Components';
-import {useAudioRecording} from '@Recording/Hook/useAudioRecording';
+import {useAudioRecording} from '@Recording/useAudioRecording';
 import {TiroScribeException} from '@/Exception';
 
 /**
@@ -19,7 +19,11 @@ import {TiroScribeException} from '@/Exception';
  * - RecordButton for start/stop actions
  * - Error handling display
  */
-export const RecordingScreen: React.FC = observer(() => {
+interface RecordingScreenProps {
+    // No props needed for this screen
+}
+
+export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX.Element => {
     const theme = useTheme();
     const [error, setError] = useState<string | null>(null);
 
@@ -147,7 +151,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 16,
-        paddingBottom: 100, // Space for FAB
+        paddingBottom: 100,
     },
     card: {
         padding: 20,
