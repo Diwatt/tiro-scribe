@@ -4,14 +4,13 @@ import { Text, useTheme } from 'react-native-paper';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedProps,
   useAnimatedReaction,
   interpolate,
   interpolateColor,
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { WaveformBackground } from '../WaveformBackground';
-import { StylusWritingAnimation } from '../StylusWritingAnimation';
-import { BronzeStylusIcon } from '../BronzeStylusIcon';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import {
   AnimationController,
@@ -23,7 +22,11 @@ const CONFIG = {
   HEIGHT: 56,
 } as const;
 
+const ICONS = {
+  LOCK: 'M12,17C10.89,17 10,16.1 10,15C10,13.89 10.89,13 12,13C13.11,13 14,13.89 14,15C14,16.1 13.11,17 12,17M18,8H17V6C17,3.24 14.76,1 12,1C9.24,1 7,3.24 7,6V8H6C4.9,8 4,8.9 4,10V20C4,21.1 4.9,22 6,22H18C19.1,22 20,21.1 20,20V10C20,8.9 19.1,8 18,8M12,6C13.1,6 14,6.9 14,8V8H10V8C10,6.9 10.9,6 12,6Z',
+} as const;
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Props {
@@ -105,6 +108,35 @@ export function SecureSessionButton({
     opacity: interpolate(mode.value, [0.8, 1], [0, 1]),
   }));
 
+  const iconSpinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.value}deg` }],
+  }));
+
+  const squareStyle = useAnimatedStyle(() => ({
+    opacity: spin.value >= 90 && spin.value < 270 ? 0 : 1,
+  }));
+
+  const lockStyle = useAnimatedStyle(() => ({
+    opacity: spin.value >= 90 && spin.value < 270 ? 1 : 0,
+    transform: [{ rotate: '180deg' }],
+  }));
+
+  const recordingIconColorStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      colorPulse.value,
+      [0, 1],
+      [colors.recordingIconColorDark, colors.recordingIconColorLight]
+    ),
+  }));
+
+  const lockIconAnimatedProps = useAnimatedProps(() => ({
+    fill: interpolateColor(
+      colorPulse.value,
+      [0, 1],
+      [colors.recordingIconColorDark, colors.recordingIconColorLight]
+    ),
+  }));
+
   return (
     <View style={styles.centerHelper}>
       <AnimatedPressable
@@ -117,7 +149,9 @@ export function SecureSessionButton({
               <WaveformBackground />
             </Animated.View>
             <View style={styles.iconBox}>
-              <BronzeStylusIcon size={24} color={colors.idleTextIconColor} />
+              <Svg width={24} height={24} viewBox="0 0 24 24">
+                <Path d={ICONS.LOCK} fill={colors.idleTextIconColor} />
+              </Svg>
             </View>
             <Text
               variant="titleMedium"
@@ -128,7 +162,21 @@ export function SecureSessionButton({
 
           {/* RECORDING STATE */}
           <Animated.View style={[styles.recordingContent, recordingOpacity]}>
-            <StylusWritingAnimation />
+            <Animated.View style={iconSpinStyle}>
+              <Animated.View style={[styles.absoluteCenter, squareStyle]}>
+                <Animated.View
+                  style={[styles.stopShape, recordingIconColorStyle]}
+                />
+              </Animated.View>
+
+              <Animated.View
+                style={[styles.absoluteCenter, lockStyle]}
+                pointerEvents="none">
+                <Svg width={24} height={24} viewBox="0 0 24 24">
+                  <AnimatedPath d={ICONS.LOCK} animatedProps={lockIconAnimatedProps} />
+                </Svg>
+              </Animated.View>
+            </Animated.View>
           </Animated.View>
         </Animated.View>
       </AnimatedPressable>
@@ -187,5 +235,19 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  absoluteCenter: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    left: -12,
+    top: -12,
+  },
+  stopShape: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
   },
 });

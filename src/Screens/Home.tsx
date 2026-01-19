@@ -23,7 +23,7 @@ import {
     FileText,
     ChevronRight,
 } from 'lucide-react-native';
-import {StatusReady, StatusProcessing} from '@/Components';
+import {StatusReady, StatusProcessing, SecureSessionButton} from '@/Components';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/en';
@@ -80,7 +80,15 @@ export const Home = observer((): React.JSX.Element => {
     };
 
     const handleStartSession = async () => {
-        (navigation as any).navigate('Recording');
+        try {
+            if (audioRecording.isRecording) {
+                await audioRecording.stopRecording();
+            } else {
+                await audioRecording.startRecording();
+            }
+        } catch (error) {
+            console.error('Recording error:', error);
+        }
     };
 
     const getStatusConfig = (status: QueueItemStatus) => {
@@ -181,21 +189,12 @@ export const Home = observer((): React.JSX.Element => {
                 <View style={{ height: 100 }} /> 
             </ScrollView>
 
-            <FAB
-                icon="microphone" 
-                label="New Session"
-                onPress={handleStartSession}
-                style={[
-                    styles.fab,
-                    {
-                        backgroundColor: (theme.colors as any).statusIdle.text,
-                        shadowColor: (theme.colors as any).statusIdle.shadowColor,
-                    },
-                ]}
-                color="#FFFFFF"
-                mode="elevated"
-                uppercase={false}
-            />
+            <View style={styles.buttonContainer}>
+                <SecureSessionButton
+                    isRecording={audioRecording.isRecording}
+                    onPress={handleStartSession}
+                />
+            </View>
         </View>
     );
 });
@@ -274,14 +273,11 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
     },
-    fab: {
+    buttonContainer: {
         position: 'absolute',
+        left: 20,
         right: 20,
         bottom: 30,
-        borderRadius: 30,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        alignItems: 'center',
     },
 });
