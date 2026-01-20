@@ -72,8 +72,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       
       - name: Run Kotlin tests
-        working-directory: modules/secure-recorder
-        run: pnpm test -- --platform android
+        run: pnpm --filter secure-recorder test -- --platform android
 
   swift-tests:
     name: Swift Tests
@@ -92,5 +91,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
       
       - name: Run Swift tests
-        working-directory: modules/secure-recorder
-        run: pnpm test -- --platform ios
+        run: pnpm --filter secure-recorder test -- --platform ios
