@@ -49,7 +49,7 @@ jobs:
         run: pnpm test:typescript
 
   kotlin-tests:
-    name: Kotlin Tests
+    name: Kotlin Tests (Expo Module)
     runs-on: ubuntu-latest
     
     steps:
@@ -88,45 +88,22 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
       
-      - name: Install dependencies
+      - name: Install root dependencies
         if: steps.check-tests.outputs.tests_exist == 'true'
         run: pnpm install --frozen-lockfile
       
-      - name: Setup Gradle cache
+      - name: Install module dependencies
         if: steps.check-tests.outputs.tests_exist == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
+        working-directory: modules/secure-recorder
+        run: pnpm install --frozen-lockfile
       
-      - name: Run prebuild to generate Android files
+      - name: Run Kotlin tests via expo-module
         if: steps.check-tests.outputs.tests_exist == 'true'
-        run: CI=1 pnpm prebuild --platform android
-      
-      - name: Verify Android directory was created
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: |
-          if [ ! -d "android" ]; then
-            echo "Error: android directory was not created by prebuild"
-            exit 1
-          fi
-          echo "Android directory exists"
-          ls -la android/
-      
-      - name: Make gradlew executable
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: chmod +x android/gradlew
-      
-      - name: Run Kotlin tests
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: pnpm test:kotlin
+        working-directory: modules/secure-recorder
+        run: pnpm test -- --platform android
 
   swift-tests:
-    name: Swift Tests
+    name: Swift Tests (Expo Module)
     runs-on: macos-latest
     
     steps:
@@ -154,58 +131,16 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
       
-      - name: Install dependencies
+      - name: Install root dependencies
         if: steps.check-tests.outputs.tests_exist == 'true'
         run: pnpm install --frozen-lockfile
       
-      - name: Setup CocoaPods cache
+      - name: Install module dependencies
         if: steps.check-tests.outputs.tests_exist == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ios/Pods
-            ~/Library/Caches/CocoaPods
-          key: pods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: |
-            pods-${{ runner.os }}-
+        working-directory: modules/secure-recorder
+        run: pnpm install --frozen-lockfile
       
-      - name: Run prebuild to generate iOS files
+      - name: Run Swift tests via expo-module
         if: steps.check-tests.outputs.tests_exist == 'true'
-        run: CI=1 pnpm prebuild --platform ios
-      
-      - name: Verify iOS directory was created
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: |
-          if [ ! -d "ios" ]; then
-            echo "Error: ios directory was not created by prebuild"
-            exit 1
-          fi
-          echo "iOS directory exists"
-          ls -la ios/
-      
-      - name: Install CocoaPods dependencies
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: cd ios && pod install
-      
-      - name: Verify workspace was created
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: |
-          if [ ! -f "ios/TiroScribe.xcworkspace/contents.xcworkspacedata" ]; then
-            echo "Error: Xcode workspace was not created by pod install"
-            exit 1
-          fi
-          echo "Workspace exists"
-      
-      - name: Run Swift tests
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: |
-          # List only iPhones (fast, filtered)
-          SIMULATOR=$(xcrun simctl list devices iPhone available 2>/dev/null | grep -E "iPhone [0-9]" | head -1 | grep -oE '\([0-9A-F-]{36}\)' | tr -d '()')
-          
-          if [ -z "$SIMULATOR" ]; then
-            echo "No iPhone simulator found, using generic destination"
-            cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' -only-testing:TiroScribeTests || echo "No Swift unit tests found - skipping"
-          else
-            echo "Using simulator ID: $SIMULATOR"
-            cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination "platform=iOS Simulator,id=$SIMULATOR" -only-testing:TiroScribeTests || echo "No Swift unit tests found - skipping"
-          fi
+        working-directory: modules/secure-recorder
+        run: pnpm test -- --platform ios
