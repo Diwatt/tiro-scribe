@@ -1,6 +1,13 @@
 # OSX
 .DS_Store
 
+# Expo
+.expo/
+!.expo/README.md
+
+# VSCode
+.vscode/
+
 # Xcode
 build/
 *.pbxuser

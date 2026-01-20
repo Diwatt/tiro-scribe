@@ -1,5 +1,6 @@
 module.exports = function (api) {
-    api.cache(true);
+    // Cache based on environment variables to ensure Storybook mode works correctly
+    api.cache.using(() => process.env.STORYBOOK_ENABLED);
     return {
         presets: ['babel-preset-expo'],
         plugins: [

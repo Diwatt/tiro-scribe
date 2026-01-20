@@ -1,0 +1,14 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "deploymentTarget": "13.0",
+    "supportsTablet": true,
+    "supportsPhone": true
+  },
+  "android": {
+    "minSdkVersion": 24,
+    "targetSdkVersion": 35,
+    "supportsTablet": true,
+    "supportsPhone": true
+  }
+}

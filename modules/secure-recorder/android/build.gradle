@@ -1,0 +1,52 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+  namespace 'expo.modules.securerecorder'
+  compileSdkVersion 35
+
+  defaultConfig {
+    minSdkVersion 24
+    targetSdkVersion 35
+    
+    // Support both phone and tablet form factors
+    // Platform differences handled via resource qualifiers (e.g., res/values-sw600dp for tablets)
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = '17'
+  }
+
+  testOptions {
+    unitTests.returnDefaultValues = true
+    unitTests.all {
+      // Run tests on both phone and tablet configurations
+      // Note: For device-specific tests, use AndroidTest with different device configurations
+      testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        exceptionFormat "full"
+      }
+    }
+  }
+}
+
+dependencies {
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
+  implementation 'androidx.core:core-ktx:1.12.0'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+  
+  // Expo modules
+  implementation project(':expo-modules-core')
+  
+  // Test dependencies
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.0'
+  testImplementation 'io.mockk:mockk:1.13.8'
+  testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+}
