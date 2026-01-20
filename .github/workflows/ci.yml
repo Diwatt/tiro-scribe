@@ -178,27 +178,16 @@ jobs:
           fi
           echo "Workspace exists"
       
-      - name: List available simulators
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: xcrun simctl list devices available
-      
-      - name: Create iOS Simulator if needed
-        if: steps.check-tests.outputs.tests_exist == 'true'
-        run: |
-          # Check if any iOS simulators exist
-          if ! xcrun simctl list devices available | grep -q "iPhone"; then
-            echo "No simulators found, creating one..."
-            xcrun simctl create "iPhone-CI" com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-2
-          fi
-      
       - name: Run Swift tests
         if: steps.check-tests.outputs.tests_exist == 'true'
         run: |
-          # Use any available iOS simulator
-          SIMULATOR=$(xcrun simctl list devices available | grep iPhone | head -1 | sed 's/.*(\([^)]*\)).*/\1/')
+          # List only iPhones (fast, filtered)
+          SIMULATOR=$(xcrun simctl list devices iPhone available 2>/dev/null | grep -E "iPhone [0-9]" | head -1 | grep -oE '\([0-9A-F-]{36}\)' | tr -d '()')
+          
           if [ -z "$SIMULATOR" ]; then
-            echo "No simulator available, skipping Swift tests"
-            exit 0
+            echo "No iPhone simulator found, using generic destination"
+            cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' -only-testing:TiroScribeTests || echo "No Swift unit tests found - skipping"
+          else
+            echo "Using simulator ID: $SIMULATOR"
+            cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination "platform=iOS Simulator,id=$SIMULATOR" -only-testing:TiroScribeTests || echo "No Swift unit tests found - skipping"
           fi
-          echo "Using simulator: $SIMULATOR"
-          cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination "platform=iOS Simulator,id=$SIMULATOR" -only-testing:TiroScribeTests || echo "No Swift unit tests found - skipping"
