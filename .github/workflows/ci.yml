@@ -3,8 +3,26 @@ name: CI
 on:
   push:
     branches: [main, dev]
+    paths-ignore:
+      - '**.md'
+      - '**.svg'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.cursor/**'
+      - 'LICENCE'
+      - '.editorconfig'
+      - '.prettierrc.js'
   pull_request:
     branches: [main, dev]
+    paths-ignore:
+      - '**.md'
+      - '**.svg'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.cursor/**'
+      - 'LICENCE'
+      - '.editorconfig'
+      - '.prettierrc.js'
 
 jobs:
   typescript-tests:
