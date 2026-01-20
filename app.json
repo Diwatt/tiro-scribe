@@ -26,13 +26,6 @@
     },
     "plugins": [
       [
-        "@lovesworking/watermelondb-expo-plugin-sdk-52-plus",
-        {
-          "disableJsi": false,
-          "excludeSimArch": true
-        }
-      ],
-      [
         "expo-build-properties",
         {
           "newArchEnabled": true,

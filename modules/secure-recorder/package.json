@@ -2,16 +2,26 @@
   "name": "secure-recorder",
   "version": "1.0.0",
   "description": "Expo module for secure audio recording with streaming AES-256-GCM encryption",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "expo-module build",
+    "build:watch": "tsc --watch",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
     "prepare": "expo-module prepare",
     "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module"
+    "expo-module": "expo-module",
+    "validate": "echo '✅ Module structure' && test -f package.json && test -f expo-module.config.json && test -f android/build.gradle && test -f ios/SecureRecorderModule.swift && test -f src/index.ts && echo '✅ All required files present'",
+    "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain",
+    "verify:ios": "cd ios && for f in *.swift; do xcrun swiftc -parse \"$f\" -import-objc-header SecureRecorderModule-Bridging-Header.h || exit 1; done && echo '✅ Swift syntax OK'",
+    "build:android": "cd ../../android && ./gradlew :secure-recorder:assembleDebug",
+    "build:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15'",
+    "test:unit": "pnpm test:android && pnpm test:ios",
+    "test:android": "cd ../../android && ./gradlew :secure-recorder:testDebugUnitTest",
+    "test:ios": "cd ../../ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:TiroScribeTests",
+    "test:integration": "jest __tests__/integration.test.ts"
   },
   "keywords": [
     "react-native",
@@ -20,18 +30,22 @@
     "encryption",
     "audio"
   ],
-  "repository": "https://github.com/your-org/secure-recorder",
+  "repository": "https://github.com/Diwatt/tiro-scribe",
   "bugs": {
-    "url": "https://github.com/your-org/secure-recorder/issues"
+    "url": "https://github.com/Diwatt/tiro-scribe/issues"
   },
   "author": "Tiro Scribe",
   "license": "MIT",
-  "homepage": "https://github.com/your-org/secure-recorder#readme",
+  "homepage": "https://github.com/Diwatt/tiro-scribe",
   "dependencies": {},
   "devDependencies": {
-    "expo-module-scripts": "^3.0.0"
+    "expo-module-scripts": "^5.0.8",
+    "expo-modules-core": "*",
+    "expo-audio": "*"
   },
   "peerDependencies": {
-    "expo": "*"
+    "expo": "*",
+    "expo-audio": "*",
+    "expo-modules-core": "*"
   }
 }

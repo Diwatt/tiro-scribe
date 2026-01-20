@@ -8,6 +8,10 @@ const {getDefaultConfig} = require('expo/metro-config');
  */
 const config = getDefaultConfig(__dirname);
 
+// Configure Metro to handle .sql files for Drizzle migrations
+// This allows Metro to recognize and bundle SQL migration files
+config.resolver.sourceExts.push('sql');
+
 // Only wrap with Storybook when explicitly enabled
 const isStorybookEnabled = process.env.STORYBOOK_ENABLED === 'true';
 

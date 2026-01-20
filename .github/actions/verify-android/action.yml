@@ -1,0 +1,78 @@
+name: 'Verify Android Module'
+description: 'Verify Kotlin syntax, compilation, and tests for SecureRecorder'
+
+inputs:
+  module-path:
+    description: 'Path to the module directory'
+    required: false
+    default: 'modules/secure-recorder'
+  run-tests:
+    description: 'Whether to run tests (true/false)'
+    required: false
+    default: 'true'
+  java-version:
+    description: 'Java version to use'
+    required: false
+    default: '17'
+
+outputs:
+  test-results:
+    description: 'Test results summary'
+    value: ${{ steps.test.outputs.summary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ inputs.java-version }}
+    
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+    
+    - name: Cache Gradle
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          android/.gradle
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: gradle-${{ runner.os }}-
+    
+    - name: Compile secure-recorder module
+      shell: bash
+      working-directory: android
+      run: |
+        echo "::group::SecureRecorder Compilation"
+        ./gradlew :secure-recorder:compileDebugKotlin --console=plain
+        ./gradlew :secure-recorder:assembleDebug --console=plain --build-cache
+        echo "::endgroup::"
+    
+    - name: Run secure-recorder tests
+      if: inputs.run-tests == 'true'
+      id: test
+      shell: bash
+      working-directory: android
+      run: |
+        echo "::group::SecureRecorder Unit Tests (51 tests)"
+        ./gradlew :secure-recorder:testDebugUnitTest --console=plain
+        echo "::endgroup::"
+        
+        # Extract test summary
+        if [ -f secure-recorder/build/test-results/testDebugUnitTest/TEST-*.xml ]; then
+          TEST_COUNT=$(grep -o 'tests="[0-9]*"' secure-recorder/build/test-results/testDebugUnitTest/TEST-*.xml | head -1 | grep -o '[0-9]*')
+          echo "summary=✅ $TEST_COUNT tests passed" >> $GITHUB_OUTPUT
+        else
+          echo "summary=✅ Tests completed" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Upload test results
+      if: always() && inputs.run-tests == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-test-results
+        path: android/secure-recorder/build/test-results/
+        retention-days: 7

@@ -9,7 +9,7 @@
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import {AnonymizationResult, AnonymizedEntity, EntityType} from '../Model/Type';
+import {AnonymizationResult, AnonymizedEntity, EntityType} from '@Entity/Type';
 
 dayjs.extend(customParseFormat);
 

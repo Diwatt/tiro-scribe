@@ -10,8 +10,8 @@
 import CryptoJS from 'crypto-js';
 import * as ort from 'onnxruntime-react-native';
 import * as FileSystem from 'expo-file-system';
-import {SpeakerVector, BiocodeResult} from '../Model/Type';
-import {Therapist} from '../Model/Therapist';
+import {SpeakerVector, BiocodeResult} from '@Entity/Type';
+import {Therapist} from '@Entity/Therapist';
 
 /**
  * Projected vector result

@@ -1,0 +1,10 @@
+{
+  "targets": [
+    {
+      "name": "SecureRecorder",
+      "platforms": {
+        "iOS": "13.0"
+      }
+    }
+  ]
+}

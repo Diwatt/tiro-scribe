@@ -4,7 +4,7 @@
  */
 
 import {AudioProcessing} from './AudioProcessing';
-import {ProcessingPayload} from '@Model/Type';
+import {ProcessingPayload} from '@Entity/Type';
 
 /**
  * Adapter interface that QueueService expects

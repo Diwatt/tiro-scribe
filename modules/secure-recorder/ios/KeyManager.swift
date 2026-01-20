@@ -2,27 +2,25 @@ import Foundation
 import Security
 
 /**
- * Key management protocol for encryption key operations
+ * Key management for encryption key operations on iOS/iPadOS
+ * 
+ * Manages encryption keys stored in Keychain. Generates new keys or retrieves existing
+ * ones. Keys are accessible after first device unlock, crucial for background processing.
+ * 
+ * iOS/iPadOS SPECIFICITY:
+ * - Uses Keychain (Secure Enclave when available on supported devices)
+ * - Key stored with kSecAttrAccessibleAfterFirstUnlock (accessible after first unlock)
+ * - Returns Data (raw key bytes) for CryptoKit compatibility
+ * - Uses SecRandomCopyBytes for key generation
  */
-protocol KeyManager {
-  func getOrCreateKey(alias: String) throws -> Data
-}
-
-/**
- * iOS Keychain implementation of KeyManager
- */
-class KeychainKeyManager: KeyManager {
-  private let keychainService: String
-  private let keychainKey: String
+class KeyManager {
+  // Private properties
+  private let servicePrefix = "expo.modules.securerecorder"
   
-  init(keychainService: String, keychainKey: String) {
-    self.keychainService = keychainService
-    self.keychainKey = keychainKey
-  }
-  
-  func getOrCreateKey(alias: String) throws -> Data {
+  // Internal methods
+  internal func getOrCreateKey(alias: String) throws -> Data {
     // Try to retrieve key from Keychain
-    if let existingKey = retrieveKeyFromKeychain() {
+    if let existingKey = retrieveKeyFromKeychain(alias: alias) {
       return existingKey
     }
     
@@ -37,16 +35,17 @@ class KeychainKeyManager: KeyManager {
     }
     
     // Store in Keychain with kSecAttrAccessibleAfterFirstUnlock
-    try storeKeyInKeychain(key: newKey)
+    try storeKeyInKeychain(alias: alias, key: newKey)
     
     return newKey
   }
   
-  private func retrieveKeyFromKeychain() -> Data? {
+  // Private methods
+  private func retrieveKeyFromKeychain(alias: String) -> Data? {
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: keychainService,
-      kSecAttrAccount as String: keychainKey,
+      kSecAttrService as String: servicePrefix,
+      kSecAttrAccount as String: alias,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
       kSecReturnData as String: true
     ]
@@ -62,20 +61,20 @@ class KeychainKeyManager: KeyManager {
     return data
   }
   
-  private func storeKeyInKeychain(key: Data) throws {
+  private func storeKeyInKeychain(alias: String, key: Data) throws {
     // Delete existing key if present
     let deleteQuery: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: keychainService,
-      kSecAttrAccount as String: keychainKey
+      kSecAttrService as String: servicePrefix,
+      kSecAttrAccount as String: alias
     ]
     SecItemDelete(deleteQuery as CFDictionary)
     
     // Store new key
     let addQuery: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: keychainService,
-      kSecAttrAccount as String: keychainKey,
+      kSecAttrService as String: servicePrefix,
+      kSecAttrAccount as String: alias,
       kSecValueData as String: key,
       kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
     ]

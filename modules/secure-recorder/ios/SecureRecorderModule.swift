@@ -3,244 +3,248 @@ import AVFoundation
 import Foundation
 
 /**
- * Main SecureRecorder Expo module
- * Orchestrates audio recording with streaming encryption
+ * Expo module for SecureRecorder on iOS/iPadOS
+ * 
+ * Thin wrapper that delegates to Session. Provides Expo module interface for
+ * starting/stopping recordings, checking permissions, and decrypting audio files.
+ * Manages session lifecycle and emits status change events.
+ * 
+ * iOS/iPadOS SPECIFICITY:
+ * - Async methods (Swift async/await)
+ * - Uses applicationSupportDirectory for file storage (FileManager.url(for:in:appropriateFor:create:))
+ * - Permission check via AVAudioSession.recordPermission
+ * - Error enum (SecureRecorderError) with code property
+ * - KeyManager initialized without context (no context needed for Keychain)
+ * 
+ * ERROR CODE MAPPING (to TypeScript SecureRecorderError.code):
+ * - .recordingInProgress → "RECORDING_IN_PROGRESS"
+ * - .noRecordingInProgress → "NO_RECORDING_IN_PROGRESS"
+ * - .permissionDenied → "PERMISSION_DENIED"
+ * - .initializationFailed → "INITIALIZATION_FAILED"
+ * - .keychainError → "KEYCHAIN_ERROR"
+ * - .recordingFailed → "RECORDING_FAILED"
+ * - .stopFailed → "STOP_FAILED"
+ * 
+ * All errors include code property that Expo framework converts to JavaScript {code, message} objects.
  */
 public class SecureRecorderModule: Module {
-  // Dependencies (DIP)
-  private let keyManager: KeyManager
-  private let permissionManager: PermissionManager
-  private let audioRecorder: AudioRecorder
-  
-  // Recording state (thread-safe access)
-  private let stateQueue = DispatchQueue(label: "com.tiroscribe.secure-recorder.state")
-  private var _recordingState: RecordingState = .idle
-  private var recordingState: RecordingState {
-    get {
-      return stateQueue.sync { _recordingState }
-    }
-    set {
-      stateQueue.sync { _recordingState = newValue }
-    }
-  }
-  private var encryptionStream: EncryptionStreamManager?
-  private var audioEngine: AVAudioEngine?
-  private var inputNode: AVAudioInputNode?
-  
-  // Configuration
-  private let keychainService = "com.tiroscribe.secure-recorder"
-  private let keychainKey = "secure_recorder_encryption_key"
+  // Private properties
+  private lazy var keyManager: KeyManager = { KeyManager() }()
+  private lazy var audioRecorder: AudioRecorder = { AudioRecorder() }()
+  private lazy var audioConfig: AudioConfig = { AudioConfig() }()
+  private var currentSession: Session?
   private let keyAlias = "secure_recorder_key"
   
-  public override init() {
-    // Initialize dependencies
-    self.keyManager = KeychainKeyManager(
-      keychainService: keychainService,
-      keychainKey: keychainKey
-    )
-    self.permissionManager = IOSPermissionManager()
-    self.audioRecorder = AVAudioEngineRecorder()
-    super.init()
-  }
-  
+  // Public methods
   public func definition() -> ModuleDefinition {
     Name("SecureRecorder")
     
+    Events("onRecordingStatusChanged", "onAudioChunkDecrypted")
+    
     AsyncFunction("startRecording") { (sessionId: String) -> String in
-      return try await self.startRecording(sessionId: sessionId)
+      return try await self.startRecordingInternal(sessionId: sessionId)
     }
     
     AsyncFunction("stopRecording") { () -> String in
-      return try await self.stopRecording()
+      return try await self.stopRecordingInternal()
     }
     
-    AsyncFunction("getStatus") { () -> [String: Any?] in
-      return self.getStatus()
+    AsyncFunction("getStatus") { () -> [String: Any] in
+      return self.getStatusInternal()
     }
     
     AsyncFunction("hasPermission") { () -> Bool in
-      return self.permissionManager.has()
+      return self.hasPermission()
     }
     
-    AsyncFunction("requestPermission") { () -> Bool in
-      return await self.permissionManager.request()
+    AsyncFunction("stream") { (encryptedPath: String) -> Void in
+      try await self.streamDecryptionInternal(encryptedPath: encryptedPath)
     }
   }
   
-  private func startRecording(sessionId: String) async throws -> String {
+  // Private methods
+  private func emitStatusChanged(state: RecorderState, sessionId: String, filePath: String, reason: StopReason? = nil) {
+    var eventData: [String: Any] = [
+      "state": state.toJsString(),
+      "sessionId": sessionId,
+      "filePath": filePath
+    ]
+    if let reason = reason {
+      eventData["reason"] = reason.toJsString()
+    }
+    sendEvent("onRecordingStatusChanged", eventData)
+  }
+  
+  private func cleanupSession() {
+    if let session = currentSession {
+      session.cleanup()
+    }
+    currentSession = nil
+  }
+  
+  private func startRecordingInternal(sessionId: String) async throws -> String {
     // Validate session ID
     guard !sessionId.isEmpty else {
       throw SecureRecorderError.initializationFailed("Session ID cannot be empty")
     }
     
-    // Check if already recording and check permission (thread-safe)
-    let canStart = stateQueue.sync {
-      // Check if already recording
-      if _recordingState.isRecording {
-        return false
-      }
-      return true
-    }
-    
-    guard canStart else {
+    // Check if already recording
+    if let session = currentSession, session.stateManager.isActive {
       throw SecureRecorderError.recordingInProgress
     }
     
     // Check permission
-    guard permissionManager.has() else {
+    guard hasPermission() else {
       throw SecureRecorderError.permissionDenied
     }
     
-    // Continue with recording setup
-    return try await startRecordingInternal(sessionId: sessionId)
-  }
-  
-  private func startRecordingInternal(sessionId: String) async throws -> String {
     do {
-      // Get or create encryption key
-      let key = try keyManager.getOrCreateKey(alias: keyAlias)
+      // Create output file path
+      let fileURL = try createOutputFileURL(sessionId: sessionId)
       
-      // Create encrypted file in app's private directory (equivalent to Android's filesDir)
-      let fileManager = FileManager.default
-      let appSupportDir = try fileManager.url(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
+      // Create handler for limit events (async closure)
+      let onLimitReached: (StopReason, String, String) async -> Void = { [weak self] reason, sessionId, filePath in
+        guard let self = self else { return }
+        // Clear session reference (stop() was already called by Session)
+        self.currentSession = nil
+        self.emitStatusChanged(state: .stopped, sessionId: sessionId, filePath: filePath, reason: reason)
+      }
+      
+      // Create new recording session with handler
+      let session = Session(
+        sessionId: sessionId,
+        outputFile: fileURL,
+        keyManager: keyManager,
+        audioRecorder: audioRecorder,
+        audioConfig: audioConfig,
+        onLimitReached: onLimitReached
       )
-      let fileURL = appSupportDir.appendingPathComponent("\(sessionId).dat")
       
-      // Remove file if it exists
-      if FileManager.default.fileExists(atPath: fileURL.path) {
-        try FileManager.default.removeItem(at: fileURL)
-      }
+      // Start session
+      let filePath = try session.start(keyAlias: keyAlias)
+      currentSession = session
       
-      // Initialize encryption stream
-      encryptionStream = EncryptionStreamManager(secretKey: key, outputFile: fileURL)
-      try encryptionStream!.initialize()
+      emitStatusChanged(state: .recording, sessionId: sessionId, filePath: filePath)
       
-      // Start audio recording
-      let (engine, node, format) = try audioRecorder.start()
-      audioEngine = engine
-      inputNode = node
-      
-      // Install tap to capture audio buffers
-      audioRecorder.installTap(
-        on: node,
-        bufferSize: 4096,
-        format: format
-      ) { [weak self] buffer, _ in
-        self?.processAudioBuffer(buffer: buffer)
-      }
-      
-      // Update state (thread-safe)
-      stateQueue.sync {
-        _recordingState = RecordingState(
-          isRecording: true,
-          sessionId: sessionId,
-          filePath: fileURL.path
-        )
-      }
-      
-      return fileURL.path
+      return filePath
+    } catch let error as SecureRecorderError {
+      cleanupSession()
+      throw error
     } catch {
-      cleanup()
-      if let secureError = error as? SecureRecorderError {
-        throw secureError
-      }
+      cleanupSession()
       throw SecureRecorderError.initializationFailed(error.localizedDescription)
     }
   }
   
-  private func processAudioBuffer(buffer: AVAudioPCMBuffer) {
-    guard let encryptionStream = encryptionStream,
-          let channelData = buffer.int16ChannelData else {
-      return
-    }
-    
-    let frameLength = Int(buffer.frameLength)
-    let channelCount = Int(buffer.format.channelCount)
-    let dataSize = frameLength * channelCount * MemoryLayout<Int16>.size
-    
-    // Convert PCM data to Data
-    let audioData = Data(bytes: channelData.pointee, count: dataSize)
-    
-    // Encrypt and write
-    do {
-      try encryptionStream.write(data: audioData)
-    } catch {
-      // Log error but don't throw - recording will continue
-      print("Error encrypting audio buffer: \(error.localizedDescription)")
-    }
-  }
-  
-  private func stopRecording() async throws -> String {
-    let isRecording = stateQueue.sync {
-      return _recordingState.isRecording
-    }
-    
-    guard isRecording else {
+  private func stopRecordingInternal() async throws -> String {
+    guard let session = currentSession else {
       throw SecureRecorderError.noRecordingInProgress
     }
     
-    return try await stopRecordingInternal()
-  }
-  
-  private func stopRecordingInternal() async throws -> String {
+    guard session.stateManager.isActive else {
+      throw SecureRecorderError.noRecordingInProgress
+    }
+    
+    // Get session info before stopping
+    let sessionInfo = session.getInfo()
+    
     do {
-      // Stop audio recording
-      if let engine = audioEngine, let node = inputNode {
-        audioRecorder.stop(engine: engine, inputNode: node)
-      }
+      let filePath = try session.stop()
+      currentSession = nil
       
-      // Finalize encryption (writes authentication tag)
-      try encryptionStream?.finalize()
-      
-      // Close encryption stream
-      encryptionStream?.close()
-      encryptionStream = nil
-      
-      let filePath = stateQueue.sync { _recordingState.filePath ?? "" }
-      
-      // Reset state (thread-safe)
-      stateQueue.sync {
-        _recordingState = .idle
-      }
-      audioEngine = nil
-      inputNode = nil
+      emitStatusChanged(state: .stopped, sessionId: sessionInfo.sessionId, filePath: filePath, reason: .userStopped)
       
       return filePath
+    } catch let error as SecureRecorderError {
+      cleanupSession()
+      throw error
     } catch {
-      cleanup()
-      if let secureError = error as? SecureRecorderError {
-        throw secureError
-      }
+      cleanupSession()
       throw SecureRecorderError.stopFailed(error.localizedDescription)
     }
   }
   
-  private func getStatus() -> [String: Any?] {
-    let state = recordingState
+  private func getStatusInternal() -> [String: Any] {
+    guard let session = currentSession else {
+      return [
+        "state": RecorderState.inactive.toJsString(),
+        "sessionId": "",
+        "filePath": ""
+      ]
+    }
+    
+    let info = session.getInfo()
+    let state = RecorderState.fromState(isRecording: info.isActive, filePath: info.filePath)
     return [
-      "isRecording": state.isRecording,
-      "sessionId": state.sessionId,
-      "filePath": state.filePath
+      "state": state.toJsString(),
+      "sessionId": info.sessionId,
+      "filePath": info.filePath
     ]
   }
   
-  private func cleanup() {
-    stateQueue.sync {
-      if let engine = audioEngine, let node = inputNode {
-        audioRecorder.stop(engine: engine, inputNode: node)
+  private func createOutputFileURL(sessionId: String) throws -> URL {
+    let fileManager = FileManager.default
+    let appSupportDir = try fileManager.url(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true
+    )
+    return appSupportDir.appendingPathComponent("\(sessionId).dat")
+  }
+  
+  /**
+   * Stream decrypt encrypted audio file, emitting events for each chunk
+   * 
+   * MEMORY SAFE: Uses true streaming (FileHandle) to read chunks incrementally.
+   * Emits "onAudioChunkDecrypted" event for each decrypted chunk immediately,
+   * then discards the data to prevent OOM on large files.
+   * 
+   * @throws SecureRecorderError if decryption fails
+   */
+  private func streamDecryptionInternal(encryptedPath: String) async throws -> Void {
+    let encryptedFileURL = URL(fileURLWithPath: encryptedPath)
+    
+    // Validate encrypted file exists
+    guard FileManager.default.fileExists(atPath: encryptedPath) else {
+      throw SecureRecorderError.initializationFailed("Encrypted file not found: \(encryptedPath)")
+    }
+    
+    do {
+      // Get encryption key
+      let key = try keyManager.getOrCreateKey(alias: keyAlias)
+      
+      // Stream decrypt and emit events
+      let streamManager = StreamDecryptionManager(secretKey: key, encryptedFile: encryptedFileURL)
+      
+      try streamManager.stream { data, index, isLast in
+        // Emit event immediately - Expo SDK 54 converts Data → Uint8Array automatically
+        let eventData: [String: Any] = [
+          "data": data,
+          "index": index,
+          "isLast": isLast
+        ]
+        self.sendEvent("onAudioChunkDecrypted", eventData)
+        
+        // Data is automatically discarded after this scope
       }
       
-      encryptionStream?.finalize()
-      encryptionStream?.close()
-      encryptionStream = nil
-      
-      _recordingState = .idle
-      audioEngine = nil
-      inputNode = nil
+      // Paranoid Self-Destruct: Secure Data Shredding (Overwrite + Delete)
+      // Only in success path - if streaming fails, file remains for retry
+      // Silently ignore deletion errors (e.g. permission issues) since streaming succeeded
+      try? FileShredder.shred(fileURL: encryptedFileURL)
+    } catch let error as SecureRecorderError {
+      throw error
+    } catch {
+      throw SecureRecorderError.initializationFailed("Failed to decrypt audio: \(error.localizedDescription)")
     }
+  }
+  
+  /**
+   * Check if microphone recording permission is granted
+   * Note: Permission requests are handled via expo-audio in JavaScript
+   */
+  private func hasPermission() -> Bool {
+    return AVAudioSession.sharedInstance().recordPermission == .granted
   }
 }

@@ -10,5 +10,8 @@
     "targetSdkVersion": 35,
     "supportsTablet": true,
     "supportsPhone": true
+  },
+  "apple": {
+    "modules": ["SecureRecorderModule"]
   }
 }

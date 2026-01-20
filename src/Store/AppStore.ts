@@ -3,7 +3,7 @@
  */
 
 import {observable, Observable} from '@legendapp/state';
-import {ProcessingPayload} from '../Model/Type';
+import {ProcessingPayload} from '@Entity/Type';
 import {v4 as uuidv4} from 'uuid';
 
 interface AppState {

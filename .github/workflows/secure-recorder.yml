@@ -1,0 +1,100 @@
+name: SecureRecorder
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'modules/secure-recorder/**'
+      - '.github/workflows/secure-recorder.yml'
+      - '.github/actions/verify-*/**'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'modules/secure-recorder/**'
+      - '.github/workflows/secure-recorder.yml'
+      - '.github/actions/verify-*/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: 🤖 Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      
+      - uses: ./.github/actions/verify-android
+        id: verify
+        with:
+          run-tests: 'true'
+      
+      - name: Summary
+        run: |
+          echo "## 🤖 Android" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.verify.outputs.test-results }}" >> $GITHUB_STEP_SUMMARY
+
+  ios:
+    name: 🍎 iOS
+    runs-on: macos-latest
+    timeout-minutes: 30
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - run: pnpm install --frozen-lockfile
+      
+      - uses: ./.github/actions/verify-ios
+        id: verify
+        with:
+          run-tests: 'true'
+      
+      - name: Summary
+        run: |
+          echo "## 🍎 iOS" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.verify.outputs.test-results }}" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    name: 📊 Summary
+    runs-on: ubuntu-latest
+    needs: [android, ios]
+    if: always()
+    
+    steps:
+      - run: |
+          echo "## 📊 SecureRecorder Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.android.result }}" = "success" ]; then
+            echo "| 🤖 Android | ✅ PASSED |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🤖 Android | ❌ FAILED |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.ios.result }}" = "success" ]; then
+            echo "| 🍎 iOS | ✅ PASSED |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🍎 iOS | ❌ FAILED |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.android.result }}" != "success" ] || [ "${{ needs.ios.result }}" != "success" ]; then
+            exit 1
+          fi

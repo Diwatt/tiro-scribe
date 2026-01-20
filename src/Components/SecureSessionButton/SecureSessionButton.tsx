@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import Animated, {
@@ -17,6 +17,8 @@ import {
   DEFAULT_ANIMATION_CONFIG,
   type AnimationConfig,
 } from './AnimationController';
+import { SecureRecorder } from '../../../modules/secure-recorder/src/index';
+import { log } from '@/Util/Logger';
 
 const CONFIG = {
   HEIGHT: 56,
@@ -30,15 +32,17 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Props {
-  isRecording: boolean;
-  onPress: () => void;
+  isRecording?: boolean;
+  onPress?: () => void;
   animationConfig?: Partial<AnimationConfig>;
+  onRecordingChange?: (isRecording: boolean) => void;
 }
 
 export function SecureSessionButton({
-  isRecording,
-  onPress,
+  isRecording: externalIsRecording,
+  onPress: externalOnPress,
   animationConfig = {},
+  onRecordingChange,
 }: Props): React.JSX.Element {
   const theme = useTheme() as ExtendedTheme;
   const colors = theme.colors.secureSessionButton;
@@ -53,6 +57,14 @@ export function SecureSessionButton({
       ...animationConfig.colorPulse,
     },
   };
+
+  // Internal recording state
+  const [internalIsRecording, setInternalIsRecording] = useState(false);
+  const recorderRef = useRef<SecureRecorder | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  // Use external isRecording if provided, otherwise use internal state
+  const isRecording = externalIsRecording !== undefined ? externalIsRecording : internalIsRecording;
 
   const mode = useSharedValue(0);
   const spin = useSharedValue(0);
@@ -81,9 +93,101 @@ export function SecureSessionButton({
     }
   );
 
-  React.useEffect(() => {
+  // Initialize recorder on mount
+  useEffect(() => {
+    try {
+      const sessionId = `session-${Date.now()}`;
+      sessionIdRef.current = sessionId;
+      recorderRef.current = new SecureRecorder(sessionId);
+
+      // Set up event handlers
+      recorderRef.current.onstatuschange = (event) => {
+        log.info('Recording status changed:', {
+          state: event.state,
+          sessionId: event.sessionId,
+          filePath: event.filePath,
+          reason: event.reason,
+        });
+
+        const isActive = event.state === 'recording';
+        setInternalIsRecording(isActive);
+        onRecordingChange?.(isActive);
+      };
+
+      recorderRef.current.onerror = (error) => {
+        log.error('Recording error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+      };
+    } catch (error) {
+      log.error('Failed to initialize SecureRecorder:', error);
+      console.error('❌ SecureRecorder native module not available:', error);
+      // Don't set recorderRef.current, so handlePress will handle the error gracefully
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (recorderRef.current) {
+        try {
+          recorderRef.current.dispose();
+        } catch (error) {
+          log.error('Error disposing recorder:', error);
+        }
+        recorderRef.current = null;
+      }
+    };
+  }, [onRecordingChange]);
+
+  // Update shared value when isRecording changes
+  useEffect(() => {
     isRecordingShared.value = isRecording;
   }, [isRecording]);
+
+  // Handle button press - toggle recording
+  const handlePress = async () => {
+    // Call external onPress if provided (for backward compatibility)
+    if (externalOnPress) {
+      externalOnPress();
+      return;
+    }
+
+    // Internal recording management
+    const recorder = recorderRef.current;
+    if (!recorder) {
+      log.error('Recorder not initialized');
+      return;
+    }
+
+    try {
+      if (isRecording) {
+        // Stop recording
+        log.info('Stopping recording...');
+        const filePath = await recorder.stop();
+        
+        log.info('Recording stopped successfully:', {
+          sessionId: sessionIdRef.current,
+          filePath,
+          timestamp: new Date().toISOString(),
+        });
+        
+        console.log('📹 Recording stopped:', {
+          sessionId: sessionIdRef.current,
+          filePath,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        // Start recording
+        log.info('Starting recording...', { sessionId: sessionIdRef.current });
+        await recorder.start();
+        log.info('Recording started successfully');
+      }
+    } catch (error) {
+      log.error('Failed to toggle recording:', error);
+      console.error('❌ Recording error:', error);
+    }
+  };
 
   const containerStyle = useAnimatedStyle(() => {
     const rotate = interpolate(mode.value, [0, 1], [0, 180]);
@@ -141,7 +245,7 @@ export function SecureSessionButton({
     <View style={styles.centerHelper}>
       <AnimatedPressable
         style={[styles.container, containerStyle]}
-        onPress={onPress}>
+        onPress={handlePress}>
         <Animated.View style={[styles.innerStabilizer, contentWrapperStyle]}>
           {/* IDLE STATE */}
           <Animated.View style={[styles.idleContent, idleOpacity]}>

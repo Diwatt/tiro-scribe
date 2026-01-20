@@ -8,17 +8,20 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /**
- * Key management interface for encryption key operations
+ * Key management for encryption key operations on Android
+ * 
+ * Manages encryption keys stored in AndroidKeyStore. Generates new keys or retrieves
+ * existing ones. Keys are accessible after first device unlock, crucial for background processing.
+ * 
+ * ANDROID SPECIFICITY:
+ * - Uses AndroidKeyStore (hardware-backed when available on supported devices)
+ * - Key stored with setUnlockedDeviceRequired(true) (accessible after first unlock)
+ * - Returns SecretKey object for javax.crypto.Cipher compatibility
+ * - Uses KeyGenerator for key generation
  */
-interface KeyManager {
-  fun getOrCreateKey(alias: String): SecretKey
-}
-
-/**
- * AndroidKeyStore implementation of KeyManager
- */
-class AndroidKeyStoreManager(private val context: Context) : KeyManager {
-  override fun getOrCreateKey(alias: String): SecretKey {
+class KeyManager(private val context: Context) {
+  // Internal methods
+  internal fun getOrCreateKey(alias: String): SecretKey {
     val keyStore = KeyStore.getInstance("AndroidKeyStore")
     keyStore.load(null)
 

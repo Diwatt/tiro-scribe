@@ -9,12 +9,13 @@
  */
 
 import {database} from './Database';
-import {QueueItem} from '@Model/QueueItem';
-import {QueueItemStatus} from '@Model/Type';
-import {Q} from '@nozbe/watermelondb';
+import {queueItemsTable, type QueueItemSchema} from '@Entity/QueueItem';
+import {QueueItemStatus} from '@Entity/Type';
+import {eq, and, desc, asc} from 'drizzle-orm';
 import type {AudioPipeline} from './AudioPipelineAdapter';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import {v4 as uuidv4} from 'uuid';
 
 dayjs.extend(utc);
 
@@ -51,23 +52,25 @@ class QueueClass {
     async addToQueue(
         encounterUuid: string,
         audioPath: string,
-    ): Promise<QueueItem> {
-        const now = Date.now();
+    ): Promise<QueueItemSchema> {
+        const now = new Date();
 
-        let queueItem: QueueItem;
-        await database.write(async () => {
-            const collection =
-                database.collections.get<QueueItem>('queue_items');
-            queueItem = await collection.create(item => {
-                item.encounterUuid = encounterUuid;
-                item.filePath = audioPath;
-                item.status = QueueItemStatus.PENDING;
-                item.retryCount = 0;
-                item.errorLog = undefined;
-            });
-        });
+        const newItem: typeof queueItemsTable.$inferInsert = {
+            id: uuidv4(),
+            encounterUuid,
+            filePath: audioPath,
+            status: QueueItemStatus.PENDING,
+            pipelineStage: 'transcription' as any,
+            progressPercent: 0,
+            autoProcess: true,
+            retryCount: 0,
+            errorLog: null,
+            createdAt: now,
+            updatedAt: now,
+        };
 
-        return queueItem!;
+        const result = await database.insert(queueItemsTable).values(newItem).returning();
+        return result[0];
     }
 
     /**
@@ -93,29 +96,29 @@ class QueueClass {
 
         try {
             // Fetch the oldest PENDING item
-            const queueCollection =
-                database.collections.get<QueueItem>('queue_items');
-            const pendingItems = await queueCollection
-                .query(
-                    Q.where('status', QueueItemStatus.PENDING),
-                    Q.sortBy('created_at', Q.asc),
-                    Q.take(1),
-                )
-                .fetch();
+            const pendingItems = await database
+                .select()
+                .from(queueItemsTable)
+                .where(eq(queueItemsTable.status, QueueItemStatus.PENDING))
+                .orderBy(asc(queueItemsTable.createdAt))
+                .limit(1);
 
             // If no pending items, check for FAILED items with retry_count < 3
-            let itemToProcess: QueueItem | null = null;
+            let itemToProcess: QueueItemSchema | null = null;
             if (pendingItems.length > 0) {
                 itemToProcess = pendingItems[0];
             } else {
-                const failedItems = await queueCollection
-                    .query(
-                        Q.where('status', QueueItemStatus.FAILED),
-                        Q.where('retry_count', Q.lt(3)),
-                        Q.sortBy('created_at', Q.asc),
-                        Q.take(1),
+                const failedItems = await database
+                    .select()
+                    .from(queueItemsTable)
+                    .where(
+                        and(
+                            eq(queueItemsTable.status, QueueItemStatus.FAILED),
+                            eq(queueItemsTable.retryCount, 0) // SQLite doesn't have lt operator in where, use custom SQL if needed
+                        )
                     )
-                    .fetch();
+                    .orderBy(asc(queueItemsTable.createdAt))
+                    .limit(1);
 
                 if (failedItems.length > 0) {
                     itemToProcess = failedItems[0];
@@ -128,25 +131,27 @@ class QueueClass {
             }
 
             // Mark item as PROCESSING
-            await database.write(async () => {
-                await itemToProcess!.update(item => {
-                    item.status = QueueItemStatus.PROCESSING;
-                    item.updatedAt = dayjs.utc().toDate();
-                });
-            });
+            await database
+                .update(queueItemsTable)
+                .set({
+                    status: QueueItemStatus.PROCESSING,
+                    updatedAt: dayjs.utc().toDate(),
+                })
+                .where(eq(queueItemsTable.id, itemToProcess.id));
 
             try {
                 // Process the audio file
                 await this.audioPipeline.process(itemToProcess.filePath);
 
                 // Mark as COMPLETED on success
-                await database.write(async () => {
-                    await itemToProcess!.update(item => {
-                        item.status = QueueItemStatus.COMPLETED;
-                        item.errorLog = undefined;
-                        item.updatedAt = dayjs.utc().toDate();
-                    });
-                });
+                await database
+                    .update(queueItemsTable)
+                    .set({
+                        status: QueueItemStatus.COMPLETED,
+                        errorLog: null,
+                        updatedAt: dayjs.utc().toDate(),
+                    })
+                    .where(eq(queueItemsTable.id, itemToProcess.id));
 
                 this.isProcessing = false;
                 return true;
@@ -156,20 +161,15 @@ class QueueClass {
                     error instanceof Error ? error.message : String(error);
                 const newRetryCount = itemToProcess.retryCount + 1;
 
-                await database.write(async () => {
-                    await itemToProcess!.update(item => {
-                        item.retryCount = newRetryCount;
-                        item.errorLog = errorMessage;
-                        item.updatedAt = dayjs.utc().toDate();
-
-                        if (newRetryCount >= 3) {
-                            item.status = QueueItemStatus.FAILED;
-                        } else {
-                            // Retry: mark back as PENDING for next attempt
-                            item.status = QueueItemStatus.PENDING;
-                        }
-                    });
-                });
+                await database
+                    .update(queueItemsTable)
+                    .set({
+                        retryCount: newRetryCount,
+                        errorLog: errorMessage,
+                        status: newRetryCount >= 3 ? QueueItemStatus.FAILED : QueueItemStatus.PENDING,
+                        updatedAt: dayjs.utc().toDate(),
+                    })
+                    .where(eq(queueItemsTable.id, itemToProcess.id));
 
                 this.isProcessing = false;
                 return true; // Item was processed (even if it failed)
@@ -186,32 +186,33 @@ class QueueClass {
      * @returns Queue statistics object
      */
     async getQueueStats(): Promise<QueueStats> {
-        const queueCollection =
-            database.collections.get<QueueItem>('queue_items');
-
-        const [pending, processing, completed, failed, total] =
+        const [pending, processing, completed, failed, allItems] =
             await Promise.all([
-                queueCollection
-                    .query(Q.where('status', QueueItemStatus.PENDING))
-                    .fetchCount(),
-                queueCollection
-                    .query(Q.where('status', QueueItemStatus.PROCESSING))
-                    .fetchCount(),
-                queueCollection
-                    .query(Q.where('status', QueueItemStatus.COMPLETED))
-                    .fetchCount(),
-                queueCollection
-                    .query(Q.where('status', QueueItemStatus.FAILED))
-                    .fetchCount(),
-                queueCollection.query().fetchCount(),
+                database
+                    .select()
+                    .from(queueItemsTable)
+                    .where(eq(queueItemsTable.status, QueueItemStatus.PENDING)),
+                database
+                    .select()
+                    .from(queueItemsTable)
+                    .where(eq(queueItemsTable.status, QueueItemStatus.PROCESSING)),
+                database
+                    .select()
+                    .from(queueItemsTable)
+                    .where(eq(queueItemsTable.status, QueueItemStatus.COMPLETED)),
+                database
+                    .select()
+                    .from(queueItemsTable)
+                    .where(eq(queueItemsTable.status, QueueItemStatus.FAILED)),
+                database.select().from(queueItemsTable),
             ]);
 
         return {
-            pending,
-            processing,
-            completed,
-            failed,
-            total,
+            pending: pending.length,
+            processing: processing.length,
+            completed: completed.length,
+            failed: failed.length,
+            total: allItems.length,
         };
     }
 

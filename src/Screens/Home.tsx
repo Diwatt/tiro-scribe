@@ -29,9 +29,9 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/en';
 import {useQueueStore} from '@/Store/useQueueStore';
 import {database} from '@/Service/Database';
-import {QueueItem} from '@/Model/QueueItem';
-import {QueueItemStatus, PipelineStage} from '@/Model/Type';
-import {Q} from '@nozbe/watermelondb';
+import {queueItemsTable, type QueueItemSchema} from '@Entity/QueueItem';
+import {QueueItemStatus, PipelineStage} from '@Entity/Type';
+import {desc} from 'drizzle-orm';
 
 dayjs.extend(relativeTime);
 
@@ -39,7 +39,7 @@ export const Home = observer((): React.JSX.Element => {
     const theme = useTheme();
     const navigation = useNavigation();
     const [refreshing, setRefreshing] = useState(false);
-    const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
+    const [queueItems, setQueueItems] = useState<QueueItemSchema[]>([]);
 
     const {stats, refreshStats} = useQueueStore();
     const audioRecording = useAudioRecording();
@@ -58,10 +58,11 @@ export const Home = observer((): React.JSX.Element => {
 
     const loadQueueItems = async () => {
         try {
-            const queueCollection = database.collections.get<QueueItem>('queue_items');
-            const items = await queueCollection
-                .query(Q.sortBy('created_at', Q.desc), Q.take(20))
-                .fetch();
+            const items = await database
+                .select()
+                .from(queueItemsTable)
+                .orderBy(desc(queueItemsTable.createdAt))
+                .limit(20);
             setQueueItems(items);
         } catch (error) {
             console.error(error);

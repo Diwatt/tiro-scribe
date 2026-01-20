@@ -1,0 +1,72 @@
+package expo.modules.securerecorder
+
+import org.junit.Test
+import org.junit.Assert.*
+
+/**
+ * Unit tests for RecorderState
+ * Tests match iOS RecorderStateTests structure and naming
+ */
+class RecorderStateTest {
+
+  @Test
+  fun `toJsString returns correct values`() {
+    assertEquals("inactive", RecorderState.INACTIVE.toJsString())
+    assertEquals("recording", RecorderState.RECORDING.toJsString())
+    assertEquals("stopped", RecorderState.STOPPED.toJsString())
+  }
+
+  @Test
+  fun `fromJsString parses valid values`() {
+    assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString("inactive"))
+    assertEquals(RecorderState.RECORDING, RecorderState.fromJsString("recording"))
+    assertEquals(RecorderState.STOPPED, RecorderState.fromJsString("stopped"))
+  }
+
+  @Test
+  fun `fromJsString returns INACTIVE for unknown values`() {
+    assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString("unknown"))
+    assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString(""))
+    assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString("invalid_state"))
+  }
+
+  @Test
+  fun `fromState returns RECORDING when isRecording is true`() {
+    val state = RecorderState.fromState(isRecording = true, filePath = null)
+    
+    assertEquals(RecorderState.RECORDING, state)
+  }
+
+  @Test
+  fun `fromState returns STOPPED when filePath is not null and not recording`() {
+    val state = RecorderState.fromState(isRecording = false, filePath = "/path/to/file.dat")
+    
+    assertEquals(RecorderState.STOPPED, state)
+  }
+
+  @Test
+  fun `fromState returns INACTIVE when not recording and filePath is null`() {
+    val state = RecorderState.fromState(isRecording = false, filePath = null)
+    
+    assertEquals(RecorderState.INACTIVE, state)
+  }
+
+  @Test
+  fun `fromState prioritizes RECORDING over STOPPED`() {
+    // When recording, should return RECORDING even if filePath exists
+    val state = RecorderState.fromState(isRecording = true, filePath = "/path/to/file.dat")
+    
+    assertEquals(RecorderState.RECORDING, state)
+  }
+
+  @Test
+  fun `toJsString and fromJsString are inverse operations`() {
+    val states = listOf(RecorderState.INACTIVE, RecorderState.RECORDING, RecorderState.STOPPED)
+    
+    states.forEach { originalState ->
+      val jsString = originalState.toJsString()
+      val parsedState = RecorderState.fromJsString(jsString)
+      assertEquals("toJsString and fromJsString should be inverse", originalState, parsedState)
+    }
+  }
+}

@@ -7,10 +7,9 @@ This directory contains unit tests for all Kotlin classes in the secure-recorder
 - `SecureRecorderExceptionTest.kt` - Tests for exception hierarchy
 - `AudioConfigTest.kt` - Tests for audio configuration
 - `RecordingStateTest.kt` - Tests for immutable state data class
-- `PermissionManagerTest.kt` - Tests for permission management
 - `KeyManagerTest.kt` - Tests for key management (limited due to AndroidKeyStore requirements)
 - `AudioRecorderTest.kt` - Tests for audio recording interface
-- `EncryptionStreamManagerTest.kt` - Tests for encryption stream operations
+- `EncryptionStreamTest.kt` - Tests for encryption stream operations
 - `SecureRecorderModuleTest.kt` - Tests for main module (limited due to Expo infrastructure)
 
 ## Running Tests
@@ -26,9 +25,8 @@ cd modules/secure-recorder/android
 - ✅ Exception classes
 - ✅ Data classes (RecordingState)
 - ✅ Configuration classes (AudioConfig)
-- ✅ Permission manager (with mocks)
 - ✅ Audio recorder interface (with mocks)
-- ✅ Encryption stream manager (with real encryption)
+- ✅ Encryption stream (with real encryption)
 
 ### Limited Testability
 - ⚠️ KeyManager: Requires AndroidKeyStore (device/emulator needed)

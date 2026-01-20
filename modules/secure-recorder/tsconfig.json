@@ -1,8 +1,12 @@
 {
-  "extends": "expo-module-scripts/tsconfig.base",
+  "extends": "expo-module-scripts/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./build",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "lib": ["ES2015", "ES2017"],
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "build"]

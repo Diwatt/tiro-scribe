@@ -17,7 +17,7 @@ import {
     ChevronUp,
     CheckCircle,
 } from 'lucide-react-native';
-import {PipelineStage} from '@/Model/Type';
+import {PipelineStage} from '@Entity/Type';
 
 interface PipelineStep {
     stage: PipelineStage;

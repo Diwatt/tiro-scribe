@@ -12,7 +12,7 @@
 import * as ort from 'onnxruntime-react-native';
 import {Biocode} from './Biocode';
 import {Anonymizer} from './Anonymizer';
-import {AudioProcessingResult, ProcessingPayload} from '../Model/Type';
+import {AudioProcessingResult, ProcessingPayload} from '@Entity/Type';
 
 export class AudioProcessing {
     private transcriptionSession: ort.InferenceSession | null = null;

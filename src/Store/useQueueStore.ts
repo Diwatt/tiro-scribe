@@ -7,9 +7,9 @@
 import {observable, Observable} from '@legendapp/state';
 import {Queue, QueueStats} from '@Service';
 import {database} from '@Service';
-import {QueueItem} from '@Model/QueueItem';
-import {QueueItemStatus} from '@Model/Type';
-import {Q} from '@nozbe/watermelondb';
+import {queueItemsTable, type QueueItemSchema} from '@Entity/QueueItem';
+import {QueueItemStatus} from '@Entity/Type';
+import {eq, desc, asc} from 'drizzle-orm';
 
 interface QueueStoreState {
     stats: QueueStats;
@@ -89,30 +89,24 @@ class QueueStore {
      * Get all pending queue items
      * @returns Array of pending QueueItem instances
      */
-    async getPendingItems(): Promise<QueueItem[]> {
-        const queueCollection =
-            database.collections.get<QueueItem>('queue_items');
-        return await queueCollection
-            .query(
-                Q.where('status', QueueItemStatus.PENDING),
-                Q.sortBy('created_at', Q.asc),
-            )
-            .fetch();
+    async getPendingItems(): Promise<QueueItemSchema[]> {
+        return await database
+            .select()
+            .from(queueItemsTable)
+            .where(eq(queueItemsTable.status, QueueItemStatus.PENDING))
+            .orderBy(asc(queueItemsTable.createdAt));
     }
 
     /**
      * Get all failed queue items
      * @returns Array of failed QueueItem instances
      */
-    async getFailedItems(): Promise<QueueItem[]> {
-        const queueCollection =
-            database.collections.get<QueueItem>('queue_items');
-        return await queueCollection
-            .query(
-                Q.where('status', QueueItemStatus.FAILED),
-                Q.sortBy('created_at', Q.desc),
-            )
-            .fetch();
+    async getFailedItems(): Promise<QueueItemSchema[]> {
+        return await database
+            .select()
+            .from(queueItemsTable)
+            .where(eq(queueItemsTable.status, QueueItemStatus.FAILED))
+            .orderBy(desc(queueItemsTable.createdAt));
     }
 }
 

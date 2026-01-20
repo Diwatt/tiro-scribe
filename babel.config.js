@@ -24,6 +24,7 @@ module.exports = function (api) {
                     ],
                     alias: {
                         '@': './src',
+                        '@Entity': './src/Entity',
                         '@Service': './src/Service',
                         '@Model': './src/Model',
                         '@Util': './src/Util',
@@ -33,6 +34,8 @@ module.exports = function (api) {
                     },
                 },
             ],
+            // Inline SQL files as strings for Drizzle migrations
+            ['inline-import', {extensions: ['.sql']}],
             // Inline environment variables at build time
             [
                 'transform-inline-environment-variables',

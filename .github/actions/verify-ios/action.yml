@@ -1,0 +1,145 @@
+name: 'Verify iOS Module'
+description: 'Verify Swift syntax, compilation, and tests for SecureRecorder'
+
+inputs:
+  module-path:
+    description: 'Path to the module directory'
+    required: false
+    default: 'modules/secure-recorder'
+  run-tests:
+    description: 'Whether to run tests (true/false)'
+    required: false
+    default: 'true'
+  skip-prebuild:
+    description: 'Skip expo prebuild if workspace already exists'
+    required: false
+    default: 'false'
+
+outputs:
+  test-results:
+    description: 'Test results summary'
+    value: ${{ steps.test.outputs.summary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify Swift syntax
+      shell: bash
+      working-directory: ${{ inputs.module-path }}/ios
+      run: |
+        echo "::group::Swift Syntax Check"
+        
+        SWIFT_FILES=(
+          "SecureRecorderModule.swift"
+          "AudioConfig.swift"
+          "AudioRecorder.swift"
+          "KeyManager.swift"
+          "EncryptionStream.swift"
+          "StreamDecryptionManager.swift"
+          "RecorderState.swift"
+          "Error/SecureRecorderError.swift"
+        )
+        
+        FAILED=0
+        for file in "${SWIFT_FILES[@]}"; do
+          echo "Checking $file..."
+          if ! xcrun swiftc -parse "$file" -import-objc-header SecureRecorderModule-Bridging-Header.h 2>/dev/null; then
+            echo "::error file=$file::Syntax error in $file"
+            xcrun swiftc -parse "$file" -import-objc-header SecureRecorderModule-Bridging-Header.h 2>&1
+            FAILED=1
+          fi
+        done
+        
+        if [ $FAILED -eq 1 ]; then
+          exit 1
+        fi
+        
+        echo "✅ All Swift files passed syntax check"
+        echo "::endgroup::"
+    
+    - name: Check for iOS workspace
+      id: check-workspace
+      shell: bash
+      run: |
+        if [ -d "ios/TiroScribe.xcworkspace" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Run expo prebuild
+      if: steps.check-workspace.outputs.exists == 'false' && inputs.skip-prebuild == 'false'
+      shell: bash
+      run: |
+        echo "::group::Expo Prebuild (iOS)"
+        npx expo prebuild --platform ios --clean
+        echo "::endgroup::"
+    
+    - name: Install CocoaPods
+      if: steps.check-workspace.outputs.exists == 'true' || inputs.skip-prebuild == 'false'
+      shell: bash
+      working-directory: ios
+      run: |
+        echo "::group::CocoaPods Install"
+        pod install --repo-update
+        echo "::endgroup::"
+    
+    - name: Build iOS module
+      if: steps.check-workspace.outputs.exists == 'true' || inputs.skip-prebuild == 'false'
+      shell: bash
+      working-directory: ios
+      run: |
+        echo "::group::iOS Module Build"
+        # Use generic destination that works in CI
+        xcodebuild build \
+          -workspace TiroScribe.xcworkspace \
+          -scheme TiroScribe \
+          -destination 'generic/platform=iOS Simulator' \
+          -quiet
+        echo "::endgroup::"
+    
+    - name: List available simulators
+      if: (steps.check-workspace.outputs.exists == 'true' || inputs.skip-prebuild == 'false') && inputs.run-tests == 'true'
+      shell: bash
+      run: |
+        echo "::group::Available iOS Simulators"
+        xcrun simctl list devices available iPhone
+        echo "::endgroup::"
+    
+    - name: Run Swift tests
+      if: (steps.check-workspace.outputs.exists == 'true' || inputs.skip-prebuild == 'false') && inputs.run-tests == 'true'
+      id: test
+      shell: bash
+      working-directory: ios
+      run: |
+        echo "::group::Swift Unit Tests"
+        # Find first available iPhone simulator
+        SIMULATOR=$(xcrun simctl list devices available iPhone | grep -m 1 "iPhone" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
+        
+        if [ -z "$SIMULATOR" ]; then
+          echo "::error::No iPhone simulator found"
+          exit 1
+        fi
+        
+        echo "Using simulator: $SIMULATOR"
+        
+        xcodebuild test \
+          -workspace TiroScribe.xcworkspace \
+          -scheme TiroScribe \
+          -destination "id=$SIMULATOR" \
+          -only-testing:TiroScribeTests \
+          -quiet \
+          | tee xcodebuild-test.log
+        
+        # Extract test summary
+        TEST_COUNT=$(grep -o "Test Suite.*passed" xcodebuild-test.log | tail -1 || echo "completed")
+        echo "summary=✅ Tests $TEST_COUNT" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
+    
+    - name: Upload test results
+      if: always() && inputs.run-tests == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-test-results
+        path: ios/xcodebuild-test.log
+        retention-days: 7

@@ -4,12 +4,13 @@
  * Services are disabled - only recording functionality is enabled
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {PaperProvider} from 'react-native-paper';
 import {AppNavigator} from './Navigation/AppNavigator';
 import {AppTheme} from './theme/AppTheme';
 import {ServicesProvider} from './Context/ServicesContext';
+import {ensureDatabaseInitialized} from '@Service/Database';
 
 // Storybook UI (only loaded when STORYBOOK_ENABLED is true)
 let StorybookUIRoot: React.ComponentType | null = null;
@@ -30,9 +31,26 @@ if (__DEV__) {
 }
 
 export function App() {
+    const [dbReady, setDbReady] = useState(false);
+
+    // Initialize database on mount
+    useEffect(() => {
+        ensureDatabaseInitialized()
+            .then(() => setDbReady(true))
+            .catch(error => {
+                console.error('Failed to initialize database:', error);
+                setDbReady(true); // Continue anyway to show error UI
+            });
+    }, []);
+
     // Load Storybook if enabled
     if (StorybookUIRoot) {
         return <StorybookUIRoot />;
+    }
+
+    // Wait for database initialization
+    if (!dbReady) {
+        return null; // Or a loading screen
     }
 
     // Services are disabled - set all to null
