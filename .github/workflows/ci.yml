@@ -59,6 +59,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
+      - name: Setup Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+      
       - name: Run prebuild to generate Android files
         run: CI=1 pnpm prebuild --platform android
       
@@ -96,6 +106,16 @@ jobs:
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      
+      - name: Setup CocoaPods cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ runner.os }}-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
       
       - name: Run prebuild to generate iOS files
         run: CI=1 pnpm prebuild --platform ios

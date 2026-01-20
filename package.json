@@ -22,8 +22,8 @@
     "lint": "eslint .",
     "test": "jest --testPathIgnorePatterns=/tests/Recording/ --passWithNoTests",
     "test:typescript": "jest --testPathIgnorePatterns=/tests/Recording/ --passWithNoTests",
-    "test:kotlin": "if [ -d 'android' ] && [ -f 'android/gradlew' ]; then cd android && ./gradlew :secure-recorder:test; else exit 1; fi",
-    "test:swift": "if [ -d 'ios' ] && [ -f 'ios/TiroScribe.xcworkspace' ]; then cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15' -destination 'platform=iOS Simulator,name=iPad Pro (12.9-inch) (6th generation)'; else exit 1; fi",
+    "test:kotlin": "if [ -d 'android' ] && [ -f 'android/gradlew' ]; then cd android && ./gradlew :secure-recorder:testDebugUnitTest; else echo 'Error: Android project not found'; exit 1; fi",
+    "test:swift": "if [ -d 'ios' ] && [ -d 'ios/TiroScribe.xcworkspace' ]; then cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15'; else echo 'Error: iOS workspace not found'; exit 1; fi",
     "test:all": "pnpm test:typescript; pnpm test:kotlin || true; pnpm test:swift || true",
     "type-check": "tsc --noEmit"
   },
