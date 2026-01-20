@@ -6,7 +6,7 @@ android {
   compileSdkVersion 35
 
   defaultConfig {
-    minSdkVersion 24
+    minSdkVersion 28
     targetSdkVersion 35
     
     // Support both phone and tablet form factors

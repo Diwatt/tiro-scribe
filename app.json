@@ -44,7 +44,7 @@
                 "**/libonnxruntime.so"
               ]
             },
-            "minSdkVersion": 24,
+            "minSdkVersion": 28,
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
@@ -55,7 +55,7 @@
             ]
           },
           "ios": {
-            "deploymentTarget": "15.1",
+            "deploymentTarget": "15.0",
             "useFrameworks": "static"
           }
         }
