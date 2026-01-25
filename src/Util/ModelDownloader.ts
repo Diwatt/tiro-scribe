@@ -5,6 +5,8 @@
  */
 
 import * as FileSystem from 'expo-file-system';
+import {AppLogger, LoggerInterface} from './Logger';
+import {ModelDownloadError} from '../Exception/ModelDownloadError';
 
 export interface ModelConfig {
     name: string;
@@ -29,6 +31,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
 
 export class ModelDownloader {
     private static downloadProgress: Map<string, number> = new Map();
+    private static loggerInstance: LoggerInterface = AppLogger.getInstance();
 
     /**
      * Download a model if it doesn't exist locally
@@ -45,7 +48,7 @@ export class ModelDownloader {
         // Check if model already exists
         const fileInfo = await FileSystem.getInfoAsync(localPath);
         if (fileInfo.exists) {
-            console.log(`Model ${config.name} already exists at ${localPath}`);
+            ModelDownloader.loggerInstance.debug(`Model ${config.name} already exists at ${localPath}`);
             return localPath;
         }
 
@@ -57,7 +60,7 @@ export class ModelDownloader {
         }
 
         // Download the model
-        console.log(`Downloading model ${config.name} from ${config.url}...`);
+        ModelDownloader.loggerInstance.info(`Downloading model ${config.name} from ${config.url}...`);
         
         const downloadResumable = FileSystem.createDownloadResumable(
             config.url,
@@ -75,7 +78,7 @@ export class ModelDownloader {
         try {
             const result = await downloadResumable.downloadAsync();
             if (!result) {
-                throw new Error('Download failed - no result');
+                throw new ModelDownloadError('Download failed - no result');
             }
 
             // Verify checksum if provided
@@ -83,7 +86,7 @@ export class ModelDownloader {
                 await this.verifyChecksum(localPath, config.checksum);
             }
 
-            console.log(`Model ${config.name} downloaded successfully to ${localPath}`);
+            ModelDownloader.loggerInstance.info(`Model ${config.name} downloaded successfully to ${localPath}`);
             return localPath;
         } catch (error) {
             // Clean up partial download on error
@@ -91,7 +94,10 @@ export class ModelDownloader {
             if (fileInfo.exists) {
                 await FileSystem.deleteAsync(localPath, {idempotent: true});
             }
-            throw new Error(`Failed to download model ${config.name}: ${error}`);
+            throw new ModelDownloadError(
+                `Failed to download model ${config.name}: ${error}`,
+                error instanceof Error ? error : new Error(String(error)),
+            );
         }
     }
 
@@ -128,7 +134,7 @@ export class ModelDownloader {
     ): Promise<void> {
         // TODO: Implement SHA-256 checksum verification
         // For now, this is a placeholder
-        console.warn('Checksum verification not implemented');
+        ModelDownloader.loggerInstance.warn('Checksum verification not implemented');
     }
 
     /**
@@ -155,7 +161,7 @@ export class ModelDownloader {
         const fileInfo = await FileSystem.getInfoAsync(localPath);
         if (fileInfo.exists) {
             await FileSystem.deleteAsync(localPath, {idempotent: true});
-            console.log(`Deleted model ${config.name} from ${localPath}`);
+            ModelDownloader.loggerInstance.debug(`Deleted model ${config.name} from ${localPath}`);
         }
     }
 

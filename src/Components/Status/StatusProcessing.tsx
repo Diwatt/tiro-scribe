@@ -17,10 +17,10 @@ export function StatusProcessing({
 }: StatusProcessingProps): React.JSX.Element {
     const theme = useTheme();
     const statusColors = (theme.colors as any).statusProcessing as {
-        bg: string;
+        background: string;
         text: string;
         accent: string;
-        iconBg: string;
+        iconBackground: string;
         shadowColor: string;
     };
 
@@ -29,7 +29,7 @@ export function StatusProcessing({
             title="Processing..."
             subtitle={currentTask}
             icon={<ActivityIndicator size={20} color={statusColors.accent} />}
-            iconBgOverride={statusColors.iconBg}
+            iconBgOverride={statusColors.iconBackground}
             state={StatusState.PROCESSING}>
             {timeEstimate && (
                 <Text style={[styles.timeEstimate, {color: statusColors.text}]}>

@@ -1,6 +1,15 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { colord } from 'colord';
+
+/**
+ * Waveform opacity constants
+ */
+const WAVEFORM = {
+  OPACITY_BASE: 0.3,
+  OPACITY_INCREMENT: 0.1,
+} as const;
 
 export interface WaveformBackgroundProps {
   style?: ViewStyle;
@@ -66,8 +75,20 @@ export function WaveformBackground({
     ];
   }, []);
 
-  // RGB de base pour la couleur "Sable" (#C5B4A0)
-  const rgbBase = "197, 180, 160"; 
+  // Convert color to RGB string
+  const rgbBase = useMemo(() => {
+    try {
+      const rgb = colord(color).toRgb();
+      return `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+    } catch {
+      // Fallback: manual hex parsing
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `${r}, ${g}, ${b}`;
+    }
+  }, [color]); 
 
   return (
     <Svg
@@ -83,7 +104,7 @@ export function WaveformBackground({
           d={d}
           stroke="none"
           // Opacité progressive pour l'effet de profondeur
-          fill={`rgba(${rgbBase}, ${0.3 + index * 0.1})`}
+          fill={`rgba(${rgbBase}, ${WAVEFORM.OPACITY_BASE + index * WAVEFORM.OPACITY_INCREMENT})`}
         />
       ))}
     </Svg>

@@ -16,10 +16,10 @@ export function StatusBatchWaiting({
 }: StatusBatchWaitingProps): React.JSX.Element {
     const theme = useTheme();
     const statusColors = (theme.colors as any).statusBatchWaiting as {
-        bg: string;
+        background: string;
         text: string;
         accent: string;
-        iconBg: string;
+        iconBackground: string;
         shadowColor: string;
     };
 

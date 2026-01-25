@@ -1,3 +1,8 @@
+---
+description: "Swift visibility modifiers - all class members must have explicit visibility"
+alwaysApply: true
+---
+
 # Swift Visibility Modifiers
 
 **Rule**: **ALL** class members (properties, methods, initializers, static members) MUST have explicit visibility modifiers. Never use implicit `internal`.

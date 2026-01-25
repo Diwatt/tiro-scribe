@@ -8,6 +8,13 @@ import {QueueItemStatus, PipelineStage} from './Type';
 import {AbstractEntity} from './AbstractEntity';
 
 /**
+ * Queue processing constants
+ */
+const QUEUE = {
+    MAX_RETRY_COUNT: 3,
+} as const;
+
+/**
  * Queue Items Table Schema
  * Processing queue for audio files
  */
@@ -76,7 +83,7 @@ export class QueueItem extends AbstractEntity<QueueItemSchema> {
         if (this.status === QueueItemStatus.PENDING) {
             return true;
         }
-        if (this.status === QueueItemStatus.FAILED && this.retryCount < 3) {
+        if (this.status === QueueItemStatus.FAILED && this.retryCount < QUEUE.MAX_RETRY_COUNT) {
             return true;
         }
         return false;

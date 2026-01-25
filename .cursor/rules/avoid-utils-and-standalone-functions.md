@@ -1,3 +1,8 @@
+---
+description: "Avoid utils and standalone functions - prefer class-based organization"
+alwaysApply: true
+---
+
 # Avoid Utils and Standalone Functions
 
 **Rule**: Avoid creating standalone utility functions and "utils" files as much as possible.

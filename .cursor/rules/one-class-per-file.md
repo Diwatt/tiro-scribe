@@ -1,8 +1,15 @@
+---
+description: "One class per file - file name must match export name exactly"
+alwaysApply: true
+---
+
 # One Class Per File - Structure
 
 ## Principle
 
 **Every class, interface, enum, or struct lives in its own dedicated file.**
+
+This rule is part of the TypeScript standards. See `typescript.md` for the complete coding standards overview.
 
 This improves:
 - ✅ **Discoverability**: Easy to find where a class is defined

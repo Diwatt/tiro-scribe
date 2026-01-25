@@ -12,23 +12,42 @@ import mixPlugin from 'colord/plugins/mix';
 extend([mixPlugin]);
 
 interface StatusColors {
-    bg: string;
+    background: string;
     text: string;
     accent: string;
-    iconBg: string;
+    iconBackground: string;
     shadowColor: string;
 }
 
 export interface SecureSessionButtonColors {
-    idleBg: string;
-    activeBg: string;
+    idleBackground: string;
+    activeBackground: string;
     waveformColor: string;
     textColor: string;
     iconColor: string;
     // Pre-calculated colors for text and icons
-    idleTextIconColor: string; // idleBg darkened by 65%
-    recordingIconColorDark: string; // activeBg darkened by 65%
-    recordingIconColorLight: string; // activeBg darkened by 15%
+    idleTextIconColor: string; // idleBackground darkened by 65%
+    recordingIconColorDark: string; // activeBackground darkened by 65%
+    recordingIconColorLight: string; // activeBackground darkened by 15%
+}
+
+/**
+ * Action button colors interface
+ */
+export interface ActionButtonColors {
+    background: string;
+    text: string;
+    pressed: string;
+    shadow: string;
+}
+
+/**
+ * Action group colors - semantic categories for different button types
+ */
+export interface ActionGroupColors {
+    critical: ActionButtonColors; // Record, Delete (Amethyst)
+    primary: ActionButtonColors;  // Save, Login, Next (Ocean Blue)
+    success: ActionButtonColors;  // Confirm, Done (Teal)
 }
 
 type ExtendedColors = typeof MD3LightTheme.colors & {
@@ -39,11 +58,12 @@ type ExtendedColors = typeof MD3LightTheme.colors & {
     statusError: StatusColors;
     statusWarning: StatusColors;
     secureSessionButton: SecureSessionButtonColors;
+    actions: ActionGroupColors;
 };
 
 /**
  * Pastel Rainbow Base Colors
- * Only 6 base colors - all other colors are derived from these
+ * Only 9 base colors - all other colors are derived from these
  */
 const BASE_COLORS = {
     yellow: '#FAEDCB',
@@ -52,6 +72,10 @@ const BASE_COLORS = {
     lavender: '#DBCDF0',
     pink: '#F2C6DE',
     peach: '#F7D9C4',
+    // Action colors (saturated for contrast)
+    amethyst: '#8E7CC3', // Critical actions (Record, Delete)
+    ocean: '#5B84B1',     // Primary actions (Save, Submit, Next)
+    teal: '#45B7A0',      // Success actions (Confirm, Done)
 } as const;
 
 /**
@@ -119,56 +143,80 @@ const pastelColors = {
     
     // Status colors - all derived from base pastel colors
             statusIdle: {
-                bg: BASE_COLORS.mint,
+                background: BASE_COLORS.mint,
                 text: colord(BASE_COLORS.mint).darken(0.65).toHex(),
                 accent: colord(BASE_COLORS.mint).darken(0.65).toHex(),
-                iconBg: colord(BASE_COLORS.mint).mix(TEXT_COLOR, 0.1).toHex(),
+                iconBackground: colord(BASE_COLORS.mint).mix(TEXT_COLOR, 0.1).toHex(),
                 shadowColor: colord(BASE_COLORS.mint).darken(0.65).toHex(),
             },
             statusProcessing: {
-                bg: BASE_COLORS.blue,
+                background: BASE_COLORS.blue,
                 text: colord(BASE_COLORS.blue).darken(0.65).toHex(),
                 accent: colord(BASE_COLORS.blue).darken(0.65).toHex(),
-                iconBg: colord(BASE_COLORS.blue).mix(TEXT_COLOR, 0.1).toHex(),
+                iconBackground: colord(BASE_COLORS.blue).mix(TEXT_COLOR, 0.1).toHex(),
                 shadowColor: colord(BASE_COLORS.blue).darken(0.65).toHex(),
             },
             statusBatchWaiting: {
-                bg: BASE_COLORS.peach,
+                background: BASE_COLORS.peach,
                 text: colord(BASE_COLORS.peach).darken(0.65).toHex(),
                 accent: colord(BASE_COLORS.peach).darken(0.65).toHex(),
-                iconBg: colord(BASE_COLORS.peach).mix(TEXT_COLOR, 0.1).toHex(),
+                iconBackground: colord(BASE_COLORS.peach).mix(TEXT_COLOR, 0.1).toHex(),
                 shadowColor: colord(BASE_COLORS.peach).darken(0.65).toHex(),
             },
             statusSetup: {
-                bg: BASE_COLORS.lavender,
+                background: BASE_COLORS.lavender,
                 text: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
                 accent: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
-                iconBg: colord(BASE_COLORS.lavender).mix(TEXT_COLOR, 0.1).toHex(),
+                iconBackground: colord(BASE_COLORS.lavender).mix(TEXT_COLOR, 0.1).toHex(),
                 shadowColor: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
             },
             statusError: {
-                bg: BASE_COLORS.pink,
+                background: BASE_COLORS.pink,
                 text: colord(BASE_COLORS.pink).darken(0.65).toHex(),
                 accent: colord(BASE_COLORS.pink).darken(0.65).toHex(),
-                iconBg: colord(BASE_COLORS.pink).mix(TEXT_COLOR, 0.1).toHex(),
+                iconBackground: colord(BASE_COLORS.pink).mix(TEXT_COLOR, 0.1).toHex(),
                 shadowColor: colord(BASE_COLORS.pink).darken(0.65).toHex(),
             },
             statusWarning: {
-                bg: BASE_COLORS.yellow,
+                background: BASE_COLORS.yellow,
                 text: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
                 accent: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
-                iconBg: colord(BASE_COLORS.yellow).mix(TEXT_COLOR, 0.1).toHex(),
+                iconBackground: colord(BASE_COLORS.yellow).mix(TEXT_COLOR, 0.1).toHex(),
                 shadowColor: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
             },
     secureSessionButton: {
-        idleBg: BASE_COLORS.peach,
-        activeBg: BASE_COLORS.pink,
+        idleBackground: BASE_COLORS.peach,
+        activeBackground: BASE_COLORS.pink,
         waveformColor: BASE_COLORS.lavender,
         textColor: TEXT_COLOR,
         iconColor: TEXT_COLOR_LIGHT,
         idleTextIconColor: colord(BASE_COLORS.peach).darken(0.65).toHex(),
         recordingIconColorDark: colord(BASE_COLORS.pink).darken(0.65).toHex(),
         recordingIconColorLight: colord(BASE_COLORS.pink).darken(0.15).toHex(),
+    },
+    // Action group colors for CTA buttons
+    actions: {
+        // Critical: Record, Delete (Amethyst)
+        critical: {
+            background: BASE_COLORS.amethyst,
+            text: TEXT_COLOR_LIGHT,
+            pressed: colord(BASE_COLORS.amethyst).darken(0.15).toHex(),
+            shadow: colord(BASE_COLORS.amethyst).lighten(0.2).alpha(0.5).toHex(),
+        },
+        // Primary: Save, Submit, Next (Ocean Blue)
+        primary: {
+            background: BASE_COLORS.ocean,
+            text: TEXT_COLOR_LIGHT,
+            pressed: colord(BASE_COLORS.ocean).darken(0.15).toHex(),
+            shadow: colord(BASE_COLORS.ocean).lighten(0.2).alpha(0.5).toHex(),
+        },
+        // Success: Confirm, Done (Teal)
+        success: {
+            background: BASE_COLORS.teal,
+            text: TEXT_COLOR_LIGHT,
+            pressed: colord(BASE_COLORS.teal).darken(0.15).toHex(),
+            shadow: colord(BASE_COLORS.teal).lighten(0.2).alpha(0.5).toHex(),
+        },
     },
 };
 
@@ -243,56 +291,80 @@ export const AppDarkTheme: MD3Theme & {colors: ExtendedColors} = {
         
         // Status colors - all derived from base pastel colors (darker backgrounds for dark mode)
         statusIdle: {
-            bg: colord(BASE_COLORS.mint).darken(0.7).toHex(),
+            background: colord(BASE_COLORS.mint).darken(0.7).toHex(),
             text: colord(BASE_COLORS.mint).lighten(0.5).toHex(),
             accent: colord(BASE_COLORS.mint).lighten(0.3).toHex(),
-            iconBg: colord(BASE_COLORS.mint).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
+            iconBackground: colord(BASE_COLORS.mint).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
             shadowColor: colord(BASE_COLORS.mint).lighten(0.3).toHex(),
         },
         statusProcessing: {
-            bg: colord(BASE_COLORS.blue).darken(0.7).toHex(),
+            background: colord(BASE_COLORS.blue).darken(0.7).toHex(),
             text: colord(BASE_COLORS.blue).lighten(0.5).toHex(),
             accent: colord(BASE_COLORS.blue).lighten(0.3).toHex(),
-            iconBg: colord(BASE_COLORS.blue).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
+            iconBackground: colord(BASE_COLORS.blue).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
             shadowColor: colord(BASE_COLORS.blue).lighten(0.3).toHex(),
         },
         statusBatchWaiting: {
-            bg: colord(BASE_COLORS.peach).darken(0.7).toHex(),
+            background: colord(BASE_COLORS.peach).darken(0.7).toHex(),
             text: colord(BASE_COLORS.peach).lighten(0.5).toHex(),
             accent: colord(BASE_COLORS.peach).lighten(0.3).toHex(),
-            iconBg: colord(BASE_COLORS.peach).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
+            iconBackground: colord(BASE_COLORS.peach).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
             shadowColor: colord(BASE_COLORS.peach).lighten(0.3).toHex(),
         },
         statusSetup: {
-            bg: colord(BASE_COLORS.lavender).darken(0.7).toHex(),
+            background: colord(BASE_COLORS.lavender).darken(0.7).toHex(),
             text: colord(BASE_COLORS.lavender).lighten(0.5).toHex(),
             accent: colord(BASE_COLORS.lavender).lighten(0.3).toHex(),
-            iconBg: colord(BASE_COLORS.lavender).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
+            iconBackground: colord(BASE_COLORS.lavender).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
             shadowColor: colord(BASE_COLORS.lavender).lighten(0.3).toHex(),
         },
         statusError: {
-            bg: colord(BASE_COLORS.pink).darken(0.7).toHex(),
+            background: colord(BASE_COLORS.pink).darken(0.7).toHex(),
             text: colord(BASE_COLORS.pink).lighten(0.5).toHex(),
             accent: colord(BASE_COLORS.pink).lighten(0.3).toHex(),
-            iconBg: colord(BASE_COLORS.pink).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
+            iconBackground: colord(BASE_COLORS.pink).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
             shadowColor: colord(BASE_COLORS.pink).lighten(0.3).toHex(),
         },
         statusWarning: {
-            bg: colord(BASE_COLORS.yellow).darken(0.7).toHex(),
+            background: colord(BASE_COLORS.yellow).darken(0.7).toHex(),
             text: colord(BASE_COLORS.yellow).lighten(0.5).toHex(),
             accent: colord(BASE_COLORS.yellow).lighten(0.3).toHex(),
-            iconBg: colord(BASE_COLORS.yellow).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
+            iconBackground: colord(BASE_COLORS.yellow).mix(TEXT_COLOR_LIGHT, 0.2).toHex(),
             shadowColor: colord(BASE_COLORS.yellow).lighten(0.3).toHex(),
         },
         secureSessionButton: {
-            idleBg: colord(BASE_COLORS.peach).darken(0.7).toHex(),
-            activeBg: BASE_COLORS.pink,
+            idleBackground: colord(BASE_COLORS.peach).darken(0.7).toHex(),
+            activeBackground: BASE_COLORS.pink,
             waveformColor: colord(BASE_COLORS.lavender).darken(0.5).toHex(),
             textColor: colord(BASE_COLORS.peach).lighten(0.8).toHex(),
             iconColor: TEXT_COLOR_LIGHT,
             idleTextIconColor: colord(colord(BASE_COLORS.peach).darken(0.7).toHex()).darken(0.65).toHex(),
             recordingIconColorDark: colord(BASE_COLORS.pink).darken(0.65).toHex(),
             recordingIconColorLight: colord(BASE_COLORS.pink).darken(0.15).toHex(),
+        },
+        // Action group colors for CTA buttons (dark mode)
+        actions: {
+            // Critical: Slightly lighter for dark mode
+            critical: {
+                background: colord(BASE_COLORS.amethyst).lighten(0.05).toHex(),
+                text: TEXT_COLOR_LIGHT,
+                pressed: colord(BASE_COLORS.amethyst).darken(0.1).toHex(),
+                shadow: colord(BASE_COLORS.amethyst).alpha(0.3).toHex(),
+            },
+            // Primary: Slightly lighter for dark mode
+            primary: {
+                background: colord(BASE_COLORS.ocean).lighten(0.05).toHex(),
+                text: TEXT_COLOR_LIGHT,
+                pressed: colord(BASE_COLORS.ocean).darken(0.1).toHex(),
+                shadow: colord(BASE_COLORS.ocean).alpha(0.3).toHex(),
+            },
+            // Success: Slightly lighter for dark mode
+            success: {
+                background: colord(BASE_COLORS.teal).lighten(0.05).toHex(),
+                text: TEXT_COLOR_LIGHT,
+                pressed: colord(BASE_COLORS.teal).darken(0.1).toHex(),
+                shadow: colord(BASE_COLORS.teal).alpha(0.3).toHex(),
+            },
         },
     },
     roundness: 8,

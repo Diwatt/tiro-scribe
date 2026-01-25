@@ -1,3 +1,8 @@
+---
+description: "Kotlin code organization - properties first, then methods, ordered by visibility"
+alwaysApply: true
+---
+
 # Kotlin Code Organization
 
 **Rule**: Organize Kotlin code with properties first, then methods. Within each section, order by visibility: private, then internal/protected, then public. **ALL members MUST have explicit visibility modifiers.**

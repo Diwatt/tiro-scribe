@@ -10,3 +10,5 @@ export type {QueueStats} from './Queue';
 export {AudioPipelineAdapter, MockAudioPipeline} from './AudioPipelineAdapter';
 export type {AudioPipeline} from './AudioPipelineAdapter';
 export {database} from './Database';
+export {audioRecording, useAudioRecording} from './AudioRecording';
+export type {LoggerInterface} from '../Util/Logger';

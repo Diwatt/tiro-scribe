@@ -1,3 +1,8 @@
+---
+description: "Isomorphic implementation - iOS, Android, and TypeScript must have identical class structures"
+alwaysApply: true
+---
+
 # Isomorphic Implementation: iOS ↔ Android ↔ TypeScript
 
 ## Overview
@@ -243,6 +248,9 @@ iOS:                 Android:                TypeScript:
 ## Key Principles
 
 ### **1. One Class = One File**
+See `one-class-per-file.md` for the complete rule and structure guidelines.
+
+Examples:
 - ✅ `AudioChunk.ts` → `AudioChunk` class
 - ✅ `AudioChunkCollection.ts` → `AudioChunkCollection` class
 - ✅ `StreamDecryptionManager.swift` → `StreamDecryptionManager` class

@@ -7,8 +7,8 @@ import React, {useState} from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, Surface, useTheme} from 'react-native-paper';
 import {observer} from '@legendapp/state/react';
-import {RecordButton} from '@/Components';
-import {useAudioRecording} from '@Recording/useAudioRecording';
+import {SecureSessionButton} from '@/Components';
+import {useAudioRecording} from '@Service/AudioRecording';
 import {TiroScribeException} from '@/Exception';
 
 /**
@@ -16,7 +16,7 @@ import {TiroScribeException} from '@/Exception';
  *
  * Displays the recording interface with:
  * - Recording status and information
- * - RecordButton for start/stop actions
+ * - SecureSessionButton for start/stop actions
  * - Error handling display
  */
 interface RecordingScreenProps {
@@ -95,7 +95,7 @@ export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX
                                 {
                                     color: audioRecording.isRecording
                                         ? theme.colors.error
-                                        : theme.colors.primary,
+                                        : (theme.colors as any).actions.critical.background,
                                 },
                             ]}>
                             {audioRecording.isRecording ? 'Recording' : 'Ready'}
@@ -135,12 +135,15 @@ export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX
                 </Surface>
             </ScrollView>
 
-            <RecordButton
-                isRecording={audioRecording.isRecording}
-                onPress={handleRecordPress}
-                disabled={false}
-                position="bottom-right"
-            />
+            <View style={styles.buttonContainer}>
+                <SecureSessionButton
+                    isRecording={audioRecording.isRecording}
+                    onPress={handleRecordPress}
+                    onRecordingChange={(recording) => {
+                        // Sync state if needed
+                    }}
+                />
+            </View>
         </View>
     );
 });
@@ -196,5 +199,13 @@ const styles = StyleSheet.create({
     infoText: {
         textAlign: 'center',
         lineHeight: 20,
+    },
+    buttonContainer: {
+        position: 'absolute',
+        bottom: 16,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

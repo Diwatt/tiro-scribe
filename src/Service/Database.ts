@@ -14,6 +14,7 @@ import {therapistsTable} from '@Entity/Therapist';
 import {subjectsTable} from '@Entity/Subject';
 import {encountersTable} from '@Entity/Encounter';
 import {transcriptionSegmentsTable} from '@Entity/TranscriptionSegment';
+import {DatabaseError} from '../Exception/DatabaseError';
 
 /**
  * Database Class
@@ -78,13 +79,14 @@ export class Database {
                 );
 
             if (isModuleNotFound) {
-                throw new Error(
+                throw new DatabaseError(
                     '❌ Database migrations not found!\n\n' +
                     'To fix this, run:\n' +
                     '  pnpm db:migrate:generate\n\n' +
                     'This will generate migration files from your Drizzle schema definitions.\n' +
                     'The prebuild script should catch this, but if you see this error,\n' +
-                    'it means migrations need to be generated manually.'
+                    'it means migrations need to be generated manually.',
+                    error instanceof Error ? error : new Error(String(error)),
                 );
             }
             // Re-throw if it's a different error
@@ -99,12 +101,13 @@ export class Database {
         } catch (error) {
             // If migration application fails, provide helpful context
             const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(
+            throw new DatabaseError(
                 `Failed to apply database migrations: ${errorMessage}\n\n` +
                 'This usually means:\n' +
                 '  - Migration files are corrupted or incompatible\n' +
                 '  - Database schema is out of sync\n\n' +
-                'Try regenerating migrations with: pnpm db:migrate:generate'
+                'Try regenerating migrations with: pnpm db:migrate:generate',
+                error instanceof Error ? error : new Error(String(error)),
             );
         }
 

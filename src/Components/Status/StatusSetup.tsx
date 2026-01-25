@@ -20,10 +20,10 @@ export function StatusSetup({
 }: StatusSetupProps): React.JSX.Element {
     const theme = useTheme();
     const statusColors = (theme.colors as any).statusSetup as {
-        bg: string;
+        background: string;
         text: string;
         accent: string;
-        iconBg: string;
+        iconBackground: string;
         shadowColor: string;
     };
 

@@ -15,10 +15,10 @@ export function StatusWarning({
 }: StatusWarningProps): React.JSX.Element {
     const theme = useTheme();
     const statusColors = (theme.colors as any).statusWarning as {
-        bg: string;
+        background: string;
         text: string;
         accent: string;
-        iconBg: string;
+        iconBackground: string;
         shadowColor: string;
     };
 

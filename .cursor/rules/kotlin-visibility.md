@@ -1,3 +1,8 @@
+---
+description: "Kotlin visibility modifiers - all class members must have explicit visibility"
+alwaysApply: true
+---
+
 # Kotlin Visibility Modifiers
 
 **Rule**: **ALL** class members (properties, methods, constructors, companion objects) MUST have explicit visibility modifiers. Never use implicit `public`.

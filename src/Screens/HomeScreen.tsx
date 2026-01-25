@@ -18,7 +18,7 @@ import {
 } from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {observer} from '@legendapp/state/react';
-import {useAudioRecording} from '@Recording/useAudioRecording';
+import {useAudioRecording} from '@Service/AudioRecording';
 import {
     Mic,
     ShieldCheck,
@@ -42,10 +42,10 @@ dayjs.extend(relativeTime);
 export const Home = observer((): React.JSX.Element => {
     const theme = useTheme();
     const statusIdleColors = (theme.colors as any).statusIdle as {
-        bg: string;
+        background: string;
         text: string;
         accent: string;
-        iconBg: string;
+        iconBackground: string;
         shadowColor: string;
     };
     const navigation = useNavigation();
@@ -98,13 +98,13 @@ export const Home = observer((): React.JSX.Element => {
     const getStatusConfig = (status: QueueItemStatus) => {
         switch (status) {
             case QueueItemStatus.PROCESSING:
-                return { icon: Loader2, color: '#F59E0B', label: 'Processing', bg: '#FEF3C7' };
+                return { icon: Loader2, color: '#F59E0B', label: 'Processing', background: '#FEF3C7' };
             case QueueItemStatus.COMPLETED:
-                return { icon: CheckCircle2, color: '#10B981', label: 'Completed', bg: '#D1FAE5' };
+                return { icon: CheckCircle2, color: '#10B981', label: 'Completed', background: '#D1FAE5' };
             case QueueItemStatus.FAILED:
-                return { icon: FileText, color: '#EF4444', label: 'Error', bg: '#FEE2E2' };
+                return { icon: FileText, color: '#EF4444', label: 'Error', background: '#FEE2E2' };
             default:
-                return { icon: Clock, color: '#64748B', label: 'Pending', bg: '#F1F5F9' };
+                return { icon: Clock, color: '#64748B', label: 'Pending', background: '#F1F5F9' };
         }
     };
 
@@ -120,7 +120,7 @@ export const Home = observer((): React.JSX.Element => {
                 <Surface style={[
                     styles.heroCard,
                     {
-                        backgroundColor: statusIdleColors.bg,
+                        backgroundColor: statusIdleColors.background,
                         shadowColor: statusIdleColors.shadowColor,
                     },
                 ]}>
@@ -165,7 +165,7 @@ export const Home = observer((): React.JSX.Element => {
                         </View>
                     ) : (
                         <View style={styles.heroContentZen}>
-                            <View style={[styles.iconCircle, { backgroundColor: statusIdleColors.iconBg }]}>
+                            <View style={[styles.iconCircle, { backgroundColor: statusIdleColors.iconBackground }]}>
                                 <ShieldCheck size={32} color={statusIdleColors.text} />
                             </View>
                             <View style={{flex: 1}}>
@@ -205,7 +205,7 @@ export const Home = observer((): React.JSX.Element => {
                                         },
                                     ]}>
                                         <View style={styles.itemRow}>
-                                            <View style={[styles.statusBubble, { backgroundColor: config.bg }]}>
+                                            <View style={[styles.statusBubble, { backgroundColor: config.background }]}>
                                                 <StatusIcon size={20} color={config.color} />
                                             </View>
 

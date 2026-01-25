@@ -1,83 +1,61 @@
 ---
-description: "TypeScript coding standards and conventions"
+description: "Strict OOP TypeScript standards (Symfony/PSR/Enterprise style)"
 alwaysApply: true
 globs: ["**/*.ts", "**/*.tsx"]
 ---
 
-# TypeScript Rules
+# 🛡️ Strict Enterprise TypeScript Guidelines
 
-## File Organization
+You act as a senior software architect who enforces strict OOP, SOLID principles, and defensive programming (Symfony/Java Spring style).
 
-- **One interface per file**: Each interface must be in its own file
-- **Naming convention**: Use descriptive names for interfaces
-  - ✅ `InterfaceModel.ts` (contains `InterfaceModel` interface)
-  - ❌ `IModel.ts` (don't use "I" prefix)
-  - ❌ `BaseModel.ts` (don't use "Base" prefix)
+## 1. File & Naming Structure
+- **One Class/Interface per file**: File name MUST match the export name exactly.
+  - See `one-class-per-file.md` for detailed structure guidelines.
+- **Naming Conventions**:
+  - **Interfaces**: Use descriptive names (`UserInterface`, `RepositoryInterface`). ❌ NO `I` prefix.
+  - **Booleans**: Must use verbs (`isValid`, `hasPermission`, `shouldRetry`).
+  - **Services**: Must end with `Service` (`AuthService`).
+  - **Entities/Models**: Noun only (`Session`, `User`).
 
-## Export Rules
+## 2. Strict OOP & Visibility (The "PHP" Rule)
+- **Explicit Visibility is MANDATORY**: See `typescript-visibility.md` for complete rules.
+  - ✅ `public readonly id: string;`
+  - ✅ `private validate(): void { ... }`
+  - ❌ `id: string;` (Implicit public forbidden)
+- **Code Organization**: See `typescript-code-organization.md` for property/method ordering rules.
+- **Immutability by Default**: Use `readonly` for properties that shouldn't change after instantiation.
+- **No Magic Objects**: Do not use plain objects (`{}`) for complex data. Use **Classes** or **DTOs**.
 
-- **NO default exports**: Always use named exports
-  - ✅ `export class MyClass { ... }`
-  - ✅ `export function myFunction() { ... }`
-  - ❌ `export default class MyClass { ... }`
-  - ❌ `export default function myFunction() { ... }`
-  
-- **Rationale**: Default exports cause issues with:
-  - Tree-shaking and bundling
-  - Circular dependencies
-  - Refactoring and IDE support
-  - Type inference in some cases
+## 3. Exports & Modules
+- **🚫 NO DEFAULT EXPORTS**: Named exports only. See `no-default-exports.md` for details.
+  - ✅ `export class UserService { ... }`
+  - ❌ `export default class UserService { ... }`
 
-## Examples
+## 4. Typing, Enums & Magic Values
+- **No `any`**: Strictly forbidden. Use `unknown` with type guards if necessary.
+- **Explicit Return Types**: MANDATORY for all methods/functions.
+- **🚫 No Magic Strings/Numbers**: See `avoid-string-literals.md` for complete rules.
+  - Use `enum` or `as const` object for fixed values.
+  - ✅ `status: SessionStatus.PENDING`
+  - ❌ `status: 'PENDING'`
 
-### Correct Structure
+## 5. Dependency Injection & Architecture
+- **Constructor Injection**: All dependencies must be injected via constructor. See `dependency-injection.md` for complete pattern.
+- **Service vs Data**:
+  - **Services** are stateless singletons (contain logic).
+  - **Entities** are stateful (contain data + domain methods).
+  - ❌ Do not put business logic inside React Components. Extract it to a Service or a Custom Hook.
+- **OOP Architecture**: See `oop-architecture.md` for Legend-State observable patterns.
 
-```typescript
-// src/Model/InterfaceModel.ts
-export interface InterfaceModel {
-    readonly tableName: string;
-    readonly schemaSpec: TableSchemaSpec;
-}
+## 6. Error Handling (Exceptions)
+- **Throw Custom Exceptions**: Do not throw raw strings or generic errors for domain logic.
+- ✅ `throw new SessionNotFoundException(id);`
+- ❌ `throw new Error("Session not found");`
 
-// src/Model/MyModel.ts
-import {Model} from '@nozbe/watermelondb';
-import type {InterfaceModel} from './InterfaceModel';
+## 7. Code Style & Control Flow
+- **Early Returns**: Avoid `else` keywords where an early return is possible (Guard Clauses).
+- **Destructuring**: Use object destructuring for method parameters if there are more than 2 arguments.
 
-export class MyModel extends Model implements InterfaceModel {
-    public static readonly tableName = 'my_table';
-    public static readonly schemaSpec: TableSchemaSpec = {
-        name: 'my_table',
-        columns: [...],
-    };
-    // ...
-}
-```
-
-### Incorrect Structure
-
-```typescript
-// ❌ Don't use "I" prefix for interfaces
-export interface IModel { ... }
-
-// ❌ Don't use "Base" prefix
-export abstract class BaseModel { ... }
-
-// ❌ Don't use default exports
-export default class MyModel { ... }
-
-// ❌ Don't create unnecessary abstract classes
-export abstract class AbstractModel extends Model { ... }
-```
-
-## Access Modifiers
-
-- **Explicit public modifiers**: Always use `public` modifier for public members
-  - ✅ `public property: string;`
-  - ✅ `public method(): void { ... }`
-  - ✅ `public static getTable(): string { ... }`
-  - ❌ `property: string;` (implicit public - not allowed)
-  - ❌ `method(): void { ... }` (implicit public - not allowed)
-
-- **Protected and private**: Use `protected` or `private` as appropriate
-  - ✅ `protected internalProperty: string;`
-  - ✅ `private helperMethod(): void { ... }`
+## 8. Specific for this project (Storage)
+- **Rich Models**: When handling data from storage (MMKV/Zod), always hydrate them into Class Instances with methods.
+- **No Anemic Models**: Data classes should contain their own logic (`markAsDone()`, `isExpired()`), not just public fields.

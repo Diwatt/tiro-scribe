@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, StyleSheet, ScrollView, Text} from 'react-native';
 import {useTheme} from 'react-native-paper';
-import {useAudioRecording} from '@Recording/useAudioRecording';
+import {useAudioRecording} from '@Service/AudioRecording';
 import {StatusReady, SecureSessionButton} from '@/Components';
 import {FileText} from 'lucide-react-native';
 

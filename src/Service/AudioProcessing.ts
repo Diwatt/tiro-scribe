@@ -13,18 +13,37 @@ import * as ort from 'onnxruntime-react-native';
 import {Biocode} from './Biocode';
 import {Anonymizer} from './Anonymizer';
 import {AudioProcessingResult, ProcessingPayload} from '@Entity/Type';
+import {AppLogger, LoggerInterface} from '../Util/Logger';
+import {TranscriptionNotImplementedError} from '../Exception/TranscriptionNotImplementedError';
+
+/**
+ * Transcription constants
+ */
+const TRANSCRIPTION = {
+    NOT_AVAILABLE: '[TRANSCRIPTION_NOT_AVAILABLE]',
+} as const;
+
+/**
+ * Confidence calculation constants
+ */
+const CONFIDENCE = {
+    AVERAGE_DIVISOR: 2,
+} as const;
 
 export class AudioProcessing {
     private transcriptionSession: ort.InferenceSession | null = null;
     private biocodeService: Biocode;
     private anonymizerService: Anonymizer;
+    private loggerInstance: LoggerInterface;
 
     constructor(
         biocodeService: Biocode,
         anonymizerService: Anonymizer,
+        logger: LoggerInterface = AppLogger.getInstance(),
     ) {
         this.biocodeService = biocodeService;
         this.anonymizerService = anonymizerService;
+        this.loggerInstance = logger;
     }
 
     /**
@@ -40,7 +59,10 @@ export class AudioProcessing {
                     executionProviders: ['cpu'],
                 });
             } catch (error) {
-                console.warn('Failed to load transcription model:', error);
+                this.loggerInstance.warn('Failed to load transcription model:', {
+                    error,
+                    errorMessage: error instanceof Error ? error.message : String(error),
+                });
                 // Continue without transcription model - you can implement fallback
             }
         }
@@ -69,11 +91,11 @@ export class AudioProcessing {
         if (this.transcriptionSession) {
             // TODO: Implement transcription inference
             // rawText = await this.transcribeWithONNX(audioPath);
-            throw new Error('Transcription not yet implemented. Please implement transcribeWithONNX() method.');
+            throw new TranscriptionNotImplementedError();
         } else {
             // Fallback: Return empty text or implement alternative transcription
-            console.warn('No transcription model loaded. Skipping transcription step.');
-            rawText = '[TRANSCRIPTION_NOT_AVAILABLE]';
+            this.loggerInstance.warn('No transcription model loaded. Skipping transcription step.');
+            rawText = TRANSCRIPTION.NOT_AVAILABLE;
         }
 
         // Step 2: Anonymize the transcribed text
@@ -85,7 +107,7 @@ export class AudioProcessing {
 
         // Step 4: Calculate overall confidence
         const overallConfidence =
-            (anonymizationResult.confidence + biocodeResult.confidence) / 2;
+            (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
 
         // Step 5: Build final payload
         const payload: ProcessingPayload = {
@@ -117,7 +139,7 @@ export class AudioProcessing {
         if (this.transcriptionSession) {
             // TODO: Implement transcription
             // rawText = await this.transcribeWithONNX(audioPath);
-            rawText = '[TRANSCRIPTION_NOT_AVAILABLE]';
+            rawText = TRANSCRIPTION.NOT_AVAILABLE;
         }
 
         const biocodeResult = await this.biocodeService.processAudio(audioPath);
@@ -129,7 +151,7 @@ export class AudioProcessing {
             anonymizedText: anonymizationResult.cleanText,
             biocode: biocodeResult.biocode,
             confidence:
-                (anonymizationResult.confidence + biocodeResult.confidence) / 2,
+                (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
         };
     }
 

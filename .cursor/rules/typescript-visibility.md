@@ -1,3 +1,8 @@
+---
+description: "TypeScript visibility modifiers - all class members must have explicit visibility"
+alwaysApply: true
+---
+
 # TypeScript Visibility Modifiers
 
 **Rule**: **ALL** class members (properties, methods, getters, setters, static members) MUST have explicit visibility modifiers. Never use implicit `public`.

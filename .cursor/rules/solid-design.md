@@ -1,3 +1,8 @@
+---
+description: "SOLID design principles for AudioChunkCollection - single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion"
+alwaysApply: true
+---
+
 # SOLID Design: AudioChunkCollection
 
 ## The Problem (Before)

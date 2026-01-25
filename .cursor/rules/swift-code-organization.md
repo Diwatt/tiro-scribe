@@ -1,3 +1,8 @@
+---
+description: "Swift code organization - properties first, then methods, ordered by visibility"
+alwaysApply: true
+---
+
 # Swift Code Organization
 
 **Rule**: Organize Swift code with properties first, then methods. Within each section, order by visibility: private, then internal/protected, then public. **ALL members MUST have explicit visibility modifiers.**

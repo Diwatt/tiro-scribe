@@ -1,3 +1,8 @@
+---
+description: "TypeScript code organization - properties first, then methods, ordered by visibility"
+alwaysApply: true
+---
+
 # TypeScript Code Organization
 
 **Rule**: Organize TypeScript code with properties first, then methods. Within each section, order by visibility: private, then protected, then public. **ALL members MUST have explicit visibility modifiers.**

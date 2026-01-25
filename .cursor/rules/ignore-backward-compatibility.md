@@ -1,3 +1,8 @@
+---
+description: "Ignore backward compatibility - focus on current requirements and best practices"
+alwaysApply: true
+---
+
 # Ignore Backward Compatibility
 
 **Rule**: Do not maintain backward compatibility (BC) when refactoring or updating code. Focus on current requirements and best practices.

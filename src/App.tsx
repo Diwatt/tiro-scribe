@@ -10,6 +10,7 @@ import {PaperProvider} from 'react-native-paper';
 import {AppNavigator} from './Navigation/AppNavigator';
 import {AppTheme} from './theme/AppTheme';
 import {ServicesProvider} from './Context/ServicesContext';
+import {AppLogger} from './Util/Logger';
 
 // Only recording loads at app start. DB, transcript, Biocode, NER will be added later.
 
@@ -20,7 +21,10 @@ if (__DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         StorybookUIRoot = require('../.rnstorybook').default;
     } catch (e) {
-        console.warn('[TiroScribe] Failed to load Storybook:', e);
+        AppLogger.getInstance().warn('[TiroScribe] Failed to load Storybook:', {
+            error: e,
+            errorMessage: e instanceof Error ? e.message : String(e),
+        });
     }
 }
 

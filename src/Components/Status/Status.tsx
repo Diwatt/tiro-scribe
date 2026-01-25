@@ -4,10 +4,10 @@ import {Text, Surface, useTheme} from 'react-native-paper';
 import {StatusState} from './StatusTypes';
 
 export interface StatusColors {
-    bg: string;
+    background: string;
     text: string;
     accent: string;
-    iconBg: string;
+    iconBackground: string;
     shadowColor: string;
 }
 
@@ -37,14 +37,14 @@ export function Status({
             style={[
                 styles.container,
                 {
-                    backgroundColor: statusColors.bg,
+                    backgroundColor: statusColors.background,
                     shadowColor: statusColors.shadowColor,
                 },
             ]}
             elevation={4}>
             <View style={styles.contentWrapper}>
                 <View style={styles.headerRow}>
-                    <View style={[styles.iconBox, {backgroundColor: iconBgOverride ?? statusColors.iconBg}]}>
+                    <View style={[styles.iconBox, {backgroundColor: iconBgOverride ?? statusColors.iconBackground}]}>
                         {icon}
                     </View>
                     <View style={styles.headerText}>

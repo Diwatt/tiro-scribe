@@ -49,7 +49,14 @@ export function LockScreen(props: LockScreenProps): React.JSX.Element {
                     icon={({size, color}) => (
                         <Fingerprint size={size} color={color} />
                     )}
-                    style={styles.unlockButton}
+                    style={[
+                        styles.unlockButton,
+                        {
+                            backgroundColor: (theme.colors as any).actions.primary.background,
+                        },
+                    ]}
+                    buttonColor={(theme.colors as any).actions.primary.background}
+                    textColor={(theme.colors as any).actions.primary.text}
                     contentStyle={styles.unlockButtonContent}>
                     Unlock with Face ID
                 </Button>

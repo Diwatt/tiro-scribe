@@ -10,8 +10,21 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import {AnonymizationResult, AnonymizedEntity, EntityType} from '@Entity/Type';
+import {AppLogger, LoggerInterface} from '../Util/Logger';
 
 dayjs.extend(customParseFormat);
+
+/**
+ * Entity replacement tokens for anonymization
+ */
+export const ENTITY_TOKENS = {
+    PERSON: '[PERSON]',
+    LOCATION: '[LOCATION]',
+    FAMILY_RELATION: '[RELATION_FAMILY]',
+    WORK_RELATION: '[RELATION_WORK]',
+    DATE: '[DATE_FUZZED]',
+    TIME: '[TIME_FUZZED]',
+} as const;
 
 // Type definitions for ONNX Runtime (to be implemented with native module)
 interface OnnxRuntimeInterface {
@@ -31,6 +44,11 @@ export class Anonymizer {
     private onnxRuntime: OnnxRuntimeInterface | null = null;
     private sessionStartDate: Date | null = null;
     private relationCounter: Map<string, number> = new Map();
+    private loggerInstance: LoggerInterface;
+
+    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+        this.loggerInstance = logger;
+    }
 
     /**
      * Initialize the Anonymizer with ONNX Runtime
@@ -105,9 +123,7 @@ export class Anonymizer {
         text: string,
     ): Promise<AnonymizedEntity[]> {
         if (!this.onnxRuntime) {
-            console.warn(
-                'ONNX Runtime not initialized. Skipping AI-based NER.',
-            );
+            this.loggerInstance.warn('ONNX Runtime not initialized. Skipping AI-based NER.');
             return [];
         }
 
@@ -135,7 +151,10 @@ export class Anonymizer {
 
             return entities;
         } catch (error) {
-            console.error('Error in AI-based NER:', error);
+            this.loggerInstance.error('Error in AI-based NER:', {
+                error,
+                errorMessage: error instanceof Error ? error.message : String(error),
+            });
             return [];
         }
     }
@@ -225,9 +244,7 @@ export class Anonymizer {
         const entities: AnonymizedEntity[] = [];
 
         if (!this.sessionStartDate) {
-            console.warn(
-                'Session start date not set. Temporal fuzzing disabled.',
-            );
+            this.loggerInstance.warn('Session start date not set. Temporal fuzzing disabled.');
             return entities;
         }
 
@@ -355,7 +372,10 @@ export class Anonymizer {
                 return `[DAY_${daysDiff}]`;
             }
         } catch (error) {
-            console.error('Error converting date to relative:', error);
+            this.loggerInstance.error('Error converting date to relative:', {
+                error,
+                errorMessage: error instanceof Error ? error.message : String(error),
+            });
             return '[DATE_FUZZED]';
         }
     }

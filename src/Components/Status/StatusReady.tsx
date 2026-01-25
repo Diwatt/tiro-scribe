@@ -9,10 +9,10 @@ interface StatusReadyProps {}
 export function StatusReady({}: StatusReadyProps): React.JSX.Element {
     const theme = useTheme();
     const statusColors = (theme.colors as any).statusIdle as {
-        bg: string;
+        background: string;
         text: string;
         accent: string;
-        iconBg: string;
+        iconBackground: string;
         shadowColor: string;
     };
 

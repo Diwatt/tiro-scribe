@@ -1,3 +1,8 @@
+---
+description: "SecureRecorder security requirements - zero-trust medical audio encryption"
+alwaysApply: true
+---
+
 # SecureRecorder: Zero-Trust Medical Audio Security
 
 **Context**: High-security Expo Native Module for encrypted medical audio recording.

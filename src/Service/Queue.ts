@@ -16,6 +16,7 @@ import type {AudioPipeline} from './AudioPipelineAdapter';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import {v4 as uuidv4} from 'uuid';
+import {AppLogger, LoggerInterface} from '../Util/Logger';
 
 dayjs.extend(utc);
 
@@ -34,6 +35,11 @@ class QueueClass {
     private isProcessing: boolean = false;
     private processingInterval: NodeJS.Timeout | null = null;
     private audioPipeline: AudioPipeline | null = null;
+    private loggerInstance: LoggerInterface;
+
+    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+        this.loggerInstance = logger;
+    }
 
     /**
      * Set the audio pipeline processor
@@ -86,9 +92,7 @@ class QueueClass {
 
         // Check if audio pipeline is available
         if (!this.audioPipeline) {
-            console.warn(
-                'Queue: AudioPipeline not set. Cannot process items.',
-            );
+            this.loggerInstance.warn('Queue: AudioPipeline not set. Cannot process items.');
             return false;
         }
 
@@ -175,7 +179,10 @@ class QueueClass {
                 return true; // Item was processed (even if it failed)
             }
         } catch (error) {
-            console.error('Queue: Error processing queue item:', error);
+            this.loggerInstance.error('Queue: Error processing queue item:', {
+                error,
+                errorMessage: error instanceof Error ? error.message : String(error),
+            });
             this.isProcessing = false;
             return false;
         }
