@@ -12,7 +12,8 @@ class AudioRecorderTests: XCTestCase {
   override func setUp() {
     super.setUp()
     // Use default factories (real implementations) for basic setup
-    audioRecorder = AudioRecorder()
+    let audioConfig = AudioConfig()
+    audioRecorder = AudioRecorder(audioConfig: audioConfig)
   }
   
   override func tearDown() {
@@ -30,7 +31,9 @@ class AudioRecorderTests: XCTestCase {
     var createdEngine: MockAudioEngine?
     
     // Create recorder with mocked dependencies
+    let audioConfig = AudioConfig()
     audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
       sessionFactory: {
         sessionFactoryCallCount += 1
         return mockAudioSession
@@ -62,7 +65,9 @@ class AudioRecorderTests: XCTestCase {
     mockAudioSession.setCategoryShouldThrow = true
     var factoryCallCount = 0
     
+    let audioConfig = AudioConfig()
     audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
       sessionFactory: { mockAudioSession },
       factory: {
         factoryCallCount += 1
@@ -91,7 +96,9 @@ class AudioRecorderTests: XCTestCase {
     mockAudioSession.setActiveShouldThrow = true
     var factoryCallCount = 0
     
+    let audioConfig = AudioConfig()
     audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
       sessionFactory: { mockAudioSession },
       factory: {
         factoryCallCount += 1
@@ -118,14 +125,14 @@ class AudioRecorderTests: XCTestCase {
   
   // MARK: - Stop behavior tests with mocks
   
-  func testStopCallsDependencies() {
-    // Test that all dependency methods are called
-    let mockInputNode = MockAudioInputNode()
-    let mockEngine = MockAudioEngine(isRunning: false)
+  func testStopCallsDependencies() throws {
+    // Test that AudioRecord.stop() and release() are called
     let mockAudioSession = MockAudioSession()
     var sessionFactoryCallCount = 0
+    let audioConfig = AudioConfig()
     
     audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
       sessionFactory: {
         sessionFactoryCallCount += 1
         return mockAudioSession
@@ -133,47 +140,71 @@ class AudioRecorderTests: XCTestCase {
       factory: { MockAudioEngine() }
     )
     
-    audioRecorder.stop(engine: mockEngine, inputNode: mockInputNode)
+    // Create AudioRecord via start()
+    let audioRecord = try audioRecorder.start()
     
-    // Verify dependency methods are called
-    XCTAssertEqual(1, mockInputNode.removeTapCallCount, "removeTap should be called once")
-    XCTAssertEqual(1, sessionFactoryCallCount, "Session factory should be called once")
-    XCTAssertEqual(1, mockAudioSession.setActiveCallCount, "setActive(false) should be called once")
-    XCTAssertEqual(false, mockAudioSession.setActiveActive, "setActive should be called with false")
+    // Verify AudioRecord is initialized
+    XCTAssertEqual(AudioRecord.STATE_INITIALIZED, audioRecord.state, "AudioRecord should be initialized")
+    
+    // Call stop()
+    audioRecorder.stop(record: audioRecord)
+    
+    // Verify AudioRecord is released (state becomes UNINITIALIZED)
+    XCTAssertEqual(AudioRecord.STATE_UNINITIALIZED, audioRecord.state, "AudioRecord should be released after stop")
+    
+    // Verify session cleanup was called (via onRelease closure)
+    XCTAssertEqual(2, sessionFactoryCallCount, "Session factory should be called for start and cleanup")
   }
   
-  func testStopCallsEngineStopWhenRunning() {
-    // Test "if running" case: engine.stop() should be called when engine is running
-    let mockInputNode = MockAudioInputNode()
-    let mockEngine = MockAudioEngine(isRunning: true)
+  func testStopCallsRecordStopWhenRecording() throws {
+    // Test "if recording" case: AudioRecord.stop() should be called when recording
     let mockAudioSession = MockAudioSession()
+    let audioConfig = AudioConfig()
     
     audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
       sessionFactory: { mockAudioSession },
       factory: { MockAudioEngine() }
     )
     
-    audioRecorder.stop(engine: mockEngine, inputNode: mockInputNode)
+    // Create and start recording
+    let audioRecord = try audioRecorder.start()
+    try audioRecord.startRecording()
     
-    // Verify engine.stop() is called when running
-    XCTAssertEqual(1, mockEngine.stopCallCount, "stop() should be called when engine is running")
+    // Verify recording state
+    XCTAssertEqual(AudioRecord.RECORDSTATE_RECORDING, audioRecord.recordingState, "AudioRecord should be recording")
+    
+    // Call stop()
+    audioRecorder.stop(record: audioRecord)
+    
+    // Verify recording stopped
+    XCTAssertEqual(AudioRecord.RECORDSTATE_STOPPED, audioRecord.recordingState, "AudioRecord should be stopped after stop()")
+    XCTAssertEqual(AudioRecord.STATE_UNINITIALIZED, audioRecord.state, "AudioRecord should be released after stop()")
   }
   
-  func testStopSkipsEngineStopWhenNotRunning() {
-    // Test "if running" case: engine.stop() should NOT be called when engine is not running
-    let mockInputNode = MockAudioInputNode()
-    let mockEngine = MockAudioEngine(isRunning: false)
+  func testStopSkipsRecordStopWhenNotRecording() throws {
+    // Test "if recording" case: AudioRecord.stop() should still work when not recording (idempotent)
     let mockAudioSession = MockAudioSession()
+    let audioConfig = AudioConfig()
     
     audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
       sessionFactory: { mockAudioSession },
       factory: { MockAudioEngine() }
     )
     
-    audioRecorder.stop(engine: mockEngine, inputNode: mockInputNode)
+    // Create AudioRecord but don't start recording
+    let audioRecord = try audioRecorder.start()
     
-    // Verify engine.stop() is NOT called when not running
-    XCTAssertEqual(0, mockEngine.stopCallCount, "stop() should not be called when engine is not running")
+    // Verify not recording
+    XCTAssertEqual(AudioRecord.RECORDSTATE_STOPPED, audioRecord.recordingState, "AudioRecord should not be recording")
+    
+    // Call stop() - should be idempotent
+    audioRecorder.stop(record: audioRecord)
+    
+    // Verify still stopped and released
+    XCTAssertEqual(AudioRecord.RECORDSTATE_STOPPED, audioRecord.recordingState, "AudioRecord should still be stopped")
+    XCTAssertEqual(AudioRecord.STATE_UNINITIALIZED, audioRecord.state, "AudioRecord should be released after stop()")
   }
 }
 

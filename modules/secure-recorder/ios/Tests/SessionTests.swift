@@ -20,8 +20,8 @@ class SessionTests: XCTestCase {
     super.setUp()
     
     keyManager = KeyManager()
-    audioRecorder = AudioRecorder()
     audioConfig = AudioConfig()
+    audioRecorder = AudioRecorder(audioConfig: audioConfig)
     
     // Create temporary output file
     let tempDir = FileManager.default.temporaryDirectory

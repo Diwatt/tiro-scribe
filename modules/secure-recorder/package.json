@@ -16,6 +16,7 @@
     "validate": "echo '✅ Module structure' && test -f package.json && test -f expo-module.config.json && test -f android/build.gradle && test -f ios/SecureRecorderModule.swift && test -f src/index.ts && echo '✅ All required files present'",
     "typecheck": "tsc --noEmit",
     "verify": "pnpm run clean && pnpm run lint && pnpm run typecheck && pnpm run validate && pnpm run verify:android && pnpm run verify:ios",
+    "refresh-ide": "bash .cursor/refresh-index.sh",
     "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain",
     "verify:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'generic/platform=iOS Simulator' -quiet | grep -v 'warning:' | grep -v 'note:' && echo '✅ iOS compilation OK'",
     "build:android": "cd ../../android && ./gradlew :secure-recorder:assembleDebug",

@@ -26,10 +26,10 @@ class Session {
   private let sessionId: String
   private let outputFile: URL
   private var encryptionStream: EncryptionStreamProtocol!
-  private var audioEngine: AVAudioEngine!
-  private var inputNode: AVAudioInputNode!
+  private var audioRecord: AudioRecord!
   private var eventHandler: EventHandler!
   private var pipeline: Pipeline?
+  private var recordingQueue: DispatchQueue?
   
   internal let recordingTimer = RecordingTimer()
   
@@ -84,10 +84,8 @@ class Session {
     encryptionStream = EncryptionStream(secretKey: key, outputFile: outputFile)
     try encryptionStream.initialize()
     
-    // Start audio recording
-    let (engine, node) = try audioRecorder.start()
-    audioEngine = engine
-    inputNode = node
+    // Start audio recording (returns AudioRecord wrapper - isomorphic with Android)
+    audioRecord = try audioRecorder.start()
     
     // Initialize event handler
     initializeEventHandler()
@@ -95,8 +93,9 @@ class Session {
     // Activate state
     recordingTimer.activate()
     
-    // Create pipeline for audio processing
+    // Create pipeline for audio processing (isomorphic with Android)
     pipeline = Pipeline(
+      audioRecord: audioRecord,
       encryptionStream: encryptionStream,
       audioConfig: audioConfig,
       outputFile: outputFile,
@@ -110,47 +109,22 @@ class Session {
       }
     )
     
-    // Install tap to capture audio buffers
-    // CRITICAL: Use input node's hardware format to match sample rate requirement
-    // The tap format MUST match the hardware input format's sample rate
-    let hardwareFormat = node.inputFormat(forBus: 0)
+    // Start recording (isomorphic: matches Android AudioRecord.startRecording())
+    try audioRecord.startRecording()
     
+    // Start pipeline processing loop in background queue (isomorphic with Android coroutine)
     guard let pipelineRef = pipeline else {
       recordingTimer.deactivate()
       throw SecureRecorderError.initializationFailed("Pipeline not initialized")
     }
     
-    // Calculate buffer size based on hardware format
-    // Use hardware sample rate for buffer calculation, but target ~10ms
-    let hardwareSampleRate = hardwareFormat.sampleRate
-    let targetFrames = Int(hardwareSampleRate * 0.01) // 10ms buffer
-    let minFrames = 256
-    let bufferSize = max(targetFrames, minFrames)
+    let queue = DispatchQueue(label: "com.tiroscribe.secure-recorder.pipeline", qos: .userInitiated)
+    recordingQueue = queue
     
-    // Install tap and start engine (iOS-specific: push-based audio capture)
-    // Remove existing tap if present (safe to call even if no tap exists)
-    node.removeTap(onBus: 0)
-    
-    // Install tap
-    node.installTap(onBus: 0, bufferSize: AVAudioFrameCount(bufferSize), format: hardwareFormat) { [weak pipelineRef] buffer, _ in
-      pipelineRef?.processAudioBuffer(buffer: buffer)
-    }
-    
-    // Start engine to begin capturing
-    // Note: Engine must be started after tap is installed
-    guard let engine = node.engine else {
-      node.removeTap(onBus: 0)
-      recordingTimer.deactivate()
-      throw SecureRecorderError.initializationFailed("Input node has no engine")
-    }
-    
-    do {
-      try engine.start()
-    } catch {
-      // If engine start fails, remove tap
-      node.removeTap(onBus: 0)
-      recordingTimer.deactivate()
-      throw SecureRecorderError.initializationFailed("Failed to start audio engine: \(error.localizedDescription)")
+    queue.async { [weak pipelineRef, weak self] in
+      pipelineRef?.process()
+      // Pipeline loop completed (limit reached or error)
+      // EventHandler will handle cleanup via onLimitReached/onError
     }
     
     return outputFile.path
@@ -164,9 +138,9 @@ class Session {
    * @throws SecureRecorderError if finalization fails
    */
   internal func stop() throws -> String {
-    // Stop audio recording
-    if audioEngine != nil && inputNode != nil {
-      audioRecorder.stop(engine: audioEngine, inputNode: inputNode)
+    // Stop audio recording (isomorphic: matches Android AudioRecorder.stop())
+    if audioRecord != nil {
+      audioRecorder.stop(record: audioRecord)
     }
     
     // Close encryption stream safely
@@ -177,9 +151,9 @@ class Session {
     // Deactivate timer
     recordingTimer.deactivate()
     
-    audioEngine = nil
-    inputNode = nil
+    audioRecord = nil
     pipeline = nil
+    recordingQueue = nil
     
     return outputFile.path
   }
@@ -189,8 +163,8 @@ class Session {
    * Safe to call even if session wasn't fully initialized
    */
   internal func cleanup() {
-    if audioEngine != nil && inputNode != nil {
-      audioRecorder.stop(engine: audioEngine, inputNode: inputNode)
+    if audioRecord != nil {
+      audioRecorder.stop(record: audioRecord)
     }
     
     // Close encryption stream safely
@@ -199,9 +173,9 @@ class Session {
     }
     
     recordingTimer.deactivate()
-    audioEngine = nil
-    inputNode = nil
+    audioRecord = nil
     pipeline = nil
+    recordingQueue = nil
   }
   
   /**

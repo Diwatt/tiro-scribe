@@ -172,8 +172,8 @@ class AudioRecord {
     // Copy to buffer (memory-safe)
     data.withUnsafeBytes { bytes in
       guard let baseAddress = bytes.baseAddress else { return }
-      // Use copyMemory for safe memory copy
-      buffer.advanced(by: offset).initializeMemory(as: UInt8.self, from: baseAddress, count: bytesToCopy)
+      // Use memcpy for safe memory copy
+      memcpy(buffer.advanced(by: offset), baseAddress, bytesToCopy)
     }
     
     return bytesToCopy

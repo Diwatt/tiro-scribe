@@ -4,37 +4,40 @@ import AVFoundation
 /**
  * Audio recorder implementation for iOS/iPadOS
  * 
- * Provides audio recording abstraction using AVAudioEngine and AVAudioInputNode.
- * Configures AVAudioSession for recording and manages audio engine lifecycle.
+ * Provides audio recording abstraction using AudioRecord wrapper.
+ * Configures AVAudioSession for recording and creates AudioRecord instances.
  * 
  * iOS/iPadOS SPECIFICITY:
- * - Uses AVAudioEngine/AVAudioInputNode (iOS audio framework)
- * - start() returns (AVAudioEngine, AVAudioInputNode) tuple
- * - stop() takes engine and node parameters
+ * - Uses AudioRecord wrapper (isomorphic with Android AudioRecord API)
+ * - start() returns AudioRecord instance
+ * - stop() takes AudioRecord parameter
  * - Throws SecureRecorderError enum
  * - Configures AVAudioSession for recording
- * - Tap installation handled by Session (push-based audio capture)
+ * - AudioRecord handles push-to-pull conversion internally
  */
 class AudioRecorder {
   private let sessionFactory: () -> AudioSessionProtocol
   private let factory: () -> AVAudioEngine
+  private let audioConfig: AudioConfig
   
   internal init(
+    audioConfig: AudioConfig,
     sessionFactory: @escaping () -> AudioSessionProtocol = { AVAudioSession.sharedInstance() },
     factory: @escaping () -> AVAudioEngine = { AVAudioEngine() }
   ) {
+    self.audioConfig = audioConfig
     self.sessionFactory = sessionFactory
     self.factory = factory
   }
   
   /**
    * Start audio recording
-   * Configures AVAudioSession and creates AVAudioEngine
+   * Configures AVAudioSession and creates AudioRecord wrapper
    * 
-   * @return Tuple of (AVAudioEngine, AVAudioInputNode)
+   * @return AudioRecord instance (isomorphic with Android)
    * @throws SecureRecorderError if audio session configuration or engine creation fails
    */
-  internal func start() throws -> (AVAudioEngine, AVAudioInputNode) {
+  internal func start() throws -> AudioRecord {
     // Configure audio session for recording
     let audioSession = sessionFactory()
     
@@ -49,10 +52,21 @@ class AudioRecorder {
     let engine = factory()
     let inputNode = engine.inputNode
     
-    // Prepare engine (doesn't start it - that happens when tap is installed)
+    // Prepare engine (doesn't start it - that happens in AudioRecord.startRecording())
     engine.prepare()
     
-    return (engine, inputNode)
+    // Create session cleanup closure
+    let onRelease = createSessionCleanup()
+    
+    // Create AudioRecord wrapper (isomorphic with Android)
+    let audioRecord = AudioRecord(
+      engine: engine,
+      inputNode: inputNode,
+      audioConfig: audioConfig,
+      onRelease: onRelease
+    )
+    
+    return audioRecord
   }
   
   /**
@@ -77,29 +91,20 @@ class AudioRecorder {
   
   /**
    * Stop audio recording
-   * Stops engine and removes tap from input node
+   * Stops and releases AudioRecord
    * 
+   * Isomorphic: Matches Android AudioRecorder.stop() behavior
    * Safe to call multiple times (idempotent)
-   * 
-   * Note: This method is kept for backward compatibility.
-   * New code should use AudioRecord.stop()/release() which handle session cleanup.
    */
-  internal func stop(engine: AVAudioEngine, inputNode: AVAudioInputNode) {
-    // Remove tap (safe to call even if no tap exists)
-    inputNode.removeTap(onBus: 0)
-    
-    // Stop engine if running
-    if engine.isRunning {
-      engine.stop()
+  internal func stop(record: AudioRecord) {
+    // Stop recording if active
+    if record.recordingState == AudioRecord.RECORDSTATE_RECORDING {
+      record.stop()
     }
     
-    // Deactivate audio session (best effort - failures are non-critical during cleanup)
-    let audioSession = sessionFactory()
-    do {
-      try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
-    } catch {
-      // Session deactivation failure is acceptable during cleanup
-      // Audio session will be reset on next recording start
+    // Release resources (handles session cleanup via onRelease closure)
+    if record.state != AudioRecord.STATE_UNINITIALIZED {
+      record.release()
     }
   }
 }

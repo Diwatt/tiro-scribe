@@ -29,8 +29,8 @@ import Foundation
  */
 public class SecureRecorderModule: Module {
   private lazy var keyManager: KeyManager = { KeyManager() }()
-  private lazy var audioRecorder: AudioRecorder = { AudioRecorder() }()
   private lazy var audioConfig: AudioConfig = { AudioConfig() }()
+  private lazy var audioRecorder: AudioRecorder = { AudioRecorder(audioConfig: audioConfig) }()
   private var currentSession: Session?
   private let keyAlias = "secure_recorder_key"
   
