@@ -33,10 +33,9 @@ class StreamDecryptionManager(
   companion object {
     private const val GCM_TAG_LENGTH = 128 // 128 bits = 16 bytes
     private const val GCM_IV_LENGTH = 12 // 12 bytes (standard for GCM)
-    private const val CHUNK_SIZE_LENGTH = 4 // 4 bytes for Int (chunk size header)
+    private const val CHUNK_SIZE_LENGTH = 4
   }
 
-  // Internal methods
   /**
    * Stream decrypt file chunk by chunk, emitting events for each decrypted chunk
    * 

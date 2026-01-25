@@ -28,23 +28,20 @@ import java.io.File
 class Session(
   private val sessionId: String,
   private val outputFile: File,
-  private val keyManager: KeyManager,
+  private val keyManager: KeyManagerInterface,
   private val audioRecorder: AudioRecorder,
   private val audioConfig: AudioConfig,
-  private val limiter: LimitRegistry = LimitRegistry(),
+  private val limiter: LimitRegistryInterface = LimitRegistry(),
   private val onLimitReached: (suspend (StopReason, String, String) -> Unit)? = null
 ) {
-  // Private properties
   private lateinit var eventHandler: EventHandler
   private lateinit var encryptionStream: EncryptionStream
   private lateinit var currentAudioRecord: AudioRecord
   private var recordingJob: Job? = null
   private val recordingScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   
-  // Internal properties
-  internal val stateManager = StateManager()
+  internal val recordingTimer = RecordingTimer()
   
-  // Internal methods
   /**
    * Start recording session
    * Initializes encryption and audio capture
@@ -57,7 +54,7 @@ class Session(
     eventHandler = EventHandler(
       sessionId = sessionId,
       outputFile = outputFile,
-      stateManager = stateManager,
+      recordingTimer = recordingTimer,
       onStop = { stop() },
       onLimitReached = onLimitReached
     )
@@ -70,12 +67,12 @@ class Session(
     encryptionStream.initialize()
     
     // Start audio recording
-    val audioRecord = audioRecorder.start(audioConfig)
+    val audioRecord = audioRecorder.start()
     audioRecord.startRecording()
     currentAudioRecord = audioRecord
     
     // Activate state
-    stateManager.activate()
+    recordingTimer.activate()
     
     // Create pipeline for audio processing
     val pipeline = Pipeline(
@@ -84,7 +81,7 @@ class Session(
       audioConfig = audioConfig,
       outputFile = outputFile,
       limiter = limiter,
-      stateManager = stateManager,
+      recordingTimer = recordingTimer,
       onLimitReached = { reason ->
         eventHandler.onLimitReached(reason)
       },
@@ -127,7 +124,7 @@ class Session(
     }
     
     // Deactivate state
-    stateManager.deactivate()
+    recordingTimer.deactivate()
     
     return outputFile.absolutePath
   }
@@ -159,11 +156,11 @@ class Session(
       }
       
       // Deactivate state
-      stateManager.deactivate()
+      recordingTimer.deactivate()
     } catch (e: Exception) {
       // Ignore cleanup errors - best effort cleanup
       // State is still updated to prevent further operations
-      stateManager.deactivate()
+      recordingTimer.deactivate()
     }
   }
   
@@ -171,7 +168,7 @@ class Session(
    * Get session information
    */
   internal fun getInfo(): SessionInfo {
-    return SessionInfo(sessionId, outputFile.absolutePath, stateManager.isActive)
+    return SessionInfo(sessionId, outputFile.absolutePath, recordingTimer.isActive)
   }
   
   data class SessionInfo(

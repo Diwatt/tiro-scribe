@@ -4,6 +4,94 @@ require File.join(File.dirname(`node --print "require.resolve('react-native/pack
 require 'json'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
 
+# Patches ExpoModulesProvider and expo-configure-project so SecureRecorderModule is
+# included. expo-modules-autolinking does not discover the local file:./modules/secure-recorder
+# package. Applied at pod install and via a build-phase script so it persists after
+# [Expo] Configure project.
+def patch_expo_modules_provider_for_secure_recorder!(installer)
+  # 1) Add "secure-recorder" to expo-configure-project.sh --packages so [Expo] Configure
+  #    generates ExpoModulesProvider with SecureRecorderModule.self. If the generator
+  #    cannot resolve the local package, the build-phase patch below still adds it.
+  configure_script = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-TiroScribe', 'expo-configure-project.sh')
+  if File.exist?(configure_script)
+    content = File.read(configure_script)
+    unless content.include?('"secure-recorder"')
+      content = content.sub(/"expo-sqlite"/, '"expo-sqlite" "secure-recorder"')
+      File.write(configure_script, content)
+    end
+  end
+
+  # 2) Patch ExpoModulesProvider.swift at pod install (in case [Expo] Configure has not
+  #    run yet or the generator did not include secure-recorder).
+  provider_path = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-TiroScribe', 'ExpoModulesProvider.swift')
+  if File.exist?(provider_path)
+    content = File.read(provider_path)
+    changed = false
+    unless content.include?('import SecureRecorder')
+      content = content.sub("import ExpoSQLite\n", "import ExpoSQLite\nimport SecureRecorder\n")
+      changed = true
+    end
+    unless content.include?('SecureRecorderModule.self')
+      content = content.sub(
+        "DevMenuPreferences.self\n    ]\n    #else",
+        "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else"
+      )
+      content = content.sub(
+        "SQLiteModule.self\n    ]\n    #endif",
+        "SQLiteModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif"
+      )
+      changed = true
+    end
+    File.write(provider_path, content) if changed
+  end
+
+  # Add a build phase to re-apply the patch after [Expo] Configure project regenerates the file
+  user_project_path = File.join(__dir__, 'TiroScribe.xcodeproj')
+  return unless File.directory?(user_project_path)
+
+  user_project = Xcodeproj::Project.open(user_project_path)
+  native_target = user_project.native_targets.find { |t| t.name == 'TiroScribe' }
+  return unless native_target
+
+  configure_phase = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Configure project' }
+  return unless configure_phase
+
+  # Build phase that runs *before* [Expo] Configure: patch expo-configure-project.sh to
+  # add "secure-recorder" to --packages so generate-modules-provider includes it.
+  # (At pod install the script may not exist yet or may be regenerated after we patch.)
+  patch_configure = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Patch expo-configure-project for SecureRecorder' }
+  unless patch_configure
+    phase = native_target.new_shell_script_build_phase('[Expo] Patch expo-configure-project for SecureRecorder')
+    phase.shell_script = <<~'SH'
+      C="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/expo-configure-project.sh"
+      [ ! -f "$C" ] && exit 0
+      grep -q '"secure-recorder"' "$C" && exit 0
+      ruby -e 'c=File.read(ARGV[0]);c=c.sub(/"expo-sqlite"/,"\"expo-sqlite\" \"secure-recorder\"");File.write(ARGV[0],c)' "$C"
+    SH
+    idx = native_target.build_phases.find_index(configure_phase)
+    native_target.build_phases.delete(phase)
+    native_target.build_phases.insert(idx, phase)
+  end
+
+  # Build phase that runs *after* [Expo] Configure: patch ExpoModulesProvider.swift if
+  # generate-modules-provider did not include SecureRecorderModule.
+  existing = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Patch SecureRecorder into ExpoModulesProvider' }
+  unless existing
+    phase = native_target.new_shell_script_build_phase('[Expo] Patch SecureRecorder into ExpoModulesProvider')
+    phase.shell_script = <<~'SH'
+      P="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"
+      [ ! -f "$P" ] && exit 0
+      grep -q "SecureRecorderModule.self" "$P" && exit 0
+      ruby -e 'c=File.read(ARGV[0]);c=c.sub("import ExpoSQLite\n","import ExpoSQLite\nimport SecureRecorder\n") unless c.include?("import SecureRecorder");c=c.sub("DevMenuPreferences.self\n    ]\n    #else","DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else");c=c.sub("SQLiteModule.self\n    ]\n    #endif","SQLiteModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif");File.write(ARGV[0],c)' "$P"
+    SH
+    idx = native_target.build_phases.find_index(configure_phase)
+    native_target.build_phases.delete(phase)
+    native_target.build_phases.insert(idx + 1, phase)
+  end
+
+  user_project.save
+end
+
 def ccache_enabled?(podfile_properties)
   # Environment variable takes precedence
   return ENV['USE_CCACHE'] == '1' if ENV['USE_CCACHE']
@@ -12,6 +100,7 @@ def ccache_enabled?(podfile_properties)
   podfile_properties['apple.ccacheEnabled'] == 'true'
 end
 
+ENV['RCT_NEW_ARCH_ENABLED'] = '1' if podfile_properties['newArchEnabled'] == 'true'
 ENV['RCT_NEW_ARCH_ENABLED'] ||= '0' if podfile_properties['newArchEnabled'] == 'false'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
@@ -52,6 +141,12 @@ target 'TiroScribe' do
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
 
+  # Manually link local SecureRecorder module since autolinking misses it
+  pod 'SecureRecorder', :path => '../modules/secure-recorder', :inhibit_warnings => true
+
+  # Suppress warnings for other pods to reduce noise during verification
+  inhibit_all_warnings!
+
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -59,5 +154,9 @@ target 'TiroScribe' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+    # Register SecureRecorder in ExpoModulesProvider (expo-modules-autolinking does not
+    # discover the local file:./modules/secure-recorder package). Patch both the generated
+    # Swift file and the configure script so it persists across pod install and builds.
+    patch_expo_modules_provider_for_secure_recorder!(installer)
   end
 end

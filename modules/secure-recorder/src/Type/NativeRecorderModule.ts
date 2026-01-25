@@ -1,4 +1,4 @@
-import type { RecordingStatus } from './SecureRecorderModule';
+import type { RecordingStatus } from './RecordingStatus';
 
 /**
  * Interface for native recorder module operations.
@@ -10,13 +10,5 @@ export interface NativeRecorderModule {
   getStatus(): Promise<RecordingStatus>;
   hasPermission(): Promise<boolean>;
   stream(encryptedPath: string): Promise<void>;
-  addListener(event: string, listener: (data: any) => any): { remove: () => void };
-}
-
-/**
- * Interface for event emitter operations.
- * Enables dependency inversion and testability.
- */
-export interface EventEmitter {
   addListener(event: string, listener: (data: any) => any): { remove: () => void };
 }

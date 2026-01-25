@@ -20,35 +20,24 @@ import java.io.File
  */
 class Pipeline(
   private val audioRecord: AudioRecord,
-  private val encryptionStream: EncryptionStream,
+  private val encryptionStream: EncryptionStreamInterface,
   private val audioConfig: AudioConfig,
   private val outputFile: File,
-  private val limiter: LimitRegistry,
-  private val stateManager: StateManager,
+  private val limiter: LimitRegistryInterface,
+  private val recordingTimer: RecordingTimerInterface,
   private val onLimitReached: suspend (StopReason) -> Unit,
   private val onError: (String) -> Unit
 ) {
-  // Private methods
-  private suspend inline fun <reified T : Limit> isLimitExceeded(limits: List<Limit>, value: Long): Boolean {
-    val limit = limits.firstOrNull { it is T }
-    if (limit != null && limit.isExceeded(value)) {
-      onLimitReached(limit.reason)
-      return true
-    }
-    return false
-  }
-  
-  // Internal methods
   internal suspend fun process() {
     val buffer = ByteArray(audioConfig.bufferSize)
     
     try {
-      while (currentCoroutineContext().isActive && stateManager.isActive) {
+      while (currentCoroutineContext().isActive && recordingTimer.isActive) {
         // SECURITY: Check all limits
         val limits = limiter.getLimits()
         
         // Check duration limit
-        val elapsedTime = stateManager.getElapsedTime()
+        val elapsedTime = recordingTimer.getElapsedTime()
         if (isLimitExceeded<Limit.Duration>(limits, elapsedTime)) {
           return
         }
@@ -71,5 +60,14 @@ class Pipeline(
     } catch (e: Exception) {
       onError("Exception in recording pipeline: ${e.message}")
     }
+  }
+  
+  private suspend inline fun <reified T : Limit> isLimitExceeded(limits: List<Limit>, value: Long): Boolean {
+    val limit = limits.firstOrNull { it is T }
+    if (limit != null && limit.isExceeded(value)) {
+      onLimitReached(limit.reason)
+      return true
+    }
+    return false
   }
 }

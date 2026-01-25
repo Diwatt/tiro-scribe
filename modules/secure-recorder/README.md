@@ -44,21 +44,12 @@ if (!hasPermission) {
 
 // Create recorder instance
 const recorder = new SecureRecorder('session-123');
+recorder.onerror = (error) => console.error('Recording error:', error);
 
-// Set up event handlers
-recorder.onstatuschange = (event) => {
-  console.log('State:', event.state);
-  console.log('File:', event.filePath);
-};
-
-recorder.onerror = (error) => {
-  console.error('Recording error:', error);
-};
-
-// Start recording
+// Start recording (state and filePath are updated optimistically on success)
 await recorder.start();
 // recorder.state === 'recording'
-// recorder.recording === true
+// recorder.isRecording === true
 // recorder.filePath === '/path/to/session-123.dat'
 
 // ... recording in progress ...
@@ -66,10 +57,7 @@ await recorder.start();
 // Stop recording
 const encryptedFilePath = await recorder.stop();
 // recorder.state === 'stopped'
-// recorder.recording === false
-
-// Cleanup when done
-recorder.dispose();
+// recorder.isRecording === false
 ```
 
 ### Decryption & Model Integration
@@ -110,16 +98,14 @@ Starts recording with streaming encryption.
 
 - **Throws**: `SecureRecorderError` if recording fails, permission is denied, or already recording
 
-#### `stop(): Promise<string>`
+#### `stop(): Promise<string | null>`
 
-Stops the current recording and returns the absolute path to the encrypted file.
+Stops the current recording and returns the absolute path to the encrypted file. State and `filePath` are updated optimistically on success.
 
-- **Returns**: Absolute path to the encrypted file
-- **Throws**: `SecureRecorderError` if no recording is active or stopping fails
+**Idempotent**: safe to call when already stopped or never started. In those cases a warning is logged and a value is returned without throwing.
 
-#### `dispose(): void`
-
-Cleans up resources and unsubscribes from events. Call this when the recorder instance is no longer needed.
+- **Returns**: Absolute path to the encrypted file, or `null` when there was nothing to stop (never started, or already stopped with no path). When already stopped, returns the existing `filePath`.
+- **Throws**: `SecureRecorderError` only when the native stop fails while a recording was active.
 
 ### Instance Properties
 
@@ -127,7 +113,7 @@ Cleans up resources and unsubscribes from events. Call this when the recorder in
 
 Current recording state: `'inactive' | 'recording' | 'stopped'`
 
-#### `recording: boolean` (readonly)
+#### `isRecording: boolean` (readonly)
 
 Whether a recording is currently active. Computed from `state`.
 
@@ -139,24 +125,11 @@ Current session ID, or `null` if not set.
 
 Path to the encrypted recording file, or `null` if not recording/stopped.
 
-### Event Handlers
-
-#### `onstatuschange: ((event: StatusChangeEvent) => void) | null`
-
-Event handler called when recording status changes.
-
-```typescript
-recorder.onstatuschange = (event) => {
-  console.log('State:', event.state);        // 'inactive' | 'recording' | 'stopped'
-  console.log('Session:', event.sessionId);  // string | null
-  console.log('File:', event.filePath);      // string | null
-  console.log('Reason:', event.reason);     // 'duration_limit' | 'file_size_limit' | 'user_stopped' | 'error' | undefined
-};
-```
+### Optional callback
 
 #### `onerror: ((error: SecureRecorderError) => void) | null`
 
-Event handler called when a recording error occurs.
+Called when a command (`start` or `stop`) throws. Not an event subscription.
 
 ```typescript
 recorder.onerror = (error) => {
@@ -268,19 +241,11 @@ if (!hasPermission) {
 // Create recorder instance
 const recorder = new SecureRecorder('session-id');
 
-// Set up event handlers
-recorder.onstatuschange = (event) => {
-  console.log('Status:', event.state);
-};
-
 // Start recording
 await recorder.start();
 
 // Stop recording
 const encryptedPath = await recorder.stop();
-
-// Cleanup
-recorder.dispose();
 ```
 
 See [`__tests__/integration.test.ts`](./__tests__/integration.test.ts) for test scenarios.

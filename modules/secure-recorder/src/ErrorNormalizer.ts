@@ -1,4 +1,4 @@
-import type { SecureRecorderError } from './SecureRecorder';
+import type { SecureRecorderError } from './Type';
 import { ErrorCode } from './ErrorCode';
 
 /**

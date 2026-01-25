@@ -4,6 +4,8 @@
 
 All core classes and their tests are **isomorphic** across platforms, ensuring identical behavior, signatures, and error handling.
 
+**Exception**: Classes in the `Proxy/` folder are exempt from isomorphic requirements. See `proxy-folder-exception.md` for details.
+
 ---
 
 ## What Is Isomorphic?

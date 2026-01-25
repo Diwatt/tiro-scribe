@@ -3,10 +3,7 @@ import AVFoundation
 
 /**
  * Unit tests for AudioRecorder (iOS/iPadOS)
- * Tests match Android AudioRecorderTest structure and naming
- * 
- * Note: These tests verify the interface and basic behavior.
- * Actual recording requires hardware and permissions, tested separately.
+ * Tests use mocks to verify behavior in isolation
  */
 @available(iOS 13.0, *)
 class AudioRecorderTests: XCTestCase {
@@ -14,6 +11,7 @@ class AudioRecorderTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
+    // Use default factories (real implementations) for basic setup
     audioRecorder = AudioRecorder()
   }
   
@@ -22,141 +20,241 @@ class AudioRecorderTests: XCTestCase {
     super.tearDown()
   }
   
-  // MARK: - Interface tests (matching Android AudioRecorderTest)
+  // MARK: - Start behavior tests with mocks
   
-  func testAudioRecorderIsInstantiable() {
-    // Equivalent to Android: "AndroidAudioRecorder implements AudioRecorder interface"
-    XCTAssertNotNil(audioRecorder)
-  }
-  
-  func testStartMethodSignatureReturnsEngineAndNode() {
-    // Equivalent to Android: "start method signature accepts AudioConfig"
-    // Verify method exists and returns expected types
-    // Cannot call without permissions, but can verify signature exists
-    let mirror = Mirror(reflecting: audioRecorder!)
-    let type = mirror.subjectType
-    XCTAssertTrue(String(describing: type).contains("AudioRecorder"))
-  }
-  
-  func testStopMethodSignatureAcceptsEngineAndNode() {
-    // Equivalent to Android: "stop method signature accepts AudioRecord"
-    // Verify the interface contract through protocol conformance
-    XCTAssertTrue(audioRecorder is AudioRecorder, 
-                  "Should conform to AudioRecorder protocol with stop method")
+  func testStartCallsDependencies() throws {
+    // Create mocks to verify dependency calls
+    let mockAudioSession = MockAudioSession()
+    var sessionFactoryCallCount = 0
+    var factoryCallCount = 0
+    var createdEngine: MockAudioEngine?
+    
+    // Create recorder with mocked dependencies
+    audioRecorder = AudioRecorder(
+      sessionFactory: {
+        sessionFactoryCallCount += 1
+        return mockAudioSession
+      },
+      factory: {
+        factoryCallCount += 1
+        let engine = MockAudioEngine()
+        createdEngine = engine
+        return engine
+      }
+    )
+    
+    // Call start()
+    _ = try audioRecorder.start()
+    
+    // Verify dependency instances are created
+    XCTAssertEqual(1, sessionFactoryCallCount, "Session factory should be called once")
+    XCTAssertEqual(1, factoryCallCount, "Factory should be called once")
+    
+    // Verify dependency methods are called
+    XCTAssertEqual(1, mockAudioSession.setCategoryCallCount, "setCategory should be called once")
+    XCTAssertEqual(1, mockAudioSession.setActiveCallCount, "setActive should be called once")
+    XCTAssertEqual(1, createdEngine?.prepareCallCount ?? 0, "prepare() should be called once")
   }
   
   func testStartThrowsWhenAudioSessionConfigurationFails() {
-    // Equivalent to Android: "start throws exception on AudioRecord initialization failure"
-    // Note: In test environment, audio session may not be available
-    // This documents expected behavior
+    // Exception case 1: Audio session configuration fails
+    let mockAudioSession = MockAudioSession()
+    mockAudioSession.setCategoryShouldThrow = true
+    var factoryCallCount = 0
     
-    // We can't easily simulate failure without mocking AVAudioSession
-    // So we verify that start can throw
-    do {
-      _ = try audioRecorder.start()
-      // If we get here, audio engine was created successfully
-      // Clean up
-      let (engine, node) = try audioRecorder.start()
-      audioRecorder.stop(engine: engine, inputNode: node)
-    } catch {
-      // Expected in test environment without audio permissions
-      XCTAssertNotNil(error, "Should throw error on initialization failure")
+    audioRecorder = AudioRecorder(
+      sessionFactory: { mockAudioSession },
+      factory: {
+        factoryCallCount += 1
+        return MockAudioEngine()
+      }
+    )
+    
+    // Should throw
+    XCTAssertThrowsError(try audioRecorder.start()) { error in
+      if case SecureRecorderError.initializationFailed = error {
+        // Expected
+      } else {
+        XCTFail("Should throw SecureRecorderError.initializationFailed")
+      }
     }
+    
+    // Verify setCategory was called before throwing
+    XCTAssertEqual(1, mockAudioSession.setCategoryCallCount, "setCategory should be called before throwing")
+    // Verify factory was not called
+    XCTAssertEqual(0, factoryCallCount, "Factory should not be called when session configuration fails")
   }
   
-  func testStopHandlesAlreadyStoppedEngine() {
-    // Equivalent to Android: "stop handles already stopped AudioRecord gracefully"
-    let engine = AVAudioEngine()
-    let inputNode = engine.inputNode
+  func testStartThrowsWhenSetActiveFails() {
+    // Exception case 2: setActive fails (after setCategory succeeds)
+    let mockAudioSession = MockAudioSession()
+    mockAudioSession.setActiveShouldThrow = true
+    var factoryCallCount = 0
     
-    // Engine is already stopped (never started)
-    // Should not throw
-    audioRecorder.stop(engine: engine, inputNode: inputNode)
+    audioRecorder = AudioRecorder(
+      sessionFactory: { mockAudioSession },
+      factory: {
+        factoryCallCount += 1
+        return MockAudioEngine()
+      }
+    )
     
-    // Verify engine is stopped
-    XCTAssertFalse(engine.isRunning, "Engine should be stopped")
-  }
-  
-  func testStopRemovesTapFromInputNode() {
-    // Equivalent to Android: "stop handles recording AudioRecord"
-    let engine = AVAudioEngine()
-    let inputNode = engine.inputNode
-    
-    // Can't actually install a tap without starting engine and having permissions
-    // But we can verify stop doesn't crash
-    audioRecorder.stop(engine: engine, inputNode: inputNode)
-    
-    // Should complete without throwing
-    XCTAssertFalse(engine.isRunning)
-  }
-  
-  func testStopHandlesExceptionsGracefully() {
-    // Equivalent to Android: "stop handles exceptions gracefully"
-    let engine = AVAudioEngine()
-    let inputNode = engine.inputNode
-    
-    // Even with invalid state, stop should not throw
-    do {
-      audioRecorder.stop(engine: engine, inputNode: inputNode)
-      // Success - no exception thrown
-    } catch {
-      XCTFail("stop() should handle errors gracefully: \(error)")
+    // Should throw
+    XCTAssertThrowsError(try audioRecorder.start()) { error in
+      if case SecureRecorderError.initializationFailed = error {
+        // Expected
+      } else {
+        XCTFail("Should throw SecureRecorderError.initializationFailed")
+      }
     }
-  }
-  
-  func testAudioRecorderProtocolDefinesStartMethod() {
-    // Equivalent to Android: "AudioRecorder interface defines start method"
-    let hasStartMethod = type(of: audioRecorder).instancesRespond(
-      to: #selector(AudioRecorder.start)
-    )
-    XCTAssertTrue(hasStartMethod, "AudioRecorder should define start method")
-  }
-  
-  func testAudioRecorderProtocolDefinesStopMethod() {
-    // Equivalent to Android: "AudioRecorder interface defines stop method"
-    let hasStopMethod = type(of: audioRecorder).instancesRespond(
-      to: #selector(AudioRecorder.stop(engine:inputNode:))
-    )
-    XCTAssertTrue(hasStopMethod, "AudioRecorder should define stop method")
-  }
-  
-  func testInstallTapMethodExists() {
-    // iOS-specific: Verify installTap method exists
-    let hasInstallTapMethod = type(of: audioRecorder).instancesRespond(
-      to: #selector(AudioRecorder.installTap(on:bufferSize:format:block:))
-    )
-    XCTAssertTrue(hasInstallTapMethod, "AudioRecorder should define installTap method")
-  }
-  
-  func testAudioSessionConfigurationUsesMeasurementMode() {
-    // iOS-specific: Verify audio session is configured correctly
-    // Note: We can't test the actual configuration without starting,
-    // but we document the expected behavior
     
-    // The implementation should set:
-    // - Category: .record
-    // - Mode: .measurement
-    // This is verified in integration tests with actual recording
-    XCTAssertNotNil(audioRecorder, "Recorder should be initialized")
+    // Verify setCategory was called (succeeds)
+    XCTAssertEqual(1, mockAudioSession.setCategoryCallCount, "setCategory should be called")
+    // Verify setActive was called before throwing
+    XCTAssertEqual(1, mockAudioSession.setActiveCallCount, "setActive should be called before throwing")
+    // Verify factory was not called
+    XCTAssertEqual(0, factoryCallCount, "Factory should not be called when setActive fails")
+  }
+  
+  // MARK: - Stop behavior tests with mocks
+  
+  func testStopCallsDependencies() {
+    // Test that all dependency methods are called
+    let mockInputNode = MockAudioInputNode()
+    let mockEngine = MockAudioEngine(isRunning: false)
+    let mockAudioSession = MockAudioSession()
+    var sessionFactoryCallCount = 0
+    
+    audioRecorder = AudioRecorder(
+      sessionFactory: {
+        sessionFactoryCallCount += 1
+        return mockAudioSession
+      },
+      factory: { MockAudioEngine() }
+    )
+    
+    audioRecorder.stop(engine: mockEngine, inputNode: mockInputNode)
+    
+    // Verify dependency methods are called
+    XCTAssertEqual(1, mockInputNode.removeTapCallCount, "removeTap should be called once")
+    XCTAssertEqual(1, sessionFactoryCallCount, "Session factory should be called once")
+    XCTAssertEqual(1, mockAudioSession.setActiveCallCount, "setActive(false) should be called once")
+    XCTAssertEqual(false, mockAudioSession.setActiveActive, "setActive should be called with false")
+  }
+  
+  func testStopCallsEngineStopWhenRunning() {
+    // Test "if running" case: engine.stop() should be called when engine is running
+    let mockInputNode = MockAudioInputNode()
+    let mockEngine = MockAudioEngine(isRunning: true)
+    let mockAudioSession = MockAudioSession()
+    
+    audioRecorder = AudioRecorder(
+      sessionFactory: { mockAudioSession },
+      factory: { MockAudioEngine() }
+    )
+    
+    audioRecorder.stop(engine: mockEngine, inputNode: mockInputNode)
+    
+    // Verify engine.stop() is called when running
+    XCTAssertEqual(1, mockEngine.stopCallCount, "stop() should be called when engine is running")
+  }
+  
+  func testStopSkipsEngineStopWhenNotRunning() {
+    // Test "if running" case: engine.stop() should NOT be called when engine is not running
+    let mockInputNode = MockAudioInputNode()
+    let mockEngine = MockAudioEngine(isRunning: false)
+    let mockAudioSession = MockAudioSession()
+    
+    audioRecorder = AudioRecorder(
+      sessionFactory: { mockAudioSession },
+      factory: { MockAudioEngine() }
+    )
+    
+    audioRecorder.stop(engine: mockEngine, inputNode: mockInputNode)
+    
+    // Verify engine.stop() is NOT called when not running
+    XCTAssertEqual(0, mockEngine.stopCallCount, "stop() should not be called when engine is not running")
   }
 }
 
-// Helper extension to make selectors available
-extension AudioRecorder {
-  @objc func testStart() throws -> (AVAudioEngine, AVAudioInputNode) {
-    return try start()
+// MARK: - Mock implementations
+
+class MockAudioSession: AudioSessionProtocol {
+  var setCategoryCallCount = 0
+  var setCategoryCategory: AVAudioSession.Category?
+  var setCategoryMode: AVAudioSession.Mode?
+  var setCategoryOptions: AVAudioSession.CategoryOptions?
+  var setCategoryShouldThrow = false
+  
+  var setActiveCallCount = 0
+  var setActiveActive: Bool?
+  var setActiveOptions: AVAudioSession.SetActiveOptions?
+  var setActiveShouldThrow = false
+  
+  func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode, options: AVAudioSession.CategoryOptions) throws {
+    setCategoryCallCount += 1
+    setCategoryCategory = category
+    setCategoryMode = mode
+    setCategoryOptions = options
+    
+    if setCategoryShouldThrow {
+      throw NSError(domain: "MockAudioSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
+    }
   }
   
-  @objc func testStop(engine: AVAudioEngine, inputNode: AVAudioInputNode) {
-    stop(engine: engine, inputNode: inputNode)
+  func setActive(_ active: Bool, options: AVAudioSession.SetActiveOptions) throws {
+    setActiveCallCount += 1
+    setActiveActive = active
+    setActiveOptions = options
+    
+    if setActiveShouldThrow {
+      throw NSError(domain: "MockAudioSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
+    }
+  }
+}
+
+class MockAudioEngine: AVAudioEngine {
+  private let _isRunning: Bool
+  var stopCallCount = 0
+  var prepareCallCount = 0
+  var stopShouldThrow = false
+  var prepareShouldThrow = false
+  
+  init(isRunning: Bool = false) {
+    self._isRunning = isRunning
+    super.init()
   }
   
-  @objc func testInstallTap(
-    on inputNode: AVAudioInputNode,
-    bufferSize: AVAudioFrameCount,
-    format: AVAudioFormat,
-    block: @escaping (AVAudioPCMBuffer, AVAudioTime) -> Void
-  ) {
-    installTap(on: inputNode, bufferSize: bufferSize, format: format, block: block)
+  override var isRunning: Bool {
+    return _isRunning
+  }
+  
+  override func prepare() {
+    prepareCallCount += 1
+    if prepareShouldThrow {
+      // Simulate exception
+      return
+    }
+    // Don't call super.prepare() to avoid actual engine operations
+  }
+  
+  override func stop() {
+    stopCallCount += 1
+    if stopShouldThrow {
+      // Simulate exception by not calling super
+      return
+    }
+    // Don't call super.stop() to avoid actual engine operations
+  }
+}
+
+class MockAudioInputNode: AVAudioInputNode {
+  var removeTapCallCount = 0
+  var removeTapBus: AVAudioNodeBus?
+  
+  override func removeTap(onBus bus: AVAudioNodeBus) {
+    removeTapCallCount += 1
+    removeTapBus = bus
+    // Don't call super.removeTap() to avoid actual node operations
   }
 }

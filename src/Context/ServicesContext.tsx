@@ -3,10 +3,14 @@
  */
 
 import React, {createContext, useContext, ReactNode} from 'react';
-import {Biocode} from '../Service/Biocode';
-import {Anonymizer} from '../Service/Anonymizer';
-import {AudioProcessing} from '../Service/AudioProcessing';
+import type {Biocode} from '../Service/Biocode';
+import type {Anonymizer} from '../Service/Anonymizer';
+import type {AudioProcessing} from '../Service/AudioProcessing';
 
+/**
+ * Types only—Biocode, Anonymizer, AudioProcessing are not loaded at app start.
+ * Transcript, Biocode, NER will be wired when those features are added.
+ */
 interface ServicesContextType {
     biocodeService: Biocode | null;
     anonymizerService: Anonymizer | null;

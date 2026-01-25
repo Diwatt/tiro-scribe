@@ -14,10 +14,8 @@ import Security
  * - Uses SecRandomCopyBytes for key generation
  */
 class KeyManager {
-  // Private properties
   private let servicePrefix = "expo.modules.securerecorder"
   
-  // Internal methods
   internal func getOrCreateKey(alias: String) throws -> Data {
     // Try to retrieve key from Keychain
     if let existingKey = retrieveKeyFromKeychain(alias: alias) {
@@ -40,7 +38,6 @@ class KeyManager {
     return newKey
   }
   
-  // Private methods
   private func retrieveKeyFromKeychain(alias: String) -> Data? {
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,

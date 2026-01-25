@@ -15,7 +15,6 @@ import AVFoundation
  * NOTE: 16kHz is optimal for voice recognition models (Whisper, Sherpa-ONNX)
  */
 class AudioConfig {
-  // Internal properties
   internal let sampleRate: Double = 16000.0
   internal let channelCount: Int = 1
   internal let bitDepth: Int = 16
@@ -29,7 +28,6 @@ class AudioConfig {
     return max(targetFrames, minFrames)
   }()
   
-  // Internal methods
   /**
    * Create AVAudioFormat for recording
    * 

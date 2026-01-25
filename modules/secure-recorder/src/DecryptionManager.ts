@@ -1,4 +1,4 @@
-import type { NativeRecorderModule } from './NativeRecorderModule';
+import type { NativeRecorderModule } from './Type';
 import { ErrorNormalizer } from './ErrorNormalizer';
 import { ErrorCode } from './ErrorCode';
 
@@ -7,16 +7,13 @@ import { ErrorCode } from './ErrorCode';
  * Single responsibility: Decryption operations.
  */
 export class DecryptionManager {
-  // Private properties
   private errorNormalizer = new ErrorNormalizer();
   private nativeModule: NativeRecorderModule;
   
-  // Constructor
   public constructor(nativeModule: NativeRecorderModule) {
     this.nativeModule = nativeModule;
   }
 
-  // Public methods
   /**
    * Stream decrypt encrypted audio file, emitting events for each chunk
    * 

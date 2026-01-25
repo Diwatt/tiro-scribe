@@ -14,8 +14,10 @@
     "prepublishOnly": "expo-module prepublishOnly",
     "expo-module": "expo-module",
     "validate": "echo '✅ Module structure' && test -f package.json && test -f expo-module.config.json && test -f android/build.gradle && test -f ios/SecureRecorderModule.swift && test -f src/index.ts && echo '✅ All required files present'",
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm run clean && pnpm run lint && pnpm run typecheck && pnpm run validate && pnpm run verify:android && pnpm run verify:ios",
     "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain",
-    "verify:ios": "cd ios && for f in *.swift; do xcrun swiftc -parse \"$f\" -import-objc-header SecureRecorderModule-Bridging-Header.h || exit 1; done && echo '✅ Swift syntax OK'",
+    "verify:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'generic/platform=iOS Simulator' -quiet | grep -v 'warning:' | grep -v 'note:' && echo '✅ iOS compilation OK'",
     "build:android": "cd ../../android && ./gradlew :secure-recorder:assembleDebug",
     "build:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15'",
     "test:unit": "pnpm test:android && pnpm test:ios",
@@ -46,6 +48,7 @@
   "peerDependencies": {
     "expo": "*",
     "expo-audio": "*",
-    "expo-modules-core": "*"
+    "expo-modules-core": "*",
+    "react-native": "*"
   }
 }

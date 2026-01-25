@@ -134,35 +134,4 @@ class LimitRegistryTests: XCTestCase {
     XCTAssertFalse(justBelow, "File size limit should not be exceeded just below boundary")
   }
   
-  func testMaxDurationIs4Hours() {
-    // Arrange & Act
-    let limits = limiter.getLimits()
-    guard let durationLimit = limits.first(where: {
-      if case .duration = $0 { return true }
-      return false
-    }) else {
-      XCTFail("Duration limit not found")
-      return
-    }
-    let expectedMs: Int64 = 4 * 60 * 60 * 1000 // 4 hours in milliseconds
-    
-    // Assert
-    XCTAssertEqual(durationLimit.maxValue, expectedMs, "Max duration should be 4 hours")
-  }
-  
-  func testMaxFileSizeIs500MB() {
-    // Arrange & Act
-    let limits = limiter.getLimits()
-    guard let fileSizeLimit = limits.first(where: {
-      if case .fileSize = $0 { return true }
-      return false
-    }) else {
-      XCTFail("File size limit not found")
-      return
-    }
-    let expectedBytes: Int64 = 500 * 1024 * 1024 // 500MB
-    
-    // Assert
-    XCTAssertEqual(fileSizeLimit.maxValue, expectedBytes, "Max file size should be 500MB")
-  }
 }

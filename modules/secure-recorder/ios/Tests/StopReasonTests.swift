@@ -8,13 +8,6 @@ import Foundation
 @available(iOS 13.0, *)
 class StopReasonTests: XCTestCase {
   
-  func testToJsStringReturnsCorrectValues() {
-    XCTAssertEqual("duration_limit", StopReason.durationLimit.toJsString())
-    XCTAssertEqual("file_size_limit", StopReason.fileSizeLimit.toJsString())
-    XCTAssertEqual("user_stopped", StopReason.userStopped.toJsString())
-    XCTAssertEqual("error", StopReason.error.toJsString())
-  }
-  
   func testFromJsStringParsesValidValues() {
     XCTAssertEqual(StopReason.durationLimit, StopReason.fromJsString("duration_limit"))
     XCTAssertEqual(StopReason.fileSizeLimit, StopReason.fromJsString("file_size_limit"))

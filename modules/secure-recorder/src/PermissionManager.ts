@@ -1,4 +1,4 @@
-import type { NativeRecorderModule } from './NativeRecorderModule';
+import type { NativeRecorderModule } from './Type';
 import { ErrorNormalizer } from './ErrorNormalizer';
 import { ErrorCode } from './ErrorCode';
 
@@ -18,6 +18,13 @@ export class PermissionManager {
    * Checks if microphone permission is granted.
    */
   public async hasPermission(): Promise<boolean> {
+    if (this.nativeModule == null) {
+      throw this.errorNormalizer.createError(
+        ErrorCode.PERMISSION_CHECK_FAILED,
+        'SecureRecorder native module is undefined. Use a dev build (npx expo run:ios or npx expo run:android), not Expo Go. Rebuild and restart the app.',
+        new Error('nativeModule is undefined')
+      );
+    }
     try {
       return await this.nativeModule.hasPermission();
     } catch (error) {

@@ -15,13 +15,11 @@ import Foundation
  * - Max file size: 500MB (derived from duration at 16kHz mono 16-bit)
  */
 class LimitRegistry {
-  // Private properties
   private let limits: [Limit] = [
     .durationDefault(),
     .fileSizeDefault()
   ]
   
-  // Internal methods
   internal func getLimits() -> [Limit] {
     return limits
   }

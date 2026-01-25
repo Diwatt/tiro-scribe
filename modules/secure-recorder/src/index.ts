@@ -1,11 +1,10 @@
 // Public API types
-export type { SecureRecorderError, StatusChangeEvent } from './SecureRecorder';
+export type { SecureRecorderError } from './Type';
 export { ErrorCode } from './ErrorCode';
 export { RecorderState } from './RecorderState';
 export { StopReason } from './StopReason';
 export type { RecordingStatus } from './SecureRecorderModule';
 export type { DecryptedChunkEvent } from './SecureRecorderModule';
-export { EVENT_AUDIO_CHUNK_DECRYPTED } from './SecureRecorderModule';
 
 // Public API classes
 export { SecureRecorder } from './SecureRecorder';

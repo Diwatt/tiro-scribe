@@ -14,15 +14,13 @@ package expo.modules.securerecorder
  * - Max duration: 4 hours (configurable)
  * - Max file size: 500MB (derived from duration at 16kHz mono 16-bit)
  */
-class LimitRegistry {
-  // Private properties
+class LimitRegistry : LimitRegistryInterface {
   private val limits = listOf(
     Limit.Duration(Limit.Duration.DEFAULT_MS),
     Limit.FileSize(Limit.FileSize.DEFAULT_BYTES)
   )
   
-  // Internal methods
-  internal fun getLimits(): List<Limit> {
+  override fun getLimits(): List<Limit> {
     return limits
   }
 }

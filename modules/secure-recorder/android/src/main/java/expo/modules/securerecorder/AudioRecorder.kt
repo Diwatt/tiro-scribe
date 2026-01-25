@@ -1,8 +1,6 @@
 package expo.modules.securerecorder
 
-import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import expo.modules.securerecorder.exception.InitializationException
 
 /**
@@ -19,13 +17,14 @@ import expo.modules.securerecorder.exception.InitializationException
  * - Reads audio in loop via Pipeline.process() (pull-based audio capture)
  * - Throws InitializationException on initialization failure
  */
-class AudioRecorder {
-  // Internal methods
-  internal fun start(config: AudioConfig): AudioRecord {
-    val audioRecord = AudioRecord.Builder()
-      .setAudioSource(MediaRecorder.AudioSource.MIC)
+class AudioRecorder(
+  private val audioConfig: AudioConfig,
+  private val factory: (AudioConfig) -> AudioRecord = { config ->
+    // Default factory implementation (isomorphic: matches iOS function closure pattern)
+    AudioRecord.Builder()
+      .setAudioSource(android.media.MediaRecorder.AudioSource.MIC)
       .setAudioFormat(
-        AudioFormat.Builder()
+        android.media.AudioFormat.Builder()
           .setEncoding(config.audioFormat)
           .setSampleRate(config.sampleRate)
           .setChannelMask(config.channelConfig)
@@ -33,6 +32,10 @@ class AudioRecorder {
       )
       .setBufferSizeInBytes(config.bufferSize)
       .build()
+  }
+) {
+  internal fun start(): AudioRecord {
+    val audioRecord = factory(audioConfig)
 
     if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
       throw InitializationException("AudioRecord initialization failed")

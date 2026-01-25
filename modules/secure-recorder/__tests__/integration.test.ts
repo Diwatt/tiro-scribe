@@ -20,8 +20,7 @@ describe('SecureRecorder Integration', () => {
       const recorder = new SecureRecorder('test-session');
       expect(recorder).toBeDefined();
       expect(recorder.state).toBe('inactive');
-      expect(recorder.recording).toBe(false);
-      recorder.dispose();
+      expect(recorder.isRecording).toBe(false);
     });
 
     it('has static hasPermission method', () => {
@@ -45,26 +44,22 @@ describe('SecureRecorder Integration', () => {
       const recorder = new SecureRecorder('test-session');
       expect(recorder.state).toBe('inactive');
       expect(['inactive', 'recording', 'stopped']).toContain(recorder.state);
-      recorder.dispose();
     });
 
-    it('has recording property', () => {
+    it('has isRecording property', () => {
       const recorder = new SecureRecorder('test-session');
-      expect(typeof recorder.recording).toBe('boolean');
-      expect(recorder.recording).toBe(false);
-      recorder.dispose();
+      expect(typeof recorder.isRecording).toBe('boolean');
+      expect(recorder.isRecording).toBe(false);
     });
 
     it('has sessionId property', () => {
       const recorder = new SecureRecorder('test-session-123');
       expect(recorder.sessionId).toBe('test-session-123');
-      recorder.dispose();
     });
 
     it('has filePath property', () => {
       const recorder = new SecureRecorder('test-session');
       expect(recorder.filePath).toBeNull();
-      recorder.dispose();
     });
   });
 
@@ -84,25 +79,15 @@ describe('SecureRecorder Integration', () => {
     it('accepts valid sessionId', () => {
       const recorder = new SecureRecorder('valid-session-id');
       expect(recorder.sessionId).toBe('valid-session-id');
-      recorder.dispose();
     });
   });
 
-  describe('Event Handlers', () => {
-    it('has onstatuschange property', () => {
-      const recorder = new SecureRecorder('test-session');
-      expect(recorder.onstatuschange).toBeNull();
-      recorder.onstatuschange = () => {};
-      expect(typeof recorder.onstatuschange).toBe('function');
-      recorder.dispose();
-    });
-
+  describe('onerror callback', () => {
     it('has onerror property', () => {
       const recorder = new SecureRecorder('test-session');
       expect(recorder.onerror).toBeNull();
       recorder.onerror = () => {};
       expect(typeof recorder.onerror).toBe('function');
-      recorder.dispose();
     });
   });
 
@@ -115,8 +100,6 @@ describe('SecureRecorder Integration', () => {
       } catch (error: any) {
         expect(error).toHaveProperty('code');
         expect(error).toHaveProperty('message');
-      } finally {
-        recorder.dispose();
       }
     });
   });
@@ -135,16 +118,10 @@ describe('SecureRecorder Integration', () => {
  * 
  * 3. Create Recorder and Start Recording:
  *    const recorder = new SecureRecorder('test-session-123');
- *    recorder.onstatuschange = (event) => {
- *      console.log('State:', event.state);
- *      console.log('File:', event.filePath);
- *    };
- *    recorder.onerror = (error) => {
- *      console.error('Error:', error);
- *    };
+ *    recorder.onerror = (error) => console.error('Error:', error);
  *    await recorder.start();
  *    console.log('Recording state:', recorder.state);
- *    console.log('Recording:', recorder.recording);
+ *    console.log('Recording:', recorder.isRecording);
  *    console.log('File path:', recorder.filePath);
  * 
  * 4. Stop Recording (after a few seconds):
@@ -168,9 +145,9 @@ describe('SecureRecorder Integration', () => {
  *       await recorder.start();
  *       await recorder.start(); // Should throw RECORDING_IN_PROGRESS
  *    
- *    b) Stop without starting:
+ *    b) Stop without starting (idempotent):
  *       const recorder2 = new SecureRecorder('session-2');
- *       await recorder2.stop(); // Should throw NO_RECORDING_IN_PROGRESS
+ *       const path = await recorder2.stop(); // path === null, logs warning, no throw
  *    
  *    c) Start without permission:
  *       // Don't grant permission

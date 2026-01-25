@@ -11,12 +11,22 @@ import AVFoundation
  * - Uses AVAudioEngine/AVAudioInputNode (iOS audio framework)
  * - start() returns (AVAudioEngine, AVAudioInputNode) tuple
  * - stop() takes engine and node parameters
- * - installTap() method for buffer callbacks (push-based audio capture)
  * - Throws SecureRecorderError enum
  * - Configures AVAudioSession for recording
+ * - Tap installation handled by Session (push-based audio capture)
  */
 class AudioRecorder {
-  // Internal methods
+  private let sessionFactory: () -> AudioSessionProtocol
+  private let factory: () -> AVAudioEngine
+  
+  internal init(
+    sessionFactory: @escaping () -> AudioSessionProtocol = { AVAudioSession.sharedInstance() },
+    factory: @escaping () -> AVAudioEngine = { AVAudioEngine() }
+  ) {
+    self.sessionFactory = sessionFactory
+    self.factory = factory
+  }
+  
   /**
    * Start audio recording
    * Configures AVAudioSession and creates AVAudioEngine
@@ -26,17 +36,17 @@ class AudioRecorder {
    */
   internal func start() throws -> (AVAudioEngine, AVAudioInputNode) {
     // Configure audio session for recording
-    let audioSession = AVAudioSession.sharedInstance()
+    let audioSession = sessionFactory()
     
     do {
       try audioSession.setCategory(.record, mode: .measurement, options: [])
-      try audioSession.setActive(true)
+      try audioSession.setActive(true, options: [])
     } catch {
       throw SecureRecorderError.initializationFailed("Failed to configure audio session: \(error.localizedDescription)")
     }
     
     // Create and prepare audio engine
-    let engine = AVAudioEngine()
+    let engine = factory()
     let inputNode = engine.inputNode
     
     // Prepare engine (doesn't start it - that happens when tap is installed)
@@ -46,10 +56,33 @@ class AudioRecorder {
   }
   
   /**
+   * Create session cleanup closure for AudioRecord
+   * 
+   * Returns a closure that deactivates AVAudioSession when called.
+   * This allows AudioRecord to handle session cleanup during release()
+   * while keeping AudioRecord decoupled from AVAudioSession directly.
+   */
+  internal func createSessionCleanup() -> () -> Void {
+    return { [weak self] in
+      guard let self = self else { return }
+      let audioSession = self.sessionFactory()
+      do {
+        try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+      } catch {
+        // Session deactivation failure is acceptable during cleanup
+        // Audio session will be reset on next recording start
+      }
+    }
+  }
+  
+  /**
    * Stop audio recording
    * Stops engine and removes tap from input node
    * 
    * Safe to call multiple times (idempotent)
+   * 
+   * Note: This method is kept for backward compatibility.
+   * New code should use AudioRecord.stop()/release() which handle session cleanup.
    */
   internal func stop(engine: AVAudioEngine, inputNode: AVAudioInputNode) {
     // Remove tap (safe to call even if no tap exists)
@@ -61,50 +94,12 @@ class AudioRecorder {
     }
     
     // Deactivate audio session (best effort - failures are non-critical during cleanup)
-    let audioSession = AVAudioSession.sharedInstance()
+    let audioSession = sessionFactory()
     do {
       try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
     } catch {
       // Session deactivation failure is acceptable during cleanup
       // Audio session will be reset on next recording start
-    }
-  }
-  
-  /**
-   * Install tap on input node to capture audio buffers
-   * 
-   * Installs a tap on the input node to receive audio buffers via callback.
-   * Automatically starts the audio engine after installing the tap.
-   * 
-   * @param inputNode Input node to tap
-   * @param bufferSize Buffer size in frames
-   * @param format Audio format for the tap
-   * @param block Callback invoked for each audio buffer
-   */
-  internal func installTap(
-    on inputNode: AVAudioInputNode,
-    bufferSize: AVAudioFrameCount,
-    format: AVAudioFormat,
-    block: @escaping (AVAudioPCMBuffer, AVAudioTime) -> Void
-  ) {
-    // Remove existing tap if present (safe to call even if no tap exists)
-    inputNode.removeTap(onBus: 0)
-    
-    // Install tap
-    inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: format, block: block)
-    
-    // Start engine to begin capturing
-    // Note: Engine must be started after tap is installed
-    guard let engine = inputNode.engine else {
-      inputNode.removeTap(onBus: 0)
-      return
-    }
-    
-    do {
-      try engine.start()
-    } catch {
-      // If engine start fails, remove tap
-      inputNode.removeTap(onBus: 0)
     }
   }
 }

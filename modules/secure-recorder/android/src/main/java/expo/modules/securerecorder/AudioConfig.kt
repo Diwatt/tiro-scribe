@@ -17,7 +17,6 @@ import android.media.AudioRecord
  * NOTE: 16kHz is optimal for voice recognition models (Whisper, Sherpa-ONNX)
  */
 class AudioConfig {
-  // Internal properties
   internal val sampleRate = 16000
   internal val channelConfig = AudioFormat.CHANNEL_IN_MONO
   internal val audioFormat = AudioFormat.ENCODING_PCM_16BIT

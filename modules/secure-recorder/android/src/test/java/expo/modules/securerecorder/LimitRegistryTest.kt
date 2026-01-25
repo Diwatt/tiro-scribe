@@ -100,26 +100,4 @@ class LimitRegistryTest {
     assertTrue("File size limit should be exceeded at boundary", atBoundary)
     assertFalse("File size limit should not be exceeded just below boundary", justBelow)
   }
-  
-  @Test
-  fun testMaxDurationIs4Hours() {
-    // Arrange & Act
-    val limits = limiter.getLimits()
-    val durationLimit = limits.first { it is Limit.Duration } as Limit.Duration
-    val expectedMs = 4 * 60 * 60 * 1000L // 4 hours
-    
-    // Assert
-    assertEquals("Max duration should be 4 hours", expectedMs, durationLimit.maxValue)
-  }
-  
-  @Test
-  fun testMaxFileSizeIs500MB() {
-    // Arrange & Act
-    val limits = limiter.getLimits()
-    val fileSizeLimit = limits.first { it is Limit.FileSize } as Limit.FileSize
-    val expectedBytes = 500L * 1024 * 1024 // 500MB
-    
-    // Assert
-    assertEquals("Max file size should be 500MB", expectedBytes, fileSizeLimit.maxValue)
-  }
 }

@@ -140,7 +140,9 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TiroScribe" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
+				CBA6CF37BBDCAEEBD0227C28 /* [Expo] Patch expo-configure-project for SecureRecorder */,
 				7A2B88745621689992FAFEAD /* [Expo] Configure project */,
+				3E4C4480FC2CB9CC48CA40E0 /* [Expo] Patch SecureRecorder into ExpoModulesProvider */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -242,6 +244,24 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		3E4C4480FC2CB9CC48CA40E0 /* [Expo] Patch SecureRecorder into ExpoModulesProvider */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Patch SecureRecorder into ExpoModulesProvider";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "P=\"$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift\"\n[ ! -f \"$P\" ] && exit 0\ngrep -q \"SecureRecorderModule.self\" \"$P\" && exit 0\nruby -e 'c=File.read(ARGV[0]);c=c.sub(\"import ExpoSQLite\\n\",\"import ExpoSQLite\\nimport SecureRecorder\\n\") unless c.include?(\"import SecureRecorder\");c=c.sub(\"DevMenuPreferences.self\\n    ]\\n    #else\",\"DevMenuPreferences.self,\\n      SecureRecorderModule.self\\n    ]\\n    #else\");c=c.sub(\"SQLiteModule.self\\n    ]\\n    #endif\",\"SQLiteModule.self,\\n      SecureRecorderModule.self\\n    ]\\n    #endif\");File.write(ARGV[0],c)' \"$P\"\n";
+		};
 		68F9F8869817927E33C2E634 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -323,6 +343,24 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TiroScribe/Pods-TiroScribe-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		CBA6CF37BBDCAEEBD0227C28 /* [Expo] Patch expo-configure-project for SecureRecorder */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Patch expo-configure-project for SecureRecorder";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "C=\"$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/expo-configure-project.sh\"\n[ ! -f \"$C\" ] && exit 0\ngrep -q '\"secure-recorder\"' \"$C\" && exit 0\nruby -e 'c=File.read(ARGV[0]);c=c.sub(/\"expo-sqlite\"/,\"\\\"expo-sqlite\\\" \\\"secure-recorder\\\"\");File.write(ARGV[0],c)' \"$C\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -14,11 +14,10 @@ package expo.modules.securerecorder
 class EventHandler(
   private val sessionId: String,
   private val outputFile: java.io.File,
-  private val stateManager: StateManager,
+  private val recordingTimer: RecordingTimer,
   private val onStop: suspend () -> String,
   private val onLimitReached: (suspend (StopReason, String, String) -> Unit)?
 ) {
-  // Internal methods
   internal suspend fun onLimitReached(reason: StopReason) {
     // Auto-stop recording to finalize the file
     val filePath = onStop()
@@ -30,7 +29,7 @@ class EventHandler(
   }
   
   internal fun onError(message: String) {
-    stateManager.deactivate()
+    recordingTimer.deactivate()
     // Error is logged, state updated
     // Actual cleanup will be handled by SecureRecorderModule
   }

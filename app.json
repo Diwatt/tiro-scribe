@@ -30,6 +30,7 @@
         {
           "newArchEnabled": true,
           "android": {
+            "newArchEnabled": true,
             "packagingOptions": {
               "pickFirst": [
                 "**/libc++_shared.so",
@@ -49,7 +50,8 @@
           },
           "ios": {
             "deploymentTarget": "15.1",
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "newArchEnabled": true
           }
         }
       ],

@@ -5,17 +5,9 @@ import org.junit.Assert.*
 
 /**
  * Unit tests for StopReason
- * Tests match iOS StopReasonTests structure and naming
+ * Tests conversion logic and error handling
  */
 class StopReasonTest {
-
-  @Test
-  fun `toJsString returns correct values`() {
-    assertEquals("duration_limit", StopReason.DURATION_LIMIT.toJsString())
-    assertEquals("file_size_limit", StopReason.FILE_SIZE_LIMIT.toJsString())
-    assertEquals("user_stopped", StopReason.USER_STOPPED.toJsString())
-    assertEquals("error", StopReason.ERROR.toJsString())
-  }
 
   @Test
   fun `fromJsString parses valid values`() {

@@ -1,10 +1,53 @@
 /**
  * @format
- * Entry point for React Native application
+ * Entry point for React Native application.
+ *
+ * JS errors: uncaughtException and unhandledRejection are logged with [TiroScribe].
+ * AppErrorBoundary catches React render errors. Native crashes: run from Xcode (iOS)
+ * or adb logcat (Android).
  */
 
+import 'react-native-get-random-values';
 import {AppRegistry} from 'react-native';
-import {App} from './src/App';
+import React from 'react';
+import 'react-native-gesture-handler';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
-// Register the app component with the name "main" as expected by native code
-AppRegistry.registerComponent('main', () => App);
+const LOG = '[TiroScribe]';
+
+function setupCrashLogging() {
+  const ErrorUtils = typeof global !== 'undefined' ? global.ErrorUtils : undefined;
+  if (ErrorUtils && typeof ErrorUtils.setGlobalHandler === 'function') {
+    const prev = ErrorUtils.getGlobalHandler?.();
+    ErrorUtils.setGlobalHandler((error, isFatal) => {
+      console.error(`${LOG} Uncaught JS error${isFatal ? ' (fatal)' : ''}:`, error?.message, error?.stack);
+      if (typeof prev === 'function') prev(error, isFatal);
+      else throw error;
+    });
+  }
+
+  try {
+    if (typeof global !== 'undefined') {
+      const prev = global.onunhandledrejection;
+      global.onunhandledrejection = (e) => {
+        console.error(`${LOG} Unhandled promise rejection:`, e?.reason);
+        if (typeof prev === 'function') prev(e);
+      };
+    }
+  } catch (_) {}
+}
+
+setupCrashLogging();
+
+const {App} = require('./src/App');
+const {AppErrorBoundary} = require('./src/Components/AppErrorBoundary');
+
+function Root() {
+  return React.createElement(
+    GestureHandlerRootView,
+    {style: {flex: 1}},
+    React.createElement(AppErrorBoundary, null, React.createElement(App, null)),
+  );
+}
+
+AppRegistry.registerComponent('main', () => Root);

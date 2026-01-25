@@ -5,8 +5,8 @@
  */
 
 import {observable, Observable} from '@legendapp/state';
-import {Queue, QueueStats} from '@Service';
-import {database} from '@Service';
+import {Queue, type QueueStats} from '@Service/Queue';
+import {database} from '@Service/Database';
 import {queueItemsTable, type QueueItemSchema} from '@Entity/QueueItem';
 import {QueueItemStatus} from '@Entity/Type';
 import {eq, desc, asc} from 'drizzle-orm';

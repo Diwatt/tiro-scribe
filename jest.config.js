@@ -22,10 +22,5 @@ module.exports = {
         '!src/**/*.stories.{ts,tsx}',
     ],
     testMatch: ['**/tests/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
-    // Skip tests that require React Native setup for now
-    testPathIgnorePatterns: [
-        '/node_modules/',
-        '/tests/Recording/',
-        '/modules/secure-recorder/', // Native module tests run on device
-    ],
+    testPathIgnorePatterns: ['/node_modules/', '/modules/secure-recorder/'],
 };

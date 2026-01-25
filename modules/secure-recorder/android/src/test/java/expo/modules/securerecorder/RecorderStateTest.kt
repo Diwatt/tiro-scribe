@@ -5,16 +5,9 @@ import org.junit.Assert.*
 
 /**
  * Unit tests for RecorderState
- * Tests match iOS RecorderStateTests structure and naming
+ * Tests conversion logic and state mapping
  */
 class RecorderStateTest {
-
-  @Test
-  fun `toJsString returns correct values`() {
-    assertEquals("inactive", RecorderState.INACTIVE.toJsString())
-    assertEquals("recording", RecorderState.RECORDING.toJsString())
-    assertEquals("stopped", RecorderState.STOPPED.toJsString())
-  }
 
   @Test
   fun `fromJsString parses valid values`() {

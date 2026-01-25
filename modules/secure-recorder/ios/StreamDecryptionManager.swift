@@ -20,21 +20,18 @@ import CryptoKit
  * - Only one chunk in memory at a time
  */
 class StreamDecryptionManager {
-  // Private properties
   private let secretKey: SymmetricKey
   private let encryptedFile: URL
   
   private static let chunkSizeLength = 4 // 4 bytes for Int32
   private static let gcmNonceLength = 12 // 12 bytes
-  private static let gcmTagLength = 16 // 16 bytes
+  private static let gcmTagLength: Int = 16
   
-  // Initializer
   internal init(secretKey: Data, encryptedFile: URL) {
     self.secretKey = SymmetricKey(data: secretKey)
     self.encryptedFile = encryptedFile
   }
   
-  // Internal methods
   /**
    * Stream decrypt file chunk by chunk, emitting events for each decrypted chunk
    * 

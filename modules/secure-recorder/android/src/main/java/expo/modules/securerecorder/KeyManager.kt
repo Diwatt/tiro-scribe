@@ -19,9 +19,8 @@ import javax.crypto.SecretKey
  * - Returns SecretKey object for javax.crypto.Cipher compatibility
  * - Uses KeyGenerator for key generation
  */
-class KeyManager(private val context: Context) {
-  // Internal methods
-  internal fun getOrCreateKey(alias: String): SecretKey {
+class KeyManager(private val context: Context) : KeyManagerInterface {
+  override fun getOrCreateKey(alias: String): SecretKey {
     val keyStore = KeyStore.getInstance("AndroidKeyStore")
     keyStore.load(null)
 

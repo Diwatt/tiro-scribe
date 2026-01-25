@@ -205,6 +205,8 @@ PODS:
     - ExpoModulesCore
   - ExpoAudio (1.1.1):
     - ExpoModulesCore
+  - ExpoCrypto (15.0.8):
+    - ExpoModulesCore
   - ExpoFileSystem (19.0.21):
     - ExpoModulesCore
   - ExpoFont (14.0.11):
@@ -1525,6 +1527,28 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+  - react-native-get-random-values (2.0.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-safe-area-context (5.6.2):
     - hermes-engine
     - RCTRequired
@@ -2308,6 +2332,7 @@ DEPENDENCIES:
   - "expo-dev-menu-interface (from `../node_modules/.pnpm/expo-dev-menu-interface@2.0.0_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babe_ee402397f3e4ae591d27669ed61a64c1/node_modules/expo-dev-menu-interface/ios`)"
   - "ExpoAsset (from `../node_modules/.pnpm/expo-asset@12.0.12_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28_f472ca472e1a52a2769261f105e1a90c/node_modules/expo-asset/ios`)"
   - "ExpoAudio (from `../node_modules/.pnpm/expo-audio@1.1.1_expo-asset@12.0.12_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_6d67b0a97bc6320d638d821a7f9ee166/node_modules/expo-audio/ios`)"
+  - "ExpoCrypto (from `../node_modules/.pnpm/expo-crypto@15.0.8_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28_ee391954fcaff05cc36b6de747d3dd46/node_modules/expo-crypto/ios`)"
   - "ExpoFileSystem (from `../node_modules/.pnpm/expo-file-system@19.0.21_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+cor_f9059fb6168a9a1392b5c9357e80304a/node_modules/expo-file-system/ios`)"
   - "ExpoFont (from `../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28._af7018a0866b6c6843e37b7176a8ddc9/node_modules/expo-font/ios`)"
   - "ExpoKeepAwake (from `../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+core@_5179827516fb8160f9ae4f622bac7edc/node_modules/expo-keep-awake/ios`)"
@@ -2351,6 +2376,7 @@ DEPENDENCIES:
   - "React-logger (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native/ReactCommon/logger`)"
   - "React-Mapbuffer (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native/ReactCommon`)"
   - "React-microtasksnativemodule (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)"
+  - "react-native-get-random-values (from `../node_modules/.pnpm/react-native-get-random-values@2.0.0_react-native@0.81.5_@babel+core@7.28.6_@react-nati_e246cc75b0cc09027b8bf401c86b61ee/node_modules/react-native-get-random-values`)"
   - "react-native-safe-area-context (from `../node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.28.6_@react-nati_2969d442d15ef356e7ef66d9a69b98d8/node_modules/react-native-safe-area-context`)"
   - "react-native-slider (from `../node_modules/.pnpm/@react-native-community+slider@5.1.2/node_modules/@react-native-community/slider`)"
   - "React-NativeModulesApple (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)"
@@ -2419,6 +2445,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/.pnpm/expo-asset@12.0.12_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28_f472ca472e1a52a2769261f105e1a90c/node_modules/expo-asset/ios"
   ExpoAudio:
     :path: "../node_modules/.pnpm/expo-audio@1.1.1_expo-asset@12.0.12_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_6d67b0a97bc6320d638d821a7f9ee166/node_modules/expo-audio/ios"
+  ExpoCrypto:
+    :path: "../node_modules/.pnpm/expo-crypto@15.0.8_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28_ee391954fcaff05cc36b6de747d3dd46/node_modules/expo-crypto/ios"
   ExpoFileSystem:
     :path: "../node_modules/.pnpm/expo-file-system@19.0.21_expo@54.0.31_@babel+core@7.28.6_react-native@0.81.5_@babel+cor_f9059fb6168a9a1392b5c9357e80304a/node_modules/expo-file-system/ios"
   ExpoFont:
@@ -2504,6 +2532,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-get-random-values:
+    :path: "../node_modules/.pnpm/react-native-get-random-values@2.0.0_react-native@0.81.5_@babel+core@7.28.6_@react-nati_e246cc75b0cc09027b8bf401c86b61ee/node_modules/react-native-get-random-values"
   react-native-safe-area-context:
     :path: "../node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.28.6_@react-nati_2969d442d15ef356e7ef66d9a69b98d8/node_modules/react-native-safe-area-context"
   react-native-slider:
@@ -2600,6 +2630,7 @@ SPEC CHECKSUMS:
   expo-dev-menu-interface: 600df12ea01efecdd822daaf13cc0ac091775533
   ExpoAsset: f867e55ceb428aab99e1e8c082b5aee7c159ea18
   ExpoAudio: e4cfe3a2f3317b8487460685385a9867a07fb4fb
+  ExpoCrypto: b6105ebaa15d6b38a811e71e43b52cd934945322
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
   ExpoFont: f543ce20a228dd702813668b1a07b46f51878d47
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
@@ -2643,6 +2674,7 @@ SPEC CHECKSUMS:
   React-logger: 50fdb9a8236da90c0b1072da5c32ee03aeb5bf28
   React-Mapbuffer: 0164bc6ba0866e6314d86851620e6f1f95a1b4fb
   React-microtasksnativemodule: f5972fb404f7c363ff34b2292e72a716956c590c
+  react-native-get-random-values: b5c58b0394402d412415337011bb227495a66380
   react-native-safe-area-context: c5d42c4294aa175415947e23c2ac956253abfc7d
   react-native-slider: 93063b5034e5c8ae011aeb2d96d57866191e6d6b
   React-NativeModulesApple: 8969913947d5b576de4ed371a939455a8daf28aa
@@ -2686,6 +2718,6 @@ SPEC CHECKSUMS:
   SecureRecorder: df1a1f0cb7f4085a9350ac3f8ff619925430e4bd
   Yoga: 65431d43277b661ebc7289c6c5d82f64ce42cfe0
 
-PODFILE CHECKSUM: 4ac53beb18f49df56dc37e0b3b6605219b26f27f
+PODFILE CHECKSUM: dca0228922db0c71d1572740b7776a1ede2c8af9
 
 COCOAPODS: 1.16.2

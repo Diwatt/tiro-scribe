@@ -12,29 +12,26 @@ import Foundation
  * - Handles stop() failure gracefully (still notifies handler with filePath if stop fails)
  */
 class EventHandler {
-  // Private properties
   private let sessionId: String
   private let outputFile: URL
-  private let stateManager: StateManager
+  private let recordingTimer: RecordingTimer
   private let onStop: () throws -> String
   private let onLimitReached: ((StopReason, String, String) async -> Void)?
   
-  // Initializer
   internal init(
     sessionId: String,
     outputFile: URL,
-    stateManager: StateManager,
+    recordingTimer: RecordingTimer,
     onStop: @escaping () throws -> String,
     onLimitReached: ((StopReason, String, String) async -> Void)?
   ) {
     self.sessionId = sessionId
     self.outputFile = outputFile
-    self.stateManager = stateManager
+    self.recordingTimer = recordingTimer
     self.onStop = onStop
     self.onLimitReached = onLimitReached
   }
   
-  // Internal methods
   internal func onLimitReached(reason: StopReason) {
     // Dispatch to main queue to safely call stop() (audio callback runs on audio thread)
     Task { @MainActor [weak self] in
@@ -58,7 +55,7 @@ class EventHandler {
   }
   
   internal func onError(message: String) {
-    stateManager.deactivate()
+    recordingTimer.deactivate()
     // Error is logged, state updated
     // Actual cleanup will be handled by SecureRecorderModule
   }

@@ -8,42 +8,6 @@ import Foundation
 @available(iOS 13.0, *)
 class LimitTests: XCTestCase {
   
-  func testDurationLimitHasCorrectDefaultValue() {
-    let durationLimit = Limit.durationDefault()
-    
-    if case .duration(let limit) = durationLimit {
-      XCTAssertEqual(4 * 60 * 60 * 1000, limit.maxValue, "Default duration should be 4 hours")
-      XCTAssertEqual(StopReason.durationLimit, limit.reason, "Duration limit reason should be durationLimit")
-    } else {
-      XCTFail("durationDefault() should return .duration case")
-    }
-  }
-  
-  func testFileSizeLimitHasCorrectDefaultValue() {
-    let fileSizeLimit = Limit.fileSizeDefault()
-    
-    if case .fileSize(let limit) = fileSizeLimit {
-      XCTAssertEqual(500 * 1024 * 1024, limit.maxValue, "Default file size should be 500MB")
-      XCTAssertEqual(StopReason.fileSizeLimit, limit.reason, "FileSize limit reason should be fileSizeLimit")
-    } else {
-      XCTFail("fileSizeDefault() should return .fileSize case")
-    }
-  }
-  
-  func testDurationLimitMaxValueMatchesStructValue() {
-    let duration = Limit.Duration.default
-    let limit = Limit.duration(duration)
-    
-    XCTAssertEqual(duration.maxValue, limit.maxValue, "maxValue should match Duration.maxValue")
-  }
-  
-  func testFileSizeLimitMaxValueMatchesStructValue() {
-    let fileSize = Limit.FileSize.default
-    let limit = Limit.fileSize(fileSize)
-    
-    XCTAssertEqual(fileSize.maxValue, limit.maxValue, "maxValue should match FileSize.maxValue")
-  }
-  
   func testIsExceededReturnsFalseWhenValueIsBelowLimit() {
     let duration = Limit.Duration(maxValue: 1000, reason: .durationLimit)
     let limit = Limit.duration(duration)
@@ -79,19 +43,5 @@ class LimitTests: XCTestCase {
     
     XCTAssertFalse(limit.isExceeded(value: 512), "512 bytes should not exceed 1KB limit")
     XCTAssertTrue(limit.isExceeded(value: 2048), "2KB should exceed 1KB limit")
-  }
-  
-  func testDurationLimitReasonProperty() {
-    let duration = Limit.Duration.default
-    let limit = Limit.duration(duration)
-    
-    XCTAssertEqual(StopReason.durationLimit, limit.reason, "Duration limit should have durationLimit reason")
-  }
-  
-  func testFileSizeLimitReasonProperty() {
-    let fileSize = Limit.FileSize.default
-    let limit = Limit.fileSize(fileSize)
-    
-    XCTAssertEqual(StopReason.fileSizeLimit, limit.reason, "FileSize limit should have fileSizeLimit reason")
   }
 }

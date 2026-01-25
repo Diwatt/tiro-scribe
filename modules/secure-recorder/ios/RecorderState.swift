@@ -30,7 +30,10 @@ enum RecorderState {
   }
   
   /**
-   * Parse from JavaScript string (for backward compatibility)
+   * Parse from JavaScript string
+   * 
+   * Converts string representation back to RecorderState enum.
+   * Used primarily for testing round-trip conversion (toJsString -> fromJsString).
    */
   internal static func fromJsString(_ value: String) -> RecorderState {
     switch value {

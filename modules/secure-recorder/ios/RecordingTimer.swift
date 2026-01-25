@@ -1,9 +1,9 @@
 import Foundation
 
 /**
- * Manages recording session state for iOS/iPadOS
+ * Recording timer for iOS/iPadOS
  * 
- * Thread-safe state management for recording sessions. Tracks active state and
+ * Thread-safe timer for recording sessions. Tracks active state and
  * elapsed time using DispatchQueue synchronization. Returns elapsed time in milliseconds.
  * 
  * iOS/iPadOS SPECIFICITY:
@@ -12,22 +12,19 @@ import Foundation
  * - getElapsedTime() returns milliseconds (Int64)
  * - Returns 0 if not active
  */
-class StateManager {
-  // Private properties
-  private let stateQueue = DispatchQueue(label: "com.tiroscribe.secure-recorder.state")
+class RecordingTimer {
+  private let stateQueue = DispatchQueue(label: "com.tiroscribe.secure-recorder.timer")
   private var _isActive: Bool = false
   private var startTimeMs: Int64 = 0
   
-  // Internal properties
   internal var isActive: Bool {
     return stateQueue.sync { _isActive }
   }
   
-  // Internal methods
   internal func activate() {
     stateQueue.sync {
       _isActive = true
-      startTimeMs = Int64(Date().timeIntervalSince1970 * 1000) // milliseconds
+      startTimeMs = Int64(Date().timeIntervalSince1970 * 1000)
     }
   }
   

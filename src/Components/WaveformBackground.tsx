@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-interface WaveformBackgroundProps {
+export interface WaveformBackgroundProps {
   style?: ViewStyle;
   color?: string; // Couleur de base (ex: #C5B4A0)
 }

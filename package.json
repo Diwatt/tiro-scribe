@@ -7,31 +7,29 @@
   "scripts": {
     "preios": "rm -rf $TMPDIR/metro-* $TMPDIR/haste-* /tmp/metro-* /tmp/haste-* 2>/dev/null || true",
     "android": "STORYBOOK_ENABLED=false expo run:android",
+    "android:logcat": "adb logcat -c && adb logcat ReactNativeJS:V ReactNative:V RCTLog:V Expo:V *:S",
     "ios": "STORYBOOK_ENABLED=false expo run:ios",
+    "ios:xcode": "open ios/TiroScribe.xcworkspace",
     "db:migrate:generate": "drizzle-kit generate --name=tiro_scribe",
     "db:migrate:check": "test -f drizzle/migrations.js || (echo '❌ Migrations not found! Run: pnpm db:migrate:generate' && exit 1)",
     "prebuild": "pnpm db:migrate:check && expo prebuild",
     "prebuild:clean": "pnpm db:migrate:check && expo prebuild --clean",
-    "start": "expo start",
-    "start:dev-client": "expo start --dev-client",
+    "start": "expo start --dev-client",
     "start:reset": "expo start --clear",
     "prestorybook": "rm -rf $TMPDIR/metro-* $TMPDIR/haste-* /tmp/metro-* /tmp/haste-* node_modules/.cache .expo 2>/dev/null || true",
     "storybook": "STORYBOOK_ENABLED=true expo start --clear",
     "storybook:ios": "STORYBOOK_ENABLED=true expo start --clear --ios",
     "storybook:android": "STORYBOOK_ENABLED=true expo start --clear --android",
-    "clean": "expo prebuild --clean",
+    "clean": "watchman watch-del-all 2>/dev/null || true; rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null; rm -rf .expo node_modules coverage build ios/Pods ios/build ios/DerivedData android/.gradle android/app/build android/app/.cxx android/build; find . -name '*.tsbuildinfo' -delete 2>/dev/null; pnpm install; (test -d ios && cd ios && pod install) || true",
     "clean:metro": "rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null || true",
     "pods:install": "cd ios && pod install",
     "pods:clean": "cd ios && pod deintegrate && pod install",
     "module:build": "cd modules/secure-recorder && pnpm build",
-    "module:watch": "cd modules/secure-recorder && pnpm build:watch",
     "lint": "eslint .",
-    "test": "jest --testPathIgnorePatterns=/tests/Recording/ --testPathIgnorePatterns=/modules/secure-recorder/ --passWithNoTests",
-    "test:typescript": "jest --testPathIgnorePatterns=/tests/Recording/ --testPathIgnorePatterns=/modules/secure-recorder/ --passWithNoTests",
-    "test:database": "jest tests/Database --testPathIgnorePatterns=/tests/Recording/ --testPathIgnorePatterns=/modules/secure-recorder/",
+    "test": "jest --passWithNoTests",
     "test:kotlin": "if [ -d 'android' ] && [ -f 'android/gradlew' ]; then cd android && ./gradlew :secure-recorder:testDebugUnitTest; else echo 'Error: Android project not found'; exit 1; fi",
     "test:swift": "if [ -d 'ios' ] && [ -d 'ios/TiroScribe.xcworkspace' ]; then cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator'; else echo 'Error: iOS workspace not found'; exit 1; fi",
-    "test:all": "pnpm test:typescript; pnpm test:kotlin || true; pnpm test:swift || true",
+    "test:all": "pnpm test; pnpm test:kotlin || true; pnpm test:swift || true",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -48,6 +46,7 @@
     "expo-asset": "~12.0.12",
     "expo-audio": "~1.1.1",
     "expo-build-properties": "~1.0.10",
+    "expo-crypto": "~15.0.8",
     "expo-dev-client": "~6.0.20",
     "expo-file-system": "~19.0.21",
     "expo-sqlite": "~15.0.6",
@@ -57,6 +56,7 @@
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-get-random-values": "^2.0.0",
     "react-native-heroicons": "^4.0.0",
     "react-native-logs": "^5.5.0",
     "react-native-paper": "^5.14.5",
@@ -65,7 +65,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "^15.15.1",
     "react-native-worklets": "0.5.1",
-    "secure-recorder": "file:./modules/secure-recorder",
+    "secure-recorder": "workspace:*",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -105,8 +105,13 @@
     "drizzle-kit": "^0.30.1",
     "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
+    "eslint-plugin-eslint-comments": "^3.2.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-native": "^5.0.0",
     "expo-audio": "*",
     "expo-modules-core": "*",
+    "globals": "^17.1.0",
     "jest": "^29.7.0",
     "jest-expo": "^54.0.16",
     "prettier": "^3.8.0",
@@ -116,7 +121,11 @@
     "typescript": "^5.9.3"
   },
   "pnpm": {
-    "patchedDependencies": {}
+    "patchedDependencies": {},
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
   },
   "packageManager": "pnpm@10.28.1",
   "engines": {

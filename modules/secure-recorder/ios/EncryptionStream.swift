@@ -19,20 +19,17 @@ import CryptoKit
  * - Chunk size written as big-endian Int32
  */
 class EncryptionStream {
-  // Private properties
   private let secretKey: SymmetricKey
   private let outputFile: URL
   private var fileHandle: FileHandle?
   
-  private static let chunkSizeLength = 4 // 4 bytes for Int32 (chunk size header)
+  private static let chunkSizeLength = 4
   
-  // Initializer
   internal init(secretKey: Data, outputFile: URL) {
     self.secretKey = SymmetricKey(data: secretKey)
     self.outputFile = outputFile
   }
   
-  // Internal methods
   /**
    * Initialize encryption stream
    * Creates file for writing encrypted chunks

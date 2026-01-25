@@ -33,7 +33,10 @@ enum StopReason {
   }
   
   /**
-   * Parse from JavaScript string (for backward compatibility)
+   * Parse from JavaScript string
+   * 
+   * Converts string representation back to StopReason enum.
+   * Used primarily for testing round-trip conversion (toJsString -> fromJsString).
    */
   internal static func fromJsString(_ value: String) -> StopReason {
     switch value {

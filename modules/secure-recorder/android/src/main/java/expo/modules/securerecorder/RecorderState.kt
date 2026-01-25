@@ -28,7 +28,10 @@ enum class RecorderState {
   
   companion object {
     /**
-     * Parse from JavaScript string (for backward compatibility)
+     * Parse from JavaScript string
+     * 
+     * Converts string representation back to RecorderState enum.
+     * Used primarily for testing round-trip conversion (toJsString -> fromJsString).
      */
     internal fun fromJsString(value: String): RecorderState {
       return when (value) {

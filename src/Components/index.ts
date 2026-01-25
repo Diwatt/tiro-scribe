@@ -1,3 +1,4 @@
+export {AppErrorBoundary} from './AppErrorBoundary';
 export {RecordButton} from './RecordButton';
 export {PipelineWidget} from './PipelineWidget';
 export {StatusReady} from './Status/StatusReady';

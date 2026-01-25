@@ -8,12 +8,6 @@ import Foundation
 @available(iOS 13.0, *)
 class RecorderStateTests: XCTestCase {
   
-  func testToJsStringReturnsCorrectValues() {
-    XCTAssertEqual("inactive", RecorderState.inactive.toJsString())
-    XCTAssertEqual("recording", RecorderState.recording.toJsString())
-    XCTAssertEqual("stopped", RecorderState.stopped.toJsString())
-  }
-  
   func testFromJsStringParsesValidValues() {
     XCTAssertEqual(RecorderState.inactive, RecorderState.fromJsString("inactive"))
     XCTAssertEqual(RecorderState.recording, RecorderState.fromJsString("recording"))

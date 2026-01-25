@@ -30,7 +30,10 @@ enum class StopReason {
   
   companion object {
     /**
-     * Parse from JavaScript string (for backward compatibility)
+     * Parse from JavaScript string
+     * 
+     * Converts string representation back to StopReason enum.
+     * Used primarily for testing round-trip conversion (toJsString -> fromJsString).
      */
     internal fun fromJsString(value: String): StopReason {
       return when (value) {

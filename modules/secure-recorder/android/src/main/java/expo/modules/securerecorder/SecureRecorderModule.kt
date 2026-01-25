@@ -35,16 +35,14 @@ import java.io.FileDescriptor
  * All exceptions include code property that Expo framework converts to JavaScript {code, message} objects.
  */
 class SecureRecorderModule : Module() {
-  // Private properties
   private val context: Context
     get() = appContext.reactContext ?: throw IllegalStateException("ReactContext not available")
   private val audioConfig: AudioConfig by lazy { AudioConfig() }
   private val keyManager: KeyManager by lazy { KeyManager(context) }
-  private val audioRecorder: AudioRecorder by lazy { AudioRecorder() }
+  private val audioRecorder: AudioRecorder by lazy { AudioRecorder(audioConfig) }
   private var currentSession: Session? = null
   private val keyAlias = "secure_recorder_key"
   
-  // Public methods
   override fun definition() = ModuleDefinition {
     Name("SecureRecorder")
 
@@ -71,7 +69,6 @@ class SecureRecorderModule : Module() {
     }
   }
   
-  // Private methods
   private fun emitStatusChanged(state: RecorderState, sessionId: String?, filePath: String?, reason: StopReason? = null) {
     val eventData = mutableMapOf<String, Any?>(
       "state" to state.toJsString(),
@@ -95,7 +92,7 @@ class SecureRecorderModule : Module() {
 
     // Check if already recording
     val existingSession = currentSession
-    if (existingSession != null && existingSession.stateManager.isActive) {
+    if (existingSession != null && existingSession.recordingTimer.isActive) {
       throw RecordingInProgressException()
     }
 
@@ -145,7 +142,7 @@ class SecureRecorderModule : Module() {
     val session = currentSession
       ?: throw NoRecordingException()
 
-    if (!session.stateManager.isActive) {
+    if (!session.recordingTimer.isActive) {
       throw NoRecordingException()
     }
 

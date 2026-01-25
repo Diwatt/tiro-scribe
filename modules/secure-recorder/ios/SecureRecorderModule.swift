@@ -28,14 +28,12 @@ import Foundation
  * All errors include code property that Expo framework converts to JavaScript {code, message} objects.
  */
 public class SecureRecorderModule: Module {
-  // Private properties
   private lazy var keyManager: KeyManager = { KeyManager() }()
   private lazy var audioRecorder: AudioRecorder = { AudioRecorder() }()
   private lazy var audioConfig: AudioConfig = { AudioConfig() }()
   private var currentSession: Session?
   private let keyAlias = "secure_recorder_key"
   
-  // Public methods
   public func definition() -> ModuleDefinition {
     Name("SecureRecorder")
     
@@ -62,7 +60,6 @@ public class SecureRecorderModule: Module {
     }
   }
   
-  // Private methods
   private func emitStatusChanged(state: RecorderState, sessionId: String, filePath: String, reason: StopReason? = nil) {
     var eventData: [String: Any] = [
       "state": state.toJsString(),
@@ -89,7 +86,7 @@ public class SecureRecorderModule: Module {
     }
     
     // Check if already recording
-    if let session = currentSession, session.stateManager.isActive {
+    if let session = currentSession, session.recordingTimer.isActive {
       throw SecureRecorderError.recordingInProgress
     }
     
@@ -141,7 +138,7 @@ public class SecureRecorderModule: Module {
       throw SecureRecorderError.noRecordingInProgress
     }
     
-    guard session.stateManager.isActive else {
+    guard session.recordingTimer.isActive else {
       throw SecureRecorderError.noRecordingInProgress
     }
     

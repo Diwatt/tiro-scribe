@@ -1,30 +1,15 @@
-import SecureRecorderModule, { SecureRecorderEventEmitter, type RecordingStatus, type DecryptedChunkEvent } from './SecureRecorderModule';
+import { SecureRecorderModule, type RecordingStatus, type DecryptedChunkEvent } from './SecureRecorderModule';
 import type { EventSubscription } from 'expo-modules-core';
 import { requestRecordingPermissionsAsync } from 'expo-audio';
 import { ErrorNormalizer } from './ErrorNormalizer';
 import { PermissionManager } from './PermissionManager';
 import { DecryptionManager } from './DecryptionManager';
-import type { NativeRecorderModule, EventEmitter } from './NativeRecorderModule';
+import type { EventEmitter, NativeRecorderModule, SecureRecorderError, StatusChangeEvent } from './Type';
 import { ErrorCode } from './ErrorCode';
 import { RecorderState } from './RecorderState';
-import { StopReason } from './StopReason';
 
 // Re-export DecryptedChunkEvent for convenience
 export type { DecryptedChunkEvent } from './SecureRecorderModule';
-
-// Import types from index to avoid circular dependency
-export interface SecureRecorderError {
-  code: ErrorCode;
-  message: string;
-  details?: unknown;
-}
-
-export interface StatusChangeEvent {
-  state: RecorderState;
-  sessionId: string | null;
-  filePath: string | null;
-  reason?: StopReason;
-}
 
 /**
  * Secure audio recorder with streaming AES-256-GCM encryption.
@@ -50,7 +35,6 @@ export interface StatusChangeEvent {
  * ```
  */
 export class SecureRecorder {
-  // Private properties
   private errorNormalizer: ErrorNormalizer;
   private eventSubscription: EventSubscription | null = null;
   private readonly _sessionId: string;
@@ -59,11 +43,9 @@ export class SecureRecorder {
   private nativeModule: NativeRecorderModule;
   private eventEmitter: EventEmitter;
   
-  // Private static properties
   private static permissionManager: PermissionManager | null = null;
   private static decryptionManager: DecryptionManager | null = null;
   
-  // Public properties
   /**
    * Event handler called when recording status changes.
    * Similar to MediaRecorder.onstart, onstop, etc.
@@ -76,7 +58,6 @@ export class SecureRecorder {
    */
   public onerror: ((error: SecureRecorderError) => void) | null = null;
   
-  // Constructor
   /**
    * Creates a new SecureRecorder instance.
    * 
@@ -90,7 +71,7 @@ export class SecureRecorder {
   public constructor(
     sessionId: string,
     nativeModule: NativeRecorderModule = SecureRecorderModule,
-    eventEmitter: EventEmitter = SecureRecorderEventEmitter as any
+    eventEmitter: EventEmitter = SecureRecorderModule as any
   ) {
     // Initialize dependencies first
     this.errorNormalizer = new ErrorNormalizer();
@@ -116,7 +97,6 @@ export class SecureRecorder {
     this._syncState();
   }
   
-  // Public getters
   /**
    * Current recording state.
    * - INACTIVE: Not recording, ready to start
@@ -149,7 +129,6 @@ export class SecureRecorder {
     return this._filePath;
   }
   
-  // Public methods
   /**
    * Starts recording audio with streaming encryption.
    * 
@@ -252,7 +231,7 @@ export class SecureRecorder {
    * await SecureRecorder.stream(filePath);
    */
   public static addDecryptionListener(listener: (event: DecryptedChunkEvent) => void): EventSubscription {
-    return SecureRecorderEventEmitter.addListener('onAudioChunkDecrypted', listener);
+    return SecureRecorderModule.addListener(SecureRecorderModule.EVENT_AUDIO_CHUNK_DECRYPTED, listener);
   }
 
   /**
@@ -281,12 +260,11 @@ export class SecureRecorder {
     return await SecureRecorder.getDecryptionManager().stream(encryptedPath);
   }
   
-  // Private methods
   private async _syncState(): Promise<void> {
     try {
       const status = await this.nativeModule.getStatus();
       this._updateStateFromStatus(status);
-    } catch (error) {
+    } catch {
       // Ignore errors during initial sync
     }
   }

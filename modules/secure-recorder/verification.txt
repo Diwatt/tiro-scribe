@@ -1,0 +1,1895 @@
+
+> secure-recorder@1.0.0 verify /Users/florian/www/tiro-scribe/modules/secure-recorder
+> pnpm run clean && pnpm run lint && pnpm run typecheck && pnpm run validate && pnpm run verify:android && pnpm run verify:ios
+
+
+> secure-recorder@1.0.0 clean /Users/florian/www/tiro-scribe/modules/secure-recorder
+> expo-module clean
+
+
+> secure-recorder@1.0.0 lint /Users/florian/www/tiro-scribe/modules/secure-recorder
+> expo-module lint
+
+
+> secure-recorder@1.0.0 typecheck /Users/florian/www/tiro-scribe/modules/secure-recorder
+> tsc --noEmit
+
+
+> secure-recorder@1.0.0 validate /Users/florian/www/tiro-scribe/modules/secure-recorder
+> echo '✅ Module structure' && test -f package.json && test -f expo-module.config.json && test -f android/build.gradle && test -f ios/SecureRecorderModule.swift && test -f src/index.ts && echo '✅ All required files present'
+
+✅ Module structure
+✅ All required files present
+
+> secure-recorder@1.0.0 verify:android /Users/florian/www/tiro-scribe/modules/secure-recorder
+> cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain
+
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-launcher-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-dev-launcher-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:processResources UP-TO-DATE
+> Task :expo-module-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-module-gradle-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-module-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-dev-launcher-gradle-plugin:classes UP-TO-DATE
+> Task :expo-module-gradle-plugin:classes UP-TO-DATE
+> Task :expo-dev-launcher-gradle-plugin:jar UP-TO-DATE
+> Task :expo-module-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :app
+android.packagingOptions.pickFirsts += [**/libc++_shared.so, **/libfbjni.so, **/libonnxruntime.so] (3)
+ ℹ️  [33mApplying gradle plugin[0m '[32mexpo-dev-launcher-gradle-plugin[0m'
+
+> Configure project :
+[32m[ExpoRootProject][0m Using the following versions:
+  - buildTools:  [32m35.0.0[0m
+  - minSdk:      [32m28[0m
+  - compileSdk:  [32m35[0m
+  - targetSdk:   [32m35[0m
+  - ndk:         [32m27.1.12297006[0m
+  - kotlin:      [32m2.0.21[0m
+  - ksp:         [32m2.0.21-1.0.28[0m
+
+> Configure project :onnxruntime-react-native
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-constants[0m (18.0.13)
+  - [32mexpo-dev-client[0m (6.0.20)
+  - [32mexpo-dev-launcher[0m (6.0.20)
+  - [32mexpo-dev-menu[0m (7.0.18)
+  - [32mexpo-dev-menu-interface[0m (2.0.0)
+  - [32mexpo-json-utils[0m (0.15.0)
+  - [32mexpo-manifests[0m (1.0.10)
+  - [32mexpo-modules-core[0m (3.0.29)
+  - [32mexpo-sqlite[0m (15.0.6)
+  - [32mexpo-updates-interface[0m (2.0.0)
+  - [32monnxruntime-react-native[0m (unspecified)
+  - [32msecure-recorder[0m (unspecified)
+  - [33m[📦][0m [32mexpo-asset[0m (12.0.12)
+  - [33m[📦][0m [32mexpo-audio[0m (1.1.1)
+  - [33m[📦][0m [32mexpo-crypto[0m (15.0.8)
+  - [33m[📦][0m [32mexpo-file-system[0m (19.0.21)
+  - [33m[📦][0m [32mexpo-font[0m (14.0.11)
+  - [33m[📦][0m [32mexpo-keep-awake[0m (15.0.8)
+
+
+> Task :secure-recorder:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :secure-recorder:preBuild UP-TO-DATE
+> Task :expo-modules-core:preDebugBuild UP-TO-DATE
+> Task :secure-recorder:preDebugBuild UP-TO-DATE
+> Task :secure-recorder:generateDebugBuildConfig UP-TO-DATE
+> Task :expo-modules-core:generateDebugBuildConfig UP-TO-DATE
+> Task :secure-recorder:generateDebugResValues UP-TO-DATE
+> Task :expo-modules-core:generateDebugResValues UP-TO-DATE
+> Task :secure-recorder:generateDebugResources UP-TO-DATE
+> Task :expo-modules-core:generateDebugResources UP-TO-DATE
+> Task :secure-recorder:packageDebugResources UP-TO-DATE
+> Task :expo-modules-core:packageDebugResources UP-TO-DATE
+> Task :secure-recorder:parseDebugLocalResources UP-TO-DATE
+> Task :secure-recorder:generateDebugRFile UP-TO-DATE
+> Task :expo-modules-core:parseDebugLocalResources UP-TO-DATE
+> Task :secure-recorder:mergeDebugJniLibFolders UP-TO-DATE
+> Task :expo-modules-core:generateDebugRFile UP-TO-DATE
+> Task :secure-recorder:mergeDebugNativeLibs NO-SOURCE
+> Task :secure-recorder:stripDebugDebugSymbols NO-SOURCE
+> Task :secure-recorder:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :secure-recorder:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :secure-recorder:mergeDebugShaders UP-TO-DATE
+> Task :secure-recorder:compileDebugShaders NO-SOURCE
+> Task :secure-recorder:generateDebugAssets UP-TO-DATE
+> Task :secure-recorder:mergeDebugAssets UP-TO-DATE
+> Task :secure-recorder:javaPreCompileDebug UP-TO-DATE
+> Task :secure-recorder:prepareDebugArtProfile UP-TO-DATE
+> Task :secure-recorder:prepareLintJarForPublish UP-TO-DATE
+> Task :secure-recorder:processDebugManifest UP-TO-DATE
+> Task :secure-recorder:writeDebugAarMetadata UP-TO-DATE
+> Task :secure-recorder:preDebugUnitTestBuild UP-TO-DATE
+> Task :secure-recorder:generateDebugUnitTestStubRFile UP-TO-DATE
+> Task :secure-recorder:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :expo-modules-core:compileDebugKotlin UP-TO-DATE
+> Task :expo-modules-core:javaPreCompileDebug UP-TO-DATE
+> Task :expo-modules-core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :expo-modules-core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :expo-modules-core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :expo-modules-core:processDebugJavaRes UP-TO-DATE
+> Task :secure-recorder:compileDebugKotlin UP-TO-DATE
+> Task :secure-recorder:extractDebugAnnotations UP-TO-DATE
+> Task :secure-recorder:compileDebugJavaWithJavac UP-TO-DATE
+> Task :secure-recorder:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :secure-recorder:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :secure-recorder:processDebugJavaRes UP-TO-DATE
+> Task :secure-recorder:mergeDebugJavaResource UP-TO-DATE
+> Task :secure-recorder:syncDebugLibJars UP-TO-DATE
+> Task :secure-recorder:bundleDebugAar UP-TO-DATE
+> Task :secure-recorder:assembleDebug UP-TO-DATE
+> Task :secure-recorder:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :secure-recorder:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :secure-recorder:compileDebugUnitTestKotlin UP-TO-DATE
+> Task :secure-recorder:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :secure-recorder:processDebugUnitTestJavaRes UP-TO-DATE
+> Task :secure-recorder:testDebugUnitTest UP-TO-DATE
+
+[Incubating] Problems report is available at: file:///Users/florian/www/tiro-scribe/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2s
+72 actionable tasks: 72 up-to-date
+
+> secure-recorder@1.0.0 verify:ios /Users/florian/www/tiro-scribe/modules/secure-recorder
+> cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'generic/platform=iOS Simulator' -quiet | grep -v 'warning:' | grep -v 'note:' && echo '✅ iOS compilation OK'
+
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGUse.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   71 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGUse.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28.6_@_b911e90ed0294c185ec0d7a6abc942f2/node_modules/react-native-worklets/apple/worklets/apple/WorkletsModule.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28.6_@_b911e90ed0294c185ec0d7a6abc942f2/node_modules/react-native-worklets/Common/cpp/worklets/NativeModules/JSIWorkletsModuleProxy.h:5:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/UIManagerBinding.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/PointerEventsProcessor.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/PointerHoverTracker.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/UIManager.h:23:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/ShadowTree.h:18:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingCoordinator.h:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/Differentiator.h:11:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+   80 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm:22:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandler.h:4:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerEvents.h:5:
+   23 | static CGPoint ghSpherical2tilt(double altitudeAngle, double azimuthAngle)
+      |                ^~~~~~~~~~~~~~~~
+2 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ShadowNodes.cpp:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ShadowNodes.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/RNDateTimePickerState.h:8:
+   18 | #warning \
+      |  ^
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.28.6_@react-nati_2969d442d15ef356e7ef66d9a69b98d8/node_modules/react-native-safe-area-context/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp:3:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+  284 |         progressBlock:nil
+      |                       ^~~
+In file included from <built-in>:1:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Target Support Files/react-native-slider/react-native-slider-prefix.pch:2:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h:8:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h:6:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CoreFoundation.h:54:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CFBase.h:80:
+   94 |       #define nil nullptr
+      |                   ^~~~~~~
+  285 |         partialLoadBlock:nil
+      |                          ^~~
+In file included from <built-in>:1:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Target Support Files/react-native-slider/react-native-slider-prefix.pch:2:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h:8:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h:6:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CoreFoundation.h:54:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CFBase.h:80:
+   94 |       #define nil nullptr
+      |                   ^~~~~~~
+   22 | @implementation RNCSliderComponentView
+      |                 ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+slider@5.1.2/node_modules/@react-native-community/slider/ios/RNCSliderComponentView.mm:1:
+   31 | - (float) discreteValue:(float)value;
+      | ^
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28.6_@_b911e90ed0294c185ec0d7a6abc942f2/node_modules/react-native-worklets/apple/worklets/apple/WorkletsModule.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-worklets@0.5.1_@babel+core@7.28.6_react-native@0.81.5_@babel+core@7.28.6_@_b911e90ed0294c185ec0d7a6abc942f2/node_modules/react-native-worklets/Common/cpp/worklets/NativeModules/JSIWorkletsModuleProxy.h:5:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/UIManagerBinding.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/PointerEventsProcessor.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/PointerHoverTracker.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/uimanager/UIManager.h:23:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/ShadowTree.h:18:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingCoordinator.h:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/Differentiator.h:11:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabsScreenViewController.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabsScreenViewController.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.h:8:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarControllerDelegate.mm:3:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+  284 |         progressBlock:nil
+      |                       ^~~
+In file included from <built-in>:1:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Target Support Files/react-native-slider/react-native-slider-prefix.pch:2:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h:8:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h:6:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CoreFoundation.h:54:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CFBase.h:80:
+   94 |       #define nil nullptr
+      |                   ^~~~~~~
+  285 |         partialLoadBlock:nil
+      |                          ^~~
+In file included from <built-in>:1:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Target Support Files/react-native-slider/react-native-slider-prefix.pch:2:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h:8:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/Foundation.framework/Headers/Foundation.h:6:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CoreFoundation.h:54:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CFBase.h:80:
+   94 |       #define nil nullptr
+      |                   ^~~~~~~
+   22 | @implementation RNCSliderComponentView
+      |                 ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+slider@5.1.2/node_modules/@react-native-community/slider/ios/RNCSliderComponentView.mm:1:
+   31 | - (float) discreteValue:(float)value;
+      | ^
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-safe-area-context@5.6.2_react-native@0.81.5_@babel+core@7.28.6_@react-nati_2969d442d15ef356e7ef66d9a69b98d8/node_modules/react-native-safe-area-context/common/cpp/react/renderer/components/safeareacontext/RNCSafeAreaViewShadowNode.cpp:3:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm:5:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreenStack.mm:4:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreenContentWrapper.mm:9:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTScrollViewComponentView.h:12:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreen.mm:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTScrollViewComponentView.h:12:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+  606 |     int index = newDetentIndex;
+      |         ~~~~~   ^~~~~~~~~~~~~~
+  631 |                                                    reactTag:[NSNumber numberWithInt:self.tag]
+      |                                                             ~                       ^~~~~~~~
+  716 |                                                                    reactTag:[NSNumber numberWithInt:self.tag]
+      |                                                                             ~                       ^~~~~~~~
+  972 |   int firstDimmedDetentIndex = _sheetAllowedDetents.count;
+      |       ~~~~~~~~~~~~~~~~~~~~~~   ^~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1121 |     UISheetPresentationControllerDetentIdentifier ident = [[NSNumber numberWithInt:index] stringValue];
+      |                                                            ~                       ^~~~~
+ 1614 |   CGSize fallbackStatusBarSize = [[UIApplication sharedApplication] statusBarFrame].size;
+      |                                                                     ^
+In file included from <built-in>:1:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Target Support Files/RNScreens/RNScreens-prefix.pch:2:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h:9:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKitCore.h:34:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAccessibility.h:20:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAccessibilityElement.h:12:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAccessibilityIdentification.h:13:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAlertController.h:9:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIViewController.h:12:
+  131 | @property(nonatomic,readonly) CGRect statusBarFrame API_DEPRECATED("Use the statusBarManager property of the window scene instead.", ios(2.0, 13.0)) API_UNAVAILABLE(tvos) API_UNAVAILABLE(visionos, watchos); // returns CGRectZero if the status bar is hidden
+      |                                      ^
+9 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+  292 |   switch (systemItem) {
+      |           ^~~~~~~~~~
+  292 |   switch (systemItem) {
+      |           ^
+  293 |     case RNSBottomTabsScreenSystemItemBookmarks:
+  318 |   RCTAssert(true, @"Attempt to convert unknown bottom tabs screen systemItem to UITabBarSystemItem [%d]", systemItem);
+      |                                                                                                     ~~    ^~~~~~~~~~
+      |                                                                                                     %ld   static_cast<long>( )
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/conversion/RNSConversions-BottomTabs.mm:2:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-ImageManager/react/renderer/imagemanager/RCTImagePrimitivesConversions.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTConvert.h:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTLog.h:10:
+   26 |       _RCTAssertFormat(#condition, __FILE__, __LINE__, __func__, __VA_ARGS__);                       \
+      |                                                                  ^~~~~~~~~~~
+  318 |   RCTAssert(true, @"Attempt to convert unknown bottom tabs screen systemItem to UITabBarSystemItem [%d]", systemItem);
+      |                                                                                                     ~~    ^~~~~~~~~~
+      |                                                                                                     %ld   static_cast<long>( )
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/conversion/RNSConversions-BottomTabs.mm:2:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-ImageManager/react/renderer/imagemanager/RCTImagePrimitivesConversions.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTConvert.h:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTLog.h:10:
+   31 |                                                          description:__VA_ARGS__];                   \
+      |                                                                      ^~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.h:8:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   25 | @implementation RNSBottomTabsScreenComponentView {
+      |                 ^
+   25 | @implementation RNSBottomTabsScreenComponentView {
+      |                 ^
+4 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/extensions/RNSBottomTabsHostComponentView+RNSImageLoader.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/extensions/RNSBottomTabsHostComponentView+RNSImageLoader.h:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTextPath.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   62 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTextPath.mm:16:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGText.mm:19:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   62 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGText.mm:21:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTSpan.mm:23:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   74 | }
+      | ^
+  930 |     CFIndex indices[runGlyphCount];
+      |                     ^~~~~~~~~~~~~
+  929 |     CFIndex runGlyphCount = CTRunGetGlyphCount(run);
+      |             ^
+  931 |     CGSize advances[runGlyphCount];
+      |                     ^~~~~~~~~~~~~
+  929 |     CFIndex runGlyphCount = CTRunGetGlyphCount(run);
+      |             ^
+  932 |     CGGlyph glyphs[runGlyphCount];
+      |                    ^~~~~~~~~~~~~
+  929 |     CFIndex runGlyphCount = CTRunGetGlyphCount(run);
+      |             ^
+  943 |       CFIndex nextIndices[nextRunGlyphCount];
+      |                           ^~~~~~~~~~~~~~~~~
+  942 |       CFIndex nextRunGlyphCount = CTRunGetGlyphCount(nextRun);
+      |               ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTSpan.mm:25:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+7 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSymbol.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   59 | }
+      | ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.mm:18:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.mm:9:
+   37 | @property (nonatomic, assign) UIEdgeInsets hitTestEdgeInsets;
+      |                                            ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.mm:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/RNSVGUIKit.h:4:
+   64 | @property (nonatomic, assign) UIEdgeInsets hitTestEdgeInsets;
+      |                                            ^
+   26 | @implementation RNSVGSvgView {
+      |                 ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGRect.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   78 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGRect.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGRadialGradient.mm:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   93 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGRadialGradient.mm:15:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGPattern.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   89 | }
+      | ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGPath.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   55 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGPath.mm:16:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGMask.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   75 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGMask.mm:18:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGMarker.mm:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   81 | }
+      | ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGLinearGradient.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   87 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGLinearGradient.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabsScreenViewController.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabsScreenViewController.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.h:8:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarControllerDelegate.mm:3:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarController.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSTabBarAppearanceCoordinator.h:2:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreenStackHeaderConfig.mm:5:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreenStack.mm:4:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreenContentWrapper.mm:9:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTScrollViewComponentView.h:12:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSScreen.mm:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTScrollViewComponentView.h:12:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-RCTFabric/React/RCTMountingTransactionObserving.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/mounting/MountingTransaction.h:10:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+  606 |     int index = newDetentIndex;
+      |         ~~~~~   ^~~~~~~~~~~~~~
+  631 |                                                    reactTag:[NSNumber numberWithInt:self.tag]
+      |                                                             ~                       ^~~~~~~~
+  716 |                                                                    reactTag:[NSNumber numberWithInt:self.tag]
+      |                                                                             ~                       ^~~~~~~~
+  972 |   int firstDimmedDetentIndex = _sheetAllowedDetents.count;
+      |       ~~~~~~~~~~~~~~~~~~~~~~   ^~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1121 |     UISheetPresentationControllerDetentIdentifier ident = [[NSNumber numberWithInt:index] stringValue];
+      |                                                            ~                       ^~~~~
+ 1614 |   CGSize fallbackStatusBarSize = [[UIApplication sharedApplication] statusBarFrame].size;
+      |                                                                     ^
+In file included from <built-in>:1:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Target Support Files/RNScreens/RNScreens-prefix.pch:2:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKit.h:9:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIKitCore.h:34:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAccessibility.h:20:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAccessibilityElement.h:12:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAccessibilityIdentification.h:13:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIAlertController.h:9:
+In file included from /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIViewController.h:12:
+  131 | @property(nonatomic,readonly) CGRect statusBarFrame API_DEPRECATED("Use the statusBarManager property of the window scene instead.", ios(2.0, 13.0)) API_UNAVAILABLE(tvos) API_UNAVAILABLE(visionos, watchos); // returns CGRectZero if the status bar is hidden
+      |                                      ^
+9 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+  292 |   switch (systemItem) {
+      |           ^~~~~~~~~~
+  292 |   switch (systemItem) {
+      |           ^
+  293 |     case RNSBottomTabsScreenSystemItemBookmarks:
+  318 |   RCTAssert(true, @"Attempt to convert unknown bottom tabs screen systemItem to UITabBarSystemItem [%d]", systemItem);
+      |                                                                                                     ~~    ^~~~~~~~~~
+      |                                                                                                     %ld   static_cast<long>( )
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/conversion/RNSConversions-BottomTabs.mm:2:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-ImageManager/react/renderer/imagemanager/RCTImagePrimitivesConversions.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTConvert.h:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTLog.h:10:
+   26 |       _RCTAssertFormat(#condition, __FILE__, __LINE__, __func__, __VA_ARGS__);                       \
+      |                                                                  ^~~~~~~~~~~
+  318 |   RCTAssert(true, @"Attempt to convert unknown bottom tabs screen systemItem to UITabBarSystemItem [%d]", systemItem);
+      |                                                                                                     ~~    ^~~~~~~~~~
+      |                                                                                                     %ld   static_cast<long>( )
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/conversion/RNSConversions-BottomTabs.mm:2:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-ImageManager/react/renderer/imagemanager/RCTImagePrimitivesConversions.h:10:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTConvert.h:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Core/React/RCTLog.h:10:
+   31 |                                                          description:__VA_ARGS__];                   \
+      |                                                                      ^~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.h:8:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   25 | @implementation RNSBottomTabsScreenComponentView {
+      |                 ^
+   25 | @implementation RNSBottomTabsScreenComponentView {
+      |                 ^
+4 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/extensions/RNSBottomTabsHostComponentView+RNSImageLoader.mm:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/extensions/RNSBottomTabsHostComponentView+RNSImageLoader.h:1:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-screens@4.16.0_react-native@0.81.5_@babel+core@7.28.6_@react-native-commun_66e6ade87c3dd895500b55763289a9de/node_modules/react-native-screens/ios/RNSViewControllerInvalidating.h:3:
+   47 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   49 |   static ShadowViewMutation InsertMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   64 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   66 |   static ShadowViewMutation RemoveMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+   83 |    * @deprecated Pass parentTag instead of parentShadowView.
+      |      ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   85 |   static ShadowViewMutation UpdateMutation(
+      |   ^
+      |   FMT_DEPRECATED 
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGLine.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   70 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGLine.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+  102 | }
+      | ^
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGGroup.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   56 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGGroup.mm:18:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGForeignObject.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   71 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGForeignObject.mm:18:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilterPrimitive.mm:8:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilterPrimitive.mm:10:
+   17 | static id RNSVGConvertFollyDynamicToId(const folly::dynamic &dyn)
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilter.mm:8:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   72 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilter.mm:10:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeOffset.mm:9:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   57 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeOffset.mm:11:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeMerge.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeMerge.mm:8:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeGaussianBlur.mm:7:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeGaussianBlur.mm:10:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeFlood.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeFlood.mm:9:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeComposite.mm:8:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   57 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeComposite.mm:11:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeColorMatrix.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   55 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeColorMatrix.mm:9:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjAxRDI2Qzk3OTA3NDFENUYwOEUyQjQ3QTQ4RDc5MzMxIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeBlend.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   49 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeBlend.mm:9:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGEllipse.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   70 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGEllipse.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGDefs.mm:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGDefs.mm:15:
+   17 | static id RNSVGConvertFollyDynamicToId(const folly::dynamic &dyn)
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGClipPath.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGClipPath.mm:16:
+   17 | static id RNSVGConvertFollyDynamicToId(const folly::dynamic &dyn)
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+4 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGCircle.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   66 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGCircle.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerButtonComponentView.mm:3:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerButtonComponentView.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerButton.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandler.h:4:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerEvents.h:5:
+   23 | static CGPoint ghSpherical2tilt(double altitudeAngle, double azimuthAngle)
+      |                ^~~~~~~~~~~~~~~~
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/RNDateTimePickerComponentView.mm:8:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ComponentDescriptors.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ShadowNodes.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/RNDateTimePickerState.h:8:
+   18 | #warning \
+      |  ^
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+cor_723f59336393dd3b8003827b13fe0c1a/node_modules/react-native-reanimated/apple/reanimated/apple/ReanimatedModule.mm:9:
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nullable 
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nonnull 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nullable 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nonnull 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nullable 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nonnull 
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                        ^
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nullable
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nonnull
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nullable 
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nonnull 
+5 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+   80 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerModule.mm:22:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandler.h:4:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerEvents.h:5:
+   23 | static CGPoint ghSpherical2tilt(double altitudeAngle, double azimuthAngle)
+      |                ^~~~~~~~~~~~~~~~
+2 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerButtonComponentView.mm:3:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerButtonComponentView.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerButton.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandler.h:4:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-gesture-handler@2.28.0_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_2c55290e86b1a8fb901266dc04899914/node_modules/react-native-gesture-handler/apple/RNGestureHandlerEvents.h:5:
+   23 | static CGPoint ghSpherical2tilt(double altitudeAngle, double azimuthAngle)
+      |                ^~~~~~~~~~~~~~~~
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/RNDateTimePickerComponentView.mm:8:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ComponentDescriptors.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ShadowNodes.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/RNDateTimePickerState.h:8:
+   18 | #warning \
+      |  ^
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGCircle.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   66 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGCircle.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+cor_723f59336393dd3b8003827b13fe0c1a/node_modules/react-native-reanimated/apple/reanimated/apple/ReanimatedModule.mm:9:
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nullable 
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nonnull 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nullable 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nonnull 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nullable 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nonnull 
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                        ^
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nullable
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nonnull
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nullable 
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nonnull 
+5 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+cor_723f59336393dd3b8003827b13fe0c1a/node_modules/react-native-reanimated/apple/reanimated/apple/native/NativeProxy.mm:4:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+cor_723f59336393dd3b8003827b13fe0c1a/node_modules/react-native-reanimated/apple/reanimated/apple/native/NativeProxy.h:4:
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nullable 
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nonnull 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nullable 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nonnull 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nullable 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nonnull 
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                        ^
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nullable
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nonnull
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nullable 
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nonnull 
+5 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+cor_723f59336393dd3b8003827b13fe0c1a/node_modules/react-native-reanimated/apple/reanimated/apple/native/NativeProxy.mm:4:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-reanimated@4.1.6_@babel+core@7.28.6_react-native-worklets@0.5.1_@babel+cor_723f59336393dd3b8003827b13fe0c1a/node_modules/react-native-reanimated/apple/reanimated/apple/native/NativeProxy.h:4:
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nullable 
+    5 | typedef void (^REAOnAnimationCallback)(READisplayLink *displayLink);
+      |                                                       ^
+      |                                                         _Nonnull 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nullable 
+   15 | - (void)postOnAnimation:(REAOnAnimationCallback)clb;
+      |                          ^                     
+      |                                                 _Nonnull 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nullable 
+   16 | - (void)registerEventHandler:(REAEventHandler)eventHandler;
+      |                               ^              
+      |                                               _Nonnull 
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                        ^
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nullable
+   17 | - (void)dispatchEvent:(id<RCTEvent>)event;
+      |                                   ^
+      |                                    _Nonnull
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nullable 
+   19 | - (void)registerPerformOperations:(REAPerformOperations)performOperations;
+      |                                    ^                   
+      |                                                         _Nonnull 
+5 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ShadowNodes.cpp:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ShadowNodes.h:11:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/@react-native-community+datetimepicker@8.6.0_expo@54.0.31_@babel+core@7.28.6_react-nati_bf949619ab29d1e8ea6dd7006f01348f/node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/RNDateTimePickerState.h:8:
+   18 | #warning \
+      |  ^
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGUse.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   71 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGUse.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGText.mm:19:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   62 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGText.mm:21:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTextPath.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   62 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTextPath.mm:16:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTSpan.mm:23:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   74 | }
+      | ^
+  930 |     CFIndex indices[runGlyphCount];
+      |                     ^~~~~~~~~~~~~
+  929 |     CFIndex runGlyphCount = CTRunGetGlyphCount(run);
+      |             ^
+  931 |     CGSize advances[runGlyphCount];
+      |                     ^~~~~~~~~~~~~
+  929 |     CFIndex runGlyphCount = CTRunGetGlyphCount(run);
+      |             ^
+  932 |     CGGlyph glyphs[runGlyphCount];
+      |                    ^~~~~~~~~~~~~
+  929 |     CFIndex runGlyphCount = CTRunGetGlyphCount(run);
+      |             ^
+  943 |       CFIndex nextIndices[nextRunGlyphCount];
+      |                           ^~~~~~~~~~~~~~~~~
+  942 |       CFIndex nextRunGlyphCount = CTRunGetGlyphCount(nextRun);
+      |               ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Text/RNSVGTSpan.mm:25:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+7 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSymbol.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   59 | }
+      | ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.mm:18:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.mm:9:
+   37 | @property (nonatomic, assign) UIEdgeInsets hitTestEdgeInsets;
+      |                                            ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.mm:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGSvgView.h:9:
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/RNSVGUIKit.h:4:
+   64 | @property (nonatomic, assign) UIEdgeInsets hitTestEdgeInsets;
+      |                                            ^
+   26 | @implementation RNSVGSvgView {
+      |                 ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGRect.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   78 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGRect.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGRadialGradient.mm:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   93 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGRadialGradient.mm:15:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGPattern.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   89 | }
+      | ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGPath.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   55 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGPath.mm:16:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGMask.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   75 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGMask.mm:18:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGMarker.mm:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   81 | }
+      | ^
+2 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGLinearGradient.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   87 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGLinearGradient.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGLine.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   70 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGLine.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+  102 | }
+      | ^
+1 warning generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGGroup.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   56 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGGroup.mm:18:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGForeignObject.mm:16:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   71 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGForeignObject.mm:18:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilterPrimitive.mm:8:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilterPrimitive.mm:10:
+   17 | static id RNSVGConvertFollyDynamicToId(const folly::dynamic &dyn)
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilter.mm:8:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   72 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFilter.mm:10:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeOffset.mm:9:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   57 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeOffset.mm:11:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeMerge.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeMerge.mm:8:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeGaussianBlur.mm:7:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeGaussianBlur.mm:10:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeFlood.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeFlood.mm:9:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeComposite.mm:8:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   57 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeComposite.mm:11:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeColorMatrix.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   55 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeColorMatrix.mm:9:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeBlend.mm:6:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   49 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Filters/RNSVGFeBlend.mm:9:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGEllipse.mm:15:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   70 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Shapes/RNSVGEllipse.mm:17:
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGDefs.mm:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGDefs.mm:15:
+   17 | static id RNSVGConvertFollyDynamicToId(const folly::dynamic &dyn)
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+3 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGClipPath.mm:14:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-Fabric/react/renderer/components/view/conversions.h:17:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSAngle.h:13:
+In file included from /Users/florian/www/tiro-scribe/ios/Pods/Headers/Public/React-renderercss/react/renderer/css/CSSDataType.h:15:
+  150 |    * @param <ReturnT> caller-specified return type of visitors. This type will
+      |             ^~~~~~~~~
+   51 | }
+      | ^
+In file included from /Users/florian/www/tiro-scribe/node_modules/.pnpm/react-native-svg@15.15.1_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_e522823c50fd6e353293a1ebe1c511f8/node_modules/react-native-svg/apple/Elements/RNSVGClipPath.mm:16:
+   17 | static id RNSVGConvertFollyDynamicToId(const folly::dynamic &dyn)
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  246 | static RNSVGVBMOS intToRNSVGVBMOS(int value)
+      |                   ^~~~~~~~~~~~~~~
+4 warnings generated.
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+eyJibHVlcHJpbnRfYmx1ZXByaW50SWRlbnRpZmllciI6IjMzN0Q0OUNGRjhDMTA5REMxQ0MwN0YzMjY0MzkwODRFIiwiYmx1ZXByaW50X3Byb3ZpZGVyRmlsZVBhdGhTdHJpbmciOiJcL1VzZXJzXC9mbG9yaWFuXC93d3dcL3Rpcm8tc2NyaWJlXC9pb3NcL1BvZHNcL1BvZHMueGNvZGVwcm9qIiwidHlwZSI6eyJibHVlcHJpbnQiOnt9fX0=
+✅ iOS compilation OK

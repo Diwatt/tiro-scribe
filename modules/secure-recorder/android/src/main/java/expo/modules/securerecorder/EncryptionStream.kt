@@ -26,25 +26,22 @@ import javax.crypto.SecretKey
 class EncryptionStream(
   private val secretKey: SecretKey,
   private val outputFile: File
-) {
-  // Private properties
+) : EncryptionStreamInterface {
   private lateinit var fileOutputStream: FileOutputStream
   
-  // Companion object
   companion object {
     private const val GCM_TAG_LENGTH = 128 // 128 bits = 16 bytes
     private const val GCM_IV_LENGTH = 12 // 12 bytes (standard for GCM)
-    private const val CHUNK_SIZE_LENGTH = 4 // 4 bytes for Int (chunk size header)
+    private const val CHUNK_SIZE_LENGTH = 4
   }
   
-  // Internal methods
   /**
    * Initialize encryption stream
    * Creates file for writing encrypted chunks
    * 
    * @throws Exception if file creation fails
    */
-  internal fun initialize() {
+  override fun initialize() {
     // Create file if it doesn't exist
     if (!outputFile.exists()) {
       outputFile.createNewFile()
@@ -66,7 +63,7 @@ class EncryptionStream(
    * @throws IllegalStateException if stream not initialized
    * @throws Exception if encryption fails
    */
-  internal fun write(data: ByteArray) {
+  override fun write(data: ByteArray) {
     check(::fileOutputStream.isInitialized) { "Encryption stream not initialized" }
     
     // SECURITY: Create new cipher instance for this chunk
@@ -101,7 +98,7 @@ class EncryptionStream(
    * 
    * Safe to call multiple times (idempotent)
    */
-  internal fun close() {
+  override fun close() {
     if (!::fileOutputStream.isInitialized) return
     try {
       fileOutputStream.close()

@@ -5,7 +5,7 @@ import AVFoundation
  * Manages a single recording session for iOS/iPadOS
  * 
  * Orchestrates recording components (Facade pattern). Coordinates audio recording,
- * encryption, state management, and event handling. Manages session lifecycle from
+ * encryption, timing, and event handling. Manages session lifecycle from
  * initialization through cleanup.
  * 
  * iOS/iPadOS SPECIFICITY:
@@ -18,24 +18,21 @@ import AVFoundation
  * - cleanup() has no try-catch (simpler cleanup, errors are non-critical)
  */
 class Session {
-  // Private properties
-  private let keyManager: KeyManager
+  private let keyManager: KeyManagerProtocol
   private let audioRecorder: AudioRecorder
   private let audioConfig: AudioConfig
-  private let limiter: LimitRegistry
+  private let limiter: LimitRegistryProtocol
   private let onLimitReached: ((StopReason, String, String) async -> Void)?
   private let sessionId: String
   private let outputFile: URL
-  private var encryptionStream: EncryptionStream!
+  private var encryptionStream: EncryptionStreamProtocol!
   private var audioEngine: AVAudioEngine!
   private var inputNode: AVAudioInputNode!
   private var eventHandler: EventHandler!
   private var pipeline: Pipeline?
   
-  // Internal properties
-  internal let stateManager = StateManager()
+  internal let recordingTimer = RecordingTimer()
   
-  // Initializer
   internal init(
     sessionId: String,
     outputFile: URL,
@@ -54,12 +51,11 @@ class Session {
     self.onLimitReached = onLimitReached
   }
   
-  // Private methods
   private func initializeEventHandler() {
     eventHandler = EventHandler(
       sessionId: sessionId,
       outputFile: outputFile,
-      stateManager: stateManager,
+      recordingTimer: recordingTimer,
       onStop: { [weak self] in
         guard let self = self else { throw SecureRecorderError.initializationFailed("Session deallocated") }
         return try self.stop()
@@ -68,7 +64,6 @@ class Session {
     )
   }
   
-  // Internal methods
   /**
    * Start recording session
    * Initializes encryption and audio capture
@@ -98,7 +93,7 @@ class Session {
     initializeEventHandler()
     
     // Activate state
-    stateManager.activate()
+    recordingTimer.activate()
     
     // Create pipeline for audio processing
     pipeline = Pipeline(
@@ -106,7 +101,7 @@ class Session {
       audioConfig: audioConfig,
       outputFile: outputFile,
       limiter: limiter,
-      stateManager: stateManager,
+      recordingTimer: recordingTimer,
       onLimitReached: { [weak self] reason in
         self?.eventHandler.onLimitReached(reason: reason)
       },
@@ -115,24 +110,47 @@ class Session {
       }
     )
     
-    // SECURITY: Create desired audio format (16kHz mono PCM-16)
-    guard let desiredFormat = audioConfig.createFormat() else {
-      stateManager.deactivate()
-      throw SecureRecorderError.initializationFailed("Failed to create audio format")
-    }
-    
     // Install tap to capture audio buffers
+    // CRITICAL: Use input node's hardware format to match sample rate requirement
+    // The tap format MUST match the hardware input format's sample rate
+    let hardwareFormat = node.inputFormat(forBus: 0)
+    
     guard let pipelineRef = pipeline else {
-      stateManager.deactivate()
+      recordingTimer.deactivate()
       throw SecureRecorderError.initializationFailed("Pipeline not initialized")
     }
     
-    audioRecorder.installTap(
-      on: node,
-      bufferSize: AVAudioFrameCount(audioConfig.bufferSize),
-      format: desiredFormat
-    ) { [weak pipelineRef] buffer, _ in
+    // Calculate buffer size based on hardware format
+    // Use hardware sample rate for buffer calculation, but target ~10ms
+    let hardwareSampleRate = hardwareFormat.sampleRate
+    let targetFrames = Int(hardwareSampleRate * 0.01) // 10ms buffer
+    let minFrames = 256
+    let bufferSize = max(targetFrames, minFrames)
+    
+    // Install tap and start engine (iOS-specific: push-based audio capture)
+    // Remove existing tap if present (safe to call even if no tap exists)
+    node.removeTap(onBus: 0)
+    
+    // Install tap
+    node.installTap(onBus: 0, bufferSize: AVAudioFrameCount(bufferSize), format: hardwareFormat) { [weak pipelineRef] buffer, _ in
       pipelineRef?.processAudioBuffer(buffer: buffer)
+    }
+    
+    // Start engine to begin capturing
+    // Note: Engine must be started after tap is installed
+    guard let engine = node.engine else {
+      node.removeTap(onBus: 0)
+      recordingTimer.deactivate()
+      throw SecureRecorderError.initializationFailed("Input node has no engine")
+    }
+    
+    do {
+      try engine.start()
+    } catch {
+      // If engine start fails, remove tap
+      node.removeTap(onBus: 0)
+      recordingTimer.deactivate()
+      throw SecureRecorderError.initializationFailed("Failed to start audio engine: \(error.localizedDescription)")
     }
     
     return outputFile.path
@@ -156,8 +174,8 @@ class Session {
       encryptionStream.close()
     }
     
-    // Deactivate state
-    stateManager.deactivate()
+    // Deactivate timer
+    recordingTimer.deactivate()
     
     audioEngine = nil
     inputNode = nil
@@ -180,7 +198,7 @@ class Session {
       encryptionStream.close()
     }
     
-    stateManager.deactivate()
+    recordingTimer.deactivate()
     audioEngine = nil
     inputNode = nil
     pipeline = nil
@@ -190,6 +208,6 @@ class Session {
    * Get session information
    */
   internal func getInfo() -> (sessionId: String, filePath: String, isActive: Bool) {
-    return (sessionId, outputFile.path, stateManager.isActive)
+    return (sessionId, outputFile.path, recordingTimer.isActive)
   }
 }
