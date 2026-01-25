@@ -2715,7 +2715,7 @@ SPEC CHECKSUMS:
   RNScreens: 33bbd1d0f86ed957557620dc94054b71db0a94ee
   RNSVG: f21a6a473945a8f2ffc90b5589ebdf9dfd2309c6
   RNWorklets: 9fcf3d40d77aed3c86f59e22fdbfc42ad66f2dca
-  SecureRecorder: df1a1f0cb7f4085a9350ac3f8ff619925430e4bd
+  SecureRecorder: 27deb480a3c1b6f4af1c33cac31d1e93df7b48c6
   Yoga: 65431d43277b661ebc7289c6c5d82f64ce42cfe0
 
 PODFILE CHECKSUM: dca0228922db0c71d1572740b7776a1ede2c8af9
