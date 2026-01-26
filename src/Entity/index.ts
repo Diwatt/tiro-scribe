@@ -1,6 +1,6 @@
 /**
  * Entity Module Exports
- * OOP-style entities wrapping Drizzle database records
+ * OOP-style entity classes
  */
 
 // Base Classes and Interfaces
@@ -13,12 +13,12 @@ export {Subject} from './Subject';
 export {Encounter, EncounterStatus} from './Encounter';
 export {TranscriptionSegment} from './TranscriptionSegment';
 
-// Table Schemas
-export {queueItemsTable} from './QueueItem';
-export {therapistsTable} from './Therapist';
-export {subjectsTable} from './Subject';
-export {encountersTable} from './Encounter';
-export {transcriptionSegmentsTable} from './TranscriptionSegment';
+// Schema Types
+export type {QueueItemSchema, NewQueueItemSchema} from './QueueItem';
+export type {TherapistSchema, NewTherapistSchema} from './Therapist';
+export type {SubjectSchema, NewSubjectSchema} from './Subject';
+export type {EncounterSchema, NewEncounterSchema} from './Encounter';
+export type {TranscriptionSegmentSchema, NewTranscriptionSegmentSchema} from './TranscriptionSegment';
 
 // Enums & Types
 export {QueueItemStatus, PipelineStage, EntityType} from './Type';

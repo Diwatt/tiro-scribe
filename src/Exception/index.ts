@@ -16,6 +16,5 @@ export {SessionNotInitializedError} from './SessionNotInitializedError';
 export {InvalidAudioFormatError} from './InvalidAudioFormatError';
 export {VectorLengthMismatchError} from './VectorLengthMismatchError';
 export {InvalidDimensionError} from './InvalidDimensionError';
-export {DatabaseError} from './DatabaseError';
 export {ModelDownloadError} from './ModelDownloadError';
 export {SpeakerVectorExtractionError} from './SpeakerVectorExtractionError';

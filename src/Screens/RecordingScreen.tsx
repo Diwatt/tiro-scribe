@@ -1,43 +1,52 @@
 /**
  * Recording Screen
  * Main screen for audio recording functionality
+ * Full-screen modal for secure recording sessions
  */
 
-import React, {useState} from 'react';
-import {View, StyleSheet, ScrollView} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, StyleSheet, ScrollView, SafeAreaView} from 'react-native';
 import {Text, Surface, useTheme} from 'react-native-paper';
 import {observer} from '@legendapp/state/react';
-import {SecureSessionButton} from '@/Components';
+import {SecureTranscribeButton} from '@/Components';
 import {useAudioRecording} from '@Service/AudioRecording';
 import {TiroScribeException} from '@/Exception';
+import {RootStackScreenProps} from '@/Navigation/types';
+import {AppLogger} from '@/Util/Logger';
 
-/**
- * RecordingScreen Component
- *
- * Displays the recording interface with:
- * - Recording status and information
- * - SecureSessionButton for start/stop actions
- * - Error handling display
- */
-interface RecordingScreenProps {
-    // No props needed for this screen
-}
+const logger = AppLogger.getInstance();
 
-export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX.Element => {
+export const RecordingScreen = observer(function RecordingScreen({
+    route,
+    navigation,
+}: RootStackScreenProps<'Recording'>): React.JSX.Element {
     const theme = useTheme();
     const [error, setError] = useState<string | null>(null);
+    const {autoStart} = route.params;
 
     // Use audio recording store (OOP class with Legend-State observables)
     const audioRecording = useAudioRecording();
+
+    // Auto-start recording if autoStart is true
+    useEffect(() => {
+        if (autoStart && !audioRecording.isRecording) {
+            logger.debug('🚀 [RecordingScreen] Auto-starting recording', {autoStart});
+            handleRecordPress();
+        }
+    }, [autoStart]);
 
     const handleRecordPress = async () => {
         setError(null);
         try {
             if (audioRecording.isRecording) {
                 // Stop recording
+                logger.debug('⏹️ [RecordingScreen] Stop recording requested');
                 await audioRecording.stopRecording();
+                // Navigate back to Home after stopping
+                navigation.goBack();
             } else {
                 // Start recording
+                logger.debug('▶️ [RecordingScreen] Start recording requested');
                 await audioRecording.startRecording();
             }
         } catch (err) {
@@ -48,16 +57,17 @@ export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX
                       ? err.message
                       : 'An unexpected error occurred';
             setError(errorMessage);
-            console.error('Recording error:', err);
+            logger.error('❌ [RecordingScreen] Recording error:', {
+                error: err,
+                errorMessage,
+            });
         }
     };
 
     return (
-        <View
-            style={[
-                styles.container,
-                {backgroundColor: theme.colors.background},
-            ]}>
+        <SafeAreaView
+            style={[styles.container, {backgroundColor: theme.colors.background}]}
+            edges={['top', 'bottom']}>
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}>
@@ -67,7 +77,7 @@ export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX
                         {backgroundColor: theme.colors.surface},
                     ]}>
                     <Text variant="headlineMedium" style={styles.title}>
-                        Audio Recording
+                        Secure Recording
                     </Text>
                     <Text
                         variant="bodyMedium"
@@ -136,15 +146,12 @@ export const RecordingScreen = observer((props: RecordingScreenProps): React.JSX
             </ScrollView>
 
             <View style={styles.buttonContainer}>
-                <SecureSessionButton
-                    isRecording={audioRecording.isRecording}
+                <SecureTranscribeButton
                     onPress={handleRecordPress}
-                    onRecordingChange={(recording) => {
-                        // Sync state if needed
-                    }}
+                    isRecording={audioRecording.isRecording}
                 />
             </View>
-        </View>
+        </SafeAreaView>
     );
 });
 

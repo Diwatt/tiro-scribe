@@ -1,40 +1,27 @@
 /**
  * TranscriptionSegment Entity
- * Schema and entity class defined in the same file
+ * Entity class for transcription segment records
  * Stores individual segments with timing and confidence data
  */
 
-import {sqliteTable, text, integer, index} from 'drizzle-orm/sqlite-core';
-import {encountersTable} from './Encounter';
 import {AbstractEntity} from './AbstractEntity';
 
 /**
- * Transcription Segments Table Schema
- * Individual transcription segments from Whisper
+ * TranscriptionSegment Schema Type
  */
-export const transcriptionSegmentsTable = sqliteTable(
-    'transcription_segments',
-    {
-        id: text('id').primaryKey(),
-        uuid: text('uuid').notNull().unique(),
-        encounterId: text('encounter_id')
-            .notNull()
-            .references(() => encountersTable.id),
-        text: text('text').notNull(),
-        startTime: integer('start_time').notNull(),
-        endTime: integer('end_time').notNull(),
-        confidence: integer('confidence'),
-        createdAt: integer('created_at', {mode: 'timestamp_ms'}).notNull(),
-        updatedAt: integer('updated_at', {mode: 'timestamp_ms'}).notNull(),
-    },
-    table => ({
-        uuidIdx: index('transcription_segments_uuid_idx').on(table.uuid),
-        encounterIdx: index('transcription_segments_encounter_idx').on(table.encounterId),
-    })
-);
+export interface TranscriptionSegmentSchema {
+    id: string;
+    uuid: string;
+    encounterId: string;
+    text: string;
+    startTime: number;
+    endTime: number;
+    confidence: number | null;
+    createdAt: number;
+    updatedAt: number;
+}
 
-export type TranscriptionSegmentSchema = typeof transcriptionSegmentsTable.$inferSelect;
-export type NewTranscriptionSegmentSchema = typeof transcriptionSegmentsTable.$inferInsert;
+export type NewTranscriptionSegmentSchema = Omit<TranscriptionSegmentSchema, 'id' | 'createdAt' | 'updatedAt'>;
 
 /**
  * TranscriptionSegment Entity Class

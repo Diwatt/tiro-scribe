@@ -25,10 +25,10 @@ export abstract class AbstractEntity<TSchema> implements IEntity<TSchema> {
     }
 
     /**
-     * Create entity instance from database record
+     * Create entity instance from schema data
      * This static method is inherited by all entity subclasses
      */
-    public static fromDatabase<TEntity extends AbstractEntity<TSchema>, TSchema>(
+    public static fromSchema<TEntity extends AbstractEntity<TSchema>, TSchema>(
         this: new (data: TSchema) => TEntity,
         data: TSchema,
     ): TEntity {

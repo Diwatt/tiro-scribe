@@ -1,9 +1,8 @@
 /**
  * QueueItem Entity
- * Schema and entity class defined in the same file
+ * Entity class for queue item records
  */
 
-import {sqliteTable, text, integer, index} from 'drizzle-orm/sqlite-core';
 import {QueueItemStatus, PipelineStage} from './Type';
 import {AbstractEntity} from './AbstractEntity';
 
@@ -15,33 +14,23 @@ const QUEUE = {
 } as const;
 
 /**
- * Queue Items Table Schema
- * Processing queue for audio files
+ * QueueItem Schema Type
  */
-export const queueItemsTable = sqliteTable(
-    'queue_items',
-    {
-        id: text('id').primaryKey(),
-        encounterUuid: text('encounter_uuid').notNull(),
-        filePath: text('file_path').notNull(),
-        status: text('status').notNull(),
-        pipelineStage: text('pipeline_stage').notNull(),
-        progressPercent: integer('progress_percent').notNull().default(0),
-        autoProcess: integer('auto_process', {mode: 'boolean'}).notNull().default(true),
-        retryCount: integer('retry_count').notNull().default(0),
-        errorLog: text('error_log'),
-        createdAt: integer('created_at', {mode: 'timestamp_ms'}).notNull(),
-        updatedAt: integer('updated_at', {mode: 'timestamp_ms'}).notNull(),
-    },
-    table => ({
-        encounterIdx: index('queue_items_encounter_idx').on(table.encounterUuid),
-        statusIdx: index('queue_items_status_idx').on(table.status),
-        stageIdx: index('queue_items_stage_idx').on(table.pipelineStage),
-    })
-);
+export interface QueueItemSchema {
+    id: string;
+    encounterUuid: string;
+    filePath: string;
+    status: string;
+    pipelineStage: string;
+    progressPercent: number;
+    autoProcess: boolean;
+    retryCount: number;
+    errorLog: string | null;
+    createdAt: number;
+    updatedAt: number;
+}
 
-export type QueueItemSchema = typeof queueItemsTable.$inferSelect;
-export type NewQueueItemSchema = typeof queueItemsTable.$inferInsert;
+export type NewQueueItemSchema = Omit<QueueItemSchema, 'id' | 'createdAt' | 'updatedAt'>;
 
 /**
  * QueueItem Entity Class

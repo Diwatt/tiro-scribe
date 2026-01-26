@@ -1,38 +1,24 @@
 /**
  * Subject Entity
- * Schema and entity class defined in the same file
+ * Entity class for subject/patient records
  * Uses biocode (hashed identity) for privacy-preserving tracking
  */
 
-import {sqliteTable, text, integer, index} from 'drizzle-orm/sqlite-core';
-import {therapistsTable} from './Therapist';
 import {AbstractEntity} from './AbstractEntity';
 
 /**
- * Subjects Table Schema
- * Subject/patient information (anonymized)
+ * Subject Schema Type
  */
-export const subjectsTable = sqliteTable(
-    'subjects',
-    {
-        id: text('id').primaryKey(),
-        uuid: text('uuid').notNull().unique(),
-        biocode: text('biocode').notNull().unique(),
-        therapistId: text('therapist_id')
-            .notNull()
-            .references(() => therapistsTable.id),
-        createdAt: integer('created_at', {mode: 'timestamp_ms'}).notNull(),
-        updatedAt: integer('updated_at', {mode: 'timestamp_ms'}).notNull(),
-    },
-    table => ({
-        uuidIdx: index('subjects_uuid_idx').on(table.uuid),
-        biocodeIdx: index('subjects_biocode_idx').on(table.biocode),
-        therapistIdx: index('subjects_therapist_idx').on(table.therapistId),
-    })
-);
+export interface SubjectSchema {
+    id: string;
+    uuid: string;
+    biocode: string;
+    therapistId: string;
+    createdAt: number;
+    updatedAt: number;
+}
 
-export type SubjectSchema = typeof subjectsTable.$inferSelect;
-export type NewSubjectSchema = typeof subjectsTable.$inferInsert;
+export type NewSubjectSchema = Omit<SubjectSchema, 'id' | 'createdAt' | 'updatedAt'>;
 
 /**
  * Subject Entity Class

@@ -1,12 +1,9 @@
 /**
  * Encounter Entity
- * Schema and entity class defined in the same file
+ * Entity class for encounter records
  * Links subjects and therapists with session metadata
  */
 
-import {sqliteTable, text, integer, index} from 'drizzle-orm/sqlite-core';
-import {subjectsTable} from './Subject';
-import {therapistsTable} from './Therapist';
 import {AbstractEntity} from './AbstractEntity';
 
 /**
@@ -20,36 +17,21 @@ export enum EncounterStatus {
 }
 
 /**
- * Encounters Table Schema
- * Therapy session encounters linking subjects and therapists
+ * Encounter Schema Type
  */
-export const encountersTable = sqliteTable(
-    'encounters',
-    {
-        id: text('id').primaryKey(),
-        uuid: text('uuid').notNull().unique(),
-        subjectId: text('subject_id')
-            .notNull()
-            .references(() => subjectsTable.id),
-        therapistId: text('therapist_id')
-            .notNull()
-            .references(() => therapistsTable.id),
-        status: text('status').notNull(),
-        startDate: integer('start_date', {mode: 'timestamp_ms'}).notNull(),
-        endDate: integer('end_date', {mode: 'timestamp_ms'}),
-        createdAt: integer('created_at', {mode: 'timestamp_ms'}).notNull(),
-        updatedAt: integer('updated_at', {mode: 'timestamp_ms'}).notNull(),
-    },
-    table => ({
-        uuidIdx: index('encounters_uuid_idx').on(table.uuid),
-        subjectIdx: index('encounters_subject_idx').on(table.subjectId),
-        therapistIdx: index('encounters_therapist_idx').on(table.therapistId),
-        statusIdx: index('encounters_status_idx').on(table.status),
-    })
-);
+export interface EncounterSchema {
+    id: string;
+    uuid: string;
+    subjectId: string;
+    therapistId: string;
+    status: string;
+    startDate: number;
+    endDate: number | null;
+    createdAt: number;
+    updatedAt: number;
+}
 
-export type EncounterSchema = typeof encountersTable.$inferSelect;
-export type NewEncounterSchema = typeof encountersTable.$inferInsert;
+export type NewEncounterSchema = Omit<EncounterSchema, 'id' | 'createdAt' | 'updatedAt'>;
 
 /**
  * Encounter Entity Class

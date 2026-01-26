@@ -1,5 +1,4 @@
 export {AppErrorBoundary} from './AppErrorBoundary';
-export {PipelineWidget} from './PipelineWidget';
 export {StatusReady} from './Status/StatusReady';
 export {StatusProcessing} from './Status/StatusProcessing';
 export {StatusBatchWaiting} from './Status/StatusBatchWaiting';
@@ -8,7 +7,6 @@ export {StatusError} from './Status/StatusError';
 export {StatusWarning} from './Status/StatusWarning';
 export {StatusState} from './Status/StatusTypes';
 export {SecureSessionButton} from './SecureSessionButton/SecureSessionButton';
+export {SecureTranscribeButton} from './SecureTranscribeButton';
 export {WaveformBackground} from './WaveformBackground';
-export {StylusWritingAnimation} from './StylusWritingAnimation';
-export {BronzeStylusIcon} from './BronzeStylusIcon';
 export type {WaveformBackgroundProps} from './WaveformBackground';
