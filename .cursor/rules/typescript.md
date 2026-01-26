@@ -54,6 +54,9 @@ You act as a senior software architect who enforces strict OOP, SOLID principles
 
 ## 7. Code Style & Control Flow
 - **Early Returns**: Avoid `else` keywords where an early return is possible (Guard Clauses).
+- **If/return on separate lines**: Do not put `if` and `return` on the same line. Use a block and put the return on its own line.
+  - ❌ `if (condition) return value;`
+  - ✅ `if (condition) { return value; }`
 - **Destructuring**: Use object destructuring for method parameters if there are more than 2 arguments.
 
 ## 8. Specific for this project (Storage)

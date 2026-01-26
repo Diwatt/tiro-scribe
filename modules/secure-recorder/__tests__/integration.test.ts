@@ -16,11 +16,13 @@ describe('SecureRecorder Integration', () => {
       expect(typeof SecureRecorder).toBe('function');
     });
 
-    it('can instantiate SecureRecorder', () => {
+    it('can instantiate SecureRecorder', async () => {
       const recorder = new SecureRecorder('test-session');
       expect(recorder).toBeDefined();
+      // Wait for _syncState to complete (called in constructor)
+      await new Promise(resolve => setTimeout(resolve, 10));
       expect(recorder.state).toBe('inactive');
-      expect(recorder.isRecording).toBe(false);
+      expect(recorder.recording).toBe(false);
     });
 
     it('has static hasPermission method', () => {
@@ -33,32 +35,44 @@ describe('SecureRecorder Integration', () => {
       expect(typeof SecureRecorder.requestPermission).toBe('function');
     });
 
-    it('has static getChunks method', () => {
-      expect(SecureRecorder.getChunks).toBeDefined();
-      expect(typeof SecureRecorder.getChunks).toBe('function');
+    it('has static stream method', () => {
+      expect(SecureRecorder.stream).toBeDefined();
+      expect(typeof SecureRecorder.stream).toBe('function');
+    });
+    
+    it('has static addDecryptionListener method', () => {
+      expect(SecureRecorder.addDecryptionListener).toBeDefined();
+      expect(typeof SecureRecorder.addDecryptionListener).toBe('function');
     });
   });
 
   describe('Instance Properties', () => {
-    it('has state property', () => {
+    it('has state property', async () => {
       const recorder = new SecureRecorder('test-session');
+      // Wait for _syncState to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
       expect(recorder.state).toBe('inactive');
       expect(['inactive', 'recording', 'stopped']).toContain(recorder.state);
     });
 
-    it('has isRecording property', () => {
+    it('has recording property', async () => {
       const recorder = new SecureRecorder('test-session');
-      expect(typeof recorder.isRecording).toBe('boolean');
-      expect(recorder.isRecording).toBe(false);
+      // Wait for _syncState to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(typeof recorder.recording).toBe('boolean');
+      expect(recorder.recording).toBe(false);
     });
 
     it('has sessionId property', () => {
       const recorder = new SecureRecorder('test-session-123');
+      // sessionId is set synchronously in constructor
       expect(recorder.sessionId).toBe('test-session-123');
     });
 
-    it('has filePath property', () => {
+    it('has filePath property', async () => {
       const recorder = new SecureRecorder('test-session');
+      // Wait for _syncState to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
       expect(recorder.filePath).toBeNull();
     });
   });
@@ -78,6 +92,7 @@ describe('SecureRecorder Integration', () => {
 
     it('accepts valid sessionId', () => {
       const recorder = new SecureRecorder('valid-session-id');
+      // sessionId is set synchronously in constructor
       expect(recorder.sessionId).toBe('valid-session-id');
     });
   });
@@ -85,6 +100,7 @@ describe('SecureRecorder Integration', () => {
   describe('onerror callback', () => {
     it('has onerror property', () => {
       const recorder = new SecureRecorder('test-session');
+      // onerror is set synchronously
       expect(recorder.onerror).toBeNull();
       recorder.onerror = () => {};
       expect(typeof recorder.onerror).toBe('function');
@@ -94,6 +110,8 @@ describe('SecureRecorder Integration', () => {
   describe('Error Handling', () => {
     it('normalizes unknown errors', async () => {
       const recorder = new SecureRecorder('test-session');
+      // Wait for _syncState to complete
+      await new Promise(resolve => setTimeout(resolve, 10));
       try {
         // This will throw because native module is not available
         await recorder.start();

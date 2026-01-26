@@ -1,89 +1,59 @@
 /**
- * Encounter Entity
- * Entity class for encounter records
- * Links subjects and therapists with session metadata
+ * Encounter entity: property declarations with visibility; @Column on the property.
+ * Normal encounter = therapist (1 biocode) + 1 subject (1 biocode); can store more (e.g. couple).
+ * Server identifies who is who (e.g. by biocode frequency). No uuid stored.
  */
 
-import {AbstractEntity} from './AbstractEntity';
+import CryptoJS from 'crypto-js';
+import { AbstractEntity } from '../Database/AbstractEntity';
+import { Column, Entity, PrimaryKey } from '../Database/Decorators';
+import { EncounterStatus } from './Type';
 
-/**
- * Encounter status enum
- */
-export enum EncounterStatus {
-    SCHEDULED = 'SCHEDULED',
-    IN_PROGRESS = 'IN_PROGRESS',
-    COMPLETED = 'COMPLETED',
-    CANCELLED = 'CANCELLED',
-}
+@Entity({ table_name: 'encounters' })
+export class Encounter extends AbstractEntity {
+    @PrimaryKey()
+    @Column({ default: () => crypto.randomUUID() })
+    public uuid!: string;
 
-/**
- * Encounter Schema Type
- */
-export interface EncounterSchema {
-    id: string;
-    uuid: string;
-    subjectId: string;
-    therapistId: string;
-    status: string;
-    startDate: number;
-    endDate: number | null;
-    createdAt: number;
-    updatedAt: number;
-}
+    @Column({ default: '' })
+    public therapistId!: string;
 
-export type NewEncounterSchema = Omit<EncounterSchema, 'id' | 'createdAt' | 'updatedAt'>;
+    /** Hashed biocodes: therapist (1) + 1+ subjects. Server assigns roles (e.g. by frequency). */
+    @Column({ default: [] })
+    public participantBiocodes!: string[];
 
-/**
- * Encounter Entity Class
- * Provides business logic and helper methods for encounter records
- */
-export class Encounter extends AbstractEntity<EncounterSchema> {
-    public readonly id: string;
-    public readonly uuid: string;
-    public readonly subjectId: string;
-    public readonly therapistId: string;
-    public readonly status: EncounterStatus;
-    public readonly startDate: Date;
-    public readonly endDate: Date | null;
-    public readonly createdAt: Date;
-    public readonly updatedAt: Date;
+    @Column({ default: [] })
+    public audioFragments!: string[];
 
-    constructor(data: EncounterSchema) {
-        super(data);
-        this.id = data.id;
-        this.uuid = data.uuid;
-        this.subjectId = data.subjectId;
-        this.therapistId = data.therapistId;
-        this.status = data.status as EncounterStatus;
-        this.startDate = new Date(data.startDate);
-        this.endDate = data.endDate ? new Date(data.endDate) : null;
-        this.createdAt = new Date(data.createdAt);
-        this.updatedAt = new Date(data.updatedAt);
+    @Column({ default: 0 })
+    public totalDuration!: number;
+
+    @Column({ default: EncounterStatus.RECORDING, observable: true })
+    public status!: EncounterStatus;
+
+    @Column({ default: () => Date.now(), as: 'date', observable: true })
+    public createdAt!: Date;
+
+    @Column({ default: () => Date.now(), as: 'date', observable: true })
+    public updatedAt!: Date;
+
+    public get createdAtDate(): Date {
+        return this.createdAt;
     }
 
-    /**
-     * Helper getter to check if encounter is active
-     */
-    public get isActive(): boolean {
-        return this.status === EncounterStatus.IN_PROGRESS;
+    public get updatedAtDate(): Date {
+        return this.updatedAt;
     }
 
-    /**
-     * Helper getter to check if encounter is completed
-     */
-    public get isCompleted(): boolean {
-        return this.status === EncounterStatus.COMPLETED;
+    public addAudioFragment(path: string, durationMs: number): void {
+        this.audioFragments = [...this.audioFragments, path];
+        this.totalDuration = this.totalDuration + durationMs;
     }
 
-    /**
-     * Calculate encounter duration in milliseconds
-     * Returns null if encounter hasn't ended
-     */
-    public get duration(): number | null {
-        if (!this.endDate) {
-            return null;
-        }
-        return this.endDate.getTime() - this.startDate.getTime();
+    /** Set participant biocodes from raw biocodes + projection key (hashes each). */
+    public setParticipantBiocodes(rawBiocodes: string[], projectionKey: string): void {
+        this.participantBiocodes = rawBiocodes.map((raw) =>
+            CryptoJS.HmacSHA256(raw, projectionKey).toString(),
+        );
     }
-
 }

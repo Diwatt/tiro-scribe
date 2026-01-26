@@ -4,7 +4,7 @@ import CryptoKit
 
 /**
  * Unit tests for EncryptionStream (iOS/iPadOS)
- * Tests chunked AES-256-GCM encryption strategy
+ * Tests buffered AES-256-GCM encryption strategy
  */
 @available(iOS 13.0, *)
 class EncryptionStreamTests: XCTestCase {
@@ -63,10 +63,10 @@ class EncryptionStreamTests: XCTestCase {
     
     let fileBytes = try Data(contentsOf: outputFile)
     
-    // Each sealed box contains: nonce (12) + ciphertext (size matches plaintext) + tag (16)
-    let expectedSize = 12 + plaintext.count + 16
+    // Each flushed buffer contains: 4-byte size + nonce (12) + ciphertext (size matches plaintext) + tag (16)
+    let expectedSize = 4 + 12 + plaintext.count + 16
     XCTAssertEqual(expectedSize, fileBytes.count, 
-                   "File should contain one sealed box: nonce + ciphertext + tag")
+                   "File should contain one sealed box: size + nonce + ciphertext + tag")
     
     // Verify data is actually encrypted (not plaintext)
     XCTAssertFalse(fileBytes.contains(plaintext), 
@@ -96,21 +96,31 @@ class EncryptionStreamTests: XCTestCase {
     try encryptionStream.write(data: plaintext)
     encryptionStream.close()
     
-    // Read encrypted file (should be a single sealed box)
+    // Read encrypted file (should be a single sealed box for this test)
     let fileBytes = try Data(contentsOf: outputFile)
     
+    // Extract chunk size (first 4 bytes, big-endian Int32)
+    let sizeData = fileBytes[0..<4]
+    let chunkSize = sizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+
+    // The next `chunkSize` bytes are [nonce][ciphertext][tag]
+    let sealedData = fileBytes[4..<4 + Int(chunkSize)]
+
     // Decrypt using CryptoKit
     let symmetricKey = SymmetricKey(data: secretKey)
-    let sealedBox = try AES.GCM.SealedBox(combined: fileBytes)
+    let sealedBox = try AES.GCM.SealedBox(combined: sealedData)
     let decrypted = try AES.GCM.open(sealedBox, using: symmetricKey)
     
     XCTAssertEqual(plaintext, decrypted, "Decrypted data should match original plaintext")
   }
   
   func testMultipleWritesCreateMultipleSealedBoxes() throws {
-    let chunk1 = "First chunk".data(using: .utf8)!
-    let chunk2 = "Second chunk".data(using: .utf8)!
-    let chunk3 = "Third chunk".data(using: .utf8)!
+    // Use large chunks that individually exceed the encryption threshold (16KB)
+    // so that each write flushes independently and creates its own sealed box.
+    let chunkSize = 16 * 1024
+    let chunk1 = Data(repeating: 1, count: chunkSize)
+    let chunk2 = Data(repeating: 2, count: chunkSize)
+    let chunk3 = Data(repeating: 3, count: chunkSize)
     
     try encryptionStream.initialize()
     try encryptionStream.write(data: chunk1)
@@ -120,10 +130,10 @@ class EncryptionStreamTests: XCTestCase {
     
     let fileBytes = try Data(contentsOf: outputFile)
     
-    // Each chunk creates its own sealed box: 12 (nonce) + data + 16 (tag)
-    let expectedSize = (12 + chunk1.count + 16) + 
-                      (12 + chunk2.count + 16) + 
-                      (12 + chunk3.count + 16)
+    // Each chunk creates its own sealed box: 4 (size) + 12 (nonce) + data + 16 (tag)
+    let expectedSize = (4 + 12 + chunk1.count + 16) + 
+                      (4 + 12 + chunk2.count + 16) + 
+                      (4 + 12 + chunk3.count + 16)
     XCTAssertEqual(expectedSize, fileBytes.count, 
                    "File should contain three sealed boxes")
     
@@ -133,22 +143,32 @@ class EncryptionStreamTests: XCTestCase {
     var decryptedChunks: [Data] = []
     
     // Decrypt chunk 1
-    let box1Size = 12 + chunk1.count + 16
-    let box1Data = fileBytes[offset..<offset + box1Size]
+    // Read and skip 4-byte size header
+    let box1SizeData = fileBytes[offset..<offset + 4]
+    let box1Size = box1SizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+    offset += 4
+
+    let box1Data = fileBytes[offset..<offset + Int(box1Size)]
     let box1 = try AES.GCM.SealedBox(combined: box1Data)
     decryptedChunks.append(try AES.GCM.open(box1, using: symmetricKey))
-    offset += box1Size
+    offset += Int(box1Size)
     
     // Decrypt chunk 2
-    let box2Size = 12 + chunk2.count + 16
-    let box2Data = fileBytes[offset..<offset + box2Size]
+    let box2SizeData = fileBytes[offset..<offset + 4]
+    let box2Size = box2SizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+    offset += 4
+
+    let box2Data = fileBytes[offset..<offset + Int(box2Size)]
     let box2 = try AES.GCM.SealedBox(combined: box2Data)
     decryptedChunks.append(try AES.GCM.open(box2, using: symmetricKey))
-    offset += box2Size
+    offset += Int(box2Size)
     
     // Decrypt chunk 3
-    let box3Size = 12 + chunk3.count + 16
-    let box3Data = fileBytes[offset..<offset + box3Size]
+    let box3SizeData = fileBytes[offset..<offset + 4]
+    let box3Size = box3SizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+    offset += 4
+
+    let box3Data = fileBytes[offset..<offset + Int(box3Size)]
     let box3 = try AES.GCM.SealedBox(combined: box3Data)
     decryptedChunks.append(try AES.GCM.open(box3, using: symmetricKey))
     
@@ -169,8 +189,11 @@ class EncryptionStreamTests: XCTestCase {
   }
   
   func testEachChunkHasUniqueNonce() throws {
-    let chunk1 = "Chunk 1".data(using: .utf8)!
-    let chunk2 = "Chunk 2".data(using: .utf8)!
+    // Use large chunks that trigger separate flushes so that each sealed box
+    // has its own independently generated nonce.
+    let chunkSize = 16 * 1024
+    let chunk1 = Data(repeating: 1, count: chunkSize)
+    let chunk2 = Data(repeating: 2, count: chunkSize)
     
     try encryptionStream.initialize()
     try encryptionStream.write(data: chunk1)
@@ -180,10 +203,30 @@ class EncryptionStreamTests: XCTestCase {
     let fileBytes = try Data(contentsOf: outputFile)
     
     // Extract nonces from each sealed box
-    let nonce1 = fileBytes[0..<12]
-    let box1Size = 12 + chunk1.count + 16
-    let nonce2 = fileBytes[box1Size..<box1Size + 12]
+    // Box 1: first 4 bytes are size, next 12 bytes are nonce
+    let nonce1 = fileBytes[4..<16]
+    let box1TotalSize = 4 + 12 + chunk1.count + 16
+
+    // Box 2: skip box 1, then 4-byte size header, then 12-byte nonce
+    let nonce2 = fileBytes[box1TotalSize + 4..<box1TotalSize + 16]
     
-    XCTAssertNotEqual(nonce1, nonce2, "Each chunk should have a unique nonce")
+    XCTAssertNotEqual(nonce1, nonce2, "Each flushed chunk should have a unique nonce")
+  }
+
+  func testDataIsOnlyWrittenAfterThresholdOrClose() throws {
+    let smallChunk = Data(repeating: 7, count: 1024) // 1KB, well below 16KB threshold
+
+    try encryptionStream.initialize()
+    try encryptionStream.write(data: smallChunk)
+
+    // Below threshold: no data should have been written yet
+    let attributes = try FileManager.default.attributesOfItem(atPath: outputFile.path)
+    let fileSize = attributes[.size] as? NSNumber
+    XCTAssertEqual(0, fileSize?.intValue ?? -1, "File should still be empty before flushing threshold")
+
+    // After close, buffered data should be flushed
+    encryptionStream.close()
+    let fileBytes = try Data(contentsOf: outputFile)
+    XCTAssertFalse(fileBytes.isEmpty, "File should contain encrypted data after close")
   }
 }

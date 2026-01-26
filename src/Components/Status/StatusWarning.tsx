@@ -1,5 +1,5 @@
 import React from 'react';
-import {ExclamationTriangleIcon} from 'react-native-heroicons/solid';
+import {AlertTriangle} from 'lucide-react-native';
 import {Status} from './Status';
 import {StatusState} from './StatusTypes';
 import {useTheme} from 'react-native-paper';
@@ -26,7 +26,7 @@ export function StatusWarning({
         <Status
             title={title}
             subtitle={message}
-            icon={<ExclamationTriangleIcon size={24} color={statusColors.text} />}
+            icon={<AlertTriangle size={24} color={statusColors.text} />}
             state={StatusState.WARNING}
         />
     );

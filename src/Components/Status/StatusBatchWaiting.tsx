@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, StyleSheet} from 'react-native';
 import {Button, useTheme} from 'react-native-paper';
-import {Squares2X2Icon} from 'react-native-heroicons/solid';
+import {LayersPlus} from 'lucide-react-native';
 import {Status} from './Status';
 import {StatusState} from './StatusTypes';
 
@@ -27,7 +27,7 @@ export function StatusBatchWaiting({
         <Status
             title="Pending"
             subtitle={`${queueCount ?? 0} sessions ready to process.`}
-            icon={<Squares2X2Icon size={24} color={statusColors.text} />}
+            icon={<LayersPlus size={24} color={statusColors.text} />}
             state={StatusState.BATCH_WAITING}>
             <View style={styles.actionRow}>
                 <Button

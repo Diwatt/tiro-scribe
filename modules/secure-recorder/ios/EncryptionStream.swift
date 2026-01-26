@@ -22,8 +22,10 @@ class EncryptionStream {
   private let secretKey: SymmetricKey
   private let outputFile: URL
   private var fileHandle: FileHandle?
+  private var inputBuffer = Data()
   
   private static let chunkSizeLength = 4
+  private static let encryptionChunkSize = 16 * 1024 // 16KB
   
   internal init(secretKey: Data, outputFile: URL) {
     self.secretKey = SymmetricKey(data: secretKey)
@@ -49,8 +51,9 @@ class EncryptionStream {
    * Encrypt and write a chunk of data
    * 
    * SECURITY: Each chunk is encrypted independently with its own nonce
-   * The sealed box (length + nonce + ciphertext + tag) is written immediately to disk
-   * No plaintext buffering in memory beyond the current chunk
+   * The sealed box (length + nonce + ciphertext + tag) is written to disk in larger
+   * encrypted chunks. Raw audio is buffered in memory and only encrypted/written
+   * when the buffer reaches encryptionChunkSize (or on close).
    * 
    * Format: [4-byte length][12-byte nonce][encrypted data + 16-byte tag]
    * The length field indicates the size of (nonce + encrypted data + tag)
@@ -61,32 +64,59 @@ class EncryptionStream {
     guard let handle = fileHandle else {
       throw SecureRecorderError.recordingFailed("Encryption stream not initialized")
     }
-    
+
+    // Buffer incoming plaintext audio data in memory
+    inputBuffer.append(data)
+
+    // When we've accumulated enough data, encrypt and write to disk
+    if inputBuffer.count >= Self.encryptionChunkSize {
+      try flushBufferToDisk()
+    }
+  }
+  
+  /**
+   * Encrypt and write the current buffered plaintext to disk as a single sealed chunk.
+   *
+   * SECURITY: Each flushed buffer is encrypted independently with its own nonce.
+   * Format: [4-byte length][12-byte nonce][encrypted data + 16-byte tag]
+   */
+  private func flushBufferToDisk() throws {
+    guard let handle = fileHandle else {
+      throw SecureRecorderError.recordingFailed("Encryption stream not initialized")
+    }
+
+    guard !inputBuffer.isEmpty else {
+      return
+    }
+
+    let plaintext = inputBuffer
+    inputBuffer.removeAll(keepingCapacity: true)
+
     // SECURITY: Encrypt this chunk with AES-256-GCM
     // CryptoKit automatically generates a unique nonce for each seal operation
     do {
-      let sealedBox = try AES.GCM.seal(data, using: secretKey)
-      
+      let sealedBox = try AES.GCM.seal(plaintext, using: secretKey)
+
       // Build sealed box data: [nonce] + [ciphertext] + [tag]
       var sealedBoxData = Data()
       sealedBoxData.append(contentsOf: sealedBox.nonce)
       sealedBoxData.append(sealedBox.ciphertext)
       sealedBoxData.append(sealedBox.tag)
-      
+
       // Calculate chunk size (nonce + ciphertext + tag)
       let chunkSize = Int32(sealedBoxData.count)
-      
+
       // Write chunk size header (4 bytes, big-endian - matches Android ByteBuffer.putInt())
       var chunkSizeData = Data()
       withUnsafeBytes(of: chunkSize.bigEndian) { bytes in
         chunkSizeData.append(contentsOf: bytes)
       }
-      
-      // SECURITY: Write complete chunk to disk immediately
+
+      // SECURITY: Write complete chunk to disk
       // Format: [4-byte chunk size][12-byte nonce][ciphertext][16-byte tag]
       handle.write(chunkSizeData)
       handle.write(sealedBoxData)
-      
+
     } catch {
       throw SecureRecorderError.recordingFailed("Encryption error: \(error.localizedDescription)")
     }
@@ -99,6 +129,9 @@ class EncryptionStream {
    */
   internal func close() {
     if let handle = fileHandle {
+      // Flush any remaining buffered plaintext before closing the stream.
+      // Errors are ignored here to keep close() idempotent and non-throwing.
+      try? flushBufferToDisk()
       handle.closeFile()
       fileHandle = nil
     }

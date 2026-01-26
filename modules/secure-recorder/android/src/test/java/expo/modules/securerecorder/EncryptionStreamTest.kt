@@ -12,7 +12,7 @@ import javax.crypto.Cipher
 
 /**
  * Unit tests for EncryptionStream
- * Tests chunked AES-256-GCM encryption strategy
+ * Tests buffered AES-256-GCM encryption strategy
  * Matches iOS EncryptionStreamTests structure and behavior
  */
 class EncryptionStreamTest {
@@ -67,7 +67,7 @@ class EncryptionStreamTest {
     
     val fileBytes = outputFile.readBytes()
     
-    // Each sealed box contains: 4-byte size + IV (12) + ciphertext (size matches plaintext) + tag (16)
+    // Each flushed buffer contains: 4-byte size + IV (12) + ciphertext (size matches plaintext) + tag (16)
     val expectedSize = 4 + 12 + plaintext.size + 16
     assertEquals("File should contain one sealed box: size + IV + ciphertext + tag", 
                  expectedSize, fileBytes.size)
@@ -99,7 +99,7 @@ class EncryptionStreamTest {
     encryptionStream.write(plaintext)
     encryptionStream.close()
     
-    // Read encrypted file (should be a single sealed box)
+    // Read encrypted file (should be a single sealed box for this test)
     val fileBytes = outputFile.readBytes()
     
     // Skip 4-byte chunk size, extract IV (next 12 bytes) and ciphertext+tag (rest)
@@ -117,9 +117,12 @@ class EncryptionStreamTest {
 
   @Test
   fun `multiple writes create multiple sealed boxes`() {
-    val chunk1 = "First chunk".toByteArray()
-    val chunk2 = "Second chunk".toByteArray()
-    val chunk3 = "Third chunk".toByteArray()
+    // Use large chunks that individually exceed the encryption threshold (16KB)
+    // so that each write flushes independently and creates its own sealed box.
+    val chunkSize = 16 * 1024
+    val chunk1 = ByteArray(chunkSize) { 1 }
+    val chunk2 = ByteArray(chunkSize) { 2 }
+    val chunk3 = ByteArray(chunkSize) { 3 }
     
     encryptionStream.initialize()
     encryptionStream.write(chunk1)
@@ -187,8 +190,11 @@ class EncryptionStreamTest {
 
   @Test
   fun `each chunk has unique IV`() {
-    val chunk1 = "Chunk 1".toByteArray()
-    val chunk2 = "Chunk 2".toByteArray()
+    // Use large chunks that trigger separate flushes so that each sealed box
+    // has its own independently generated IV.
+    val chunkSize = 16 * 1024
+    val chunk1 = ByteArray(chunkSize) { 1 }
+    val chunk2 = ByteArray(chunkSize) { 2 }
     
     encryptionStream.initialize()
     encryptionStream.write(chunk1)
@@ -202,6 +208,22 @@ class EncryptionStreamTest {
     val box1Size = 4 + 12 + chunk1.size + 16
     val iv2 = fileBytes.copyOfRange(box1Size + 4, box1Size + 16)
     
-    assertFalse("Each chunk should have a unique IV", iv1.contentEquals(iv2))
+    assertFalse("Each flushed chunk should have a unique IV", iv1.contentEquals(iv2))
+  }
+
+  @Test
+  fun `data is only written after threshold or close`() {
+    val smallChunk = ByteArray(1024) { 7 } // 1KB, well below 16KB threshold
+
+    encryptionStream.initialize()
+    encryptionStream.write(smallChunk)
+
+    // Below threshold: no data should have been written yet
+    assertEquals("File should still be empty before flushing threshold", 0L, outputFile.length())
+
+    // After close, buffered data should be flushed
+    encryptionStream.close()
+    val fileBytes = outputFile.readBytes()
+    assertTrue("File should contain encrypted data after close", fileBytes.isNotEmpty())
   }
 }

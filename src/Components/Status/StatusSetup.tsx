@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 import {Button, ProgressBar, useTheme} from 'react-native-paper';
-import {WrenchScrewdriverIcon} from 'react-native-heroicons/solid';
+import {Wrench} from 'lucide-react-native';
 import {Status} from './Status';
 import {StatusState} from './StatusTypes';
 
@@ -31,7 +31,7 @@ export function StatusSetup({
         <Status
             title="AI Configuration"
             subtitle={modelName ? `Downloading model ${modelName}...` : undefined}
-            icon={<WrenchScrewdriverIcon size={24} color={statusColors.text} />}
+            icon={<Wrench size={24} color={statusColors.text} />}
             state={StatusState.SETUP}>
             {downloadProgress !== undefined && (
                 <View style={styles.progressContainer}>

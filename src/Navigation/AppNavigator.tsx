@@ -89,7 +89,7 @@ function RootNavigator() {
                 component={RecordingScreen}
                 options={{
                     presentation: 'fullScreenModal',
-                    animation: 'slide_from_bottom',
+                    animation: 'fade',
                 }}
             />
             <RootStack.Screen

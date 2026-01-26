@@ -1,11 +1,14 @@
 /**
- * Entity Type Enums and Interfaces
- * Shared type definitions for entity status, stages, and processing payloads
+ * Entity type definitions: enums and shared interfaces for the Scribe data layer.
  */
 
-/**
- * Queue Item Status
- */
+export enum EncounterStatus {
+    RECORDING = 'RECORDING',
+    PROCESSING = 'PROCESSING',
+    READY = 'READY',
+    ARCHIVED = 'ARCHIVED',
+}
+
 export enum QueueItemStatus {
     PENDING = 'PENDING',
     PROCESSING = 'PROCESSING',
@@ -13,47 +16,13 @@ export enum QueueItemStatus {
     FAILED = 'FAILED',
 }
 
-/**
- * Pipeline Stage
- */
 export enum PipelineStage {
-    RECORDING = 'RECORDING',
-    RECOGNITION = 'RECOGNITION',
-    FORMATTING = 'FORMATTING',
-    ANONYMIZING = 'ANONYMIZING',
-    SECURING = 'SECURING',
+    UPLOAD = 'UPLOAD',
     TRANSCRIPTION = 'TRANSCRIPTION',
-    ANONYMIZATION = 'ANONYMIZATION',
+    PROCESSING = 'PROCESSING',
     ANALYSIS = 'ANALYSIS',
 }
 
-/**
- * Processing Payload
- * Result of audio processing pipeline
- */
-export interface ProcessingPayload {
-    biocode: string;
-    cleanTranscript: string;
-    confidence: number;
-    encounterUuid: string;
-    timestamp: number;
-}
-
-/**
- * Audio Processing Result
- * Internal result structure from audio processing
- */
-export interface AudioProcessingResult {
-    biocode: string;
-    rawTranscript: string;
-    cleanTranscript: string;
-    confidence: number;
-}
-
-/**
- * Entity Type
- * Types of entities that can be detected and anonymized
- */
 export enum EntityType {
     PERSON = 'PERSON',
     LOCATION = 'LOCATION',
@@ -63,10 +32,23 @@ export enum EntityType {
     TIME = 'TIME',
 }
 
-/**
- * Anonymized Entity
- * Represents a detected entity that has been anonymized
- */
+// --- Shared types (Anonymizer, Biocode, AudioProcessing) ---
+
+export interface ProcessingPayload {
+    biocode: string;
+    cleanTranscript: string;
+    confidence: number;
+    encounterUuid: string;
+    timestamp: number;
+}
+
+export interface AudioProcessingResult {
+    biocode: string;
+    rawTranscript: string;
+    cleanTranscript: string;
+    confidence: number;
+}
+
 export interface AnonymizedEntity {
     original: string;
     replacement: string;
@@ -75,29 +57,17 @@ export interface AnonymizedEntity {
     endIndex: number;
 }
 
-/**
- * Anonymization Result
- * Result of the anonymization process
- */
 export interface AnonymizationResult {
     cleanText: string;
     entities: AnonymizedEntity[];
     confidence: number;
 }
 
-/**
- * Speaker Vector
- * Extracted speaker embedding vector from audio
- */
 export interface SpeakerVector {
     vector: number[];
     confidence: number;
 }
 
-/**
- * Biocode Result
- * Result of biocode generation from speaker vector
- */
 export interface BiocodeResult {
     biocode: string;
     confidence: number;

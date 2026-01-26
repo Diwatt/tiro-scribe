@@ -8,12 +8,12 @@ import {View, StyleSheet, FlatList} from 'react-native';
 import {Text, useTheme, Card, Avatar, Searchbar} from 'react-native-paper';
 import {User} from 'lucide-react-native';
 
-// Mock data for subjects
+// Mock data for subjects (uuid for offline/sync)
 const mockSubjects = [
-    {id: '1', biocode: 'SUBJ-****-A3F2', lastEncounter: '2 hours ago'},
-    {id: '2', biocode: 'SUBJ-****-B7C1', lastEncounter: '1 day ago'},
-    {id: '3', biocode: 'SUBJ-****-D9E4', lastEncounter: '3 days ago'},
-    {id: '4', biocode: 'SUBJ-****-E5F6', lastEncounter: '1 week ago'},
+    {uuid: '1', biocode: 'SUBJ-****-A3F2', lastEncounter: '2 hours ago'},
+    {uuid: '2', biocode: 'SUBJ-****-B7C1', lastEncounter: '1 day ago'},
+    {uuid: '3', biocode: 'SUBJ-****-D9E4', lastEncounter: '3 days ago'},
+    {uuid: '4', biocode: 'SUBJ-****-E5F6', lastEncounter: '1 week ago'},
 ];
 
 interface SubjectsScreenProps {
@@ -38,7 +38,11 @@ export function SubjectsScreen(props: SubjectsScreenProps): React.JSX.Element {
             />
             <FlatList
                 data={mockSubjects}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) =>
+                    'primaryKey' in item
+                        ? (item as { primaryKey: string }).primaryKey
+                        : (item as { uuid: string }).uuid
+                }
                 contentContainerStyle={styles.listContent}
                 renderItem={({item}) => (
                     <Card

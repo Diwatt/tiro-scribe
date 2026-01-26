@@ -9,9 +9,11 @@ import {SecureRecorder, RecorderState} from '../../modules/secure-recorder/src/i
 import {v4 as uuidv4} from 'uuid';
 import {AppLogger, LoggerInterface} from '../Util/Logger';
 
-interface AudioRecordingState {
+export interface AudioRecordingState {
     state: RecorderState;
     filePath: string | null;
+    /** Elapsed recording duration in milliseconds. 0 when not recording. */
+    durationMs: number;
 }
 
 /**
@@ -20,17 +22,22 @@ interface AudioRecordingState {
  * Uses Legend-State observables for reactive state management
  * with an OOP interface
  */
+const DURATION_TICK_MS = 100;
+
 class AudioRecording {
     private state$: Observable<AudioRecordingState>;
     private _isRecording$: ObservableComputed<boolean>;
     private recorder: SecureRecorder | null = null;
     private loggerInstance: LoggerInterface;
+    private recordingStartTime: number | null = null;
+    private durationIntervalId: ReturnType<typeof setInterval> | null = null;
 
     constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.loggerInstance = logger;
         this.state$ = observable<AudioRecordingState>({
             state: RecorderState.INACTIVE,
             filePath: null,
+            durationMs: 0,
         });
         // Create computed observable once - it will track state changes
         this._isRecording$ = computed((): boolean => {
@@ -68,6 +75,41 @@ class AudioRecording {
     }
 
     /**
+     * Current recording duration in milliseconds. 0 when not recording.
+     */
+    get durationMs(): number {
+        return this.state$.durationMs.get();
+    }
+
+    /**
+     * Start the duration ticker. Call when recording starts.
+     */
+    private startDurationTicker(): void {
+        this.stopDurationTicker();
+        this.recordingStartTime = Date.now();
+        this.state$.durationMs.set(0);
+        this.durationIntervalId = setInterval(() => {
+            if (this.recordingStartTime !== null) {
+                this.state$.durationMs.set(Date.now() - this.recordingStartTime);
+            }
+        }, DURATION_TICK_MS);
+    }
+
+    /**
+     * Stop the duration ticker and set final duration. Call when recording stops.
+     */
+    private stopDurationTicker(): void {
+        if (this.durationIntervalId !== null) {
+            clearInterval(this.durationIntervalId);
+            this.durationIntervalId = null;
+        }
+        if (this.recordingStartTime !== null) {
+            this.state$.durationMs.set(Date.now() - this.recordingStartTime);
+            this.recordingStartTime = null;
+        }
+    }
+
+    /**
      * Set up event handlers for the recorder
      */
     private setupEventHandlers(recorder: SecureRecorder): void {
@@ -88,10 +130,19 @@ class AudioRecording {
                 reason: event.reason,
             });
 
+            const wasRecording = this.state$.state.get() === RecorderState.RECORDING;
+
             // Event handlers automatically update observable state
             this.state$.state.set(event.state);
             if (event.filePath) {
                 this.state$.filePath.set(event.filePath);
+            }
+
+            // Start/stop duration timer with recording state
+            if (event.state === RecorderState.RECORDING) {
+                this.startDurationTicker();
+            } else if (wasRecording) {
+                this.stopDurationTicker();
             }
         };
     }
@@ -102,6 +153,8 @@ class AudioRecording {
     private async ensureRecorder(): Promise<void> {
         if (this.recorder?.state === RecorderState.STOPPED) {
             this.loggerInstance.debug('🔄 [AudioRecording] Recorder is STOPPED, creating new instance');
+            // Dispose old recorder to remove event listeners
+            this.recorder.dispose();
             this.recorder = null;
         }
 
@@ -156,6 +209,9 @@ class AudioRecording {
 
             this.state$.state.set(newState);
             this.state$.filePath.set(newFilePath);
+            if (newState === RecorderState.RECORDING) {
+                this.startDurationTicker();
+            }
         } catch (error) {
             this.loggerInstance.error('❌ [AudioRecording] Failed to start recording:', {
                 error,
@@ -204,6 +260,7 @@ class AudioRecording {
             
             this.state$.state.set(finalState);
             this.state$.filePath.set(filePath);
+            this.stopDurationTicker();
             return filePath;
         } catch (error) {
             this.loggerInstance.error('❌ [AudioRecording] Failed to stop recording:', {
@@ -219,8 +276,12 @@ class AudioRecording {
      * Cleanup recorder resources
      */
     cleanup(): void {
-        this.loggerInstance.debug('🔴 [AudioRecording] Cleanup: clearing recorder ref');
-        this.recorder = null;
+        this.loggerInstance.debug('🔴 [AudioRecording] Cleanup: disposing recorder');
+        this.stopDurationTicker();
+        if (this.recorder) {
+            this.recorder.dispose();
+            this.recorder = null;
+        }
     }
 }
 

@@ -1,81 +1,58 @@
 /**
- * QueueItem Entity
- * Entity class for queue item records
+ * QueueItem entity: property declarations with visibility; @Column on the property.
  */
 
-import {QueueItemStatus, PipelineStage} from './Type';
-import {AbstractEntity} from './AbstractEntity';
+import { AbstractEntity } from '../Database/AbstractEntity';
+import { Column, Entity, PrimaryKey } from '../Database/Decorators';
+import { QueueItemStatus, PipelineStage } from './Type';
 
-/**
- * Queue processing constants
- */
-const QUEUE = {
-    MAX_RETRY_COUNT: 3,
-} as const;
+const MAX_RETRY_COUNT = 3;
 
-/**
- * QueueItem Schema Type
- */
-export interface QueueItemSchema {
-    id: string;
-    encounterUuid: string;
-    filePath: string;
-    status: string;
-    pipelineStage: string;
-    progressPercent: number;
-    autoProcess: boolean;
-    retryCount: number;
-    errorLog: string | null;
-    createdAt: number;
-    updatedAt: number;
-}
+@Entity({ table_name: 'queue_items' })
+export class QueueItem extends AbstractEntity {
+    @PrimaryKey()
+    @Column({ default: () => crypto.randomUUID() })
+    public uuid!: string;
 
-export type NewQueueItemSchema = Omit<QueueItemSchema, 'id' | 'createdAt' | 'updatedAt'>;
+    @Column({ default: '' })
+    public encounterId!: string;
 
-/**
- * QueueItem Entity Class
- * Provides business logic and helper methods for queue item records
- */
-export class QueueItem extends AbstractEntity<QueueItemSchema> {
-    public readonly id: string;
-    public readonly encounterUuid: string;
-    public readonly filePath: string;
-    public readonly status: QueueItemStatus;
-    public readonly pipelineStage: PipelineStage;
-    public readonly progressPercent: number;
-    public readonly autoProcess: boolean;
-    public readonly retryCount: number;
-    public readonly errorLog: string | null;
-    public readonly createdAt: Date;
-    public readonly updatedAt: Date;
+    @Column({ default: '' })
+    public filePath!: string;
 
-    constructor(data: QueueItemSchema) {
-        super(data);
-        this.id = data.id;
-        this.encounterUuid = data.encounterUuid;
-        this.filePath = data.filePath;
-        this.status = data.status as QueueItemStatus;
-        this.pipelineStage = data.pipelineStage as PipelineStage;
-        this.progressPercent = data.progressPercent;
-        this.autoProcess = data.autoProcess;
-        this.retryCount = data.retryCount;
-        this.errorLog = data.errorLog;
-        this.createdAt = new Date(data.createdAt);
-        this.updatedAt = new Date(data.updatedAt);
-    }
+    @Column({ default: QueueItemStatus.PENDING, observable: true })
+    public status!: QueueItemStatus;
 
-    /**
-     * Helper getter to check if item is processable
-     * Returns true if status is PENDING or FAILED with retry_count < 3
-     */
+    @Column({ default: PipelineStage.UPLOAD, observable: true })
+    public pipelineStage!: PipelineStage;
+
+    @Column({ default: 0, observable: true })
+    public progressPercent!: number;
+
+    @Column({ default: 0 })
+    public retryCount!: number;
+
+    @Column({ default: null })
+    public errorLog!: string | null;
+
+    @Column({ default: () => Date.now(), as: 'date', observable: true })
+    public createdAt!: Date;
+
+    @Column({ default: () => Date.now(), as: 'date', observable: true })
+    public updatedAt!: Date;
+
     public get isProcessable(): boolean {
-        if (this.status === QueueItemStatus.PENDING) {
+        if (this.status === QueueItemStatus.PENDING) return true;
+        if (this.status === QueueItemStatus.FAILED && this.retryCount < MAX_RETRY_COUNT)
             return true;
-        }
-        if (this.status === QueueItemStatus.FAILED && this.retryCount < QUEUE.MAX_RETRY_COUNT) {
-            return true;
-        }
         return false;
     }
 
+    public get createdAtDate(): Date {
+        return this.createdAt;
+    }
+
+    public get updatedAtDate(): Date {
+        return this.updatedAt;
+    }
 }

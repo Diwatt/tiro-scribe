@@ -1,5 +1,5 @@
 import React from 'react';
-import {ExclamationCircleIcon} from 'react-native-heroicons/solid';
+import {AlertCircle} from 'lucide-react-native';
 import {Status} from './Status';
 import {StatusState} from './StatusTypes';
 import {useTheme} from 'react-native-paper';
@@ -26,7 +26,7 @@ export function StatusError({
         <Status
             title={title}
             subtitle={message}
-            icon={<ExclamationCircleIcon size={24} color={statusColors.text} />}
+            icon={<AlertCircle size={24} color={statusColors.text} />}
             state={StatusState.ERROR}
         />
     );

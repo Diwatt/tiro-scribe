@@ -1,5 +1,6 @@
 package expo.modules.securerecorder
 
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
@@ -28,11 +29,13 @@ class EncryptionStream(
   private val outputFile: File
 ) : EncryptionStreamInterface {
   private lateinit var fileOutputStream: FileOutputStream
+  private val inputBuffer = ByteArrayOutputStream()
   
   companion object {
     private const val GCM_TAG_LENGTH = 128 // 128 bits = 16 bytes
     private const val GCM_IV_LENGTH = 12 // 12 bytes (standard for GCM)
     private const val CHUNK_SIZE_LENGTH = 4
+    private const val ENCRYPTION_CHUNK_SIZE = 16 * 1024 // 16KB
   }
   
   /**
@@ -54,8 +57,9 @@ class EncryptionStream(
    * Encrypt and write a chunk of data
    * 
    * SECURITY: Each chunk is encrypted independently with its own IV
-   * The sealed box (length + IV + ciphertext + tag) is written immediately to disk
-   * No plaintext buffering in memory beyond the current chunk
+   * The sealed box (length + IV + ciphertext + tag) is written to disk in larger
+   * encrypted chunks. Raw audio is buffered in memory and only encrypted/written
+   * when the buffer reaches ENCRYPTION_CHUNK_SIZE (or on close).
    * 
    * Format: [4-byte length][12-byte IV][encrypted data + 16-byte tag]
    * The length field indicates the size of (IV + encrypted data + tag)
@@ -65,26 +69,49 @@ class EncryptionStream(
    */
   override fun write(data: ByteArray) {
     check(::fileOutputStream.isInitialized) { "Encryption stream not initialized" }
-    
+
+    // Buffer incoming plaintext audio data in memory
+    inputBuffer.write(data)
+
+    // When we've accumulated enough data, encrypt and write to disk
+    if (inputBuffer.size() >= ENCRYPTION_CHUNK_SIZE) {
+      flushBufferToDisk()
+    }
+  }
+
+  /**
+   * Encrypt and write the current buffered plaintext to disk as a single sealed chunk.
+   *
+   * SECURITY: Each flushed buffer is encrypted independently with its own IV.
+   * Format: [4-byte length][12-byte IV][encrypted data + 16-byte tag]
+   */
+  private fun flushBufferToDisk() {
+    if (inputBuffer.size() == 0) {
+      return
+    }
+
+    val plaintext = inputBuffer.toByteArray()
+    inputBuffer.reset()
+
     // SECURITY: Create new cipher instance for this chunk
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-    
+
     // SECURITY: Initialize with ENCRYPT_MODE - generates unique random IV
     cipher.init(Cipher.ENCRYPT_MODE, secretKey)
     val iv = cipher.iv // 12 bytes for GCM (standard)
-    
-    require(iv.size == GCM_IV_LENGTH) { 
-      "Invalid IV length: ${iv.size}, expected $GCM_IV_LENGTH" 
+
+    require(iv.size == GCM_IV_LENGTH) {
+      "Invalid IV length: ${iv.size}, expected $GCM_IV_LENGTH"
     }
-    
+
     // SECURITY: Encrypt this chunk with AES-256-GCM
     // doFinal returns: [encrypted data] + [16-byte authentication tag]
-    val encryptedData = cipher.doFinal(data)
-    
+    val encryptedData = cipher.doFinal(plaintext)
+
     // Calculate total chunk size (IV + encrypted data + tag)
     val chunkSize = iv.size + encryptedData.size
-    
-    // SECURITY: Write complete sealed box to disk immediately
+
+    // SECURITY: Write complete sealed box to disk
     // Format: [4-byte chunk size][12-byte IV][encrypted data + 16-byte tag]
     val sizeBuffer = ByteBuffer.allocate(CHUNK_SIZE_LENGTH).putInt(chunkSize).array()
     fileOutputStream.write(sizeBuffer)
@@ -101,6 +128,8 @@ class EncryptionStream(
   override fun close() {
     if (!::fileOutputStream.isInitialized) return
     try {
+      // Flush any remaining buffered plaintext before closing the stream
+      flushBufferToDisk()
       fileOutputStream.close()
     } catch (e: Exception) {
       // Already closed, ignore
