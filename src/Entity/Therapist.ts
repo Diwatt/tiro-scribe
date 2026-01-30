@@ -4,6 +4,7 @@
 
 import CryptoJS from 'crypto-js';
 import * as SecureStore from 'expo-secure-store';
+import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 import { VaultKeyDerivation } from './VaultKeyDerivation';
@@ -13,7 +14,7 @@ const SECURE_KEY_PREFIX = 'scribe_master_';
 @Entity({ table_name: 'therapists' })
 export class Therapist extends AbstractEntity {
     @PrimaryKey()
-    @Column({ default: () => crypto.randomUUID() })
+    @Column({ default: () => uuidv4() })
     private uuid!: string;
 
     @Column({ default: '' })
@@ -39,6 +40,23 @@ export class Therapist extends AbstractEntity {
 
     @Column({ default: '' })
     private masterKeyCheckHash!: string;
+
+    /** JSON array of language codes, e.g. ["fr"], ["en"], ["fr","en"]. */
+    @Column({ default: '[]' })
+    private languages!: string;
+
+    /** JSON array: voice embedding vector (e.g. 512 floats from ecapa_tdnn). */
+    @Column({ default: '[]' })
+    private biocodeEmbedding!: string;
+
+    @Column({ default: null })
+    private therapyMethod!: string | null;
+
+    @Column({ default: null })
+    private qualification!: string | null;
+
+    @Column({ default: null })
+    private yearsOfExperience!: number | null;
 
     public getUuid(): string {
         return this.getField<string>('uuid') as string;
@@ -112,6 +130,46 @@ export class Therapist extends AbstractEntity {
         this.setField('masterKeyCheckHash', value);
     }
 
+    public getLanguages(): string {
+        return this.getField<string>('languages') as string;
+    }
+
+    public setLanguages(value: string): void {
+        this.setField('languages', value);
+    }
+
+    public getBiocodeEmbedding(): string {
+        return this.getField<string>('biocodeEmbedding') as string;
+    }
+
+    public setBiocodeEmbedding(value: string): void {
+        this.setField('biocodeEmbedding', value);
+    }
+
+    public getTherapyMethod(): string | null {
+        return this.getField<string | null>('therapyMethod') as string | null;
+    }
+
+    public setTherapyMethod(value: string | null): void {
+        this.setField('therapyMethod', value);
+    }
+
+    public getQualification(): string | null {
+        return this.getField<string | null>('qualification') as string | null;
+    }
+
+    public setQualification(value: string | null): void {
+        this.setField('qualification', value);
+    }
+
+    public getYearsOfExperience(): number | null {
+        return this.getField<number | null>('yearsOfExperience') as number | null;
+    }
+
+    public setYearsOfExperience(value: number | null): void {
+        this.setField('yearsOfExperience', value);
+    }
+
     async login(password: string): Promise<boolean> {
         const hash = CryptoJS.SHA256(password).toString();
         return hash === this.passwordHash;
@@ -172,12 +230,17 @@ export class Therapist extends AbstractEntity {
         return value;
     }
 
+    /**
+     * Creates account: master key, recovery code, encrypted slots. Optionally stores languages and initial voice vector.
+     */
     static async initializeAccount(
         email: string,
         password: string,
         name: string | null,
+        languages: string[],
+        initialBiocodeVector?: number[],
     ): Promise<{ therapist: Therapist; recoveryCode: string }> {
-        const uuid = crypto.randomUUID();
+        const uuid = uuidv4();
         const masterKey = CryptoJS.lib.WordArray.random(32).toString();
         const recoveryCode = VaultKeyDerivation.generateRecoveryCode();
 
@@ -205,6 +268,8 @@ export class Therapist extends AbstractEntity {
             encryptedMasterKeyRecovery: encryptedRecovery,
             recoveryCodeHash,
             masterKeyCheckHash,
+            languages: JSON.stringify(languages),
+            biocodeEmbedding: initialBiocodeVector ? JSON.stringify(initialBiocodeVector) : '[]',
         });
 
         return { therapist, recoveryCode };

@@ -24,12 +24,14 @@ interface Props {
   isRecording?: boolean;
   onPress?: () => void;
   onRecordingChange?: (isRecording: boolean) => void;
+  disabled?: boolean;
 }
 
 export const SecureSessionButton = observer(function SecureSessionButton({
   isRecording: externalIsRecording,
   onPress: externalOnPress,
   onRecordingChange,
+  disabled = false,
 }: Props): React.JSX.Element {
   const theme = useTheme() as ExtendedTheme;
   const criticalAction = (theme.colors as any).actions.critical;
@@ -105,8 +107,9 @@ export const SecureSessionButton = observer(function SecureSessionButton({
     <View style={styles.centerHelper}>
       <View style={[styles.shadowWrapper, { shadowColor: shadowColorRgb }]}>
         <Pressable
-          style={[styles.container, { backgroundColor }]}
-          onPress={handlePress}>
+          style={[styles.container, { backgroundColor }, disabled && { opacity: 0.5 }]}
+          onPress={disabled ? undefined : handlePress}
+          disabled={disabled}>
           <Text style={[styles.text, { color: textColor }]}>
             {isRecording ? 'Stop' : 'Record'}
           </Text>

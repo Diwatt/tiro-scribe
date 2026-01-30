@@ -7,7 +7,7 @@
 import React from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {PaperProvider} from 'react-native-paper';
-import {AppNavigator} from './Navigation/AppNavigator';
+import {InitGate} from './Components/InitGate';
 import {AppTheme} from './theme/AppTheme';
 import {ServicesProvider} from './Context/ServicesContext';
 import {AppLogger} from './Util/Logger';
@@ -42,7 +42,7 @@ export function App() {
         <SafeAreaProvider>
             <PaperProvider theme={AppTheme}>
                 <ServicesProvider services={services}>
-                    <AppNavigator />
+                    <InitGate />
                 </ServicesProvider>
             </PaperProvider>
         </SafeAreaProvider>

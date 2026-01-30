@@ -5,6 +5,7 @@
  */
 
 import CryptoJS from 'crypto-js';
+import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 import { EncounterStatus, type DetectedSpeakerProfile, type TranscriptSegment } from './Type';
@@ -12,7 +13,7 @@ import { EncounterStatus, type DetectedSpeakerProfile, type TranscriptSegment } 
 @Entity({ table_name: 'encounters' })
 export class Encounter extends AbstractEntity {
     @PrimaryKey()
-    @Column({ default: () => crypto.randomUUID() })
+    @Column({ default: () => uuidv4() })
     private uuid!: string;
 
     @Column({ default: '' })

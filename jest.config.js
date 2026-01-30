@@ -2,7 +2,7 @@ module.exports = {
     preset: 'jest-expo',
     testEnvironment: 'node',
     transformIgnorePatterns: [
-        'node_modules/(?!(.*react-native.*|@react-native|@react-native/.*|@react-native/js-polyfills|@react-native/js-polyfills/.*|@react-native-community|expo|expo-modules-core|@expo|@expo/.*|react-navigation|@react-navigation|@react-navigation/.*|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|@legendapp/state|better-sqlite3|drizzle-orm)/)',
+        'node_modules/(?!(.*react-native.*|@react-native|@react-native/.*|@react-native/js-polyfills|@react-native/js-polyfills/.*|@react-native-community|expo|expo-modules-core|@expo|@expo/.*|react-navigation|@react-navigation|@react-navigation/.*|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|@legendapp/state)/)',
     ],
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',

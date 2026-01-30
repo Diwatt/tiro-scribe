@@ -2,6 +2,7 @@
  * QueueItem entity: property declarations with visibility; @Column on the property.
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 import { QueueItemStatus, PipelineStage } from './Type';
@@ -11,7 +12,7 @@ const MAX_RETRY_COUNT = 3;
 @Entity({ table_name: 'queue_items' })
 export class QueueItem extends AbstractEntity {
     @PrimaryKey()
-    @Column({ default: () => crypto.randomUUID() })
+    @Column({ default: () => uuidv4() })
     private uuid!: string;
 
     @Column({ default: '' })
