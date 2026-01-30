@@ -1,0 +1,96 @@
+/**
+ * Validates options objects and decorator metadata. Used by Builder when decorators declare schema/errorCode or unique decorators.
+ */
+
+import { DecoratorException, DatabaseException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from '../Exception';
+import type { OptionFieldSchema, OptionFieldType, OptionsSchema } from './Type';
+
+export class SchemaValidator {
+    /**
+     * Throws if any other property already has this decorator name in metadata.
+     * Used by Builder when config.unique is true before calling before().
+     * Not invoked from validate() because it needs context.metadata and context.name,
+     * which are only available when the field decorator runs, not when options are validated.
+     */
+    public ensureFieldDecoratorUniqueness(
+        meta: Record<string | symbol, unknown> | undefined,
+        currentPropertyName: string,
+        decoratorName: string,
+    ): void {
+        if (meta == null || typeof meta !== 'object') return;
+        const m = meta as Record<string, { decorators?: Array<{ decoratorName: string }> }>;
+        for (const [key, fieldMeta] of Object.entries(m)) {
+            if (key === currentPropertyName) continue;
+            const decorators = fieldMeta?.decorators;
+            if (Array.isArray(decorators) && decorators.some((d) => d.decoratorName === decoratorName)) {
+                throw new DecoratorException(
+                    `Only one property can have @${decoratorName} (already on "${key}", tried to add "${currentPropertyName}")`,
+                    MULTIPLE_DECORATORS_NOT_SUPPORTED,
+                    undefined,
+                    { existingProperty: key, attemptedProperty: currentPropertyName, decoratorName },
+                );
+            }
+        }
+    }
+
+    /**
+     * Validates options against a declared schema. Throws DatabaseException if invalid.
+     */
+    public validate(options: object, schema: OptionsSchema, errorCode: string): void {
+        const opts = options as Record<string, unknown>;
+        for (const [key, field] of Object.entries(schema)) {
+            const value = opts[key];
+            const isSet = key in opts;
+            this.ensureRequired(key, isSet, field, opts, errorCode);
+            this.ensureType(key, value, isSet, field, opts, errorCode);
+        }
+    }
+
+    private ensureRequired(
+        key: string,
+        isSet: boolean,
+        field: OptionFieldSchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
+        if (field.required === true && !isSet) {
+            throw new DatabaseException(
+                `Option "${key}" is required`,
+                errorCode,
+                undefined,
+                { options },
+            );
+        }
+    }
+
+    private ensureType(
+        key: string,
+        value: unknown,
+        isSet: boolean,
+        field: OptionFieldSchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
+        if (!isSet || field.type == null) {
+            return;
+        }
+        const allowed = Array.isArray(field.type) ? [...field.type] : [field.type];
+        const actual = this.getType(value);
+        if (!allowed.includes(actual)) {
+            throw new DatabaseException(
+                `Option "${key}" must be of type ${allowed.join(' | ')}`,
+                errorCode,
+                undefined,
+                { options, key, actual },
+            );
+        }
+    }
+
+    private getType(value: unknown): OptionFieldType {
+        const t = typeof value;
+        if (t === 'string' || t === 'number' || t === 'boolean' || t === 'function') {
+            return t;
+        }
+        return 'object';
+    }
+}

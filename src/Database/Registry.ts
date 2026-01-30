@@ -6,8 +6,8 @@
  */
 
 import { TiroScribeException } from '../Exception';
-import type { AbstractEntity, EntityConstructor } from './AbstractEntity';
-import { Repository, type RecordWithUuid } from './Repository';
+import type { AbstractEntity, EntityConstructorInput } from './AbstractEntity';
+import { Repository } from './Repository';
 
 const ERROR_CODES = {
     ENTITY_NAME_REQUIRED: 'ENTITY_NAME_REQUIRED',
@@ -17,7 +17,10 @@ export class Registry {
     private readonly repositories = new Map<string, Repository<AbstractEntity>>();
 
     public getRepository<TEntity extends AbstractEntity>(
-        EntityClass: EntityConstructor<TEntity>,
+        EntityClass: {
+            new (dataOrObservable?: EntityConstructorInput): TEntity;
+            entityName: string;
+        },
     ): Repository<TEntity> {
         const entityName = EntityClass.entityName;
         if (!entityName) {
@@ -32,17 +35,11 @@ export class Registry {
         const existing = this.repositories.get(entityName);
         if (existing) return existing as Repository<TEntity>;
 
-        const repository = new Repository<TEntity>(
-            EntityClass as EntityConstructor<TEntity>,
-            entityName,
-        );
+        const repository = new Repository<TEntity>(EntityClass, entityName);
         this.repositories.set(entityName, repository as Repository<AbstractEntity>);
         return repository;
     }
 
-    public clear(): void {
-        this.repositories.clear();
-    }
 }
 
 export const registry = new Registry();

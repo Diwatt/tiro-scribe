@@ -4,7 +4,7 @@
  * Models are downloaded from a CDN/server and cached locally
  */
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import {AppLogger, LoggerInterface} from './Logger';
 import {ModelDownloadError} from '../Exception/ModelDownloadError';
 

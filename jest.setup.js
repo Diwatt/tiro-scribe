@@ -10,12 +10,68 @@ jest.mock('expo-audio', () => ({
     },
 }));
 
+// Mock Legend-State: root get/set; per-key nodes that mutate stateRef[prop]; nested objects get a proxy so entity getField works
+jest.mock('@legendapp/state', () => {
+    const observable = (initial) => {
+        const state = typeof initial === 'object' && initial !== null ? { ...initial } : {};
+        let stateRef = state;
+        const root = {
+            get: () => stateRef,
+            set: (v) => {
+                stateRef = typeof v === 'object' && v !== null ? { ...v } : v;
+            },
+        };
+        return new Proxy(root, {
+            get(target, prop) {
+                if (prop === 'get') return target.get;
+                if (prop === 'set') return target.set;
+                const val = stateRef[prop];
+                const node = {
+                    get: () => stateRef[prop],
+                    set: (v) => {
+                        stateRef[prop] = v;
+                    },
+                };
+                if (typeof val !== 'object' || val === null) return node;
+                const entry = val;
+                return new Proxy(node, {
+                    get(_, p) {
+                        if (p === 'get') return node.get;
+                        if (p === 'set') return node.set;
+                        return {
+                            get: () => entry[p],
+                            set: (v) => {
+                                entry[p] = v;
+                            },
+                        };
+                    },
+                });
+            },
+        });
+    };
+    return { observable };
+});
+// Mock Legend-State persistence (MMKV is native; use no-op in Node)
+jest.mock('@legendapp/state/persist', () => ({
+    persistObservable: jest.fn(),
+    configureObservablePersistence: jest.fn(),
+}));
+jest.mock('@legendapp/state/persist-plugins/mmkv', () => ({
+    ObservablePersistMMKV: {},
+}));
+
 jest.mock('expo-file-system', () => ({
     File: jest.fn(),
     Directory: jest.fn(),
     Paths: {
         document: 'file:///document',
     },
+}));
+
+jest.mock('expo-secure-store', () => ({
+    getItemAsync: jest.fn(() => Promise.resolve(null)),
+    setItemAsync: jest.fn(() => Promise.resolve()),
+    deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('@/Util/Logger', () => ({

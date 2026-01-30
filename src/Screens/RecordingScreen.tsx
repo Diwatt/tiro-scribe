@@ -8,7 +8,7 @@ import React, {useEffect} from 'react';
 import {View, StyleSheet} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {observer} from '@legendapp/state/react';
-import {SecureTranscribeButton} from '@/Components';
+import {SecureSessionButton} from '@/Components';
 import {useAudioRecording} from '@Service/AudioRecording';
 import {RootStackScreenProps} from '@/Navigation/types';
 import {AppLogger} from '@/Util/Logger';
@@ -47,7 +47,7 @@ export const RecordingScreen = observer(function RecordingScreen({
     return (
         <View style={styles.container}>
             <View style={[styles.buttonContainer, {bottom: buttonBottom}]}>
-                <SecureTranscribeButton
+                <SecureSessionButton
                     onPress={handleStop}
                     isRecording={true}
                 />

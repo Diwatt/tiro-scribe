@@ -6,43 +6,68 @@
 
 import { observable } from '@legendapp/state';
 import type { ObservableObject } from '@legendapp/state';
-import { getDefaultsFromMetadata, getPrimaryKeyName } from './Decorators';
+import { DatabaseException } from '../Exception';
+import { FieldDecorator, MetadataReader } from '../Decorator';
 import type { ObservableNode, ObservablePrimitive } from './Type';
 
 /** Observable store: index by field name to get node with get/set. */
 type ObservableStore = Record<string, ObservableNode>;
 
-/**
- * Constructor input: either plain data (merged with defaults) or an existing Legend-State observable (e.g. from Repository).
- */
-export type EntityStateInput =
+export type EntityConstructorInput =
     | Partial<Record<string, unknown>>
     | ObservableObject<Record<string, unknown>>;
+
+function buildColumnDefaults(reader: MetadataReader): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const f of reader.getFields()) {
+        if (f.getDecoratorName() !== 'Column') continue;
+        out[f.getFieldName()] = f.getOption('default');
+    }
+    return out;
+}
 
 /**
  * Base class for entities. Subclasses use @Entity and @Column; each column has
  * explicit get/set (and get fieldName$() returning this.field$('fieldName')).
  *
- * Constructor: pass plain data (e.g. from create/hydration) or an existing observable (e.g. from Repository slot).
+ * Constructor: pass plain data (e.g. from create/hydration) or an existing observable (e.g. from Repository backing).
  */
 export abstract class AbstractEntity {
+    // --- Properties (public → protected → private) ---
     /** Table name (set by @Entity decorator). */
     public static entityName: string;
 
     /** Observable state. Use for field$ and getField/setField. */
     protected _state$!: ObservableObject<Record<string, unknown>>;
 
-    public constructor(dataOrObservable?: EntityStateInput) {
-        const defaults = getDefaultsFromMetadata(this.constructor) ?? {};
+    /** Primary key field name (resolved once at construction). */
+    private readonly _primaryKeyField!: string;
+
+    // --- Constructor ---
+    public constructor(dataOrObservable?: EntityConstructorInput) {
+        const reader = new MetadataReader(this.constructor);
+        const primaryKeyField = reader.getField('PrimaryKey')?.getFieldName();
+        const columnDefaults = buildColumnDefaults(reader);
+        if (primaryKeyField == null) {
+            throw new DatabaseException(
+                `Entity ${this.constructor.name} must define a primary key with @PrimaryKey().`,
+                'PRIMARY_KEY_NOT_DEFINED',
+                undefined,
+                { entityName: this.constructor.name },
+            );
+        }
+        this._primaryKeyField = primaryKeyField;
 
         if (this.isObservable(dataOrObservable)) {
             this._state$ = dataOrObservable;
             return;
         }
-        const merged = { ...defaults, ...(dataOrObservable ?? {}) };
+
+        const merged = { ...columnDefaults, ...(dataOrObservable ?? {}) };
         this._state$ = observable(merged);
     }
 
+    // --- Methods (public → protected → private; getters/setters are methods) ---
     /** Primary key (e.g. UUID) for repository keying. Resolves field name from @PrimaryKey. */
     public get primaryKey(): string {
         return this.getField<string>(this.primaryKeyField) ?? '';
@@ -52,37 +77,26 @@ export abstract class AbstractEntity {
         this.setField(this.primaryKeyField, value);
     }
 
-    private get primaryKeyField(): string {
-        return getPrimaryKeyName(this.constructor) ?? 'uuid';
-    }
-
-    /** Serializable shape for persistence / JSON. */
-    public toJSON<T = Record<string, unknown>>(): T {
-        const root = this._state$ as unknown as { get?(): unknown };
-        return (root?.get?.() ?? {}) as T;
-    }
-
-    /** Value access: use in get fieldName() { return this.getField<Type>('fieldName'); } — dev supplies type. */
-    protected getField<T = unknown>(key: string): T {
+    /** Value access. Public so Column initializer can wire get/set; subclasses use in get fieldName() { return this.getField<Type>('fieldName'); } */
+    public getField<T = unknown>(key: string): T {
         const node = (this._state$ as ObservableStore)[key];
         return node?.get?.() as T;
     }
 
-    /** Value access: use in set fieldName(v) { this.setField('fieldName', v); } — dev types the setter param. */
-    protected setField(key: string, value: unknown): void {
+    /** Value access. Public so Column initializer can wire get/set; subclasses use in set fieldName(v) { this.setField('fieldName', v); } */
+    public setField(key: string, value: unknown): void {
         const node = (this._state$ as ObservableStore)[key];
         node?.set?.(value);
     }
 
-    /** Observable node for a field. Use in get fieldName$() { return this.getField$(key); } */
-    protected getField$(key: string): ObservableNode {
+    /** Observable node for a field. Public so Column initializer can add fieldName$ getter; subclasses use in get fieldName$() { return this.field$<Type>('fieldName'); } */
+    public field$<T = unknown>(key: string): ObservablePrimitive<T> {
         const node = (this._state$ as ObservableStore)[key];
-        return node ?? { get: undefined, set: undefined };
+        return (node ?? { get: undefined, set: undefined }) as ObservablePrimitive<T>;
     }
 
-    /** Field observable. Use in get fieldName$() { return this.field$<Type>('fieldName'); } — dev supplies type. */
-    protected field$<T = unknown>(key: string): ObservablePrimitive<T> {
-        return this.getField$(key) as ObservablePrimitive<T>;
+    private get primaryKeyField(): string {
+        return this._primaryKeyField;
     }
 
     private isObservable(
@@ -96,8 +110,3 @@ export abstract class AbstractEntity {
         );
     }
 }
-
-/** Constructor shape required by Registry/Repository: new (dataOrObservable?) => TEntity, plus static entityName. */
-export type EntityConstructor<TEntity extends AbstractEntity> = (new (
-    dataOrObservable?: EntityStateInput,
-) => TEntity) & Pick<typeof AbstractEntity, 'entityName'>;

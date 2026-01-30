@@ -2,7 +2,7 @@ import React from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {useTheme} from 'react-native-paper';
 import {observer} from '@legendapp/state/react';
-import {StatusReady, SecureTranscribeButton} from '@/Components';
+import {StatusReady, SecureSessionButton} from '@/Components';
 import {RootTabScreenProps} from '@/Navigation/types';
 
 export const Home = observer(function Home({
@@ -25,7 +25,7 @@ export const Home = observer(function Home({
             </ScrollView>
 
             <View style={styles.buttonContainer}>
-                <SecureTranscribeButton onPress={handlePress} isRecording={false} />
+                <SecureSessionButton onPress={handlePress} isRecording={false} />
             </View>
         </View>
     );

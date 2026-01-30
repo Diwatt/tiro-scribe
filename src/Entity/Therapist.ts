@@ -5,73 +5,112 @@
 import CryptoJS from 'crypto-js';
 import * as SecureStore from 'expo-secure-store';
 import { AbstractEntity } from '../Database/AbstractEntity';
-import { Column, Entity, PrimaryKey } from '../Database/Decorators';
+import { Column, Entity, PrimaryKey } from '../Decorator';
+import { VaultKeyDerivation } from './VaultKeyDerivation';
 
 const SECURE_KEY_PREFIX = 'scribe_master_';
-const PBKDF2_ITERATIONS = 10000;
-const PBKDF2_KEYSIZE = 256 / 32;
-const RECOVERY_SALT = 'scribe_recovery_v1';
-const RECOVERY_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const RECOVERY_PART_LEN = 4;
-
-function buildSalt(uuid: string, tag: string): string {
-    return `scribe_${tag}_${uuid}`;
-}
-
-function deriveKeyFromPassword(password: string, salt: string): CryptoJS.lib.WordArray {
-    return CryptoJS.PBKDF2(password, salt, {
-        keySize: PBKDF2_KEYSIZE,
-        iterations: PBKDF2_ITERATIONS,
-    });
-}
-
-function deriveKeyFromRecoveryCode(recoveryCode: string): CryptoJS.lib.WordArray {
-    return CryptoJS.PBKDF2(recoveryCode, RECOVERY_SALT, {
-        keySize: PBKDF2_KEYSIZE,
-        iterations: PBKDF2_ITERATIONS,
-    });
-}
-
-function generateRecoveryCode(): string {
-    const part = (): string => {
-        let s = '';
-        for (let i = 0; i < RECOVERY_PART_LEN; i++) {
-            s += RECOVERY_CHARS.charAt(Math.floor(Math.random() * RECOVERY_CHARS.length));
-        }
-        return s;
-    };
-    return [part(), part(), part()].join('-');
-}
 
 @Entity({ table_name: 'therapists' })
 export class Therapist extends AbstractEntity {
     @PrimaryKey()
     @Column({ default: () => crypto.randomUUID() })
-    public uuid!: string;
+    private uuid!: string;
 
     @Column({ default: '' })
-    public email!: string;
+    private email!: string;
 
     @Column({ default: null })
-    public name!: string | null;
+    private name!: string | null;
 
     @Column({ default: '' })
-    public passwordHash!: string;
+    private passwordHash!: string;
 
     @Column({ default: null })
-    public localKeyId!: string | null;
+    private localKeyId!: string | null;
 
     @Column({ default: '' })
-    public encryptedMasterKey_Primary!: string;
+    private encryptedMasterKeyPrimary!: string;
 
     @Column({ default: '' })
-    public encryptedMasterKey_Recovery!: string;
+    private encryptedMasterKeyRecovery!: string;
 
     @Column({ default: '' })
-    public recoveryCodeHash!: string;
+    private recoveryCodeHash!: string;
 
     @Column({ default: '' })
-    public masterKeyCheckHash!: string;
+    private masterKeyCheckHash!: string;
+
+    public getUuid(): string {
+        return this.getField<string>('uuid') as string;
+    }
+
+    public setUuid(value: string): void {
+        this.setField('uuid', value);
+    }
+
+    public getEmail(): string {
+        return this.getField<string>('email') as string;
+    }
+
+    public setEmail(value: string): void {
+        this.setField('email', value);
+    }
+
+    public getName(): string | null {
+        return this.getField<string | null>('name') as string | null;
+    }
+
+    public setName(value: string | null): void {
+        this.setField('name', value);
+    }
+
+    public getPasswordHash(): string {
+        return this.getField<string>('passwordHash') as string;
+    }
+
+    public setPasswordHash(value: string): void {
+        this.setField('passwordHash', value);
+    }
+
+    public getLocalKeyId(): string | null {
+        return this.getField<string | null>('localKeyId') as string | null;
+    }
+
+    public setLocalKeyId(value: string | null): void {
+        this.setField('localKeyId', value);
+    }
+
+    public getEncryptedMasterKeyPrimary(): string {
+        return this.getField<string>('encryptedMasterKeyPrimary') as string;
+    }
+
+    public setEncryptedMasterKeyPrimary(value: string): void {
+        this.setField('encryptedMasterKeyPrimary', value);
+    }
+
+    public getEncryptedMasterKeyRecovery(): string {
+        return this.getField<string>('encryptedMasterKeyRecovery') as string;
+    }
+
+    public setEncryptedMasterKeyRecovery(value: string): void {
+        this.setField('encryptedMasterKeyRecovery', value);
+    }
+
+    public getRecoveryCodeHash(): string {
+        return this.getField<string>('recoveryCodeHash') as string;
+    }
+
+    public setRecoveryCodeHash(value: string): void {
+        this.setField('recoveryCodeHash', value);
+    }
+
+    public getMasterKeyCheckHash(): string {
+        return this.getField<string>('masterKeyCheckHash') as string;
+    }
+
+    public setMasterKeyCheckHash(value: string): void {
+        this.setField('masterKeyCheckHash', value);
+    }
 
     async login(password: string): Promise<boolean> {
         const hash = CryptoJS.SHA256(password).toString();
@@ -89,10 +128,10 @@ export class Therapist extends AbstractEntity {
     }
 
     async restoreFromBackup(password: string): Promise<boolean> {
-        const salt = buildSalt(this.primaryKey, 'vault_primary');
-        const derived = deriveKeyFromPassword(password, salt);
+        const salt = VaultKeyDerivation.buildSalt(this.primaryKey, 'vault_primary');
+        const derived = VaultKeyDerivation.deriveKeyFromPassword(password, salt);
         try {
-            const bytes = CryptoJS.AES.decrypt(this.encryptedMasterKey_Primary, derived);
+            const bytes = CryptoJS.AES.decrypt(this.encryptedMasterKeyPrimary, derived);
             const masterKey = bytes.toString(CryptoJS.enc.Utf8);
             if (!masterKey) return false;
             const check = CryptoJS.SHA256(masterKey).toString();
@@ -107,19 +146,19 @@ export class Therapist extends AbstractEntity {
     async recoverAccount(recoveryCode: string, newPassword: string): Promise<void> {
         const codeHash = CryptoJS.SHA256(recoveryCode).toString();
         if (codeHash !== this.recoveryCodeHash) throw new Error('Invalid recovery code');
-        const derived = deriveKeyFromRecoveryCode(recoveryCode);
-        const bytes = CryptoJS.AES.decrypt(this.encryptedMasterKey_Recovery, derived);
+        const derived = VaultKeyDerivation.deriveKeyFromRecoveryCode(recoveryCode);
+        const bytes = CryptoJS.AES.decrypt(this.encryptedMasterKeyRecovery, derived);
         const masterKey = bytes.toString(CryptoJS.enc.Utf8);
         if (!masterKey) throw new Error('Recovery decryption failed');
         const check = CryptoJS.SHA256(masterKey).toString();
         if (check !== this.masterKeyCheckHash) throw new Error('Integrity check failed');
 
-        const newSalt = buildSalt(this.primaryKey, 'vault_primary');
-        const newDerived = deriveKeyFromPassword(newPassword, newSalt);
+        const newSalt = VaultKeyDerivation.buildSalt(this.primaryKey, 'vault_primary');
+        const newDerived = VaultKeyDerivation.deriveKeyFromPassword(newPassword, newSalt);
         const newVaultA = CryptoJS.AES.encrypt(masterKey, newDerived).toString();
         const newPasswordHash = CryptoJS.SHA256(newPassword).toString();
 
-        this.encryptedMasterKey_Primary = newVaultA;
+        this.encryptedMasterKeyPrimary = newVaultA;
         this.passwordHash = newPasswordHash;
         await SecureStore.setItemAsync(SECURE_KEY_PREFIX + this.primaryKey, masterKey);
     }
@@ -140,16 +179,16 @@ export class Therapist extends AbstractEntity {
     ): Promise<{ therapist: Therapist; recoveryCode: string }> {
         const uuid = crypto.randomUUID();
         const masterKey = CryptoJS.lib.WordArray.random(32).toString();
-        const recoveryCode = generateRecoveryCode();
+        const recoveryCode = VaultKeyDerivation.generateRecoveryCode();
 
         const secureKey = SECURE_KEY_PREFIX + uuid;
         await SecureStore.setItemAsync(secureKey, masterKey);
 
-        const saltPrimary = buildSalt(uuid, 'vault_primary');
-        const keyPrimary = deriveKeyFromPassword(password, saltPrimary);
+        const saltPrimary = VaultKeyDerivation.buildSalt(uuid, 'vault_primary');
+        const keyPrimary = VaultKeyDerivation.deriveKeyFromPassword(password, saltPrimary);
         const encryptedPrimary = CryptoJS.AES.encrypt(masterKey, keyPrimary).toString();
 
-        const keyRecovery = deriveKeyFromRecoveryCode(recoveryCode);
+        const keyRecovery = VaultKeyDerivation.deriveKeyFromRecoveryCode(recoveryCode);
         const encryptedRecovery = CryptoJS.AES.encrypt(masterKey, keyRecovery).toString();
 
         const passwordHash = CryptoJS.SHA256(password).toString();
@@ -162,8 +201,8 @@ export class Therapist extends AbstractEntity {
             name,
             passwordHash,
             localKeyId: secureKey,
-            encryptedMasterKey_Primary: encryptedPrimary,
-            encryptedMasterKey_Recovery: encryptedRecovery,
+            encryptedMasterKeyPrimary: encryptedPrimary,
+            encryptedMasterKeyRecovery: encryptedRecovery,
             recoveryCodeHash,
             masterKeyCheckHash,
         });

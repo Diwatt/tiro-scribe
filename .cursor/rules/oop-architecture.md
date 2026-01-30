@@ -9,7 +9,7 @@ alwaysApply: true
 
 ## Principles
 
-- Store classes should use OOP patterns
+- Store classes should use OOP patterns and follow TypeScript visibility and code organization (`typescript-visibility.md`, `typescript-code-organization.md`)
 - State should be managed via Legend-State observables
 - Hooks should return class instances, not plain objects
 - Components should use `observer()` wrapper for reactivity
@@ -26,25 +26,26 @@ interface MyStoreState {
 }
 
 class MyStore {
-    private state: Observable<MyStoreState>;
+    // --- Properties (public → protected → private) ---
+    private state!: Observable<MyStoreState>;
 
-    constructor() {
+    // --- Constructor ---
+    public constructor() {
         this.state = observable<MyStoreState>({
             // initial state
         });
     }
 
-    getState(): Observable<MyStoreState> {
+    // --- Methods (public → protected → private) ---
+    public getState(): Observable<MyStoreState> {
         return this.state;
     }
 
-    // Getters
-    getSomeValue(): SomeType {
+    public getSomeValue(): SomeType {
         return this.state.someValue.get();
     }
 
-    // Methods
-    async doSomething(): Promise<void> {
+    public async doSomething(): Promise<void> {
         this.state.someValue.set(newValue);
     }
 }

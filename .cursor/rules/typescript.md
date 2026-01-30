@@ -18,11 +18,9 @@ You act as a senior software architect who enforces strict OOP, SOLID principles
   - **Entities/Models**: Noun only (`Session`, `User`).
 
 ## 2. Strict OOP & Visibility (The "PHP" Rule)
-- **Explicit Visibility is MANDATORY**: See `typescript-visibility.md` for complete rules.
-  - ✅ `public readonly id: string;`
-  - ✅ `private validate(): void { ... }`
-  - ❌ `id: string;` (Implicit public forbidden)
-- **Code Organization**: See `typescript-code-organization.md` for property/method ordering rules.
+- **Visibility** and **code organization** are the source of truth for all class-based rules. Other rules (one-class-per-file, oop-architecture, dependency-injection) assume these are followed.
+- **Explicit Visibility**: See `typescript-visibility.md`. ✅ `public readonly id: string;` ✅ `private validate(): void { ... }` ❌ `id: string;`
+- **Code Organization**: See `typescript-code-organization.md`. Properties → constructor → methods; within each, public → protected → private.
 - **Immutability by Default**: Use `readonly` for properties that shouldn't change after instantiation.
 - **No Magic Objects**: Do not use plain objects (`{}`) for complex data. Use **Classes** or **DTOs**.
 
@@ -52,11 +50,13 @@ You act as a senior software architect who enforces strict OOP, SOLID principles
 - ✅ `throw new SessionNotFoundException(id);`
 - ❌ `throw new Error("Session not found");`
 
-## 7. Code Style & Control Flow
+## 7. Code Style & Control Flow (Symfony convention)
 - **Early Returns**: Avoid `else` keywords where an early return is possible (Guard Clauses).
-- **If/return on separate lines**: Do not put `if` and `return` on the same line. Use a block and put the return on its own line.
+- **Always use braces for control structures**: No one-line `if`/`for`/`while`/`do` without a block. Same as Symfony/PSR: every branch or loop body must be a block `{ ... }`.
   - ❌ `if (condition) return value;`
   - ✅ `if (condition) { return value; }`
+  - ❌ `for (const x of list) doSomething(x);`
+  - ✅ `for (const x of list) { doSomething(x); }`
 - **Destructuring**: Use object destructuring for method parameters if there are more than 2 arguments.
 
 ## 8. Specific for this project (Storage)

@@ -9,7 +9,7 @@ alwaysApply: true
 
 **Every class, interface, enum, or struct lives in its own dedicated file.**
 
-This rule is part of the TypeScript standards. See `typescript.md` for the complete coding standards overview.
+Part of TypeScript standards. See `typescript.md` for the full guidelines. Classes in those files must follow visibility and ordering: `typescript-visibility.md`, `typescript-code-organization.md`.
 
 This improves:
 - ✅ **Discoverability**: Easy to find where a class is defined

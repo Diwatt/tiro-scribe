@@ -5,10 +5,12 @@ export {
     EntityType,
 } from './Type';
 export type {
+    TranscriptSegment,
+    DetectedSpeakerProfile,
+    AnonymizedEntity,
+    AnonymizationResult,
     ProcessingPayload,
     AudioProcessingResult,
-    AnonymizationResult,
-    AnonymizedEntity,
     SpeakerVector,
     BiocodeResult,
 } from './Type';

@@ -1,83 +1,127 @@
 /**
- * Repository: Generic CRUD over Observable array with MMKV persistence.
- * Works with Proxy-based Entity. create() and findAll()/find() wrap slots or hydrate from JSON.
+ * Repository: Generic CRUD over TableBacking with EntitySerializer.
+ * persist(data): create if unknown (pk not in table), else update. find/findAll wrap observables at key.
+ *
+ * Storage shape (MMKV): one key per entity type (tableName). Value = JSON object keyed by primary key.
+ * find(primaryKey) is O(1). One Repository instance per entity type.
  */
 
-import { observable } from '@legendapp/state';
-import { persistObservable } from '@legendapp/state/persist';
-import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
-import type { Observable, ObservableObject } from '@legendapp/state';
-import type { AbstractEntity, EntityConstructor } from './AbstractEntity';
-
-export type RecordWithUuid = Record<string, unknown> & { uuid: string };
-
-type PersistedObservableState = { state?: { sync?(): void } };
+import { DatabaseException } from '../Exception';
+import type { AbstractEntity, EntityConstructorInput } from './AbstractEntity';
+import { MetadataReader } from '../Decorator';
+import { TableBacking } from './TableBacking';
+import { EntitySerializer } from './Serializer';
 
 /**
- * Repository for AbstractEntity instances. Backed by Observable<TRecord[]> with persistObservable(MMKV).
- * - create(data): appends to store, returns new EntityClass(obsSlot) so mutations persist.
- * - findAll() / find(uuid): map stored data -> new EntityClass(obsSlot) or new EntityClass(json).
+ * Repository for AbstractEntity instances. Backed by TableBacking (one table's in-memory + MMKV persistence).
+ * - persist(data): create (if pk not in table) or update; returns entity wired to the backing.
+ * - find(primaryKey): O(1). findAll(): iteration over table rows (insertion order).
  */
 export class Repository<TEntity extends AbstractEntity> {
-    private readonly _data: Observable<RecordWithUuid[]>;
-    private readonly EntityClass: EntityConstructor<TEntity>;
+    private readonly _backing: TableBacking;
+    private readonly EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity;
     private readonly tableName: string;
+    private readonly primaryKeyField: string;
+    private readonly _serializer: EntitySerializer;
 
     public constructor(
-        EntityClass: EntityConstructor<TEntity>,
+        EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity,
         tableName: string,
     ) {
         this.EntityClass = EntityClass;
         this.tableName = tableName;
-        this._data = observable<RecordWithUuid[]>([]);
-        persistObservable(this._data, {
-            local: tableName,
-            pluginLocal: ObservablePersistMMKV,
-        });
+        this.primaryKeyField = new MetadataReader(EntityClass).getField('PrimaryKey')?.getFieldName() ?? 'uuid';
+        this._backing = new TableBacking(tableName);
+        this._serializer = new EntitySerializer(EntityClass);
     }
 
     public findAll(): TEntity[] {
-        const arr = this._data.get();
-        return arr.map((_, index) => this.wrapSlot(index));
+        const map = this._backing.get();
+        const migrated = this._serializer.unserializeMap(map);
+        this._backing.set(migrated);
+        return this._backing.keys().map((pk) => this.createEntityFromKey(pk));
     }
 
-    public find(uuid: string): TEntity | undefined {
-        const arr = this._data.get();
-        const index = arr.findIndex((item) => item.uuid === uuid);
-        if (index === -1) return undefined;
-        return this.wrapSlot(index);
+    public exists(primaryKey: string): boolean {
+        return this._backing.has(primaryKey);
     }
 
-    /** Create and persist. Pushes data into the store and returns an entity wrapping that slot. */
-    public create(data: Partial<RecordWithUuid> & { uuid: string }): TEntity {
-        const arr = this._data.get();
-        const record = { ...data, uuid: data.uuid } as RecordWithUuid;
-        const index = arr.length;
-        this._data.set([...arr, record]);
-        return this.wrapSlot(index);
+    public find(primaryKey: string): TEntity | null {
+        if (!this.exists(primaryKey)) {
+            return null;
+        }
+        const entry = this._backing.getEntry(primaryKey);
+        if (entry == null) {
+            return null;
+        }
+        const migrated = this._serializer.unserialize(entry);
+        this._backing.setEntry(primaryKey, migrated as Record<string, unknown>);
+        return this.createEntityFromKey(primaryKey);
     }
 
-    public remove(uuid: string): void {
-        const arr = this._data.get();
-        this._data.set(arr.filter((item) => item.uuid !== uuid));
+    /** All entities where entry matches every key in criteria (strict equality). O(n). */
+    public findBy(criteria: Record<string, unknown>): TEntity[] {
+        const pks = this._backing.keysWhere(criteria);
+        for (const pk of pks) {
+            const entry = this._backing.getEntry(pk);
+            if (entry != null) {
+                const migrated = this._serializer.unserialize(entry);
+                this._backing.setEntry(pk, migrated as Record<string, unknown>);
+            }
+        }
+        return pks.map((pk) => this.createEntityFromKey(pk));
     }
 
-    public clear(): void {
-        this._data.set([]);
+    /** First entity where entry matches every key in criteria, or null. O(n). */
+    public findOneBy(criteria: Record<string, unknown>): TEntity | null {
+        const pk = this._backing.findOneKeyBy(criteria);
+        if (pk == null) {
+            return null;
+        }
+        return this.find(pk);
     }
 
     /**
-     * Optional explicit sync when using persistObservable; mutations via Proxy already persist.
+     * Persist: create if entity unknown (pk not in table), else update.
+     * Serializer merges defaults + (stored if update) + data; we serialize and write.
      */
-    public persist(_entity?: TEntity): void {
-        const state = (this._data as unknown as PersistedObservableState).state;
-        if (state?.sync) state.sync();
+    public persist(data: Partial<Record<string, unknown>> = {}): TEntity {
+        const map = this._backing.get();
+        // First merge: defaults + data → we get the full record and thus the pk (pk may come from defaults).
+        const merged = this._serializer.mergeWithDefaults(data);
+        const pk = merged[this.primaryKeyField] as string;
+        // Second merge only when updating: defaults + stored + data so we overwrite only provided fields.
+        const mergedWithStored = this.exists(pk)
+            ? this._serializer.mergeWithDefaults(data, map[pk])
+            : merged;
+        const toStore = this._serializer.serialize(mergedWithStored);
+        this._backing.setEntry(pk, toStore);
+        return this.createEntityFromKey(pk);
     }
 
-    private wrapSlot(index: number): TEntity {
-        const obsItem = (this._data as unknown as Record<number, ObservableObject<RecordWithUuid>>)[
-            index
-        ];
-        return new this.EntityClass(obsItem) as TEntity;
+    /** Flush in-memory state to storage. */
+    public flush(): void {
+        this._backing.flush();
+    }
+
+    public remove(primaryKey: string): void {
+        this._backing.deleteEntry(primaryKey);
+    }
+
+    public clear(): void {
+        this._backing.clear();
+    }
+
+    private createEntityFromKey(primaryKey: string): TEntity {
+        const obs = this._backing.getObservableAtKey(primaryKey);
+        if (!obs) {
+            throw new DatabaseException(
+                `No observable found for key "${primaryKey}" in table "${this.tableName}".`,
+                'REPOSITORY_KEY_NOT_FOUND',
+                undefined,
+                { tableName: this.tableName, primaryKey },
+            );
+        }
+        return new this.EntityClass(obs);
     }
 }

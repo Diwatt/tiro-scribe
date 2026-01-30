@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Dependency Injection
 
-**Rule**: Always use dependency injection for external dependencies (loggers, services, utilities) instead of importing them directly.
+**Rule**: Always use dependency injection for external dependencies (loggers, services, utilities) instead of importing them directly. Classes that receive injected dependencies must follow TypeScript visibility and code organization (`typescript-visibility.md`, `typescript-code-organization.md`).
 
 ## Why
 
@@ -28,8 +28,8 @@ type ReactNativeLogger = ReturnType<typeof reactNativeLogger.createLogger>;
 
 export class AppLogger {
     private static instance: ReactNativeLogger | null = null;
-    
-    static getInstance(): ReactNativeLogger {
+
+    public static getInstance(): ReactNativeLogger {
         if (!AppLogger.instance) {
             AppLogger.instance = reactNativeLogger.createLogger({...});
         }
@@ -47,13 +47,13 @@ export type LoggerInterface = ReactNativeLogger;
 import {AppLogger, LoggerInterface} from '../Util/Logger';
 
 class MyService {
-    private loggerInstance: LoggerInterface;
+    private loggerInstance!: LoggerInterface;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    public constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.loggerInstance = logger;
     }
 
-    doSomething(): void {
+    public doSomething(): void {
         this.loggerInstance.info('Doing something');
     }
 }

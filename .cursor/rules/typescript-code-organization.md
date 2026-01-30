@@ -1,69 +1,57 @@
 ---
 description: "TypeScript code organization - properties first, then methods, ordered by visibility"
 alwaysApply: true
+globs: ["**/*.ts", "**/*.tsx"]
 ---
 
 # TypeScript Code Organization
 
-**Rule**: Organize TypeScript code with properties first, then methods. Within each section, order by visibility: private, then protected, then public. **ALL members MUST have explicit visibility modifiers.**
+Part of TypeScript standards. See `typescript.md` for the full guidelines.
+
+**Rule**: **properties first** → **constructor** → **methods**. Getters and setters are methods. Within each section, order by visibility: **public → protected → private**. Explicit visibility required; see `typescript-visibility.md`.
 
 ## Structure
 
 ```typescript
 class MyClass {
-  // 1. Properties (private first)
-  private readonly privateProperty: string;
-  private privateVar: number;
-  
-  // 2. Properties (protected)
-  protected readonly protectedProperty: string;
-  protected protectedVar: number;
-  
-  // 3. Properties (public)
+  // --- Properties (public → protected → private) ---
+  public static publicStaticProp: string;
   public readonly publicProperty: string;
   public publicVar: number;
-  
-  // 4. Static properties (private first)
+
+  protected readonly protectedProperty: string;
+  protected protectedVar: number;
+
   private static privateStaticProp: string;
-  public static publicStaticProp: string;
-  
-  // 5. Constructor (after properties, before methods)
-  constructor(param: string) {
+  private readonly privateProperty: string;
+  private privateVar: number;
+
+  // --- Constructor ---
+  public constructor(param: string) {
     this.privateProperty = param;
   }
-  
-  // 6. Getters (private first)
-  private get privateGetter(): string { return this.privateProperty; }
+
+  // --- Methods (public → protected → private; getters/setters are methods) ---
   public get publicGetter(): string { return this.publicProperty; }
-  
-  // 7. Setters (private first)
-  private set privateSetter(v: string) { this.privateVar = v; }
   public set publicSetter(v: string) { this.publicVar = v; }
-  
-  // 8. Methods (private first)
-  private privateMethod(): void { }
-  
-  // 9. Methods (protected)
-  protected protectedMethod(): void { }
-  
-  // 10. Methods (public)
   public publicMethod(): void { }
-  
-  // 11. Static methods (private first)
-  private static privateStaticMethod(): void { }
+
+  protected protectedMethod(): void { }
+
+  private get privateGetter(): string { return this.privateProperty; }
+  private set privateSetter(v: string) { this.privateVar = v; }
+  private privateMethod(): void { }
+
   public static publicStaticMethod(): void { }
+  private static privateStaticMethod(): void { }
 }
 ```
 
 ## Ordering Rules
 
-1. **Properties before methods** - All properties come first, then all methods
-2. **Visibility ordering within sections** - private → protected → public
-3. **Static members grouped separately** - Static properties, then static methods
-4. **Constructor** - Place after properties, before methods
-5. **Getters/Setters** - Group with properties section, following visibility order
-6. **Abstract methods** - Place in appropriate visibility section
-7. **Explicit visibility required** - ALL members MUST have explicit visibility modifiers (see typescript-visibility.md)
+1. **Properties** – All properties first (instance and static), ordered by visibility: public → protected → private.
+2. **Constructor** – Immediately after properties, before methods.
+3. **Methods** – All methods after the constructor (including getters and setters). Order by visibility: public → protected → private. Getters and setters are not a separate section; they are methods.
 
 ## Examples
 
@@ -79,21 +67,14 @@ class MyClass {
 ✅ **Do:**
 ```typescript
 class MyClass {
-  private property: string;             // ✅ Private property first
-  protected protectedMethod(): void { } // ✅ Protected method, explicit visibility
-  public publicMethod(): void { }       // ✅ Public method, explicit visibility
+  public publicProperty: string;        // ✅ Public property first
+  protected protectedProperty: string; // ✅ Protected property, explicit visibility
+  private privateProperty: string;     // ✅ Private property last
+  public publicMethod(): void { }      // ✅ Public method first
+  protected protectedMethod(): void { } // ✅ Protected method
+  private privateMethod(): void { }    // ✅ Private method last
 }
 ```
-
-## Visibility Enforcement
-
-**CRITICAL**: All class members MUST have explicit visibility modifiers. See `typescript-visibility.md` for details.
-
-- Properties: `private`, `protected`, or `public` (never implicit)
-- Methods: `private`, `protected`, or `public` (never implicit)
-- Getters: `private get`, `protected get`, or `public get` (never implicit)
-- Setters: `private set`, `protected set`, or `public set` (never implicit)
-- Static members: `private static`, `protected static`, or `public static` (never implicit)
 
 ## Interfaces and Types
 

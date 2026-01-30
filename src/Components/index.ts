@@ -7,6 +7,5 @@ export {StatusError} from './Status/StatusError';
 export {StatusWarning} from './Status/StatusWarning';
 export {StatusState} from './Status/StatusTypes';
 export {SecureSessionButton} from './SecureSessionButton/SecureSessionButton';
-export {SecureTranscribeButton} from './SecureTranscribeButton';
 export {WaveformBackground} from './WaveformBackground';
 export type {WaveformBackgroundProps} from './WaveformBackground';

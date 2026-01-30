@@ -4,6 +4,8 @@
  */
 
 export {TiroScribeException} from './TiroScribeException';
+export {DatabaseException} from './DatabaseException';
+export {DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED} from './DecoratorException';
 export {RecordingErrorType} from './RecordingErrorType';
 export type {RecordingError} from './RecordingError';
 export {RecordingPermissionError} from './RecordingPermissionError';

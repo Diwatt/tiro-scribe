@@ -1,18 +1,18 @@
 ---
 description: "TypeScript visibility modifiers - all class members must have explicit visibility"
 alwaysApply: true
+globs: ["**/*.ts", "**/*.tsx"]
 ---
 
 # TypeScript Visibility Modifiers
 
+Part of TypeScript standards. See `typescript.md` for the full guidelines.
+
 **Rule**: **ALL** class members (properties, methods, getters, setters, static members) MUST have explicit visibility modifiers. Never use implicit `public`.
 
 ## Why
-- Explicit visibility makes code intent clear and unambiguous
-- Prevents accidental exposure of internal implementation details
-- Improves code maintainability and readability
-- Makes refactoring safer (explicit intent)
-- Aligns with TypeScript best practices and strict coding standards
+- Explicit visibility makes code intent clear and prevents accidental exposure of internals
+- Improves maintainability and refactoring safety
 
 ## Visibility Modifiers
 

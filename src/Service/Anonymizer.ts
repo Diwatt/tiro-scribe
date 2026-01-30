@@ -188,22 +188,22 @@ export class Anonymizer {
 
         // Check for family relations
         for (const pattern of familyPatterns) {
-            let match;
+            let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
-                // Skip if already covered by existing entity
+                const m = match;
                 const isOverlapping = existingEntities.some(
                     e =>
-                        match.index >= e.startIndex &&
-                        match.index + match[0].length <= e.endIndex,
+                        m.index >= e.startIndex &&
+                        m.index + m[0].length <= e.endIndex,
                 );
 
                 if (!isOverlapping) {
                     entities.push({
-                        original: match[0],
+                        original: m[0],
                         replacement: this.generateFamilyRelationToken(),
                         type: EntityType.FAMILY_RELATION,
-                        startIndex: match.index,
-                        endIndex: match.index + match[0].length,
+                        startIndex: m.index,
+                        endIndex: m.index + m[0].length,
                     });
                 }
             }
@@ -211,21 +211,22 @@ export class Anonymizer {
 
         // Check for work relations
         for (const pattern of workPatterns) {
-            let match;
+            let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
+                const m = match;
                 const isOverlapping = existingEntities.some(
                     e =>
-                        match.index >= e.startIndex &&
-                        match.index + match[0].length <= e.endIndex,
+                        m.index >= e.startIndex &&
+                        m.index + m[0].length <= e.endIndex,
                 );
 
                 if (!isOverlapping) {
                     entities.push({
-                        original: match[0],
+                        original: m[0],
                         replacement: this.generateWorkRelationToken(),
                         type: EntityType.WORK_RELATION,
-                        startIndex: match.index,
-                        endIndex: match.index + match[0].length,
+                        startIndex: m.index,
+                        endIndex: m.index + m[0].length,
                     });
                 }
             }
@@ -268,23 +269,24 @@ export class Anonymizer {
 
         // Process date patterns
         for (const pattern of datePatterns) {
-            let match;
+            let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
+                const m = match;
                 const isOverlapping = existingEntities.some(
                     e =>
-                        match.index >= e.startIndex &&
-                        match.index + match[0].length <= e.endIndex,
+                        m.index >= e.startIndex &&
+                        m.index + m[0].length <= e.endIndex,
                 );
 
                 if (!isOverlapping) {
-                    const relativeDate = this.convertToRelativeDate(match[0]);
+                    const relativeDate = this.convertToRelativeDate(m[0]);
                     if (relativeDate) {
                         entities.push({
-                            original: match[0],
+                            original: m[0],
                             replacement: relativeDate,
                             type: EntityType.DATE,
-                            startIndex: match.index,
-                            endIndex: match.index + match[0].length,
+                            startIndex: m.index,
+                            endIndex: m.index + m[0].length,
                         });
                     }
                 }
@@ -293,23 +295,24 @@ export class Anonymizer {
 
         // Process time patterns
         for (const pattern of timePatterns) {
-            let match;
+            let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
+                const m = match;
                 const isOverlapping = existingEntities.some(
                     e =>
-                        match.index >= e.startIndex &&
-                        match.index + match[0].length <= e.endIndex,
+                        m.index >= e.startIndex &&
+                        m.index + m[0].length <= e.endIndex,
                 );
 
                 if (!isOverlapping) {
-                    const relativeTime = this.convertToRelativeTime(match[0]);
+                    const relativeTime = this.convertToRelativeTime(m[0]);
                     if (relativeTime) {
                         entities.push({
-                            original: match[0],
+                            original: m[0],
                             replacement: relativeTime,
                             type: EntityType.TIME,
-                            startIndex: match.index,
-                            endIndex: match.index + match[0].length,
+                            startIndex: m.index,
+                            endIndex: m.index + m[0].length,
                         });
                     }
                 }

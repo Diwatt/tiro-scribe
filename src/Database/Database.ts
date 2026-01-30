@@ -12,6 +12,5 @@ configureObservablePersistence({
 });
 
 export { registry };
-export type { EntityConstructor } from './AbstractEntity';
 export { AbstractEntity } from './AbstractEntity';
 export { Repository } from './Repository';
