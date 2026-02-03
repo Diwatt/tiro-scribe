@@ -45,7 +45,7 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
         },
         therapistId: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },
         participantBiocodes: { decorators: [{ decoratorName: 'Column', options: { default: [] } }] },
-        status: { decorators: [{ decoratorName: 'Column', options: { default: 'RECORDING' } }] },
+        status: { decorators: [{ decoratorName: 'Column', options: { default: 'recording' } }] },
     });
     return M;
 }

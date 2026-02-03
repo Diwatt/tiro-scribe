@@ -1,10 +1,10 @@
 /**
  * Logger configuration for Tiro Scribe
- * 
+ *
  * Provides structured logging with different levels and environment-based configuration
  */
 
-import {logger as reactNativeLogger, consoleTransport} from 'react-native-logs';
+import { logger as reactNativeLogger, consoleTransport } from 'react-native-logs';
 
 /**
  * Logger instance type from react-native-logs
@@ -13,7 +13,7 @@ type ReactNativeLogger = ReturnType<typeof reactNativeLogger.createLogger>;
 
 /**
  * AppLogger - Singleton factory class for application logging
- * 
+ *
  * Follows the standard singleton pattern with getInstance() method
  * Ensures a single logger instance is created and reused throughout the app
  */

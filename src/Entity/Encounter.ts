@@ -4,11 +4,20 @@
  * Server identifies who is who (e.g. by biocode frequency). No uuid stored.
  */
 
+import type { Dayjs } from 'dayjs';
 import CryptoJS from 'crypto-js';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
-import { EncounterStatus, type DetectedSpeakerProfile, type TranscriptSegment } from './Type';
+import {
+    EncounterStatus,
+    type DetectedSpeakerProfile,
+    type TranscriptSegment,
+} from './Type';
+
+dayjs.extend(utc);
 
 @Entity({ table_name: 'encounters' })
 export class Encounter extends AbstractEntity {
@@ -32,137 +41,120 @@ export class Encounter extends AbstractEntity {
     @Column({ default: EncounterStatus.RECORDING })
     private status!: EncounterStatus;
 
-    @Column({ default: () => Date.now(), as: 'date' })
-    private createdAt!: Date;
+    /** UTC, stored as ISO string; use dayjs in UTC mode. */
+    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    private createdAt!: Dayjs;
 
-    @Column({ default: () => Date.now(), as: 'date' })
-    private updatedAt!: Date;
+    /** UTC, stored as ISO string; use dayjs in UTC mode. */
+    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    private updatedAt!: Dayjs;
 
-    /** Stores JSON array of TranscriptSegment */
-    @Column({ default: '[]' })
-    private transcript!: string;
+    /** JSON array of TranscriptSegment (stored as string, transformed via 'json'). */
+    @Column({ default: '[]', as: 'json' })
+    private transcript!: TranscriptSegment[];
 
-    /** Stores JSON array of DetectedSpeakerProfile */
-    @Column({ default: '[]' })
-    private detectedSpeakers!: string;
+    /** JSON array of DetectedSpeakerProfile (stored as string, transformed via 'json'). */
+    @Column({ default: '[]', as: 'json' })
+    private detectedSpeakers!: DetectedSpeakerProfile[];
 
     public getUuid(): string {
-        return this.getField<string>('uuid') as string;
-    }
-
-    public setUuid(value: string): void {
-        this.setField('uuid', value);
+        return this.uuid;
     }
 
     public getTherapistId(): string {
-        return this.getField<string>('therapistId') as string;
+        return this.therapistId;
     }
 
     public setTherapistId(value: string): void {
-        this.setField('therapistId', value);
+        this.therapistId = value;
     }
 
+    /** getProps for array participantBiocodes */
     public getParticipantBiocodes(): string[] {
-        return this.getField<string[]>('participantBiocodes') as string[];
+        return this.participantBiocodes;
     }
 
     public setParticipantBiocodes(value: string[]): void {
-        this.setField('participantBiocodes', value);
+        this.participantBiocodes = value;
     }
 
+    public addParticipantBiocode(item: string): void {
+        this.setParticipantBiocodes([...this.getParticipantBiocodes(), item]);
+    }
+
+    public removeParticipantBiocode(item: string): void {
+        this.setParticipantBiocodes(this.getParticipantBiocodes().filter((b) => b !== item));
+    }
+
+    /** getProps for array audioFragments */
     public getAudioFragments(): string[] {
-        return this.getField<string[]>('audioFragments') as string[];
+        return this.audioFragments;
     }
 
     public setAudioFragments(value: string[]): void {
-        this.setField('audioFragments', value);
+        this.audioFragments = value;
+    }
+
+    public addAudioFragment(path: string): void {
+        this.setAudioFragments([...this.getAudioFragments(), path]);
+    }
+
+    public removeAudioFragment(path: string): void {
+        this.setAudioFragments(this.getAudioFragments().filter((p) => p !== path));
     }
 
     public getTotalDuration(): number {
-        return this.getField<number>('totalDuration') as number;
+        return this.totalDuration;
     }
 
     public setTotalDuration(value: number): void {
-        this.setField('totalDuration', value);
+        this.totalDuration = value;
     }
 
     public getStatus(): EncounterStatus {
-        return this.getField<EncounterStatus>('status') as EncounterStatus;
+        return this.status;
     }
 
     public setStatus(value: EncounterStatus): void {
-        this.setField('status', value);
+        this.status = value;
     }
 
-    public getCreatedAt(): Date {
-        return this.getField<Date>('createdAt') as Date;
-    }
-
-    public setCreatedAt(value: Date): void {
-        this.setField('createdAt', value);
-    }
-
-    public getUpdatedAt(): Date {
-        return this.getField<Date>('updatedAt') as Date;
-    }
-
-    public setUpdatedAt(value: Date): void {
-        this.setField('updatedAt', value);
-    }
-
-    public getTranscript(): string {
-        return this.getField<string>('transcript') as string;
-    }
-
-    public setTranscript(value: string): void {
-        this.setField('transcript', value);
-    }
-
-    public getDetectedSpeakers(): string {
-        return this.getField<string>('detectedSpeakers') as string;
-    }
-
-    public setDetectedSpeakers(value: string): void {
-        this.setField('detectedSpeakers', value);
-    }
-
-    public get parsedTranscript(): TranscriptSegment[] {
-        try {
-            const parsed = JSON.parse(this.transcript) as unknown;
-            return Array.isArray(parsed) ? (parsed as TranscriptSegment[]) : [];
-        } catch {
-            return [];
-        }
-    }
-
-    public get parsedSpeakers(): DetectedSpeakerProfile[] {
-        try {
-            const parsed = JSON.parse(this.detectedSpeakers) as unknown;
-            return Array.isArray(parsed) ? (parsed as DetectedSpeakerProfile[]) : [];
-        } catch {
-            return [];
-        }
-    }
-
-    public get createdAtDate(): Date {
+    public getCreatedAt(): Dayjs {
         return this.createdAt;
     }
 
-    public get updatedAtDate(): Date {
+    public setCreatedAt(value: Dayjs): void {
+        this.createdAt = value;
+    }
+
+    public getUpdatedAt(): Dayjs {
         return this.updatedAt;
     }
 
-    public set parsedTranscript(value: TranscriptSegment[]) {
-        this.transcript = JSON.stringify(value);
+    public setUpdatedAt(value: Dayjs): void {
+        this.updatedAt = value;
     }
 
-    public set parsedSpeakers(value: DetectedSpeakerProfile[]) {
-        this.detectedSpeakers = JSON.stringify(value);
+    public getTranscript(): TranscriptSegment[] {
+        return this.transcript;
     }
 
-    public addAudioFragment(path: string, durationMs: number): void {
-        this.audioFragments = [...this.audioFragments, path];
-        this.totalDuration = this.totalDuration + durationMs;
+    public setTranscript(value: TranscriptSegment[]): void {
+        this.transcript = value;
+    }
+
+    public getDetectedSpeakers(): DetectedSpeakerProfile[] {
+        return this.detectedSpeakers;
+    }
+
+    public setDetectedSpeakers(value: DetectedSpeakerProfile[]): void {
+        this.detectedSpeakers = value;
+    }
+
+    /** Add an audio fragment and optionally update total duration. */
+    public addAudioFragmentWithDuration(path: string, durationMs: number): void {
+        this.addAudioFragment(path);
+        this.setTotalDuration(this.getTotalDuration() + durationMs);
     }
 
     /** Set participant biocodes from raw biocodes + projection key (hashes each). */

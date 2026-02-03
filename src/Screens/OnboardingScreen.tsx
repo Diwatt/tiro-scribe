@@ -24,7 +24,8 @@ import {
 } from 'react-native-paper';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
-import { voiceCalibration } from '../Service/VoiceCalibration';
+import { TherapistVault } from '../Security';
+import { voiceCalibration } from '../Service';
 import type { ExtendedTheme } from '../theme/AppTheme';
 
 const LANGUAGES = [
@@ -79,7 +80,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): React.J
             return;
         }
         try {
-            const { therapist, recoveryCode: code } = await Therapist.initializeAccount(
+            const { therapist, recoveryCode: code } =
+                await TherapistVault.initializeAccount(
                 email.trim(),
                 password,
                 null,

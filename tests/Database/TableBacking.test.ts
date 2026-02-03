@@ -47,19 +47,19 @@ describe('TableBacking', () => {
     });
 
     it('keysWhere filters by criteria', () => {
-        backing.setEntry('1', { status: 'PENDING', x: 1 });
+        backing.setEntry('1', { status: 'pending', x: 1 });
         backing.setEntry('2', { status: 'DONE', x: 1 });
-        backing.setEntry('3', { status: 'PENDING', x: 2 });
-        expect(backing.keysWhere({ status: 'PENDING' })).toEqual(
+        backing.setEntry('3', { status: 'pending', x: 2 });
+        expect(backing.keysWhere({ status: 'pending' })).toEqual(
             expect.arrayContaining(['1', '3']),
         );
-        expect(backing.keysWhere({ status: 'PENDING', x: 1 })).toEqual(['1']);
+        expect(backing.keysWhere({ status: 'pending', x: 1 })).toEqual(['1']);
     });
 
     it('findOneKeyBy returns first matching key or null', () => {
-        backing.setEntry('1', { status: 'PENDING' });
-        backing.setEntry('2', { status: 'PENDING' });
-        const pk = backing.findOneKeyBy({ status: 'PENDING' });
+        backing.setEntry('1', { status: 'pending' });
+        backing.setEntry('2', { status: 'pending' });
+        const pk = backing.findOneKeyBy({ status: 'pending' });
         expect(['1', '2']).toContain(pk);
         expect(backing.findOneKeyBy({ status: 'MISSING' })).toBeNull();
     });

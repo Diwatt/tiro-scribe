@@ -5,7 +5,7 @@
 
 import {AudioProcessing} from './AudioProcessing';
 import {ProcessingPayload} from '@/Entity';
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { AppLogger, LoggerInterface } from './Logger';
 import {InvalidAudioFormatError} from '../Exception/InvalidAudioFormatError';
 
 /**

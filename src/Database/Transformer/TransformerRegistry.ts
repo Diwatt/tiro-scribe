@@ -4,6 +4,7 @@
  */
 
 import { DateTransformer } from './DateTransformer';
+import { JsonTransformer } from './JsonTransformer';
 import type { FieldTransformer } from './FieldTransformer';
 
 export class TransformerRegistry {
@@ -19,3 +20,4 @@ export class TransformerRegistry {
 }
 
 TransformerRegistry.register('date', new DateTransformer());
+TransformerRegistry.register('json', new JsonTransformer());

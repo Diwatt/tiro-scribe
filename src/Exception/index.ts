@@ -20,3 +20,4 @@ export {VectorLengthMismatchError} from './VectorLengthMismatchError';
 export {InvalidDimensionError} from './InvalidDimensionError';
 export {ModelDownloadError} from './ModelDownloadError';
 export {SpeakerVectorExtractionError} from './SpeakerVectorExtractionError';
+export {HardwareGuardException} from './HardwareGuardException';

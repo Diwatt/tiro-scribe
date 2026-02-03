@@ -1,6 +1,6 @@
 import React, {Component, type ErrorInfo, type ReactNode} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
-import {AppLogger} from '../Util/Logger';
+import { AppLogger } from '../Service/Logger';
 
 const LOG_PREFIX = '[TiroScribe]';
 

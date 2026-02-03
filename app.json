@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Tiro Scribe",
+    "scheme": "tiro-scribe",
     "slug": "tiro-scribe",
     "version": "0.1.0",
     "orientation": "portrait",

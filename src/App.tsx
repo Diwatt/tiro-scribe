@@ -10,7 +10,7 @@ import {PaperProvider} from 'react-native-paper';
 import {InitGate} from './Components/InitGate';
 import {AppTheme} from './theme/AppTheme';
 import {ServicesProvider} from './Context/ServicesContext';
-import {AppLogger} from './Util/Logger';
+import { AppLogger } from './Service/Logger';
 
 // Only recording loads at app start. DB, transcript, Biocode, NER will be added later.
 

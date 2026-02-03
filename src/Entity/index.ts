@@ -5,6 +5,7 @@ export {
     EntityType,
 } from './Type';
 export type {
+    QueueItemErrorEntry,
     TranscriptSegment,
     DetectedSpeakerProfile,
     AnonymizedEntity,

@@ -16,7 +16,7 @@ describe('Encounter (via mock)', () => {
         };
         expect(enc.getField('therapistId')).toBe('t1');
         expect(enc.getField('uuid')).toBeDefined();
-        expect(enc.getField('status')).toBe('RECORDING');
+        expect(enc.getField('status')).toBe('recording');
         expect(enc.getField('participantBiocodes')).toEqual([]);
     });
 });

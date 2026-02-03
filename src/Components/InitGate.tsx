@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { deviceCheck } from '../Service/DeviceCheck';
+import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
 import { DeviceIncompatibleScreen } from '../Screens/DeviceIncompatibleScreen';
@@ -22,17 +22,16 @@ export function InitGate(): React.JSX.Element {
 
     useEffect(() => {
         let cancelled = false;
-        deviceCheck.checkCompatible().then((ok) => {
-            if (cancelled) return;
-            if (!ok) {
-                setGateState('incompatible');
-                return;
-            }
-            const therapists = registry.getRepository(Therapist).findAll();
-            const has = therapists.length > 0;
-            setHasTherapist(has);
-            setGateState(has ? 'main' : 'onboarding');
-        });
+        const ok = deviceCompatibilityGate.isCompatible();
+        if (cancelled) return;
+        if (!ok) {
+            setGateState('incompatible');
+            return;
+        }
+        const therapists = registry.getRepository(Therapist).findAll();
+        const has = therapists.length > 0;
+        setHasTherapist(has);
+        setGateState(has ? 'main' : 'onboarding');
         return () => {
             cancelled = true;
         };

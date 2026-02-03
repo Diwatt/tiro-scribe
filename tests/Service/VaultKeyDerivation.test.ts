@@ -1,4 +1,4 @@
-import { VaultKeyDerivation } from '@/Entity/VaultKeyDerivation';
+import { VaultKeyDerivation } from '@/Security/VaultKeyDerivation';
 
 describe('VaultKeyDerivation', () => {
     describe('buildSalt', () => {

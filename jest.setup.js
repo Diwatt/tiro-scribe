@@ -74,12 +74,15 @@ jest.mock('expo-secure-store', () => ({
     deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock('@/Util/Logger', () => ({
-    log: {
-        info: jest.fn(),
-        debug: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
+const mockLogger = {
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+};
+jest.mock('@/Service/Logger', () => ({
+    AppLogger: {
+        getInstance: () => mockLogger,
     },
 }));
 

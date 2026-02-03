@@ -4,7 +4,7 @@ import { useTheme } from 'react-native-paper';
 import { observer, useSelector } from '@legendapp/state/react';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { useAudioRecording } from '@Service/AudioRecording';
-import { AppLogger } from '../../Util/Logger';
+import { AppLogger } from '../../Service/Logger';
 import { RecorderState } from '../../../modules/secure-recorder/src';
 
 const logger = AppLogger.getInstance();

@@ -11,7 +11,8 @@ import CryptoJS from 'crypto-js';
 import * as ort from 'onnxruntime-react-native';
 import * as FileSystem from 'expo-file-system';
 import {SpeakerVector, BiocodeResult, Therapist} from '@/Entity';
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { TherapistVault } from '../Security/TherapistVault';
+import { AppLogger, LoggerInterface } from './Logger';
 import {
     InvalidAudioFormatError,
     SessionNotInitializedError,
@@ -95,7 +96,7 @@ export class Biocode {
         }
 
         // Try to download the model if it's a known model
-        const {ModelDownloader, MODEL_CONFIGS} = await import('../Util/ModelDownloader');
+        const { ModelDownloader, MODEL_CONFIGS } = await import('./ModelDownloader');
         
         // Check if this is a known model config
         const modelKey = Object.keys(MODEL_CONFIGS).find(
@@ -120,7 +121,7 @@ export class Biocode {
      */
     async setTherapistCredentials(therapist: Therapist): Promise<void> {
         this.therapistUuid = therapist.primaryKey;
-        const projectionKey = await therapist.getProjectionKey();
+        const projectionKey = await TherapistVault.getProjectionKey(therapist);
         this.projectionMatrix = this.generateProjectionMatrix(projectionKey);
     }
 

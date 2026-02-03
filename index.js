@@ -39,15 +39,26 @@ function setupCrashLogging() {
 
 setupCrashLogging();
 
-const {App} = require('./src/App');
-const {AppErrorBoundary} = require('./src/Components/AppErrorBoundary');
-
-function Root() {
-  return React.createElement(
-    GestureHandlerRootView,
-    {style: {flex: 1}},
-    React.createElement(AppErrorBoundary, null, React.createElement(App, null)),
-  );
+// Storybook: when enabled, register Storybook UI; otherwise use Expo Router
+let StorybookUIRoot = null;
+if (typeof __DEV__ !== 'undefined' && __DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
+  try {
+    StorybookUIRoot = require('./.rnstorybook').default;
+  } catch (e) {
+    console.warn('[TiroScribe] Failed to load Storybook:', e?.message ?? e);
+  }
 }
 
-AppRegistry.registerComponent('main', () => Root);
+if (StorybookUIRoot) {
+  const { AppErrorBoundary } = require('./src/Components/AppErrorBoundary');
+  function Root() {
+    return React.createElement(
+      GestureHandlerRootView,
+      { style: { flex: 1 } },
+      React.createElement(AppErrorBoundary, null, React.createElement(StorybookUIRoot, null)),
+    );
+  }
+  AppRegistry.registerComponent('main', () => Root);
+} else {
+  require('expo-router/entry');
+}

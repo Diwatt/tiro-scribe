@@ -1,12 +1,12 @@
 /**
  * ModelDownloader - Downloads ONNX models on first app launch
- * 
+ *
  * Models are downloaded from a CDN/server and cached locally
  */
 
 import * as FileSystem from 'expo-file-system/legacy';
-import {AppLogger, LoggerInterface} from './Logger';
-import {ModelDownloadError} from '../Exception/ModelDownloadError';
+import { ModelDownloadError } from '../Exception/ModelDownloadError';
+import { AppLogger, type LoggerInterface } from './Logger';
 
 export interface ModelConfig {
     name: string;
@@ -44,7 +44,7 @@ export class ModelDownloader {
         onProgress?: (progress: number) => void,
     ): Promise<string> {
         const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
-        
+
         // Check if model already exists
         const fileInfo = await FileSystem.getInfoAsync(localPath);
         if (fileInfo.exists) {
@@ -56,12 +56,12 @@ export class ModelDownloader {
         const dirPath = localPath.substring(0, localPath.lastIndexOf('/'));
         const dirInfo = await FileSystem.getInfoAsync(dirPath);
         if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(dirPath, {intermediates: true});
+            await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
         }
 
         // Download the model
         ModelDownloader.loggerInstance.info(`Downloading model ${config.name} from ${config.url}...`);
-        
+
         const downloadResumable = FileSystem.createDownloadResumable(
             config.url,
             localPath,
@@ -92,7 +92,7 @@ export class ModelDownloader {
             // Clean up partial download on error
             const fileInfo = await FileSystem.getInfoAsync(localPath);
             if (fileInfo.exists) {
-                await FileSystem.deleteAsync(localPath, {idempotent: true});
+                await FileSystem.deleteAsync(localPath, { idempotent: true });
             }
             throw new ModelDownloadError(
                 `Failed to download model ${config.name}: ${error}`,
@@ -114,9 +114,7 @@ export class ModelDownloader {
             configs.map(async (config) => {
                 const path = await this.ensureModelDownloaded(
                     config,
-                    onProgress
-                        ? (progress) => onProgress(config.name, progress)
-                        : undefined,
+                    onProgress ? (progress) => onProgress(config.name, progress) : undefined,
                 );
                 results[config.name] = path;
             }),
@@ -160,7 +158,7 @@ export class ModelDownloader {
         const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
         const fileInfo = await FileSystem.getInfoAsync(localPath);
         if (fileInfo.exists) {
-            await FileSystem.deleteAsync(localPath, {idempotent: true});
+            await FileSystem.deleteAsync(localPath, { idempotent: true });
             ModelDownloader.loggerInstance.debug(`Deleted model ${config.name} from ${localPath}`);
         }
     }
@@ -170,7 +168,7 @@ export class ModelDownloader {
      */
     static async getTotalModelSize(): Promise<number> {
         let totalSize = 0;
-        
+
         for (const config of Object.values(MODEL_CONFIGS)) {
             const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
             const fileInfo = await FileSystem.getInfoAsync(localPath);
@@ -178,7 +176,7 @@ export class ModelDownloader {
                 totalSize += fileInfo.size;
             }
         }
-        
+
         return totalSize;
     }
 }

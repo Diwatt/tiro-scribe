@@ -7,8 +7,8 @@
 import { observable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
 import * as FileSystem from 'expo-file-system/legacy';
-import { AppLogger } from '../Util/Logger';
-import type { LoggerInterface } from '../Util/Logger';
+import { AppLogger } from './Logger';
+import type { LoggerInterface } from './Logger';
 import { ModelDownloadError } from '../Exception/ModelDownloadError';
 import type { Therapist } from '../Entity/Therapist';
 

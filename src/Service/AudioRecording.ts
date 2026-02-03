@@ -7,7 +7,7 @@
 import {observable, Observable, computed, ObservableComputed} from '@legendapp/state';
 import {SecureRecorder, RecorderState} from '../../modules/secure-recorder/src/index';
 import {v4 as uuidv4} from 'uuid';
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { AppLogger, LoggerInterface } from './Logger';
 
 export interface AudioRecordingState {
     state: RecorderState;

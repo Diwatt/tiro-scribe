@@ -4,8 +4,8 @@
  */
 
 import * as FileSystem from 'expo-file-system/legacy';
-import { AppLogger } from '../Util/Logger';
-import type { LoggerInterface } from '../Util/Logger';
+import { AppLogger } from './Logger';
+import type { LoggerInterface } from './Logger';
 import { audioRecording } from './AudioRecording';
 
 const CALIBRATION_DURATION_MS = 5000;

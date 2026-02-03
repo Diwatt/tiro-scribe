@@ -10,7 +10,7 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import {AnonymizationResult, AnonymizedEntity, EntityType} from '@/Entity';
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { AppLogger, LoggerInterface } from './Logger';
 
 dayjs.extend(customParseFormat);
 
@@ -407,8 +407,8 @@ export class Anonymizer {
      * Generate anonymized token for persons
      */
     private generatePersonToken(): string {
-        const count = this.relationCounter.get('PERSON') || 0;
-        this.relationCounter.set('PERSON', count + 1);
+        const count = this.relationCounter.get(EntityType.PERSON) || 0;
+        this.relationCounter.set(EntityType.PERSON, count + 1);
         return `[PERSON_${count + 1}]`;
     }
 
@@ -416,8 +416,8 @@ export class Anonymizer {
      * Generate anonymized token for locations
      */
     private generateLocationToken(): string {
-        const count = this.relationCounter.get('LOCATION') || 0;
-        this.relationCounter.set('LOCATION', count + 1);
+        const count = this.relationCounter.get(EntityType.LOCATION) || 0;
+        this.relationCounter.set(EntityType.LOCATION, count + 1);
         return `[LOCATION_${count + 1}]`;
     }
 

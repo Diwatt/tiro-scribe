@@ -9,10 +9,6 @@ const path = require('path');
  */
 const config = getDefaultConfig(__dirname);
 
-// Configure Metro to handle .sql files for Drizzle migrations
-// This allows Metro to recognize and bundle SQL migration files
-config.resolver.sourceExts.push('sql');
-
 // Pnpm workspace specific configuration
 // We need to tell Metro about the workspace root node_modules
 config.resolver.nodeModulesPaths = [

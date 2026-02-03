@@ -2,16 +2,15 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text } from 'react-native';
 import { useTheme, ProgressBar, Card } from 'react-native-paper';
 import { observer } from '@legendapp/state/react';
+import { useRouter } from 'expo-router';
 import { StatusReady, SecureSessionButton } from '@/Components';
-import { RootTabScreenProps } from '@/Navigation/types';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
 import { modelManager, useModelDownloadProgress } from '../Service/ModelManager';
 
-export const Home = observer(function Home({
-    navigation,
-}: RootTabScreenProps<'Home'>): React.JSX.Element {
+export const Home = observer(function Home(): React.JSX.Element {
     const theme = useTheme();
+    const router = useRouter();
     const { progress, isReady, isDownloading } = useModelDownloadProgress();
 
     useEffect(() => {
@@ -21,7 +20,7 @@ export const Home = observer(function Home({
     }, []);
 
     const handlePress = () => {
-        navigation.navigate('Recording', { autoStart: true });
+        router.push({ pathname: '/main/recording', params: { autoStart: 'true' } });
     };
 
     return (

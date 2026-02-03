@@ -5,35 +5,47 @@
 // --- ENUMS ---
 
 export enum EncounterStatus {
-    RECORDING = 'RECORDING',
-    WAITING = 'WAITING',           // Waiting for triggers (Wifi/Charger)
-    PROCESSING = 'PROCESSING',     // Global status for UI
-    READY = 'READY',               // Processing done, ready to view
-    ARCHIVED = 'ARCHIVED',
+    RECORDING = 'recording',
+    WAITING = 'waiting',           // Waiting for triggers (Wifi/Charger)
+    PROCESSING = 'processing',     // Global status for UI
+    READY = 'ready',               // Processing done, ready to view
+    ARCHIVED = 'archived',
 }
 
 export enum QueueItemStatus {
-    PENDING = 'PENDING',
-    RUNNING = 'RUNNING',
-    PAUSED = 'PAUSED',
-    COMPLETED = 'COMPLETED',
-    FAILED = 'FAILED',
+    PENDING = 'pending',
+    RUNNING = 'running',
+    PAUSED = 'paused',
+    COMPLETED = 'completed',
+    FAILED = 'failed',
 }
 
 export enum PipelineStage {
-    WAITING = 'WAITING',           // Waiting for start conditions
-    TRANSCRIBING = 'TRANSCRIBING', // Audio: VAD + Whisper + Speaker ID
-    ANONYMIZING = 'ANONYMIZING',   // Text: NER + Anonymization
-    TO_SYNC = 'TO_SYNC',           // Ready for server push
+    WAITING = 'waiting',           // Waiting for start conditions
+    TRANSCRIBING = 'transcribing', // Audio: VAD + Whisper + Speaker ID
+    ANONYMIZING = 'anonymizing',   // Text: NER + Anonymization
+    TO_SYNC = 'to_sync',           // Ready for server push
+}
+
+/**
+ * Single processing error (last error on QueueItem; not stored as array in DB).
+ * For processing/support only: must contain only technical data (stage, error message).
+ * No PHI, no file paths that reveal user content, no transcript snippets.
+ * Safe for the user to send to support.
+ */
+export interface QueueItemErrorEntry {
+    timestamp: string;       // ISO UTC
+    stage: PipelineStage;
+    message: string;         // Technical error only; no private data
 }
 
 export enum EntityType {
-    PERSON = 'PERSON',
-    LOCATION = 'LOCATION',
-    FAMILY_RELATION = 'FAMILY_RELATION',
-    WORK_RELATION = 'WORK_RELATION',
-    DATE = 'DATE',
-    TIME = 'TIME',
+    PERSON = 'person',
+    LOCATION = 'location',
+    FAMILY_RELATION = 'family_relation',
+    WORK_RELATION = 'work_relation',
+    DATE = 'date',
+    TIME = 'time',
 }
 
 // --- CORE AI INTERFACES (JSON Storage) ---

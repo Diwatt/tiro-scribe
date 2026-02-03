@@ -2,10 +2,15 @@
  * QueueItem entity: property declarations with visibility; @Column on the property.
  */
 
+import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
-import { QueueItemStatus, PipelineStage } from './Type';
+import { PipelineStage, QueueItemStatus } from './Type';
+
+dayjs.extend(utc);
 
 const MAX_RETRY_COUNT = 3;
 
@@ -37,115 +42,100 @@ export class QueueItem extends AbstractEntity {
     @Column({ default: 0 })
     private retryCount!: number;
 
-    @Column({ default: null })
-    private errorLog!: string | null;
+    /** UTC, stored as ISO string; use dayjs in UTC mode. */
+    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    private createdAt!: Dayjs;
 
-    @Column({ default: () => Date.now(), as: 'date' })
-    private createdAt!: Date;
-
-    @Column({ default: () => Date.now(), as: 'date' })
-    private updatedAt!: Date;
+    /** UTC, stored as ISO string; use dayjs in UTC mode. */
+    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    private updatedAt!: Dayjs;
 
     public getUuid(): string {
-        return this.getField<string>('uuid') as string;
-    }
-
-    public setUuid(value: string): void {
-        this.setField('uuid', value);
+        return this.uuid;
     }
 
     public getEncounterId(): string {
-        return this.getField<string>('encounterId') as string;
+        return this.encounterId;
     }
 
     public setEncounterId(value: string): void {
-        this.setField('encounterId', value);
+        this.encounterId = value;
     }
 
     public getFilePath(): string {
-        return this.getField<string>('filePath') as string;
+        return this.filePath;
     }
 
     public setFilePath(value: string): void {
-        this.setField('filePath', value);
+        this.filePath = value;
     }
 
     public getProcessingOffset(): number {
-        return this.getField<number>('processingOffset') as number;
+        return this.processingOffset;
     }
 
     public setProcessingOffset(value: number): void {
-        this.setField('processingOffset', value);
+        this.processingOffset = value;
     }
 
     public getStatus(): QueueItemStatus {
-        return this.getField<QueueItemStatus>('status') as QueueItemStatus;
+        return this.status;
     }
 
     public setStatus(value: QueueItemStatus): void {
-        this.setField('status', value);
+        this.status = value;
     }
 
     public getPipelineStage(): PipelineStage {
-        return this.getField<PipelineStage>('pipelineStage') as PipelineStage;
+        return this.pipelineStage;
     }
 
     public setPipelineStage(value: PipelineStage): void {
-        this.setField('pipelineStage', value);
+        this.pipelineStage = value;
     }
 
     public getProgressPercent(): number {
-        return this.getField<number>('progressPercent') as number;
+        return this.progressPercent;
     }
 
     public setProgressPercent(value: number): void {
-        this.setField('progressPercent', value);
+        this.progressPercent = value;
     }
 
     public getRetryCount(): number {
-        return this.getField<number>('retryCount') as number;
+        return this.retryCount;
     }
 
     public setRetryCount(value: number): void {
-        this.setField('retryCount', value);
+        this.retryCount = value;
     }
 
-    public getErrorLog(): string | null {
-        return this.getField<string | null>('errorLog') as string | null;
-    }
-
-    public setErrorLog(value: string | null): void {
-        this.setField('errorLog', value);
-    }
-
-    public getCreatedAt(): Date {
-        return this.getField<Date>('createdAt') as Date;
-    }
-
-    public setCreatedAt(value: Date): void {
-        this.setField('createdAt', value);
-    }
-
-    public getUpdatedAt(): Date {
-        return this.getField<Date>('updatedAt') as Date;
-    }
-
-    public setUpdatedAt(value: Date): void {
-        this.setField('updatedAt', value);
-    }
-
-    public get isProcessable(): boolean {
-        if (this.status === QueueItemStatus.PENDING) return true;
-        if (this.status === QueueItemStatus.FAILED && this.retryCount < MAX_RETRY_COUNT)
-            return true;
-        return false;
-    }
-
-    public get createdAtDate(): Date {
+    public getCreatedAt(): Dayjs {
         return this.createdAt;
     }
 
-    public get updatedAtDate(): Date {
+    public setCreatedAt(value: Dayjs): void {
+        this.createdAt = value;
+    }
+
+    public getUpdatedAt(): Dayjs {
         return this.updatedAt;
+    }
+
+    public setUpdatedAt(value: Dayjs): void {
+        this.updatedAt = value;
+    }
+
+    public get isProcessable(): boolean {
+        if (this.getStatus() === QueueItemStatus.PENDING) {
+            return true;
+        }
+        if (
+            this.getStatus() === QueueItemStatus.FAILED &&
+            this.getRetryCount() < MAX_RETRY_COUNT
+        ) {
+            return true;
+        }
+        return false;
     }
 }

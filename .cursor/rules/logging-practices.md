@@ -63,7 +63,7 @@ logger.error('Operation failed', {
 
 ## Logger Configuration
 
-The logger automatically includes timestamps in the output. See `src/Util/Logger.ts`:
+The logger automatically includes timestamps in the output. See `src/Service/Logger.ts`:
 
 ```typescript
 AppLogger.instance = reactNativeLogger.createLogger({

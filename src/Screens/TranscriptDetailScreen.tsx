@@ -7,32 +7,25 @@ import React from 'react';
 import {View, StyleSheet, ScrollView} from 'react-native';
 import {Text, useTheme, Surface, Chip, IconButton} from 'react-native-paper';
 import {ArrowLeft, Download, Share2} from 'lucide-react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useLocalSearchParams, useRouter} from 'expo-router';
 
-interface TranscriptDetailScreenProps {
-    route?: {
-        params?: {
-            encounterId?: string;
-            transcript?: string;
-            biocode?: string;
-            date?: string;
-        };
-    };
-}
-
-export function TranscriptDetailScreen({
-    route,
-}: TranscriptDetailScreenProps): React.JSX.Element {
+export function TranscriptDetailScreen(): React.JSX.Element {
     const theme = useTheme();
-    const navigation = useNavigation();
+    const router = useRouter();
+    const params = useLocalSearchParams<{
+        id?: string;
+        transcript?: string;
+        biocode?: string;
+        date?: string;
+    }>();
 
-    // Mock data
+    // Mock data – id from route, optional query params
     const transcript =
-        route?.params?.transcript ||
+        params.transcript ||
         'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
 
-    const biocode = route?.params?.biocode || 'SUBJ-****-A3F2';
-    const date = route?.params?.date || '2 hours ago';
+    const biocode = params.biocode || 'SUBJ-****-A3F2';
+    const date = params.date || '2 hours ago';
 
     return (
         <View
@@ -48,7 +41,7 @@ export function TranscriptDetailScreen({
                 <IconButton
                     icon={ArrowLeft}
                     size={24}
-                    onPress={() => navigation.goBack()}
+                    onPress={() => router.back()}
                 />
                 <View style={styles.headerContent}>
                     <Text

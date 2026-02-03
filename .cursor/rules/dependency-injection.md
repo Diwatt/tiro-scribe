@@ -44,7 +44,7 @@ export type LoggerInterface = ReactNativeLogger;
 ### Inject via Constructor
 
 ```typescript
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { AppLogger, LoggerInterface } from '../Service/Logger';
 
 class MyService {
     private loggerInstance!: LoggerInterface;
@@ -76,7 +76,7 @@ export function createMyService(logger: LoggerInterface): MyService {
 ❌ **Don't: Direct imports in class methods**
 
 ```typescript
-import {AppLogger} from '../Util/Logger';
+import { AppLogger } from '../Service/Logger';
 
 class MyService {
     doSomething(): void {
@@ -107,7 +107,7 @@ export type LoggerInterface = ReturnType<typeof reactNativeLogger.createLogger>;
 ✅ **Do: Inject via constructor with type alias**
 
 ```typescript
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { AppLogger, LoggerInterface } from '../Service/Logger';
 
 class MyService {
     private loggerInstance: LoggerInterface;

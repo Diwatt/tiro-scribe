@@ -1,13 +1,15 @@
 /**
  * AbstractEntity: base class for "Class-Is-Schema" pattern (SRP: orchestration only).
- * No Proxy; entities declare explicit get/set and field$ using a single protected _state$ store.
- * Record shape is implied by the dev's getter/setter types (e.g. get createdAt$(): ObservablePrimitive<number>).
+ * No Proxy; entities use a single protected _state$ store. @Column wires each property so that:
+ * - Reading/writing this.fieldName goes through getField/setField (_state$), so observability is preserved.
+ * - this.fieldName$ is the observable node for reactive subscriptions (observer, useSelector).
+ * Use getField/setField for key-based access; use field$(key) or this.fieldName$ for the observable.
  */
 
 import { observable } from '@legendapp/state';
 import type { ObservableObject } from '@legendapp/state';
 import { DatabaseException } from '../Exception';
-import { FieldDecorator, MetadataReader } from '../Decorator';
+import { MetadataReader } from '../Decorator';
 import type { ObservableNode, ObservablePrimitive } from './Type';
 
 /** Observable store: index by field name to get node with get/set. */

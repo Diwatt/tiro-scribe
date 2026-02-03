@@ -13,7 +13,7 @@ import * as ort from 'onnxruntime-react-native';
 import {Biocode} from './Biocode';
 import {Anonymizer} from './Anonymizer';
 import {AudioProcessingResult, ProcessingPayload} from '@/Entity';
-import {AppLogger, LoggerInterface} from '../Util/Logger';
+import { AppLogger, LoggerInterface } from './Logger';
 import {TranscriptionNotImplementedError} from '../Exception/TranscriptionNotImplementedError';
 
 /**

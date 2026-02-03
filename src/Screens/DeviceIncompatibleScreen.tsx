@@ -1,6 +1,6 @@
 /**
  * Device Incompatible Screen
- * Shown when DeviceCheck.checkCompatible() returns false. Blocks all navigation.
+ * Shown when DeviceCompatibilityGate.isCompatible() returns false. Blocks all navigation.
  */
 
 import React from 'react';
@@ -19,8 +19,8 @@ export function DeviceIncompatibleScreen(): React.JSX.Element {
                 Scribe requires a compatible device for on-device AI processing.
             </Text>
             <Text style={[styles.hint, { color: theme.colors.outline }]}>
-                iOS: iPhone 12 or newer, 3.8GB+ RAM.{'\n'}
-                Android: 6GB+ RAM, 64-bit CPU.
+                iOS: 12.0+, 3.8GB+ RAM.{'\n'}
+                Android: 9.0+, 6GB+ RAM, 64-bit CPU.
             </Text>
         </View>
     );
