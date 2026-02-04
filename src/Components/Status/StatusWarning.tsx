@@ -21,7 +21,6 @@ export function StatusWarning({
         iconBackground: string;
         shadowColor: string;
     };
-
     return (
         <Status
             title={title}

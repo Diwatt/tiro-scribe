@@ -57,6 +57,21 @@ export class MetadataReader {
     }
 
     /**
+     * For each field that has the given decorator, maps field name → value of the given option.
+     * Example: getOptionValuesByField('Column', 'default') for entity construction defaults.
+     */
+    public getOptionValuesByField(decoratorName: string, optionKey: string): Record<string, unknown> {
+        const out: Record<string, unknown> = {};
+        for (const field of this.getFields()) {
+            if (field.getDecoratorName() !== decoratorName) {
+                continue;
+            }
+            out[field.getFieldName()] = field.getOption(optionKey);
+        }
+        return out;
+    }
+
+    /**
      * Field decorator with this decorator name (e.g. 'PrimaryKey', 'Column').
      * Use for unique decorators: reader.getField('PrimaryKey').getFieldName().
      * target: constructor or instance (uses target.constructor when instance).

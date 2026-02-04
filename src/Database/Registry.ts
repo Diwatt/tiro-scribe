@@ -3,14 +3,16 @@
  * Centralized entry point for data access.
  *
  * Usage: registry.getRepository(Therapist).find(uuid)
- * TherapistRepository: registry.getRepository(Therapist).hasActiveSession()
+ * Custom repo (e.g. TherapistRepository) is used at runtime when entity defines repositoryClass.
+ *
+ * Therapist.repositoryClass is resolved lazily to avoid a require cycle:
+ * Therapist -> Registry -> TherapistRepository -> Therapist.
  */
 
 import { TiroScribeException } from '../Exception';
-import type { AbstractEntity, EntityConstructorInput } from './AbstractEntity';
+import type { AbstractEntity } from './AbstractEntity';
 import { Repository } from './Repository';
-import { Therapist } from '../Entity/Therapist';
-import { TherapistRepository } from './TherapistRepository';
+import type { EntityClass } from './Type';
 
 const ERROR_CODES = {
     ENTITY_NAME_REQUIRED: 'ENTITY_NAME_REQUIRED',
@@ -19,19 +21,10 @@ const ERROR_CODES = {
 export class Registry {
     private readonly repositories = new Map<string, Repository<AbstractEntity>>();
 
-    public getRepository(therapist: typeof Therapist): TherapistRepository;
-    public getRepository<TEntity extends AbstractEntity>(
-        EntityClass: {
-            new (dataOrObservable?: EntityConstructorInput): TEntity;
-            entityName: string;
-        },
-    ): Repository<TEntity>;
-    public getRepository<TEntity extends AbstractEntity>(
-        EntityClass: {
-            new (dataOrObservable?: EntityConstructorInput): TEntity;
-            entityName: string;
-        },
-    ): Repository<TEntity> | TherapistRepository {
+    public getRepository<
+        TEntity extends AbstractEntity,
+        TRepository extends Repository<AbstractEntity> = Repository<TEntity>,
+    >(EntityClass: EntityClass<TEntity>): TRepository {
         const entityName = EntityClass.entityName;
         if (!entityName) {
             throw new TiroScribeException(
@@ -43,14 +36,13 @@ export class Registry {
         }
 
         const existing = this.repositories.get(entityName);
-        if (existing) return existing as Repository<TEntity> | TherapistRepository;
+        if (existing) {
+            return existing as TRepository;
+        }
 
-        const repository =
-            (EntityClass as unknown) === Therapist
-                ? new TherapistRepository()
-                : new Repository<TEntity>(EntityClass, entityName);
-        this.repositories.set(entityName, repository as Repository<AbstractEntity>);
-        return repository as Repository<TEntity> | TherapistRepository;
+        const repository = Repository.create<TEntity>(entityName, EntityClass);
+        this.repositories.set(entityName, repository);
+        return repository as TRepository;
     }
 }
 

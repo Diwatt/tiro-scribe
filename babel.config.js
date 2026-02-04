@@ -2,8 +2,9 @@ module.exports = function (api) {
     // Cache based on environment variables to ensure Storybook mode works correctly
     api.cache.using(() => process.env.STORYBOOK_ENABLED);
     return {
-        presets: ['babel-preset-expo'],
+        presets: [['babel-preset-expo', { decorators: false }]],
         plugins: [
+            ['@babel/plugin-proposal-decorators', { version: '2023-05' }],
             [
                 'module-resolver',
                 {
@@ -18,13 +19,7 @@ module.exports = function (api) {
                     ],
                     alias: {
                         '@': './src',
-                        '@Entity': './src/Entity',
                         '@Service': './src/Service',
-                        '@Model': './src/Model',
-                        '@Util': './src/Util',
-                        '@Store': './src/Store',
-                        '@Navigation': './src/Navigation',
-                        '@Recording': './src/Recording',
                     },
                 },
             ],

@@ -29,7 +29,7 @@ describe('MetadataReader', () => {
 
         it('returns field decorators from Symbol.metadata', () => {
             const construct = function WithFields() {};
-            (construct as any).name = 'WithFields';
+            Object.defineProperty(construct, 'name', { value: 'WithFields', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
@@ -47,7 +47,7 @@ describe('MetadataReader', () => {
     describe('getFieldByProperty', () => {
         it('filters getFields by property name', () => {
             const construct = function Multi() {};
-            (construct as any).name = 'Multi';
+            Object.defineProperty(construct, 'name', { value: 'Multi', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'a', 'Column', {});
@@ -63,7 +63,7 @@ describe('MetadataReader', () => {
     describe('getField (instance)', () => {
         it('returns first field with given decorator name', () => {
             const construct = function HasPK() {};
-            (construct as any).name = 'HasPK';
+            Object.defineProperty(construct, 'name', { value: 'HasPK', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'pk', 'PrimaryKey', {});
@@ -75,7 +75,7 @@ describe('MetadataReader', () => {
 
         it('returns undefined when no field has decorator name', () => {
             const construct = function NoPK() {};
-            (construct as any).name = 'NoPK';
+            Object.defineProperty(construct, 'name', { value: 'NoPK', configurable: true });
             (construct as any)[Symbol.metadata] = {};
             const reader = new MetadataReader(construct);
             expect(reader.getField('PrimaryKey')).toBeUndefined();
@@ -85,7 +85,7 @@ describe('MetadataReader', () => {
     describe('getField (static)', () => {
         it('accepts constructor and returns field by decorator name', () => {
             const construct = function StaticPK() {};
-            (construct as any).name = 'StaticPK';
+            Object.defineProperty(construct, 'name', { value: 'StaticPK', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
@@ -96,7 +96,7 @@ describe('MetadataReader', () => {
 
         it('accepts instance and uses instance.constructor', () => {
             const construct = function InstancePK() {};
-            (construct as any).name = 'InstancePK';
+            Object.defineProperty(construct, 'name', { value: 'InstancePK', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'uuid', 'PrimaryKey', {});

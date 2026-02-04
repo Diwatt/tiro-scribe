@@ -122,5 +122,3 @@ export class HardwareGuard {
         return true;
     }
 }
-
-export const hardwareGuard = new HardwareGuard(AppLogger.getInstance(), 3.8, '12.0.0');

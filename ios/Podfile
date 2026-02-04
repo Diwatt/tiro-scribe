@@ -16,7 +16,7 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
   if File.exist?(configure_script)
     content = File.read(configure_script)
     unless content.include?('"secure-recorder"')
-      content = content.sub(/"expo-sqlite"/, '"expo-sqlite" "secure-recorder"')
+      content = content.sub(/"expo-file-system"/, '"expo-file-system" "secure-recorder"')
       File.write(configure_script, content)
     end
   end
@@ -28,7 +28,7 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
     content = File.read(provider_path)
     changed = false
     unless content.include?('import SecureRecorder')
-      content = content.sub("import ExpoSQLite\n", "import ExpoSQLite\nimport SecureRecorder\n")
+      content = content.sub("import ExpoFileSystem\n", "import ExpoFileSystem\nimport SecureRecorder\n")
       changed = true
     end
     unless content.include?('SecureRecorderModule.self')
@@ -37,8 +37,8 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
         "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else"
       )
       content = content.sub(
-        "SQLiteModule.self\n    ]\n    #endif",
-        "SQLiteModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif"
+        "FileSystemModule.self\n    ]\n    #endif",
+        "FileSystemModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif"
       )
       changed = true
     end
@@ -66,7 +66,7 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
       C="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/expo-configure-project.sh"
       [ ! -f "$C" ] && exit 0
       grep -q '"secure-recorder"' "$C" && exit 0
-      ruby -e 'c=File.read(ARGV[0]);c=c.sub(/"expo-sqlite"/,"\"expo-sqlite\" \"secure-recorder\"");File.write(ARGV[0],c)' "$C"
+      ruby -e 'c=File.read(ARGV[0]);c=c.sub(/"expo-file-system"/,"\"expo-file-system\" \"secure-recorder\"");File.write(ARGV[0],c)' "$C"
     SH
     idx = native_target.build_phases.find_index(configure_phase)
     native_target.build_phases.delete(phase)
@@ -82,7 +82,7 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
       P="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"
       [ ! -f "$P" ] && exit 0
       grep -q "SecureRecorderModule.self" "$P" && exit 0
-      ruby -e 'c=File.read(ARGV[0]);c=c.sub("import ExpoSQLite\n","import ExpoSQLite\nimport SecureRecorder\n") unless c.include?("import SecureRecorder");c=c.sub("DevMenuPreferences.self\n    ]\n    #else","DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else");c=c.sub("SQLiteModule.self\n    ]\n    #endif","SQLiteModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif");File.write(ARGV[0],c)' "$P"
+      ruby -e 'c=File.read(ARGV[0]);c=c.sub("import ExpoFileSystem\n","import ExpoFileSystem\nimport SecureRecorder\n") unless c.include?("import SecureRecorder");c=c.sub("DevMenuPreferences.self\n    ]\n    #else","DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else");c=c.sub("FileSystemModule.self\n    ]\n    #endif","FileSystemModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif");File.write(ARGV[0],c)' "$P"
     SH
     idx = native_target.build_phases.find_index(configure_phase)
     native_target.build_phases.delete(phase)

@@ -15,7 +15,7 @@ import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
 import { AppTheme } from '@/theme/AppTheme';
 import { ServicesProvider } from '@/Context/ServicesContext';
 import { DeviceIncompatibleScreen } from '@/Screens/DeviceIncompatibleScreen';
-import { startupOrchestrator } from '@/State/StartupOrchestrator';
+import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
 
 const services = {
   biocodeService: null,
@@ -43,25 +43,25 @@ function StartupGateContent(): React.JSX.Element | null {
   const state = startupOrchestrator.observable.get();
 
   useEffect(() => {
-    if (state === 'BOOTING') return;
+    if (state === StartupState.BOOTING) return;
     hideSplash();
   }, [state]);
 
   useEffect(() => {
-    if (state === 'ONBOARDING') {
+    if (state === StartupState.ONBOARDING) {
       router.replace('/onboarding');
       return;
     }
-    if (state === 'READY' && !replacedForReady.current) {
+    if (state === StartupState.READY && !replacedForReady.current) {
       replacedForReady.current = true;
       router.replace('/main');
     }
   }, [state, router]);
 
-  if (state === 'BOOTING') {
+  if (state === StartupState.BOOTING) {
     return null;
   }
-  if (state === 'HARDWARE_REJECTED') {
+  if (state === StartupState.HARDWARE_REJECTED) {
     return <DeviceIncompatibleScreen />;
   }
   return <Slot />;

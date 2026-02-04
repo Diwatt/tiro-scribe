@@ -24,7 +24,6 @@ export function SettingsScreen(props: SettingsScreenProps): React.JSX.Element {
     const [notificationsEnabled, setNotificationsEnabled] =
         React.useState(true);
     const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
-
     return (
         <ScrollView
             style={[

@@ -108,7 +108,6 @@ export class Anonymizer {
             entities.length > 0
                 ? entities.reduce((sum, e) => sum + 0.9, 0) / entities.length
                 : 1.0;
-
         return {
             cleanText,
             entities,
@@ -148,7 +147,6 @@ export class Anonymizer {
                     });
                 }
             }
-
             return entities;
         } catch (error) {
             this.loggerInstance.error('Error in AI-based NER:', {
@@ -231,7 +229,6 @@ export class Anonymizer {
                 }
             }
         }
-
         return entities;
     }
 
@@ -318,7 +315,6 @@ export class Anonymizer {
                 }
             }
         }
-
         return entities;
     }
 

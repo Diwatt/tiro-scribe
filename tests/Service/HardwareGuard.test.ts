@@ -3,6 +3,7 @@
  * isCompatible() behavior; DeviceCompatibilityGate holds the compatibility matrix (iOS/Android mins).
  */
 
+import { vi } from 'vitest';
 import { DeviceType } from 'expo-device';
 import { HardwareGuard } from '@/Security/HardwareGuard';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
@@ -17,7 +18,7 @@ const mockDevice = {
     supportedCpuArchitectures: ['arm64'] as string[],
 };
 
-jest.mock('react-native', () => ({
+vi.mock('react-native', () => ({
     Platform: {
         get OS() {
             return (global as unknown as { __platformOS: 'ios' | 'android' }).__platformOS ?? 'ios';
@@ -25,7 +26,7 @@ jest.mock('react-native', () => ({
     },
 }));
 
-jest.mock('expo-device', () => ({
+vi.mock('expo-device', () => ({
     DeviceType: { PHONE: 2, TABLET: 3, DESKTOP: 4, TV: 5 },
     get deviceType() {
         return mockDevice.deviceType;
@@ -260,38 +261,37 @@ describe('HardwareGuard', () => {
 });
 
 describe('DeviceCompatibilityGate', () => {
-    it('throws HardwareGuardException when ios minSemver is not parseable', () => {
-        expect(
-            () =>
-                new DeviceCompatibilityGate(AppLogger.getInstance(), {
-                    ios: { minRamGigabytes: 3.8, minSemver: '' },
-                    android: { minRamGigabytes: 6, minSemver: '9.0.0' },
-                }),
-        ).toThrow(HardwareGuardException);
-        expect(
-            () =>
-                new DeviceCompatibilityGate(AppLogger.getInstance(), {
-                    ios: { minRamGigabytes: 3.8, minSemver: 'invalid' },
-                    android: { minRamGigabytes: 6, minSemver: '9.0.0' },
-                }),
-        ).toThrow(/minSemver is not parseable/);
+    it('throws HardwareGuardException when ios minSemver is not parseable (on isCompatible)', () => {
+        setPlatform('ios');
+        const gate = new DeviceCompatibilityGate(AppLogger.getInstance(), {
+            ios: { minRamGigabytes: 3.8, minSemver: '' },
+            android: { minRamGigabytes: 6, minSemver: '9.0.0' },
+        });
+        expect(() => gate.isCompatible()).toThrow(HardwareGuardException);
+        setPlatform('ios');
+        const gateInvalid = new DeviceCompatibilityGate(AppLogger.getInstance(), {
+            ios: { minRamGigabytes: 3.8, minSemver: 'invalid' },
+            android: { minRamGigabytes: 6, minSemver: '9.0.0' },
+        });
+        expect(() => gateInvalid.isCompatible()).toThrow(/minSemver is not parseable/);
     });
 
-    it('throws HardwareGuardException when android minSemver is not parseable', () => {
-        expect(
-            () =>
-                new DeviceCompatibilityGate(AppLogger.getInstance(), {
-                    ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
-                    android: { minRamGigabytes: 6, minSemver: '' },
-                }),
-        ).toThrow(HardwareGuardException);
-        expect(
-            () =>
-                new DeviceCompatibilityGate(AppLogger.getInstance(), {
-                    ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
-                    android: { minRamGigabytes: 6, minSemver: 'bad' },
-                }),
-        ).toThrow(/minSemver is not parseable/);
+    it('throws HardwareGuardException when android minSemver is not parseable (on isCompatible)', () => {
+        setPlatform('android');
+        mockDevice.osName = 'Android';
+        mockDevice.osVersion = '14';
+        mockDevice.totalMemory = 6 * 1024 ** 3;
+        mockDevice.supportedCpuArchitectures = ['arm64-v8a'];
+        const gate = new DeviceCompatibilityGate(AppLogger.getInstance(), {
+            ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
+            android: { minRamGigabytes: 6, minSemver: '' },
+        });
+        expect(() => gate.isCompatible()).toThrow(HardwareGuardException);
+        const gateBad = new DeviceCompatibilityGate(AppLogger.getInstance(), {
+            ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
+            android: { minRamGigabytes: 6, minSemver: 'bad' },
+        });
+        expect(() => gateBad.isCompatible()).toThrow(/minSemver is not parseable/);
     });
 
     it('succeeds with default matrix', () => {

@@ -13,6 +13,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
+    Pressable,
 } from 'react-native';
 import {
     useTheme,
@@ -21,6 +22,7 @@ import {
     Checkbox,
     ProgressBar,
     HelperText,
+    Menu,
 } from 'react-native-paper';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
@@ -29,8 +31,11 @@ import { voiceCalibration } from '../Service';
 import type { ExtendedTheme } from '../theme/AppTheme';
 
 const LANGUAGES = [
-    { value: 'fr', label: 'Français' },
     { value: 'en', label: 'English' },
+    { value: 'fr', label: 'Français' },
+    { value: 'es', label: 'Español' },
+    { value: 'de', label: 'Deutsch' },
+    { value: 'it', label: 'Italiano' },
 ];
 
 const STEPS = 3;
@@ -61,8 +66,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): React.J
     const [savedCodeChecked, setSavedCodeChecked] = useState(false);
     const [voiceLoading, setVoiceLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [langMenuVisible, setLangMenuVisible] = useState(false);
 
     const actions = theme.colors.actions;
+    const selectedLanguageLabel = LANGUAGES.find((l) => l.value === language)?.label ?? language;
     const progress = step / STEPS;
 
     const handleStep1Next = useCallback(async () => {
@@ -126,7 +133,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): React.J
             const therapists = therapistRepo.findAll();
             const current = therapists[0];
             if (current) {
-                current.setBiocodeEmbedding(JSON.stringify(vector));
+                current.setBiocodeEmbedding(vector);
                 therapistRepo.persist({
                     uuid: current.getUuid(),
                     biocodeEmbedding: current.getBiocodeEmbedding(),
@@ -139,7 +146,6 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): React.J
             setError(e instanceof Error ? e.message : 'Voice calibration failed.');
         }
     }, [onComplete]);
-
     return (
         <KeyboardAvoidingView
             style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -164,18 +170,40 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): React.J
                         <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>
                             Language
                         </Text>
-                        <View style={styles.languageRow}>
+                        <Menu
+                            visible={langMenuVisible}
+                            onDismiss={() => setLangMenuVisible(false)}
+                            anchor={
+                                <Pressable onPress={() => setLangMenuVisible(true)}>
+                                    <View
+                                        style={[
+                                            styles.langSelect,
+                                            {
+                                                backgroundColor: theme.colors.surface,
+                                                borderColor: theme.colors.outline,
+                                            },
+                                        ]}
+                                        pointerEvents="box-only"
+                                    >
+                                        <Text style={[styles.langSelectText, { color: theme.colors.onSurface }]}>
+                                            {selectedLanguageLabel}
+                                        </Text>
+                                        <Text style={{ color: theme.colors.onSurfaceVariant }}>▼</Text>
+                                    </View>
+                                </Pressable>
+                            }
+                        >
                             {LANGUAGES.map((opt) => (
-                                <Button
+                                <Menu.Item
                                     key={opt.value}
-                                    mode={language === opt.value ? 'contained' : 'outlined'}
-                                    onPress={() => setLanguage(opt.value)}
-                                    style={styles.langButton}
-                                >
-                                    {opt.label}
-                                </Button>
+                                    onPress={() => {
+                                        setLanguage(opt.value);
+                                        setLangMenuVisible(false);
+                                    }}
+                                    title={opt.label}
+                                />
                             ))}
-                        </View>
+                        </Menu>
                         <TextInput
                             label="Email"
                             value={email}
@@ -293,13 +321,19 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginBottom: 8,
     },
-    languageRow: {
+    langSelect: {
         flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderRadius: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 16,
+        minHeight: 56,
+        marginBottom: 12,
     },
-    langButton: {
-        flex: 1,
+    langSelectText: {
+        fontSize: 16,
     },
     input: {
         marginBottom: 12,

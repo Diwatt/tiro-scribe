@@ -1,6 +1,6 @@
 /**
  * Builds entity constructors with manual metadata so tests don't load decorated
- * entities (which require Stage 3 decorators / addInitializer in Jest).
+ * entities (which require Stage 3 decorators / addInitializer in the test runner).
  */
 
 import { AbstractEntity } from '@/Database/AbstractEntity';
@@ -29,14 +29,9 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
     entityName: string;
     name: string;
 } {
-    const M = function MockEncounter(this: AbstractEntity, data?: EntityConstructorInput) {
-        AbstractEntity.call(this as unknown as AbstractEntity, data);
-    } as unknown as typeof AbstractEntity & { entityName: string; name: string };
-    M.prototype = Object.create(AbstractEntity.prototype);
-    M.prototype.constructor = M;
-    M.name = 'MockEncounter';
-    M.entityName = 'encounters';
-    attachEntityMetadata(M, 'encounters', {
+    class MockEncounter extends AbstractEntity {}
+    (MockEncounter as unknown as { entityName: string }).entityName = 'encounters';
+    attachEntityMetadata(MockEncounter, 'encounters', {
         uuid: {
             decorators: [
                 { decoratorName: 'PrimaryKey', options: {} },
@@ -47,7 +42,7 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
         participantBiocodes: { decorators: [{ decoratorName: 'Column', options: { default: [] } }] },
         status: { decorators: [{ decoratorName: 'Column', options: { default: 'recording' } }] },
     });
-    return M;
+    return MockEncounter as unknown as typeof AbstractEntity & { entityName: string; name: string };
 }
 
 /** Entity with PrimaryKey for AbstractEntity tests. */
@@ -55,14 +50,9 @@ export function createTestEntityConstructor(): typeof AbstractEntity & {
     entityName: string;
     name: string;
 } {
-    const M = function TestEntity(this: AbstractEntity, data?: EntityConstructorInput) {
-        AbstractEntity.call(this as unknown as AbstractEntity, data);
-    } as unknown as typeof AbstractEntity & { entityName: string; name: string };
-    M.prototype = Object.create(AbstractEntity.prototype);
-    M.prototype.constructor = M;
-    M.name = 'TestEntity';
-    M.entityName = 'test_entities';
-    attachEntityMetadata(M, 'test_entities', {
+    class TestEntity extends AbstractEntity {}
+    (TestEntity as unknown as { entityName: string }).entityName = 'test_entities';
+    attachEntityMetadata(TestEntity, 'test_entities', {
         id: {
             decorators: [
                 { decoratorName: 'PrimaryKey', options: {} },
@@ -71,7 +61,7 @@ export function createTestEntityConstructor(): typeof AbstractEntity & {
         },
         name: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },
     });
-    return M;
+    return TestEntity as unknown as typeof AbstractEntity & { entityName: string; name: string };
 }
 
 /** Entity without PrimaryKey for PRIMARY_KEY_NOT_DEFINED test. */
@@ -79,15 +69,10 @@ export function createNoPkEntityConstructor(): typeof AbstractEntity & {
     entityName: string;
     name: string;
 } {
-    const M = function NoPkEntity(this: AbstractEntity, data?: EntityConstructorInput) {
-        AbstractEntity.call(this as unknown as AbstractEntity, data);
-    } as unknown as typeof AbstractEntity & { entityName: string; name: string };
-    M.prototype = Object.create(AbstractEntity.prototype);
-    M.prototype.constructor = M;
-    M.name = 'NoPkEntity';
-    M.entityName = 'no_pk_entities';
-    attachEntityMetadata(M, 'no_pk_entities', {
+    class NoPkEntity extends AbstractEntity {}
+    (NoPkEntity as unknown as { entityName: string }).entityName = 'no_pk_entities';
+    attachEntityMetadata(NoPkEntity, 'no_pk_entities', {
         x: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },
     });
-    return M;
+    return NoPkEntity as unknown as typeof AbstractEntity & { entityName: string; name: string };
 }

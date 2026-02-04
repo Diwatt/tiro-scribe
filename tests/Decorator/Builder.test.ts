@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Builder } from '@/Decorator/Builder';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import { MetadataReader } from '@/Decorator/MetadataReader';
@@ -8,7 +9,7 @@ describe('Builder', () => {
     describe('buildEntity', () => {
         it('returns a function that returns a decorator', () => {
             const config: ClassDecoratorConfig<object> = {
-                fn: jest.fn(),
+                fn: vi.fn(),
             };
             const decoratorFactory = Builder.buildEntity(config);
             expect(typeof decoratorFactory).toBe('function');
@@ -17,7 +18,7 @@ describe('Builder', () => {
         });
 
         it('defaults options to {} when not provided', () => {
-            const fn = jest.fn();
+            const fn = vi.fn();
             const config: ClassDecoratorConfig<object> = { fn };
             const decorator = Builder.buildEntity(config)();
             const target = function TestEntity() {};
@@ -27,7 +28,7 @@ describe('Builder', () => {
         });
 
         it('passes options to fn', () => {
-            const fn = jest.fn();
+            const fn = vi.fn();
             const config: ClassDecoratorConfig<{ table_name: string }> = { fn };
             const decorator = Builder.buildEntity(config)({ table_name: 'tests' });
             const target = function TestEntity() {};
@@ -37,7 +38,7 @@ describe('Builder', () => {
         });
 
         it('returns target from decorator', () => {
-            const config: ClassDecoratorConfig<object> = { fn: jest.fn() };
+            const config: ClassDecoratorConfig<object> = { fn: vi.fn() };
             const decorator = Builder.buildEntity(config)();
             const target = function T() {};
             const result = decorator(target, {} as ClassDecoratorContext<typeof target>);
@@ -49,15 +50,15 @@ describe('Builder', () => {
             const config: ClassDecoratorConfig<object> = {
                 schema,
                 errorCode: 'INVALID_ENTITY',
-                fn: jest.fn(),
+                fn: vi.fn(),
             };
             expect(() => Builder.buildEntity(config)()).toThrow(DatabaseException);
             expect(() => Builder.buildEntity(config)({ table_name: 'ok' })()).not.toThrow();
         });
 
         it('calls custom validate when provided', () => {
-            const validate = jest.fn();
-            const config: ClassDecoratorConfig<object> = { fn: jest.fn(), validate };
+            const validate = vi.fn();
+            const config: ClassDecoratorConfig<object> = { fn: vi.fn(), validate };
             const decorator = Builder.buildEntity(config)({ x: 1 });
             decorator(function T() {}, {} as any);
             expect(validate).toHaveBeenCalledWith({ x: 1 });
@@ -67,7 +68,7 @@ describe('Builder', () => {
     describe('buildField', () => {
         it('returns a function that returns a field decorator', () => {
             const config: FieldDecoratorConfig<object> = {
-                initializer: jest.fn(() => () => {}),
+                initializer: vi.fn(() => () => {}),
             };
             const decoratorFactory = Builder.buildField(config);
             expect(typeof decoratorFactory).toBe('function');
@@ -76,21 +77,21 @@ describe('Builder', () => {
         });
 
         it('defaults options to {}', () => {
-            const initializer = jest.fn(() => () => {});
+            const initializer = vi.fn(() => () => {});
             const config: FieldDecoratorConfig<object> = { initializer };
             const decorator = Builder.buildField(config)();
             const context = {
                 name: 'uuid',
                 metadata: {},
-                addInitializer: jest.fn((cb: () => void) => cb()),
+                addInitializer: vi.fn((cb: () => void) => cb()),
             } as unknown as ClassFieldDecoratorContext<unknown, unknown>;
             decorator(undefined, context);
             expect(initializer).toHaveBeenCalledWith(context, {});
         });
 
         it('passes options to before and initializer', () => {
-            const before = jest.fn();
-            const initializer = jest.fn(() => () => {});
+            const before = vi.fn();
+            const initializer = vi.fn(() => () => {});
             const config: FieldDecoratorConfig<{ default: number }> = {
                 before,
                 initializer,
@@ -99,7 +100,7 @@ describe('Builder', () => {
             const context = {
                 name: 'x',
                 metadata: {},
-                addInitializer: jest.fn((cb: () => void) => cb()),
+                addInitializer: vi.fn((cb: () => void) => cb()),
             } as unknown as ClassFieldDecoratorContext<unknown, unknown>;
             decorator(undefined, context);
             expect(before).toHaveBeenCalledWith(context, { default: 42 });
@@ -111,7 +112,7 @@ describe('Builder', () => {
             const config: FieldDecoratorConfig<object> = {
                 schema,
                 errorCode: 'INVALID_COLUMN',
-                initializer: jest.fn(() => () => {}),
+                initializer: vi.fn(() => () => {}),
             };
             expect(() => Builder.buildField(config)()).toThrow(DatabaseException);
             expect(() => {
@@ -126,28 +127,28 @@ describe('Builder', () => {
             const config: FieldDecoratorConfig<object> = {
                 unique: true,
                 decoratorName: 'PrimaryKey',
-                initializer: jest.fn(() => () => {}),
+                initializer: vi.fn(() => () => {}),
             };
             const decorator = Builder.buildField(config)();
             const context = {
                 name: 'uuid',
                 metadata: meta,
-                addInitializer: jest.fn((cb: () => void) => cb()),
+                addInitializer: vi.fn((cb: () => void) => cb()),
             } as unknown as ClassFieldDecoratorContext<unknown, unknown>;
             expect(() => decorator(undefined, context)).toThrow(/Only one property can have @PrimaryKey/);
         });
 
         it('invokes addInitializer with a function that calls initializer result', () => {
-            const setter = jest.fn();
+            const setter = vi.fn();
             const config: FieldDecoratorConfig<object> = {
-                initializer: jest.fn(() => setter),
+                initializer: vi.fn(() => setter),
             };
             const decorator = Builder.buildField(config)();
             let capturedCb: (this: unknown) => void = () => {};
             const context = {
                 name: 'x',
                 metadata: {},
-                addInitializer: jest.fn((cb: (this: unknown) => void) => {
+                addInitializer: vi.fn((cb: (this: unknown) => void) => {
                     capturedCb = cb;
                 }),
             } as unknown as ClassFieldDecoratorContext<unknown, unknown>;

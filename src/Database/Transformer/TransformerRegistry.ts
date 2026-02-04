@@ -17,6 +17,11 @@ export class TransformerRegistry {
     public static get(name: string): FieldTransformer | undefined {
         return this._registry.get(name);
     }
+
+    /** Remove a registered transformer (e.g. for test cleanup). */
+    public static unregister(name: string): void {
+        this._registry.delete(name);
+    }
 }
 
 TransformerRegistry.register('date', new DateTransformer());

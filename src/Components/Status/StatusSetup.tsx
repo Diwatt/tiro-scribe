@@ -26,7 +26,6 @@ export function StatusSetup({
         iconBackground: string;
         shadowColor: string;
     };
-
     return (
         <Status
             title="AI Configuration"

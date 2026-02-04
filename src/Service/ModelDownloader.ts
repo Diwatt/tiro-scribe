@@ -119,7 +119,6 @@ export class ModelDownloader {
                 results[config.name] = path;
             }),
         );
-
         return results;
     }
 
@@ -176,7 +175,6 @@ export class ModelDownloader {
                 totalSize += fileInfo.size;
             }
         }
-
         return totalSize;
     }
 }

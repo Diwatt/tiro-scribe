@@ -23,7 +23,6 @@ interface SubjectsScreenProps {
 export function SubjectsScreen(props: SubjectsScreenProps): React.JSX.Element {
     const theme = useTheme();
     const [searchQuery, setSearchQuery] = React.useState('');
-
     return (
         <View
             style={[

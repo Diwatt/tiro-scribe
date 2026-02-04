@@ -7,6 +7,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { registry } from '../Database/Registry';
+import type { TherapistRepository } from '../Database/TherapistRepository';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 
 @Entity({ table_name: 'therapists' })
@@ -55,6 +56,11 @@ export class Therapist extends AbstractEntity {
 
     @Column({ default: null })
     private yearsOfExperience!: number | null;
+
+    /** Custom repository; resolved lazily to avoid Therapist ↔ TherapistRepository require cycle. */
+    static get repositoryClass() {
+        return require('../Database/TherapistRepository').TherapistRepository;
+    }
 
     public getUuid(): string {
         return this.uuid;
@@ -174,6 +180,6 @@ export class Therapist extends AbstractEntity {
      * Delegates to TherapistRepository.
      */
     static async hasActiveSession(): Promise<boolean> {
-        return registry.getRepository(Therapist).hasActiveSession();
+        return registry.getRepository<Therapist, TherapistRepository>(Therapist).hasActiveSession();
     }
 }

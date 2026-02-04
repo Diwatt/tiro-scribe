@@ -19,13 +19,10 @@ export type EntityConstructorInput =
     | Partial<Record<string, unknown>>
     | ObservableObject<Record<string, unknown>>;
 
-function buildColumnDefaults(reader: MetadataReader): Record<string, unknown> {
-    const out: Record<string, unknown> = {};
-    for (const f of reader.getFields()) {
-        if (f.getDecoratorName() !== 'Column') continue;
-        out[f.getFieldName()] = f.getOption('default');
-    }
-    return out;
+/** Static contract for entity classes. Subclasses satisfy this via @Entity (entityName) and their constructor. */
+export interface EntityClassStatic<TEntity extends AbstractEntity = AbstractEntity> {
+    new (dataOrObservable?: EntityConstructorInput): TEntity;
+    entityName: string;
 }
 
 /**
@@ -49,7 +46,6 @@ export abstract class AbstractEntity {
     public constructor(dataOrObservable?: EntityConstructorInput) {
         const reader = new MetadataReader(this.constructor);
         const primaryKeyField = reader.getField('PrimaryKey')?.getFieldName();
-        const columnDefaults = buildColumnDefaults(reader);
         if (primaryKeyField == null) {
             throw new DatabaseException(
                 `Entity ${this.constructor.name} must define a primary key with @PrimaryKey().`,
@@ -65,6 +61,7 @@ export abstract class AbstractEntity {
             return;
         }
 
+        const columnDefaults = reader.getOptionValuesByField('Column', 'default');
         const merged = { ...columnDefaults, ...(dataOrObservable ?? {}) };
         this._state$ = observable(merged);
     }
@@ -111,4 +108,5 @@ export abstract class AbstractEntity {
             typeof (obj as { get: unknown }).get === 'function'
         );
     }
+
 }

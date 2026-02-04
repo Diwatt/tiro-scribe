@@ -22,7 +22,6 @@ export function StatusBatchWaiting({
         iconBackground: string;
         shadowColor: string;
     };
-
     return (
         <Status
             title="Pending"

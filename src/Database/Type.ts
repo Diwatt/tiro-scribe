@@ -2,6 +2,14 @@
  * Entity types and constants. Single place for type definitions.
  */
 
+import type { AbstractEntity, EntityClassStatic } from './AbstractEntity';
+import type { Repository } from './Repository';
+
+/** What getRepository() accepts: entity class (EntityClassStatic) + optional custom repo class. */
+export interface EntityClass<TEntity extends AbstractEntity = AbstractEntity> extends EntityClassStatic<TEntity> {
+    repositoryClass?: new () => Repository<AbstractEntity>;
+}
+
 /** Property key where the entity's observable state is stored on the instance. */
 export const OBSERVABLE_KEY = '_obs' as const;
 

@@ -7,7 +7,7 @@ describe('Repository', () => {
     let repo: Repository<AbstractEntity>;
 
     beforeEach(() => {
-        repo = new Repository(MockEncounter as any, 'encounters');
+        repo = Repository.create(MockEncounter.entityName, MockEncounter as any);
     });
 
     it('findAll returns empty array when no data', () => {

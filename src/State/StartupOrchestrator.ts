@@ -1,44 +1,57 @@
 /**
- * StartupOrchestrator – Hardware Check → Auth Check → state for routing.
- * Global singleton using @legendapp/state. Run runSequence() on app mount.
+ * StartupOrchestrator – Hardware check → auth check → state for routing.
+ * Singleton. Run runSequence() on app mount. State is observable via @legendapp/state.
  */
 
+import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 import { Therapist } from '../Entity/Therapist';
 
-export type StartupState =
-    | 'BOOTING'           // Initial state
-    | 'HARDWARE_REJECTED' // Device incompatible
-    | 'ONBOARDING'       // Device OK, no user/session
-    | 'READY';           // Device OK, user has session
+/** Initial state → hardware check → auth check → routing. */
+export enum StartupState {
+  /** Initial state. */
+  BOOTING = 'BOOTING',
+  /** Device incompatible. */
+  HARDWARE_REJECTED = 'HARDWARE_REJECTED',
+  /** Device OK, no user/session. */
+  ONBOARDING = 'ONBOARDING',
+  /** Device OK, user has session. */
+  READY = 'READY',
+}
 
-const startupState = observable<StartupState>('BOOTING');
+export class StartupOrchestrator {
+  private readonly state: Observable<StartupState>;
 
-export const startupOrchestrator = {
-    getState(): StartupState {
-        return startupState.get();
-    },
+  constructor(initialState: StartupState = StartupState.BOOTING) {
+    this.state = observable<StartupState>(initialState);
+  }
 
-    get observable() {
-        return startupState;
-    },
+  getState(): StartupState {
+    return this.state.get();
+  }
 
-    async runSequence(): Promise<void> {
-        startupState.set('BOOTING');
+  get observable(): Observable<StartupState> {
+    return this.state;
+  }
 
-        const compatible = deviceCompatibilityGate.isCompatible();
-        if (!compatible) {
-            startupState.set('HARDWARE_REJECTED');
-            return;
-        }
+  async runSequence(): Promise<void> {
+    this.state.set(StartupState.BOOTING);
 
-        const hasSession = await Therapist.hasActiveSession();
-        if (hasSession) {
-            startupState.set('READY');
-            return;
-        }
+    const compatible = deviceCompatibilityGate.isCompatible();
+    if (!compatible) {
+      this.state.set(StartupState.HARDWARE_REJECTED);
+      return;
+    }
 
-        startupState.set('ONBOARDING');
-    },
-};
+    const hasSession = await Therapist.hasActiveSession();
+    if (hasSession) {
+      this.state.set(StartupState.READY);
+      return;
+    }
+
+    this.state.set(StartupState.ONBOARDING);
+  }
+}
+
+export const startupOrchestrator = new StartupOrchestrator();

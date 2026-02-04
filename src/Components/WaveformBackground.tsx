@@ -89,7 +89,6 @@ export function WaveformBackground({
       return `${r}, ${g}, ${b}`;
     }
   }, [color]); 
-
   return (
     <Svg
       height="100%"

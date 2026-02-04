@@ -37,7 +37,6 @@ export function App() {
         anonymizerService: null,
         audioProcessingService: null,
     };
-
     return (
         <SafeAreaProvider>
             <PaperProvider theme={AppTheme}>

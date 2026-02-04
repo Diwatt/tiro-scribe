@@ -30,7 +30,6 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
  */
 function MainTabNavigator() {
     const theme = useTheme();
-
     return (
         <MainTab.Navigator
             screenOptions={{

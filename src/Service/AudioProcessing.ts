@@ -9,8 +9,12 @@
  * 5. Final Payload: { biocode, cleanTranscript, confidence }
  */
 
-import * as ort from 'onnxruntime-react-native';
+import type * as Ort from 'onnxruntime-react-native';
 import {Biocode} from './Biocode';
+
+async function getOrt(): Promise<typeof Ort> {
+    return import('onnxruntime-react-native');
+}
 import {Anonymizer} from './Anonymizer';
 import {AudioProcessingResult, ProcessingPayload} from '@/Entity';
 import { AppLogger, LoggerInterface } from './Logger';
@@ -31,7 +35,7 @@ const CONFIDENCE = {
 } as const;
 
 export class AudioProcessing {
-    private transcriptionSession: ort.InferenceSession | null = null;
+    private transcriptionSession: Ort.InferenceSession | null = null;
     private biocodeService: Biocode;
     private anonymizerService: Anonymizer;
     private loggerInstance: LoggerInterface;
@@ -55,6 +59,7 @@ export class AudioProcessing {
         // You can add a transcription model later or use a different solution
         if (modelPath) {
             try {
+                const ort = await getOrt();
                 this.transcriptionSession = await ort.InferenceSession.create(modelPath, {
                     executionProviders: ['cpu'],
                 });
@@ -117,7 +122,6 @@ export class AudioProcessing {
             encounterUuid,
             timestamp: Date.now(),
         };
-
         return payload;
     }
 
@@ -145,7 +149,6 @@ export class AudioProcessing {
         const biocodeResult = await this.biocodeService.processAudio(audioPath);
         const anonymizationResult =
             await this.anonymizerService.anonymize(rawText);
-
         return {
             rawText,
             anonymizedText: anonymizationResult.cleanText,

@@ -50,7 +50,6 @@ export class VoiceCalibration {
                     error: e instanceof Error ? e.message : String(e),
                 });
             }
-
             return vector;
         } catch (e) {
             this.log.warn('[VoiceCalibration] Calibration failed', {

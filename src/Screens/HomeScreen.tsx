@@ -22,7 +22,6 @@ export const Home = observer(function Home(): React.JSX.Element {
     const handlePress = () => {
         router.push({ pathname: '/main/recording', params: { autoStart: 'true' } });
     };
-
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <ScrollView

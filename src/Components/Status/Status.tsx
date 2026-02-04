@@ -31,7 +31,6 @@ export function Status({
     const theme = useTheme();
     const statusColorKey = StatusState.getColorKey(state);
     const statusColors = (theme.colors as any)[statusColorKey] as StatusColors;
-
     return (
         <Surface
             style={[

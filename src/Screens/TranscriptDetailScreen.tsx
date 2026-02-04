@@ -26,7 +26,6 @@ export function TranscriptDetailScreen(): React.JSX.Element {
 
     const biocode = params.biocode || 'SUBJ-****-A3F2';
     const date = params.date || '2 hours ago';
-
     return (
         <View
             style={[

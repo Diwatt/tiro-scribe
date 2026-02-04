@@ -102,7 +102,6 @@ export const SecureSessionButton = observer(function SecureSessionButton({
 
   // Extract RGB from shadow color - shadow is a string color
   const shadowColorRgb = criticalAction.shadow || '#000000';
-
   return (
     <View style={styles.centerHelper}>
       <View style={[styles.shadowWrapper, { shadowColor: shadowColorRgb }]}>

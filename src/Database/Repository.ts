@@ -17,6 +17,13 @@ import { EntitySerializer } from './Serializer';
  * - persist(data): create (if pk not in table) or update; returns entity wired to the backing.
  * - find(primaryKey): O(1). findAll(): iteration over table rows (insertion order).
  */
+/** Entity class shape accepted by Repository.create (constructor + entityName + optional custom repo). */
+type EntityClassForCreate<TEntity extends AbstractEntity> = {
+    new (dataOrObservable?: EntityConstructorInput): TEntity;
+    entityName: string;
+    repositoryClass?: new () => Repository<AbstractEntity>;
+};
+
 export class Repository<TEntity extends AbstractEntity> {
     private readonly _backing: TableBacking;
     private readonly EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity;
@@ -24,7 +31,20 @@ export class Repository<TEntity extends AbstractEntity> {
     private readonly primaryKeyField: string;
     private readonly _serializer: EntitySerializer;
 
-    public constructor(
+    /**
+     * Creates the appropriate repository: custom repo if entity defines repositoryClass, else generic Repository.
+     */
+    public static create<TEntity extends AbstractEntity>(
+        entityName: string,
+        EntityClass: EntityClassForCreate<TEntity>,
+    ): Repository<AbstractEntity> {
+        if (EntityClass.repositoryClass) {
+            return new EntityClass.repositoryClass();
+        }
+        return new Repository<TEntity>(EntityClass, entityName);
+    }
+
+    protected constructor(
         EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity,
         tableName: string,
     ) {

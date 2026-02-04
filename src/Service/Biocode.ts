@@ -8,8 +8,17 @@
  */
 
 import CryptoJS from 'crypto-js';
-import * as ort from 'onnxruntime-react-native';
+import type * as Ort from 'onnxruntime-react-native';
 import * as FileSystem from 'expo-file-system';
+
+/** Lazy-loaded ONNX Runtime; avoids loading native module until Biocode actually needs it. */
+let ortModule: typeof Ort | null = null;
+async function getOrt(): Promise<typeof Ort> {
+    if (ortModule == null) {
+        ortModule = await import('onnxruntime-react-native');
+    }
+    return ortModule;
+}
 import {SpeakerVector, BiocodeResult, Therapist} from '@/Entity';
 import { TherapistVault } from '../Security/TherapistVault';
 import { AppLogger, LoggerInterface } from './Logger';
@@ -43,7 +52,7 @@ export interface ProjectedVector {
 }
 
 export class Biocode {
-    private speakerSession: ort.InferenceSession | null = null;
+    private speakerSession: Ort.InferenceSession | null = null;
     private modelPath: string | null = null;
     private projectionMatrix: number[][] | null = null;
     private therapistUuid: string | null = null;
@@ -59,6 +68,7 @@ export class Biocode {
      */
     async initialize(modelPath: string): Promise<void> {
         try {
+            const ort = await getOrt();
             // Resolve the model path (handle both local and bundled assets)
             const resolvedPath = await this.resolveModelPath(modelPath);
             
@@ -205,7 +215,6 @@ export class Biocode {
 
             orthonormal.push(v);
         }
-
         return orthonormal;
     }
 
@@ -250,7 +259,6 @@ export class Biocode {
             }
             projected.push(sum);
         }
-
         return projected;
     }
 
@@ -280,7 +288,6 @@ export class Biocode {
             const confidence = Math.min(1.0, Math.sqrt(
                 normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)
             ));
-
             return {
                 vector: normalizedEmbedding,
                 confidence,
@@ -340,6 +347,7 @@ export class Biocode {
         const reshapedFeatures = this.reshapeFeatures(features, inputShape);
 
         // Create input tensor
+        const ort = await getOrt();
         const tensor = new ort.Tensor('float32', reshapedFeatures, inputShape);
 
         // Run inference
@@ -350,7 +358,6 @@ export class Biocode {
         // Extract embedding from output
         const outputTensor = results[outputName];
         const embedding = Array.from(outputTensor.data as Float32Array);
-
         return embedding;
     }
 
@@ -374,7 +381,6 @@ export class Biocode {
             // Truncate
             return features.slice(0, totalElements);
         }
-        
         return features;
     }
 
@@ -389,7 +395,6 @@ export class Biocode {
         if (magnitude === 0) {
             return vector;
         }
-        
         return vector.map(val => val / magnitude);
     }
 
@@ -424,7 +429,6 @@ export class Biocode {
         if (magnitude1 === 0 || magnitude2 === 0) {
             return 0;
         }
-
         return dotProduct / (magnitude1 * magnitude2);
     }
 
@@ -443,7 +447,6 @@ export class Biocode {
         }
 
         const projected = this.applyProjection(speakerVector.vector);
-
         return {
             vector: projected,
             confidence: speakerVector.confidence,
@@ -472,7 +475,6 @@ export class Biocode {
         // This ensures same voice always produces same biocode
         const vectorString = projected.join(',');
         const biocode = CryptoJS.SHA256(vectorString).toString();
-
         return {
             biocode,
             confidence: speakerVector.confidence,
@@ -527,7 +529,6 @@ export class Biocode {
             projected1,
             projected2,
         );
-
         return similarity >= threshold;
     }
 

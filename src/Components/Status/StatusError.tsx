@@ -21,7 +21,6 @@ export function StatusError({
         iconBackground: string;
         shadowColor: string;
     };
-
     return (
         <Status
             title={title}

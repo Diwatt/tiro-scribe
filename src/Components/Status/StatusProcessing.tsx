@@ -23,7 +23,6 @@ export function StatusProcessing({
         iconBackground: string;
         shadowColor: string;
     };
-
     return (
         <Status
             title="Processing..."

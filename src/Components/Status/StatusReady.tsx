@@ -15,7 +15,6 @@ export function StatusReady({}: StatusReadyProps): React.JSX.Element {
         iconBackground: string;
         shadowColor: string;
     };
-
     return (
         <Status
             title="Ready"

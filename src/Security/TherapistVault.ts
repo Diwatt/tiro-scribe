@@ -135,7 +135,6 @@ export class TherapistVault {
             languages,
             biocodeEmbedding: initialBiocodeVector ?? [],
         });
-
         return { therapist, recoveryCode };
     }
 }

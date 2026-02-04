@@ -9,18 +9,17 @@ import { useTheme } from 'react-native-paper';
 
 export function DeviceIncompatibleScreen(): React.JSX.Element {
     const theme = useTheme();
-
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <Text style={[styles.title, { color: theme.colors.onBackground }]}>
                 Device not supported
             </Text>
             <Text style={[styles.message, { color: theme.colors.onSurfaceVariant }]}>
-                Scribe requires a compatible device for on-device AI processing.
+                Tiro Scribe requires a compatible device for on-device AI processing.
             </Text>
             <Text style={[styles.hint, { color: theme.colors.outline }]}>
-                iOS: 12.0+, 3.8GB+ RAM.{'\n'}
-                Android: 9.0+, 6GB+ RAM, 64-bit CPU.
+                iOS: 12.0+, 3.5GB+ RAM, 64-bit.{'\n'}
+                Android: 9.0+, 3.5GB+ RAM, 64-bit CPU.
             </Text>
         </View>
     );

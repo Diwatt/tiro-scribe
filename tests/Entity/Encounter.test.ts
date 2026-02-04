@@ -1,6 +1,6 @@
 /**
  * Encounter behavior tests using mock entity (real Encounter uses Stage 3 decorators
- * and cannot be loaded in Jest without decorator config). Repository/AbstractEntity
+ * and cannot be loaded without decorator config). Repository/AbstractEntity
  * tests cover persist/find with encounter-like entities.
  */
 

@@ -58,6 +58,7 @@ You act as a senior software architect who enforces strict OOP, SOLID principles
   - ❌ `for (const x of list) doSomething(x);`
   - ✅ `for (const x of list) { doSomething(x); }`
 - **Destructuring**: Use object destructuring for method parameters if there are more than 2 arguments.
+- **No empty line before last return**: Do not insert a blank line immediately before the final `return` of a function or method.
 
 ## 8. Specific for this project (Storage)
 - **Rich Models**: When handling data from storage (MMKV/Zod), always hydrate them into Class Instances with methods.

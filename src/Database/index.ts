@@ -18,4 +18,4 @@ export type { DataMap } from './TableBacking';
 export { AbstractEntity } from './AbstractEntity';
 export { registry } from './Registry';
 export { Repository } from './Repository';
-export type { ObservablePrimitive } from './Type';
+export type { EntityClass, ObservablePrimitive } from './Type';

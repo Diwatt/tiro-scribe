@@ -42,7 +42,6 @@ export const RecordingScreen = observer(function RecordingScreen(): React.JSX.El
         await audioRecording.stopRecording();
         router.back();
     };
-
     return (
         <View style={styles.container}>
             <View style={[styles.buttonContainer, {bottom: buttonBottom}]}>
