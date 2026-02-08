@@ -2,7 +2,7 @@ import { Copy, FileText } from 'lucide-react-native';
 import type React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, Snackbar } from 'react-native-paper';
-import { appAsyncStatus } from '@/State/AppAsyncStatus';
+import { globalActivityStatus } from '@/State/GlobalActivityStatus';
 import { onboardingState } from '@/State/Onboarding';
 import { AsyncButton } from '../../Components';
 import { Checkbox } from '../../Components/Form';
@@ -40,7 +40,7 @@ export function StepRecovery(props: StepProps): React.JSX.Element {
             </View>
 
             <AsyncButton
-                statusKey={appAsyncStatus.recoveryKitStatusKey}
+                statusKey={globalActivityStatus.recoveryKitStatusKey}
                 idleLabel={RECOVERY_KIT_IDLE_LABEL}
                 pendingLabel={RECOVERY_KIT_PENDING_LABEL}
                 onPress={onSaveRecoveryKit}

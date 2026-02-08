@@ -9,12 +9,16 @@ import { observer } from '@legendapp/state/react';
 import { Slot, useRouter } from 'expo-router';
 import type React from 'react';
 import { useEffect, useRef } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
+import { AppToast } from '@/Components/AppToast';
+import { GlobalActivityBar } from '@/Components/GlobalActivityBar';
 import { ServicesProvider } from '@/Context/ServicesContext';
 import { DeviceIncompatibleScreen } from '@/Screens/DeviceIncompatibleScreen';
+import { ActivityStatus, globalActivityStatus } from '@/State/GlobalActivityStatus';
 import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
 import { AppTheme } from '@/theme/AppTheme';
 
@@ -44,7 +48,9 @@ function StartupGateContent(): React.JSX.Element | null {
     const state = startupOrchestrator.state$.get();
 
     useEffect(() => {
-        if (state === StartupState.Booting) return;
+        if (state === StartupState.Booting) {
+            return;
+        }
         hideSplash();
     }, [state]);
 
@@ -70,6 +76,20 @@ function StartupGateContent(): React.JSX.Element | null {
 
 const ObservedStartupGate = observer(StartupGateContent);
 
+function GlobalActivityBarSlot(): React.JSX.Element {
+    const key = globalActivityStatus.recoveryKitStatusKey;
+    const status = globalActivityStatus.state$[key].get() ?? ActivityStatus.Ready;
+    const message = globalActivityStatus.message$[key].get();
+    return (
+        <GlobalActivityBar
+            status={status}
+            message={message || undefined}
+        />
+    );
+}
+
+const ObservedGlobalActivityBar = observer(GlobalActivityBarSlot);
+
 export default function RootLayout(): React.JSX.Element {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -77,7 +97,11 @@ export default function RootLayout(): React.JSX.Element {
                 <SafeAreaProvider>
                     <PaperProvider theme={AppTheme}>
                         <ServicesProvider services={services}>
-                            <ObservedStartupGate />
+                            <View style={{ flex: 1 }}>
+                                <ObservedStartupGate />
+                                <ObservedGlobalActivityBar />
+                            </View>
+                            <AppToast />
                         </ServicesProvider>
                     </PaperProvider>
                 </SafeAreaProvider>

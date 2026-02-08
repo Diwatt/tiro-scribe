@@ -1,25 +1,16 @@
 /**
- * Main application component
- *
- * Services are disabled - only recording functionality is enabled
+ * Main application component.
+ * When not in Storybook, the app runs via Expo Router (see index.js: expo-router/entry).
+ * Root layout and startup flow live in app/_layout.tsx (StartupOrchestrator + Slot).
+ * This component is only used when explicitly mounted; otherwise the entry is app/_layout.
  */
 
 import type React from 'react';
-import { PaperProvider } from 'react-native-paper';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppToast } from './Components/AppToast';
-import { InitGate } from './Components/InitGate';
-import { ServicesProvider } from './Context/ServicesContext';
 import { AppLogger } from './Service/Logger';
-import { AppTheme } from './theme/AppTheme';
 
-// Only recording loads at app start. DB, transcript, Biocode, NER will be added later.
-
-// Storybook UI (only loaded when STORYBOOK_ENABLED is true)
 let StorybookUIRoot: React.ComponentType | null = null;
-if (__DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
+if (typeof __DEV__ !== 'undefined' && __DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
         StorybookUIRoot = require('../.rnstorybook').default;
     } catch (e) {
         AppLogger.getInstance().warn('[TiroScribe] Failed to load Storybook:', {
@@ -29,23 +20,11 @@ if (__DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
     }
 }
 
-export function App() {
+/** Used when App is mounted (e.g. tests). Otherwise use expo-router entry → app/_layout.tsx. */
+export function App(): React.JSX.Element {
     if (StorybookUIRoot) {
         return <StorybookUIRoot />;
     }
-    const services = {
-        biocodeService: null,
-        anonymizerService: null,
-        audioProcessingService: null,
-    };
-    return (
-        <SafeAreaProvider>
-            <PaperProvider theme={AppTheme}>
-                <ServicesProvider services={services}>
-                    <InitGate />
-                </ServicesProvider>
-                <AppToast />
-            </PaperProvider>
-        </SafeAreaProvider>
-    );
+    const RootLayout = require('../app/_layout').default;
+    return <RootLayout />;
 }

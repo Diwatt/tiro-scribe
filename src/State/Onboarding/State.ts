@@ -5,7 +5,7 @@
  * only for the duration of the recovery step so the UI can show it and offer copy/share. When the
  * user taps "Save Recovery Kit", we pass that code to RecoveryKit (Security), which generates the
  * PDF and opens the share sheet. State does not handle the document itself—only wizard state and
- * UI feedback (isBusy, error). Recovery kit status is in AppAsyncStatus and drives AsyncButton.
+ * UI feedback (isBusy, error). Recovery kit status is in GlobalActivityStatus and drives AsyncButton.
  */
 
 import { observable } from '@legendapp/state';
@@ -16,7 +16,7 @@ import { voiceCalibration } from '../../Service';
 import { AppLogger } from '../../Service/Logger';
 import { startupOrchestrator } from '../StartupOrchestrator';
 import Toast from 'react-native-toast-message';
-import { AsyncStatus, appAsyncStatus } from '../AppAsyncStatus';
+import { ActivityStatus, globalActivityStatus } from '../GlobalActivityStatus';
 import type { OnboardingFormData, ProfileStepData } from './Schema';
 import { profileSchema } from './Schema';
 
@@ -134,7 +134,7 @@ export class OnboardingState {
         this.state$.error.set(undefined);
         this.state$.recoveryCode.set('');
         this.state$.isBusy.set(false);
-        appAsyncStatus.reset(appAsyncStatus.recoveryKitStatusKey);
+        globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
         this.pendingTherapist = null;
     }
 
@@ -152,34 +152,46 @@ export class OnboardingState {
 
     /**
      * Generates a PDF Recovery Kit and opens the OS share sheet.
-     * Updates AppAsyncStatus (pending → success | error); resets to idle 3s after success.
+     * Updates GlobalActivityStatus (pending → success | error); resets to ready 3s after success.
      */
     public async generateAndShareRecoveryKit(): Promise<void> {
         this.state$.error.set(undefined);
-        appAsyncStatus.setStatus(appAsyncStatus.recoveryKitStatusKey, AsyncStatus.Pending);
+        globalActivityStatus.setStatus(
+            globalActivityStatus.recoveryKitStatusKey,
+            ActivityStatus.Pending,
+            'Génération du PDF…',
+        );
         const code = this.state$.recoveryCode.get();
         if (!code) {
             this.state$.error.set('No recovery code available.');
-            appAsyncStatus.reset(appAsyncStatus.recoveryKitStatusKey);
+            globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
             return;
         }
         try {
             const uri = await this.recoveryKit.generatePdf(code);
             await this.recoveryKit.share(uri);
-            appAsyncStatus.setStatus(appAsyncStatus.recoveryKitStatusKey, AsyncStatus.Success);
+            globalActivityStatus.setStatus(
+                globalActivityStatus.recoveryKitStatusKey,
+                ActivityStatus.Success,
+                'Kit de secours enregistré',
+            );
             Toast.show({
                 type: 'success',
                 text1: 'Kit de secours enregistré',
                 text2: 'Votre kit a été généré et partagé.',
             });
             setTimeout(() => {
-                appAsyncStatus.reset(appAsyncStatus.recoveryKitStatusKey);
+                globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
             }, RECOVERY_KIT_SUCCESS_RESET_MS);
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Failed to generate or share recovery kit.';
             logger.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
             this.state$.error.set(message);
-            appAsyncStatus.setStatus(appAsyncStatus.recoveryKitStatusKey, AsyncStatus.Error);
+            globalActivityStatus.setStatus(
+                globalActivityStatus.recoveryKitStatusKey,
+                ActivityStatus.Error,
+                message,
+            );
             Toast.show({
                 type: 'error',
                 text1: 'Erreur',
