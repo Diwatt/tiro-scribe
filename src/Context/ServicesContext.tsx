@@ -2,10 +2,11 @@
  * ServicesContext - Provides AI services to the app
  */
 
-import React, {createContext, useContext, ReactNode} from 'react';
-import type {Biocode} from '../Service/Biocode';
-import type {Anonymizer} from '../Service/Anonymizer';
-import type {AudioProcessing} from '../Service/AudioProcessing';
+import type React from 'react';
+import { createContext, type ReactNode, useContext } from 'react';
+import type { Anonymizer } from '../Service/Anonymizer';
+import type { AudioProcessing } from '../Service/AudioProcessing';
+import type { Biocode } from '../Service/Biocode';
 
 /**
  * Types only—Biocode, Anonymizer, AudioProcessing are not loaded at app start.
@@ -30,13 +31,6 @@ interface ServicesProviderProps {
     services: ServicesContextType;
 }
 
-export function ServicesProvider({
-    children,
-    services,
-}: ServicesProviderProps): React.JSX.Element {
-    return (
-        <ServicesContext.Provider value={services}>
-            {children}
-        </ServicesContext.Provider>
-    );
-};
+export function ServicesProvider({ children, services }: ServicesProviderProps): React.JSX.Element {
+    return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
+}

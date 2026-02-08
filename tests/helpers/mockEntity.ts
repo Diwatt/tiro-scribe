@@ -3,24 +3,18 @@
  * entities (which require Stage 3 decorators / addInitializer in the test runner).
  */
 
-import { AbstractEntity } from '@/Database/AbstractEntity';
+import { randomUUID } from 'node:crypto';
 import type { EntityConstructorInput } from '@/Database/AbstractEntity';
-import { MetadataWriter } from '@/Decorator/MetadataWriter';
+import { AbstractEntity } from '@/Database/AbstractEntity';
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
+import { MetadataWriter } from '@/Decorator/MetadataWriter';
 
 const ENTITY_KEY = MetadataWriter.ENTITY_METADATA_KEY;
 
 type FieldMeta = Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }>;
 
-function attachEntityMetadata(
-    ctor: Function,
-    tableName: string,
-    fieldMeta: FieldMeta,
-): void {
-    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new EntityDecorator(
-        'Entity',
-        { table_name: tableName },
-    );
+function attachEntityMetadata(ctor: Function, tableName: string, fieldMeta: FieldMeta): void {
+    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new EntityDecorator('Entity', { table_name: tableName });
     (ctor as unknown as Record<symbol, unknown>)[Symbol.metadata] = fieldMeta;
 }
 
@@ -35,7 +29,7 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
         uuid: {
             decorators: [
                 { decoratorName: 'PrimaryKey', options: {} },
-                { decoratorName: 'Column', options: { default: () => crypto.randomUUID() } },
+                { decoratorName: 'Column', options: { default: () => randomUUID() } },
             ],
         },
         therapistId: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },

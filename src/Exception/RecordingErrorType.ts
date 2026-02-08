@@ -2,13 +2,12 @@
  * Recording error types
  * Enum for categorizing recording-related errors
  */
-
 export enum RecordingErrorType {
-    PERMISSION_DENIED = 'PERMISSION_DENIED',
-    RECORDER_NOT_INITIALIZED = 'RECORDER_NOT_INITIALIZED',
-    NO_ACTIVE_RECORDING = 'NO_ACTIVE_RECORDING',
-    RECORDING_URI_UNAVAILABLE = 'RECORDING_URI_UNAVAILABLE',
-    FILE_OPERATION_FAILED = 'FILE_OPERATION_FAILED',
-    RECORDING_FAILED = 'RECORDING_FAILED',
-    PERMISSION_REQUEST_FAILED = 'PERMISSION_REQUEST_FAILED',
+    PermissionDenied = 'permission_denied',
+    RecorderNotInitialized = 'recorder_not_initialized',
+    NoActiveRecording = 'no_active_recording',
+    RecordingUriUnavailable = 'recording_uri_unavailable',
+    FileOperationFailed = 'file_operation_failed',
+    RecordingFailed = 'recording_failed',
+    PermissionRequestFailed = 'permission_request_failed',
 }

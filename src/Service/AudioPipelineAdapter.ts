@@ -3,10 +3,10 @@
  * Adapter to connect Queue with AudioProcessing
  */
 
-import {AudioProcessing} from './AudioProcessing';
-import {ProcessingPayload} from '@/Entity';
-import { AppLogger, LoggerInterface } from './Logger';
-import {InvalidAudioFormatError} from '../Exception/InvalidAudioFormatError';
+import type { ProcessingPayload } from '@/Entity';
+import { InvalidAudioFormatError } from '../Exception/InvalidAudioFormatError';
+import type { AudioProcessing } from './AudioProcessing';
+import { AppLogger, type LoggerInterface } from './Logger';
 
 /**
  * Adapter interface that QueueService expects
@@ -26,12 +26,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
     private sessionStartDate: Date;
     private loggerInstance: LoggerInterface;
 
-    constructor(
-        audioProcessingService: AudioProcessing,
-        encounterUuid: string,
-        sessionStartDate: Date,
-        logger: LoggerInterface = AppLogger.getInstance(),
-    ) {
+    constructor(audioProcessingService: AudioProcessing, encounterUuid: string, sessionStartDate: Date, logger: LoggerInterface = AppLogger.getInstance()) {
         this.audioProcessingService = audioProcessingService;
         this.encounterUuid = encounterUuid;
         this.sessionStartDate = sessionStartDate;
@@ -45,12 +40,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
      */
     async process(filePath: string): Promise<void> {
         // Process the audio and get the payload
-        const payload: ProcessingPayload =
-            await this.audioProcessingService.processAudio(
-                filePath,
-                this.encounterUuid,
-                this.sessionStartDate,
-            );
+        const payload: ProcessingPayload = await this.audioProcessingService.processAudio(filePath, this.encounterUuid, this.sessionStartDate);
 
         // TODO: Save the payload to the recordings table or sync_queue
         // For now, we just process it - the actual storage can be handled elsewhere
@@ -74,7 +64,7 @@ export class MockAudioPipeline implements AudioPipeline {
 
     async process(filePath: string): Promise<void> {
         // Simulate processing delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         this.loggerInstance.debug('Mock: Processing audio file:', {
             filePath,
         });

@@ -5,7 +5,7 @@
  * Expo SDK 54 automatically converts to Uint8Array.
  */
 export interface DecryptedChunkEvent {
-  data: Uint8Array;
-  index: number;
-  isLast: boolean;
+    data: Uint8Array;
+    index: number;
+    isLast: boolean;
 }

@@ -1,4 +1,4 @@
-const {getDefaultConfig} = require('expo/metro-config');
+const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
 /**
@@ -11,9 +11,7 @@ const config = getDefaultConfig(__dirname);
 
 // Pnpm workspace specific configuration
 // We need to tell Metro about the workspace root node_modules
-config.resolver.nodeModulesPaths = [
-  path.resolve(__dirname, 'node_modules'),
-];
+config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules')];
 
 // Enable symlink support for pnpm
 config.resolver.unstable_enableSymlinks = true;
@@ -23,7 +21,7 @@ config.resolver.unstable_enablePackageExports = true;
 const isStorybookEnabled = process.env.STORYBOOK_ENABLED === 'true';
 
 if (isStorybookEnabled) {
-    const {withStorybook} = require('@storybook/react-native/metro/withStorybook');
+    const { withStorybook } = require('@storybook/react-native/metro/withStorybook');
     module.exports = withStorybook(config, {
         enabled: true,
     });

@@ -11,12 +11,7 @@ import { TiroScribeException } from './TiroScribeException';
 export const MULTIPLE_DECORATORS_NOT_SUPPORTED = 'MULTIPLE_DECORATORS_NOT_SUPPORTED';
 
 export class DecoratorException extends TiroScribeException {
-    public constructor(
-        message: string,
-        code: string,
-        originalError?: Error,
-        context?: Record<string, unknown>,
-    ) {
+    public constructor(message: string, code: string, originalError?: Error, context?: Record<string, unknown>) {
         super(message, code, originalError, context);
         this.name = 'DecoratorException';
 

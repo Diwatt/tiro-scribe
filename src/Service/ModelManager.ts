@@ -7,10 +7,10 @@
 import { observable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
 import * as FileSystem from 'expo-file-system/legacy';
-import { AppLogger } from './Logger';
-import type { LoggerInterface } from './Logger';
-import { ModelDownloadError } from '../Exception/ModelDownloadError';
 import type { Therapist } from '../Entity/Therapist';
+import { ModelDownloadError } from '../Exception/ModelDownloadError';
+import type { LoggerInterface } from './Logger';
+import { AppLogger } from './Logger';
 
 export interface ModelSpec {
     key: string;
@@ -109,9 +109,9 @@ export class ModelManager {
                     this.state$.progress.set(completed / total);
                 }
                 this.state$.set({ progress: 1, isReady: true, isDownloading: false });
-            } catch (e) {
+            } catch (error: unknown) {
                 this.log.warn('[ModelManager] Download error', {
-                    error: e instanceof Error ? e.message : String(e),
+                    error: error instanceof Error ? error.message : String(error),
                 });
                 this.state$.set({
                     progress: this.state$.progress.get(),
@@ -126,7 +126,9 @@ export class ModelManager {
     }
 
     private getLanguages(therapist: Therapist | null): string[] {
-        if (!therapist) return [];
+        if (!therapist) {
+            return [];
+        }
         try {
             const raw = therapist.getLanguages();
             const parsed = JSON.parse(raw || '[]') as string[];
@@ -155,11 +157,7 @@ export class ModelManager {
         return true;
     }
 
-    private async downloadOne(
-        spec: ModelSpec,
-        docDir: string,
-        onProgress: (p: number) => void,
-    ): Promise<string> {
+    private async downloadOne(spec: ModelSpec, docDir: string, onProgress: (p: number) => void): Promise<string> {
         const localPath = `${docDir}${spec.localPath}`;
         const fileInfo = await FileSystem.getInfoAsync(localPath);
         if (fileInfo.exists) {
@@ -170,22 +168,14 @@ export class ModelManager {
         if (!dirInfo.exists) {
             await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
         }
-        const downloadResumable = FileSystem.createDownloadResumable(
-            spec.url,
-            localPath,
-            {},
-            (ev) => {
-                const total = ev.totalBytesExpectedToWrite ?? 1;
-                const written = ev.totalBytesWritten ?? 0;
-                onProgress(total > 0 ? written / total : 0);
-            },
-        );
+        const downloadResumable = FileSystem.createDownloadResumable(spec.url, localPath, {}, (ev) => {
+            const total = ev.totalBytesExpectedToWrite ?? 1;
+            const written = ev.totalBytesWritten ?? 0;
+            onProgress(total > 0 ? written / total : 0);
+        });
         const result = await downloadResumable.downloadAsync();
         if (!result || result.status !== 200) {
-            throw new ModelDownloadError(
-                `Download failed for ${spec.key}: status ${result?.status ?? 'unknown'}`,
-                new Error(String(result?.status)),
-            );
+            throw new ModelDownloadError(`Download failed for ${spec.key}: status ${result?.status ?? 'unknown'}`, new Error(String(result?.status)));
         }
         return localPath;
     }

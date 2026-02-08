@@ -4,9 +4,9 @@
  */
 
 import * as FileSystem from 'expo-file-system/legacy';
-import { AppLogger } from './Logger';
-import type { LoggerInterface } from './Logger';
 import { audioRecording } from './AudioRecording';
+import type { LoggerInterface } from './Logger';
+import { AppLogger } from './Logger';
 
 const CALIBRATION_DURATION_MS = 5000;
 const EMBEDDING_DIM = 512;
@@ -45,15 +45,15 @@ export class VoiceCalibration {
 
             try {
                 await FileSystem.deleteAsync(filePath, { idempotent: true });
-            } catch (e) {
+            } catch (error: unknown) {
                 this.log.warn('[VoiceCalibration] Failed to delete temp audio', {
-                    error: e instanceof Error ? e.message : String(e),
+                    error: error instanceof Error ? error.message : String(error),
                 });
             }
             return vector;
-        } catch (e) {
+        } catch (error: unknown) {
             this.log.warn('[VoiceCalibration] Calibration failed', {
-                error: e instanceof Error ? e.message : String(e),
+                error: error instanceof Error ? error.message : String(error),
             });
             return this.getPlaceholderVector();
         }
@@ -67,9 +67,9 @@ export class VoiceCalibration {
             await biocode.initialize(bundledPath);
             const result = await biocode.extractSpeakerVector(audioPath);
             return result.vector;
-        } catch (e) {
+        } catch (error: unknown) {
             this.log.warn('[VoiceCalibration] Embedded model inference failed, using placeholder', {
-                error: e instanceof Error ? e.message : String(e),
+                error: error instanceof Error ? error.message : String(error),
             });
             return this.getPlaceholderVector();
         }

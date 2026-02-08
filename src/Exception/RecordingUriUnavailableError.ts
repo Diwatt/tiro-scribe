@@ -2,7 +2,7 @@
  * RecordingUriUnavailableError - Exception when recording URI is not available
  */
 
-import {TiroScribeException} from './TiroScribeException';
+import { TiroScribeException } from './TiroScribeException';
 
 export class RecordingUriUnavailableError extends TiroScribeException {
     constructor(originalError?: Error) {

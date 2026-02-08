@@ -38,12 +38,7 @@ export class MetadataWriter {
     }
 
     /** Called by field decorators (@Column, @PrimaryKey) to store decorator name and options. */
-    public static registerField(
-        meta: Record<string | symbol, unknown> | undefined,
-        propertyName: string,
-        decoratorName: string,
-        options: unknown,
-    ): void {
+    public static registerField(meta: Record<string | symbol, unknown> | undefined, propertyName: string, decoratorName: string, options: unknown): void {
         if (meta == null || typeof meta !== 'object') return;
         const m = meta as Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }>;
         if (!m[propertyName]) m[propertyName] = { decorators: [] };

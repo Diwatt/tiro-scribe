@@ -1,5 +1,5 @@
-import React, {Component, type ErrorInfo, type ReactNode} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { AppLogger } from '../Service/Logger';
 
 const LOG_PREFIX = '[TiroScribe]';
@@ -18,10 +18,10 @@ interface Props {
  * (iOS) or Android Studio / adb logcat (Android) to see the stack trace.
  */
 export class AppErrorBoundary extends Component<Props, State> {
-    public override state: State = {error: null};
+    public override state: State = { error: null };
 
     public static getDerivedStateFromError(error: Error): State {
-        return {error};
+        return { error };
     }
 
     public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
@@ -41,9 +41,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     <Text style={styles.message} selectable>
                         {this.state.error?.message ?? String(this.state.error)}
                     </Text>
-                    <Text style={styles.hint}>
-                        Check Metro or Xcode console for details. Reload the app to try again.
-                    </Text>
+                    <Text style={styles.hint}>Check Metro or Xcode console for details. Reload the app to try again.</Text>
                 </View>
             );
         }

@@ -3,7 +3,7 @@
  * Structured error information for recording operations
  */
 
-import {RecordingErrorType} from './RecordingErrorType';
+import type { RecordingErrorType } from './RecordingErrorType';
 
 export interface RecordingError {
     type: RecordingErrorType;

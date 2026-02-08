@@ -6,18 +6,16 @@
  * Use getField/setField for key-based access; use field$(key) or this.fieldName$ for the observable.
  */
 
-import { observable } from '@legendapp/state';
 import type { ObservableObject } from '@legendapp/state';
-import { DatabaseException } from '../Exception';
+import { observable } from '@legendapp/state';
 import { MetadataReader } from '../Decorator';
+import { DatabaseException } from '../Exception';
 import type { ObservableNode, ObservablePrimitive } from './Type';
 
 /** Observable store: index by field name to get node with get/set. */
 type ObservableStore = Record<string, ObservableNode>;
 
-export type EntityConstructorInput =
-    | Partial<Record<string, unknown>>
-    | ObservableObject<Record<string, unknown>>;
+export type EntityConstructorInput = Partial<Record<string, unknown>> | ObservableObject<Record<string, unknown>>;
 
 /** Static contract for entity classes. Subclasses satisfy this via @Entity (entityName) and their constructor. */
 export interface EntityClassStatic<TEntity extends AbstractEntity = AbstractEntity> {
@@ -47,12 +45,9 @@ export abstract class AbstractEntity {
         const reader = new MetadataReader(this.constructor);
         const primaryKeyField = reader.getField('PrimaryKey')?.getFieldName();
         if (primaryKeyField == null) {
-            throw new DatabaseException(
-                `Entity ${this.constructor.name} must define a primary key with @PrimaryKey().`,
-                'PRIMARY_KEY_NOT_DEFINED',
-                undefined,
-                { entityName: this.constructor.name },
-            );
+            throw new DatabaseException(`Entity ${this.constructor.name} must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_NOT_DEFINED', undefined, {
+                entityName: this.constructor.name,
+            });
         }
         this._primaryKeyField = primaryKeyField;
 
@@ -88,25 +83,37 @@ export abstract class AbstractEntity {
         node?.set?.(value);
     }
 
-    /** Observable node for a field. Public so Column initializer can add fieldName$ getter; subclasses use in get fieldName$() { return this.field$<Type>('fieldName'); } */
+    /**
+     * Observable node for a field. Public so Column initializer can add fieldName$ getter;
+     * subclasses use in get fieldName$() { return this.field$<Type>('fieldName'); }
+     */
     public field$<T = unknown>(key: string): ObservablePrimitive<T> {
         const node = (this._state$ as ObservableStore)[key];
         return (node ?? { get: undefined, set: undefined }) as ObservablePrimitive<T>;
+    }
+
+    /**
+     * Current entity state as a plain record for persistence.
+     * Repository.persist(entity) calls this internally; prefer repo.persist(entity).
+     */
+    public toRecord(): Record<string, unknown> {
+        const reader = new MetadataReader(this.constructor);
+        const columnNames = reader
+            .getFields()
+            .filter((f) => f.getDecoratorName() === 'Column')
+            .map((f) => f.getFieldName());
+        const out: Record<string, unknown> = {};
+        for (const key of columnNames) {
+            out[key] = this.getField(key);
+        }
+        return out;
     }
 
     private get primaryKeyField(): string {
         return this._primaryKeyField;
     }
 
-    private isObservable(
-        obj: unknown,
-    ): obj is ObservableObject<Record<string, unknown>> {
-        return (
-            typeof obj === 'object' &&
-            obj != null &&
-            'get' in obj &&
-            typeof (obj as { get: unknown }).get === 'function'
-        );
+    private isObservable(obj: unknown): obj is ObservableObject<Record<string, unknown>> {
+        return typeof obj === 'object' && obj != null && 'get' in obj && typeof (obj as { get: unknown }).get === 'function';
     }
-
 }

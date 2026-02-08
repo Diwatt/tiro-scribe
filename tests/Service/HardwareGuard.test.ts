@@ -3,11 +3,11 @@
  * isCompatible() behavior; DeviceCompatibilityGate holds the compatibility matrix (iOS/Android mins).
  */
 
-import { vi } from 'vitest';
 import { DeviceType } from 'expo-device';
-import { HardwareGuard } from '@/Security/HardwareGuard';
-import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
+import { vi } from 'vitest';
 import { HardwareGuardException } from '@/Exception';
+import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
+import { HardwareGuard } from '@/Security/HardwareGuard';
 import { AppLogger } from '@/Service/Logger';
 
 const mockDevice = {

@@ -1,9 +1,6 @@
-import { AbstractEntity } from '@/Database/AbstractEntity';
+import type { AbstractEntity } from '@/Database/AbstractEntity';
 import { DatabaseException } from '@/Exception';
-import {
-    createTestEntityConstructor,
-    createNoPkEntityConstructor,
-} from '../helpers/mockEntity';
+import { createNoPkEntityConstructor, createTestEntityConstructor } from '../helpers/mockEntity';
 
 const TestEntity = createTestEntityConstructor();
 const NoPkEntity = createNoPkEntityConstructor();

@@ -1,8 +1,8 @@
-import React from 'react';
-import {View, StyleSheet} from 'react-native';
-import {PaperProvider} from 'react-native-paper';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {AppTheme} from '../src/theme/AppTheme';
+import type React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppTheme } from '../src/theme/AppTheme';
 
 /**
  * Global decorators for all stories

@@ -2,7 +2,7 @@
  * FileOperationError - Exception for file operation failures
  */
 
-import {TiroScribeException} from './TiroScribeException';
+import { TiroScribeException } from './TiroScribeException';
 
 export class FileOperationError extends TiroScribeException {
     constructor(message: string, originalError?: Error) {

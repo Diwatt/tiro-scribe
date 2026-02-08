@@ -1,8 +1,9 @@
-import React from 'react';
-import {View, StyleSheet, Text} from 'react-native';
-import {ProgressBar, ActivityIndicator, useTheme} from 'react-native-paper';
-import {Status} from './Status';
-import {StatusState} from './StatusTypes';
+import type React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ProgressBar, useTheme } from 'react-native-paper';
+import type { ExtendedTheme } from '@/theme/AppTheme';
+import { Status } from './Status';
+import { StatusState } from './StatusTypes';
 
 interface StatusProcessingProps {
     progress?: number;
@@ -10,31 +11,18 @@ interface StatusProcessingProps {
     timeEstimate?: string;
 }
 
-export function StatusProcessing({
-    progress,
-    currentTask,
-    timeEstimate,
-}: StatusProcessingProps): React.JSX.Element {
-    const theme = useTheme();
-    const statusColors = (theme.colors as any).statusProcessing as {
-        background: string;
-        text: string;
-        accent: string;
-        iconBackground: string;
-        shadowColor: string;
-    };
+export function StatusProcessing({ progress, currentTask, timeEstimate }: StatusProcessingProps): React.JSX.Element {
+    const theme = useTheme<ExtendedTheme>();
+    const statusColors = theme.colors.statusProcessing;
     return (
         <Status
             title="Processing..."
             subtitle={currentTask}
             icon={<ActivityIndicator size={20} color={statusColors.accent} />}
             iconBgOverride={statusColors.iconBackground}
-            state={StatusState.PROCESSING}>
-            {timeEstimate && (
-                <Text style={[styles.timeEstimate, {color: statusColors.text}]}>
-                    {timeEstimate}
-                </Text>
-            )}
+            state={StatusState.Processing}
+        >
+            {timeEstimate && <Text style={[styles.timeEstimate, { color: statusColors.text }]}>{timeEstimate}</Text>}
             {progress !== undefined && (
                 <ProgressBar
                     progress={progress / 100}

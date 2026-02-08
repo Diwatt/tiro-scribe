@@ -5,26 +5,26 @@
 // --- ENUMS ---
 
 export enum EncounterStatus {
-    RECORDING = 'recording',
-    WAITING = 'waiting',           // Waiting for triggers (Wifi/Charger)
-    PROCESSING = 'processing',     // Global status for UI
-    READY = 'ready',               // Processing done, ready to view
-    ARCHIVED = 'archived',
+    Recording = 'recording',
+    Waiting = 'waiting', // Waiting for triggers (Wifi/Charger)
+    Processing = 'processing', // Global status for UI
+    Ready = 'ready', // Processing done, ready to view
+    Archived = 'archived',
 }
 
 export enum QueueItemStatus {
-    PENDING = 'pending',
-    RUNNING = 'running',
-    PAUSED = 'paused',
-    COMPLETED = 'completed',
-    FAILED = 'failed',
+    Pending = 'pending',
+    Running = 'running',
+    Paused = 'paused',
+    Completed = 'completed',
+    Failed = 'failed',
 }
 
 export enum PipelineStage {
-    WAITING = 'waiting',           // Waiting for start conditions
-    TRANSCRIBING = 'transcribing', // Audio: VAD + Whisper + Speaker ID
-    ANONYMIZING = 'anonymizing',   // Text: NER + Anonymization
-    TO_SYNC = 'to_sync',           // Ready for server push
+    Waiting = 'waiting', // Waiting for start conditions
+    Transcribing = 'transcribing', // Audio: VAD + Whisper + Speaker ID
+    Anonymizing = 'anonymizing', // Text: NER + Anonymization
+    ToSync = 'to_sync', // Ready for server push
 }
 
 /**
@@ -34,18 +34,18 @@ export enum PipelineStage {
  * Safe for the user to send to support.
  */
 export interface QueueItemErrorEntry {
-    timestamp: string;       // ISO UTC
+    timestamp: string; // ISO UTC
     stage: PipelineStage;
-    message: string;         // Technical error only; no private data
+    message: string; // Technical error only; no private data
 }
 
 export enum EntityType {
-    PERSON = 'person',
-    LOCATION = 'location',
-    FAMILY_RELATION = 'family_relation',
-    WORK_RELATION = 'work_relation',
-    DATE = 'date',
-    TIME = 'time',
+    Person = 'person',
+    Location = 'location',
+    FamilyRelation = 'family_relation',
+    WorkRelation = 'work_relation',
+    Date = 'date',
+    Time = 'time',
 }
 
 // --- CORE AI INTERFACES (JSON Storage) ---
@@ -55,10 +55,10 @@ export enum EntityType {
  * Stored in Encounter.transcript as a JSON array.
  */
 export interface TranscriptSegment {
-    id: string;             // UUID
-    startTime: number;      // Seconds relative to start
-    endTime: number;        // Seconds relative to start
-    text: string;           // The actual transcribed text
+    id: string; // UUID
+    startTime: number; // Seconds relative to start
+    endTime: number; // Seconds relative to start
+    text: string; // The actual transcribed text
 
     /**
      * Technical unique label for the session (e.g., "spk_a1b2").
@@ -66,7 +66,7 @@ export interface TranscriptSegment {
      */
     speakerLabel: string;
 
-    confidence: number;     // 0.0 to 1.0
+    confidence: number; // 0.0 to 1.0
 }
 
 /**
@@ -74,8 +74,8 @@ export interface TranscriptSegment {
  * Stored in Encounter.detectedSpeakers as a JSON array.
  */
 export interface DetectedSpeakerProfile {
-    label: string;          // Matches TranscriptSegment.speakerLabel (e.g., "spk_a1b2")
-    embedding: number[];    // Raw biocode vector (Cam++)
+    label: string; // Matches TranscriptSegment.speakerLabel (e.g., "spk_a1b2")
+    embedding: number[]; // Raw biocode vector (Cam++)
 
     /**
      * The resolved Participant UUID (Therapist or Patient).

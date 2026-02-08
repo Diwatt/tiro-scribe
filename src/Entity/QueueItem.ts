@@ -30,10 +30,10 @@ export class QueueItem extends AbstractEntity {
     @Column({ default: 0 })
     private processingOffset!: number;
 
-    @Column({ default: QueueItemStatus.PENDING })
+    @Column({ default: QueueItemStatus.Pending })
     private status!: QueueItemStatus;
 
-    @Column({ default: PipelineStage.WAITING })
+    @Column({ default: PipelineStage.Waiting })
     private pipelineStage!: PipelineStage;
 
     @Column({ default: 0 })
@@ -127,13 +127,10 @@ export class QueueItem extends AbstractEntity {
     }
 
     public get isProcessable(): boolean {
-        if (this.getStatus() === QueueItemStatus.PENDING) {
+        if (this.getStatus() === QueueItemStatus.Pending) {
             return true;
         }
-        if (
-            this.getStatus() === QueueItemStatus.FAILED &&
-            this.getRetryCount() < MAX_RETRY_COUNT
-        ) {
+        if (this.getStatus() === QueueItemStatus.Failed && this.getRetryCount() < MAX_RETRY_COUNT) {
             return true;
         }
         return false;

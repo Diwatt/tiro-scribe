@@ -1,56 +1,56 @@
 {
-  "name": "secure-recorder",
-  "version": "1.0.0",
-  "description": "Expo module for secure audio recording with streaming AES-256-GCM encryption",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "scripts": {
-    "build": "expo-module build",
-    "build:watch": "tsc --watch",
-    "clean": "expo-module clean",
-    "lint": "expo-module lint",
-    "test": "jest --passWithNoTests",
-    "test:ts": "jest --passWithNoTests",
-    "prepare": "expo-module prepare",
-    "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module",
-    "validate": "echo '✅ Module structure' && test -f package.json && test -f expo-module.config.json && test -f android/build.gradle && test -f ios/SecureRecorderModule.swift && test -f src/index.ts && echo '✅ All required files present'",
-    "typecheck": "tsc --noEmit",
-    "verify": "pnpm run clean && pnpm run lint && pnpm run typecheck && pnpm run validate && pnpm run verify:android && pnpm run verify:ios",
-    "refresh-ide": "bash .cursor/refresh-index.sh",
-    "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain",
-    "verify:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'generic/platform=iOS Simulator' -quiet | grep -v 'warning:' | grep -v 'note:' && echo '✅ iOS compilation OK'",
-    "build:android": "cd ../../android && ./gradlew :secure-recorder:assembleDebug",
-    "build:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15'",
-    "test:unit": "pnpm test:android && pnpm test:ios",
-    "test:android": "cd ../../android && ./gradlew :secure-recorder:testDebugUnitTest",
-    "test:ios": "cd ../../ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:TiroScribeTests",
-    "test:integration": "jest __tests__/integration.test.ts"
-  },
-  "keywords": [
-    "react-native",
-    "expo",
-    "secure-recorder",
-    "encryption",
-    "audio"
-  ],
-  "repository": "https://github.com/Diwatt/tiro-scribe",
-  "bugs": {
-    "url": "https://github.com/Diwatt/tiro-scribe/issues"
-  },
-  "author": "Tiro Scribe",
-  "license": "MIT",
-  "homepage": "https://github.com/Diwatt/tiro-scribe",
-  "dependencies": {},
-  "devDependencies": {
-    "expo-module-scripts": "^5.0.8",
-    "expo-modules-core": "*",
-    "expo-audio": "*"
-  },
-  "peerDependencies": {
-    "expo": "*",
-    "expo-audio": "*",
-    "expo-modules-core": "*",
-    "react-native": "*"
-  }
+    "name": "secure-recorder",
+    "version": "1.0.0",
+    "description": "Expo module for secure audio recording with streaming AES-256-GCM encryption",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "scripts": {
+        "build": "expo-module build",
+        "build:watch": "tsc --watch",
+        "clean": "expo-module clean",
+        "lint": "expo-module lint",
+        "test": "jest --passWithNoTests",
+        "test:ts": "jest --passWithNoTests",
+        "prepare": "expo-module prepare",
+        "prepublishOnly": "expo-module prepublishOnly",
+        "expo-module": "expo-module",
+        "validate": "echo '✅ Module structure' && test -f package.json && test -f expo-module.config.json && test -f android/build.gradle && test -f ios/SecureRecorderModule.swift && test -f src/index.ts && echo '✅ All required files present'",
+        "typecheck": "tsc --noEmit",
+        "verify": "pnpm run clean && pnpm run lint && pnpm run typecheck && pnpm run validate && pnpm run verify:android && pnpm run verify:ios",
+        "refresh-ide": "bash .cursor/refresh-index.sh",
+        "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain",
+        "verify:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'generic/platform=iOS Simulator' -quiet | grep -v 'warning:' | grep -v 'note:' && echo '✅ iOS compilation OK'",
+        "build:android": "cd ../../android && ./gradlew :secure-recorder:assembleDebug",
+        "build:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15'",
+        "test:unit": "pnpm test:android && pnpm test:ios",
+        "test:android": "cd ../../android && ./gradlew :secure-recorder:testDebugUnitTest",
+        "test:ios": "cd ../../ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:TiroScribeTests",
+        "test:integration": "jest __tests__/integration.test.ts"
+    },
+    "keywords": [
+        "react-native",
+        "expo",
+        "secure-recorder",
+        "encryption",
+        "audio"
+    ],
+    "repository": "https://github.com/Diwatt/tiro-scribe",
+    "bugs": {
+        "url": "https://github.com/Diwatt/tiro-scribe/issues"
+    },
+    "author": "Tiro Scribe",
+    "license": "MIT",
+    "homepage": "https://github.com/Diwatt/tiro-scribe",
+    "dependencies": {},
+    "devDependencies": {
+        "expo-module-scripts": "^5.0.8",
+        "expo-modules-core": "*",
+        "expo-audio": "*"
+    },
+    "peerDependencies": {
+        "expo": "*",
+        "expo-audio": "*",
+        "expo-modules-core": "*",
+        "react-native": "*"
+    }
 }

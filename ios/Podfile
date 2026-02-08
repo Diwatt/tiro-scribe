@@ -26,23 +26,17 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
   provider_path = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-TiroScribe', 'ExpoModulesProvider.swift')
   if File.exist?(provider_path)
     content = File.read(provider_path)
-    changed = false
-    unless content.include?('import SecureRecorder')
-      content = content.sub("import ExpoFileSystem\n", "import ExpoFileSystem\nimport SecureRecorder\n")
-      changed = true
-    end
-    unless content.include?('SecureRecorderModule.self')
-      content = content.sub(
-        "DevMenuPreferences.self\n    ]\n    #else",
-        "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else"
-      )
-      content = content.sub(
-        "FileSystemModule.self\n    ]\n    #endif",
-        "FileSystemModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif"
-      )
-      changed = true
-    end
-    File.write(provider_path, content) if changed
+    orig = content
+    content = content.sub(/import ExpoFileSystem\r?\n/, "import ExpoFileSystem\nimport SecureRecorder\n") unless content.include?('import SecureRecorder')
+    content = content.sub(
+      "DevMenuPreferences.self\n    ]\n    #else",
+      "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else"
+    )
+    content = content.sub(
+      "SecureStoreModule.self\n    ]\n    #endif",
+      "SecureStoreModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif"
+    )
+    File.write(provider_path, content) if content != orig
   end
 
   # Add a build phase to re-apply the patch after [Expo] Configure project regenerates the file
@@ -74,16 +68,29 @@ def patch_expo_modules_provider_for_secure_recorder!(installer)
   end
 
   # Build phase that runs *after* [Expo] Configure: patch ExpoModulesProvider.swift if
-  # generate-modules-provider did not include SecureRecorderModule.
+  # generate-modules-provider did not include SecureRecorderModule, and always ensure
+  # import SecureRecorder is present when the module is referenced.
+  patch_script = <<~'SH'
+    P="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"
+    [ ! -f "$P" ] && exit 0
+    ruby -e '
+      c = File.read(ARGV[0])
+      orig = c
+      unless c.include?("import SecureRecorder")
+        c = c.sub(/import ExpoFileSystem\r?\n/, "import ExpoFileSystem\nimport SecureRecorder\n")
+        c = c.sub(/(import Expo\w+\r?\n)/, "\\1import SecureRecorder\n") unless c.include?("import SecureRecorder")
+      end
+      c = c.sub("DevMenuPreferences.self\n    ]\n    #else", "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else")
+      c = c.sub("SecureStoreModule.self\n    ]\n    #endif", "SecureStoreModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif")
+      File.write(ARGV[0], c) if c != orig
+    ' "$P"
+  SH
   existing = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Patch SecureRecorder into ExpoModulesProvider' }
-  unless existing
+  if existing
+    existing.shell_script = patch_script
+  else
     phase = native_target.new_shell_script_build_phase('[Expo] Patch SecureRecorder into ExpoModulesProvider')
-    phase.shell_script = <<~'SH'
-      P="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"
-      [ ! -f "$P" ] && exit 0
-      grep -q "SecureRecorderModule.self" "$P" && exit 0
-      ruby -e 'c=File.read(ARGV[0]);c=c.sub("import ExpoFileSystem\n","import ExpoFileSystem\nimport SecureRecorder\n") unless c.include?("import SecureRecorder");c=c.sub("DevMenuPreferences.self\n    ]\n    #else","DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else");c=c.sub("FileSystemModule.self\n    ]\n    #endif","FileSystemModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif");File.write(ARGV[0],c)' "$P"
-    SH
+    phase.shell_script = patch_script
     idx = native_target.build_phases.find_index(configure_phase)
     native_target.build_phases.delete(phase)
     native_target.build_phases.insert(idx + 1, phase)

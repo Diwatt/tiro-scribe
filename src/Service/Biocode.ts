@@ -8,8 +8,8 @@
  */
 
 import CryptoJS from 'crypto-js';
-import type * as Ort from 'onnxruntime-react-native';
 import * as FileSystem from 'expo-file-system';
+import type * as Ort from 'onnxruntime-react-native';
 
 /** Lazy-loaded ONNX Runtime; avoids loading native module until Biocode actually needs it. */
 let ortModule: typeof Ort | null = null;
@@ -19,16 +19,17 @@ async function getOrt(): Promise<typeof Ort> {
     }
     return ortModule;
 }
-import {SpeakerVector, BiocodeResult, Therapist} from '@/Entity';
-import { TherapistVault } from '../Security/TherapistVault';
-import { AppLogger, LoggerInterface } from './Logger';
+
+import type { BiocodeResult, SpeakerVector, Therapist } from '@/Entity';
 import {
     InvalidAudioFormatError,
-    SessionNotInitializedError,
-    VectorLengthMismatchError,
     InvalidDimensionError,
+    SessionNotInitializedError,
     SpeakerVectorExtractionError,
+    VectorLengthMismatchError,
 } from '../Exception';
+import { TherapistVault } from '../Security/TherapistVault';
+import { AppLogger, type LoggerInterface } from './Logger';
 
 /**
  * Biocode constants for LCG algorithm and vector dimensions
@@ -38,7 +39,7 @@ const BIocode = {
     DEFAULT_OUTPUT_DIM: 128,
     LCG_MULTIPLIER: 1664525,
     LCG_INCREMENT: 1013904223,
-    LCG_MODULUS: Math.pow(2, 32),
+    LCG_MODULUS: 2 ** 32,
     LCG_NORMALIZE_MULTIPLIER: 2,
     LCG_NORMALIZE_SUBTRACT: 1,
 } as const;
@@ -71,12 +72,12 @@ export class Biocode {
             const ort = await getOrt();
             // Resolve the model path (handle both local and bundled assets)
             const resolvedPath = await this.resolveModelPath(modelPath);
-            
+
             // Load the ONNX model using ONNX Runtime
             this.speakerSession = await ort.InferenceSession.create(resolvedPath, {
                 executionProviders: ['cpu'], // Use CPU execution provider
             });
-            
+
             this.modelPath = resolvedPath;
         } catch (error) {
             throw new InvalidAudioFormatError(
@@ -97,30 +98,26 @@ export class Biocode {
 
         // Check if file exists in document directory (for downloaded models)
         // Use the same pattern as ModelDownloader
-        const documentDir = (FileSystem as typeof FileSystem & {documentDirectory?: string}).documentDirectory || '';
+        const documentDir = (FileSystem as typeof FileSystem & { documentDirectory?: string }).documentDirectory || '';
         const documentPath = `${documentDir}${modelPath}`;
         const fileInfo = await FileSystem.getInfoAsync(documentPath);
-        
+
         if (fileInfo.exists) {
             return documentPath;
         }
 
         // Try to download the model if it's a known model
         const { ModelDownloader, MODEL_CONFIGS } = await import('./ModelDownloader');
-        
+
         // Check if this is a known model config
-        const modelKey = Object.keys(MODEL_CONFIGS).find(
-            key => MODEL_CONFIGS[key].localPath === modelPath
-        );
-        
+        const modelKey = Object.keys(MODEL_CONFIGS).find((key) => MODEL_CONFIGS[key].localPath === modelPath);
+
         if (modelKey) {
             // Download the model
             return await ModelDownloader.ensureModelDownloaded(MODEL_CONFIGS[modelKey]);
         }
 
-        throw new InvalidAudioFormatError(
-            `Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`,
-        );
+        throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);
     }
 
     /**
@@ -143,11 +140,7 @@ export class Biocode {
      * @param outputDim - Output vector dimension (default: 128, reduced for privacy)
      * @returns Projection matrix [outputDim x inputDim]
      */
-    private generateProjectionMatrix(
-        key: string,
-        inputDim: number = BIocode.DEFAULT_INPUT_DIM,
-        outputDim: number = BIocode.DEFAULT_OUTPUT_DIM,
-    ): number[][] {
+    private generateProjectionMatrix(key: string, inputDim: number = BIocode.DEFAULT_INPUT_DIM, outputDim: number = BIocode.DEFAULT_OUTPUT_DIM): number[][] {
         // Use key to seed a deterministic RNG
         const seed = this.hashToNumber(key);
         const matrix: number[][] = [];
@@ -179,7 +172,7 @@ export class Biocode {
         let hash = 0;
         for (let i = 0; i < key.length; i++) {
             const char = key.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
+            hash = (hash << 5) - hash + char;
             hash = hash & hash; // Convert to 32-bit integer
         }
         return Math.abs(hash);
@@ -195,7 +188,7 @@ export class Biocode {
         const orthonormal: number[][] = [];
 
         for (let i = 0; i < rows; i++) {
-            let v = [...matrix[i]];
+            const v = [...matrix[i]];
 
             // Subtract projections onto previous vectors
             for (let j = 0; j < i; j++) {
@@ -236,18 +229,14 @@ export class Biocode {
      */
     private applyProjection(vector: number[]): number[] {
         if (!this.projectionMatrix) {
-            throw new SessionNotInitializedError(
-                'Projection matrix not set. Call setTherapistCredentials() first.',
-            );
+            throw new SessionNotInitializedError('Projection matrix not set. Call setTherapistCredentials() first.');
         }
 
         const outputDim = this.projectionMatrix.length;
         const inputDim = vector.length;
 
         if (this.projectionMatrix[0].length !== inputDim) {
-            throw new InvalidDimensionError(
-                `Vector dimension ${inputDim} does not match projection matrix input dimension ${this.projectionMatrix[0].length}`,
-            );
+            throw new InvalidDimensionError(`Vector dimension ${inputDim} does not match projection matrix input dimension ${this.projectionMatrix[0].length}`);
         }
 
         const projected: number[] = [];
@@ -269,9 +258,7 @@ export class Biocode {
      */
     async extractSpeakerVector(audioPath: string): Promise<SpeakerVector> {
         if (!this.speakerSession) {
-            throw new SessionNotInitializedError(
-                'Biocode not initialized. Call initialize() first.',
-            );
+            throw new SessionNotInitializedError('Biocode not initialized. Call initialize() first.');
         }
 
         try {
@@ -285,18 +272,13 @@ export class Biocode {
             const normalizedEmbedding = this.normalizeVector(embedding);
 
             // Calculate confidence based on vector magnitude
-            const confidence = Math.min(1.0, Math.sqrt(
-                normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)
-            ));
+            const confidence = Math.min(1.0, Math.sqrt(normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)));
             return {
                 vector: normalizedEmbedding,
                 confidence,
             };
         } catch (error) {
-            throw new SpeakerVectorExtractionError(
-                `Failed to extract speaker vector: ${error}`,
-                error instanceof Error ? error : new Error(String(error)),
-            );
+            throw new SpeakerVectorExtractionError(`Failed to extract speaker vector: ${error}`, error instanceof Error ? error : new Error(String(error)));
         }
     }
 
@@ -311,24 +293,20 @@ export class Biocode {
         // 1. Load audio file (WAV format, 16kHz, mono)
         // 2. Convert to mel spectrogram features
         // 3. Return as Float32Array with shape [batch, time, features]
-        
+
         // Placeholder: Return dummy features
         // In production, use a library like:
         // - expo-audio for loading audio
         // - A native module for mel spectrogram extraction
         // - Or use Sherpa-ONNX's preprocessing utilities
-        
-        throw new InvalidAudioFormatError(
-            'Audio preprocessing not implemented. You need to implement mel spectrogram extraction.',
-        );
+
+        throw new InvalidAudioFormatError('Audio preprocessing not implemented. You need to implement mel spectrogram extraction.');
     }
 
     /**
      * Run speaker recognition inference using ONNX Runtime
      */
-    private async runSpeakerInference(
-        features: Float32Array,
-    ): Promise<number[]> {
+    private async runSpeakerInference(features: Float32Array): Promise<number[]> {
         if (!this.speakerSession) {
             throw new SessionNotInitializedError();
         }
@@ -341,7 +319,7 @@ export class Biocode {
         // Use a default shape - actual shape will be determined by the model
         // You may need to adjust this based on your specific model
         const inputShape: readonly number[] = [1, 80, 100]; // Default: [batch, mel_bins, time_frames]
-        
+
         // Reshape features to match model input shape
         // Typical shape: [batch, time_frames, mel_bins] or [batch, features]
         const reshapedFeatures = this.reshapeFeatures(features, inputShape);
@@ -364,13 +342,10 @@ export class Biocode {
     /**
      * Reshape features array to match model input shape
      */
-    private reshapeFeatures(
-        features: Float32Array,
-        targetShape: readonly number[],
-    ): Float32Array {
+    private reshapeFeatures(features: Float32Array, targetShape: readonly number[]): Float32Array {
         // Calculate total elements
         const totalElements = targetShape.reduce((a, b) => a * b, 1);
-        
+
         // If features don't match, pad or truncate
         if (features.length < totalElements) {
             // Pad with zeros
@@ -388,14 +363,12 @@ export class Biocode {
      * Normalize vector to unit length (L2 normalization)
      */
     private normalizeVector(vector: number[]): number[] {
-        const magnitude = Math.sqrt(
-            vector.reduce((sum, val) => sum + val * val, 0),
-        );
-        
+        const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+
         if (magnitude === 0) {
             return vector;
         }
-        return vector.map(val => val / magnitude);
+        return vector.map((val) => val / magnitude);
     }
 
     /**
@@ -404,10 +377,7 @@ export class Biocode {
      * @param vector2 - Second speaker vector
      * @returns Cosine similarity score (0-1)
      */
-    async calculateCosineSimilarity(
-        vector1: number[],
-        vector2: number[],
-    ): Promise<number> {
+    async calculateCosineSimilarity(vector1: number[], vector2: number[]): Promise<number> {
         if (vector1.length !== vector2.length) {
             throw new VectorLengthMismatchError();
         }
@@ -441,9 +411,7 @@ export class Biocode {
      */
     projectVector(speakerVector: SpeakerVector): ProjectedVector {
         if (!this.projectionMatrix) {
-            throw new SessionNotInitializedError(
-                'Projection matrix not set. Call setTherapistCredentials() first.',
-            );
+            throw new SessionNotInitializedError('Projection matrix not set. Call setTherapistCredentials() first.');
         }
 
         const projected = this.applyProjection(speakerVector.vector);
@@ -459,13 +427,9 @@ export class Biocode {
      * @param speakerVector - The extracted speaker vector
      * @returns Biocode result with patient ID from projected vector
      */
-    async generateBiocode(
-        speakerVector: SpeakerVector,
-    ): Promise<BiocodeResult> {
+    async generateBiocode(speakerVector: SpeakerVector): Promise<BiocodeResult> {
         if (!this.projectionMatrix) {
-            throw new SessionNotInitializedError(
-                'Projection matrix not set. Call setTherapistCredentials() first.',
-            );
+            throw new SessionNotInitializedError('Projection matrix not set. Call setTherapistCredentials() first.');
         }
 
         // Project the vector
@@ -506,29 +470,22 @@ export class Biocode {
         threshold: number = 0.85,
     ): Promise<boolean> {
         if (!this.projectionMatrix) {
-            throw new SessionNotInitializedError(
-                'Projection matrix not set. Call setTherapistCredentials() first.',
-            );
+            throw new SessionNotInitializedError('Projection matrix not set. Call setTherapistCredentials() first.');
         }
 
         // Project vectors if they're SpeakerVector, otherwise use as-is (already projected)
         const projected1 =
-            'confidence' in speakerVector1 &&
-            (speakerVector1 as SpeakerVector).vector.length >= 100
+            'confidence' in speakerVector1 && (speakerVector1 as SpeakerVector).vector.length >= 100
                 ? this.applyProjection((speakerVector1 as SpeakerVector).vector)
                 : (speakerVector1 as ProjectedVector).vector;
 
         const projected2 =
-            'confidence' in speakerVector2 &&
-            (speakerVector2 as SpeakerVector).vector.length >= 100
+            'confidence' in speakerVector2 && (speakerVector2 as SpeakerVector).vector.length >= 100
                 ? this.applyProjection((speakerVector2 as SpeakerVector).vector)
                 : (speakerVector2 as ProjectedVector).vector;
 
         // Calculate cosine similarity
-        const similarity = await this.calculateCosineSimilarity(
-            projected1,
-            projected2,
-        );
+        const similarity = await this.calculateCosineSimilarity(projected1, projected2);
         return similarity >= threshold;
     }
 

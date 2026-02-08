@@ -3,21 +3,21 @@
  * Centralized export point for all exceptions and error types
  */
 
-export {TiroScribeException} from './TiroScribeException';
-export {DatabaseException} from './DatabaseException';
-export {DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED} from './DecoratorException';
-export {RecordingErrorType} from './RecordingErrorType';
-export type {RecordingError} from './RecordingError';
-export {RecordingPermissionError} from './RecordingPermissionError';
-export {RecorderNotInitializedError} from './RecorderNotInitializedError';
-export {NoActiveRecordingError} from './NoActiveRecordingError';
-export {RecordingUriUnavailableError} from './RecordingUriUnavailableError';
-export {FileOperationError} from './FileOperationError';
-export {TranscriptionNotImplementedError} from './TranscriptionNotImplementedError';
-export {SessionNotInitializedError} from './SessionNotInitializedError';
-export {InvalidAudioFormatError} from './InvalidAudioFormatError';
-export {VectorLengthMismatchError} from './VectorLengthMismatchError';
-export {InvalidDimensionError} from './InvalidDimensionError';
-export {ModelDownloadError} from './ModelDownloadError';
-export {SpeakerVectorExtractionError} from './SpeakerVectorExtractionError';
-export {HardwareGuardException} from './HardwareGuardException';
+export { DatabaseException } from './DatabaseException';
+export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
+export { FileOperationError } from './FileOperationError';
+export { HardwareGuardException } from './HardwareGuardException';
+export { InvalidAudioFormatError } from './InvalidAudioFormatError';
+export { InvalidDimensionError } from './InvalidDimensionError';
+export { ModelDownloadError } from './ModelDownloadError';
+export { NoActiveRecordingError } from './NoActiveRecordingError';
+export { RecorderNotInitializedError } from './RecorderNotInitializedError';
+export type { RecordingError } from './RecordingError';
+export { RecordingErrorType } from './RecordingErrorType';
+export { RecordingPermissionError } from './RecordingPermissionError';
+export { RecordingUriUnavailableError } from './RecordingUriUnavailableError';
+export { SessionNotInitializedError } from './SessionNotInitializedError';
+export { SpeakerVectorExtractionError } from './SpeakerVectorExtractionError';
+export { TiroScribeException } from './TiroScribeException';
+export { TranscriptionNotImplementedError } from './TranscriptionNotImplementedError';
+export { VectorLengthMismatchError } from './VectorLengthMismatchError';

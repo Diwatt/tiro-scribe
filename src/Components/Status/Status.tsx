@@ -1,7 +1,9 @@
-import React, {ReactNode} from 'react';
-import {View, StyleSheet} from 'react-native';
-import {Text, Surface, useTheme} from 'react-native-paper';
-import {StatusState} from './StatusTypes';
+import type React from 'react';
+import type { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Surface, Text, useTheme } from 'react-native-paper';
+import type { ExtendedTheme } from '@/theme/AppTheme';
+import { StatusState } from './StatusTypes';
 
 export interface StatusColors {
     background: string;
@@ -20,17 +22,10 @@ export interface StatusBaseProps {
     children?: ReactNode;
 }
 
-export function Status({
-    title,
-    subtitle,
-    icon,
-    state,
-    iconBgOverride,
-    children,
-}: StatusBaseProps): React.JSX.Element {
-    const theme = useTheme();
+export function Status({ title, subtitle, icon, state, iconBgOverride, children }: StatusBaseProps): React.JSX.Element {
+    const theme = useTheme<ExtendedTheme>();
     const statusColorKey = StatusState.getColorKey(state);
-    const statusColors = (theme.colors as any)[statusColorKey] as StatusColors;
+    const statusColors = (theme.colors as Record<string, StatusColors>)[statusColorKey];
     return (
         <Surface
             style={[
@@ -40,22 +35,17 @@ export function Status({
                     shadowColor: statusColors.shadowColor,
                 },
             ]}
-            elevation={4}>
+            elevation={4}
+        >
             <View style={styles.contentWrapper}>
                 <View style={styles.headerRow}>
-                    <View style={[styles.iconBox, {backgroundColor: iconBgOverride ?? statusColors.iconBackground}]}>
-                        {icon}
-                    </View>
+                    <View style={[styles.iconBox, { backgroundColor: iconBgOverride ?? statusColors.iconBackground }]}>{icon}</View>
                     <View style={styles.headerText}>
-                        <Text
-                            variant="titleMedium"
-                            style={[styles.title, {color: statusColors.text}]}>
+                        <Text variant="titleMedium" style={[styles.title, { color: statusColors.text }]}>
                             {title}
                         </Text>
                         {subtitle && (
-                            <Text
-                                variant="bodySmall"
-                                style={[styles.subtitle, {color: statusColors.text}]}>
+                            <Text variant="bodySmall" style={[styles.subtitle, { color: statusColors.text }]}>
                                 {subtitle}
                             </Text>
                         )}
@@ -71,7 +61,7 @@ const styles = StyleSheet.create({
     container: {
         borderRadius: 24,
         marginBottom: 20,
-        shadowOffset: {width: 0, height: 8},
+        shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.15,
         shadowRadius: 12,
         elevation: 5,

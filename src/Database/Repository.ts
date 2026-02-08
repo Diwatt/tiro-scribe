@@ -6,11 +6,11 @@
  * find(primaryKey) is O(1). One Repository instance per entity type.
  */
 
-import { DatabaseException } from '../Exception';
-import type { AbstractEntity, EntityConstructorInput } from './AbstractEntity';
 import { MetadataReader } from '../Decorator';
-import { TableBacking } from './TableBacking';
+import { DatabaseException } from '../Exception';
+import { AbstractEntity, type EntityConstructorInput } from './AbstractEntity';
 import { EntitySerializer } from './Serializer';
+import { TableBacking } from './TableBacking';
 
 /**
  * Repository for AbstractEntity instances. Backed by TableBacking (one table's in-memory + MMKV persistence).
@@ -26,7 +26,9 @@ type EntityClassForCreate<TEntity extends AbstractEntity> = {
 
 export class Repository<TEntity extends AbstractEntity> {
     private readonly _backing: TableBacking;
-    private readonly EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity;
+    private readonly EntityClass: new (
+        dataOrObservable?: EntityConstructorInput,
+    ) => TEntity;
     private readonly tableName: string;
     private readonly primaryKeyField: string;
     private readonly _serializer: EntitySerializer;
@@ -34,20 +36,14 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Creates the appropriate repository: custom repo if entity defines repositoryClass, else generic Repository.
      */
-    public static create<TEntity extends AbstractEntity>(
-        entityName: string,
-        EntityClass: EntityClassForCreate<TEntity>,
-    ): Repository<AbstractEntity> {
+    public static create<TEntity extends AbstractEntity>(entityName: string, EntityClass: EntityClassForCreate<TEntity>): Repository<AbstractEntity> {
         if (EntityClass.repositoryClass) {
             return new EntityClass.repositoryClass();
         }
         return new Repository<TEntity>(EntityClass, entityName);
     }
 
-    protected constructor(
-        EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity,
-        tableName: string,
-    ) {
+    protected constructor(EntityClass: new (dataOrObservable?: EntityConstructorInput) => TEntity, tableName: string) {
         this.EntityClass = EntityClass;
         this.tableName = tableName;
         this.primaryKeyField = new MetadataReader(EntityClass).getField('PrimaryKey')?.getFieldName() ?? 'uuid';
@@ -103,17 +99,16 @@ export class Repository<TEntity extends AbstractEntity> {
 
     /**
      * Persist: create if entity unknown (pk not in table), else update.
-     * Serializer merges defaults + (stored if update) + data; we serialize and write.
+     * Accepts an entity (calls toRecord() internally) or a plain record.
      */
-    public persist(data: Partial<Record<string, unknown>> = {}): TEntity {
+    public persist(entityOrData: TEntity | Partial<Record<string, unknown>> = {}): TEntity {
+        const data = entityOrData instanceof AbstractEntity ? entityOrData.toRecord() : entityOrData;
         const map = this._backing.get();
         // First merge: defaults + data → we get the full record and thus the pk (pk may come from defaults).
         const merged = this._serializer.mergeWithDefaults(data);
         const pk = merged[this.primaryKeyField] as string;
         // Second merge only when updating: defaults + stored + data so we overwrite only provided fields.
-        const mergedWithStored = this.exists(pk)
-            ? this._serializer.mergeWithDefaults(data, map[pk])
-            : merged;
+        const mergedWithStored = this.exists(pk) ? this._serializer.mergeWithDefaults(data, map[pk]) : merged;
         const toStore = this._serializer.serialize(mergedWithStored);
         this._backing.setEntry(pk, toStore);
         return this.createEntityFromKey(pk);
@@ -135,12 +130,10 @@ export class Repository<TEntity extends AbstractEntity> {
     private createEntityFromKey(primaryKey: string): TEntity {
         const obs = this._backing.getObservableAtKey(primaryKey);
         if (!obs) {
-            throw new DatabaseException(
-                `No observable found for key "${primaryKey}" in table "${this.tableName}".`,
-                'REPOSITORY_KEY_NOT_FOUND',
-                undefined,
-                { tableName: this.tableName, primaryKey },
-            );
+            throw new DatabaseException(`No observable found for key "${primaryKey}" in table "${this.tableName}".`, 'REPOSITORY_KEY_NOT_FOUND', undefined, {
+                tableName: this.tableName,
+                primaryKey,
+            });
         }
         return new this.EntityClass(obs);
     }

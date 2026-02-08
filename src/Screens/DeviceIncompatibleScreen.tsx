@@ -1,19 +1,12 @@
-/**
- * Device Incompatible Screen
- * Shown when DeviceCompatibilityGate.isCompatible() returns false. Blocks all navigation.
- */
-
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import type React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
 export function DeviceIncompatibleScreen(): React.JSX.Element {
     const theme = useTheme();
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-                Device not supported
-            </Text>
+            <Text style={[styles.title, { color: theme.colors.onBackground }]}>Device not supported</Text>
             <Text style={[styles.message, { color: theme.colors.onSurfaceVariant }]}>
                 Tiro Scribe requires a compatible device for on-device AI processing.
             </Text>

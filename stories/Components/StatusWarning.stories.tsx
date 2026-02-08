@@ -1,6 +1,6 @@
+import type { Meta, StoryObj } from '@storybook/react-native';
 import React from 'react';
-import type {Meta, StoryObj} from '@storybook/react-native';
-import {StatusWarning} from '../../src/Components';
+import { StatusWarning } from '../../src/Components';
 
 const meta: Meta<typeof StatusWarning> = {
     title: 'Components/Status/StatusWarning',

@@ -4,10 +4,10 @@
  * Provides reactive state for recording status and file paths
  */
 
-import {observable, Observable, computed, ObservableComputed} from '@legendapp/state';
-import {SecureRecorder, RecorderState} from '../../modules/secure-recorder/src/index';
-import {v4 as uuidv4} from 'uuid';
-import { AppLogger, LoggerInterface } from './Logger';
+import { computed, type Observable, type ObservableComputed, observable } from '@legendapp/state';
+import { v4 as uuidv4 } from 'uuid';
+import { RecorderState, SecureRecorder } from '../../modules/secure-recorder/src/index';
+import { AppLogger, type LoggerInterface } from './Logger';
 
 export interface AudioRecordingState {
     state: RecorderState;
@@ -18,7 +18,7 @@ export interface AudioRecordingState {
 
 /**
  * AudioRecording - Singleton class for managing audio recording
- * 
+ *
  * Uses Legend-State observables for reactive state management
  * with an OOP interface
  */
@@ -231,7 +231,7 @@ class AudioRecording {
             hasRecorder: !!this.recorder,
             recorderState: this.recorder?.state,
         });
-        
+
         if (!this.recorder) {
             const error = new Error('Recorder not initialized');
             this.loggerInstance.error('❌ [AudioRecording] Cannot stop: recorder not initialized');
@@ -242,22 +242,22 @@ class AudioRecording {
             const recorder = this.recorder;
             const sessionId = recorder.sessionId;
             const currentFilePath = recorder.filePath;
-            
+
             this.loggerInstance.info('🛑 [AudioRecording] Stopping recording...', {
                 sessionId,
                 currentState: recorder.state,
                 currentFilePath,
             });
-            
+
             const filePath = await recorder.stop();
             const finalState = recorder.state;
-            
+
             this.loggerInstance.info('✅ [AudioRecording] Recording stopped successfully!', {
                 state: finalState,
                 filePath,
                 sessionId,
             });
-            
+
             this.state$.state.set(finalState);
             this.state$.filePath.set(filePath);
             this.stopDurationTicker();
@@ -290,15 +290,15 @@ export const audioRecording = new AudioRecording();
 
 /**
  * Hook for audio recording management
- * 
+ *
  * Returns the AudioRecording class instance directly.
  * Components using this hook should be wrapped with observer() from @legendapp/state/react
  * for proper reactivity when accessing observables.
- * 
+ *
  * @example
  * ```tsx
  * const audioRecording = useAudioRecording();
- * 
+ *
  * useEffect(() => {
  *   audioRecording.startRecording();
  * }, []);

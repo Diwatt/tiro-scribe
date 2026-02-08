@@ -260,7 +260,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "P=\"$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift\"\n[ ! -f \"$P\" ] && exit 0\ngrep -q \"SecureRecorderModule.self\" \"$P\" && exit 0\nruby -e 'c=File.read(ARGV[0]);c=c.sub(\"import ExpoSQLite\\n\",\"import ExpoSQLite\\nimport SecureRecorder\\n\") unless c.include?(\"import SecureRecorder\");c=c.sub(\"DevMenuPreferences.self\\n    ]\\n    #else\",\"DevMenuPreferences.self,\\n      SecureRecorderModule.self\\n    ]\\n    #else\");c=c.sub(\"SQLiteModule.self\\n    ]\\n    #endif\",\"SQLiteModule.self,\\n      SecureRecorderModule.self\\n    ]\\n    #endif\");File.write(ARGV[0],c)' \"$P\"\n";
+			shellScript = "P=\"$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift\"\n[ ! -f \"$P\" ] && exit 0\nruby -e '\n  c = File.read(ARGV[0])\n  orig = c\n  unless c.include?(\"import SecureRecorder\")\n    c = c.sub(/import ExpoFileSystem\\r?\\n/, \"import ExpoFileSystem\\nimport SecureRecorder\\n\")\n    c = c.sub(/(import Expo\\w+\\r?\\n)/, \"\\\\1import SecureRecorder\\n\") unless c.include?(\"import SecureRecorder\")\n  end\n  c = c.sub(\"DevMenuPreferences.self\\n    ]\\n    #else\", \"DevMenuPreferences.self,\\n      SecureRecorderModule.self\\n    ]\\n    #else\")\n  c = c.sub(\"SecureStoreModule.self\\n    ]\\n    #endif\", \"SecureStoreModule.self,\\n      SecureRecorderModule.self\\n    ]\\n    #endif\")\n  File.write(ARGV[0], c) if c != orig\n' \"$P\"\n";
 		};
 		68F9F8869817927E33C2E634 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -269,14 +269,12 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-TiroScribe/Pods-TiroScribe-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoSQLite/crsqlite.framework/crsqlite",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/crsqlite.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
@@ -319,6 +317,7 @@
 				"${PODS_ROOT}/Target Support Files/Pods-TiroScribe/Pods-TiroScribe-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoDevice/ExpoDevice_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
@@ -331,6 +330,7 @@
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoDevice_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",

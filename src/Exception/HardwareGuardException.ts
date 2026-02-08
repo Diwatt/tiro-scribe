@@ -11,12 +11,7 @@ export class HardwareGuardException extends TiroScribeException {
     /** Error code when a minimum OS version string is not parseable as semver. */
     static readonly INVALID_MIN_VERSION = 'INVALID_MIN_VERSION' as const;
 
-    public constructor(
-        message: string,
-        code: string,
-        originalError?: Error,
-        context?: Record<string, unknown>,
-    ) {
+    public constructor(message: string, code: string, originalError?: Error, context?: Record<string, unknown>) {
         super(message, code, originalError, context);
         this.name = 'HardwareGuardException';
 

@@ -7,12 +7,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class DatabaseException extends TiroScribeException {
-    public constructor(
-        message: string,
-        code: string,
-        originalError?: Error,
-        context?: Record<string, unknown>,
-    ) {
+    public constructor(message: string, code: string, originalError?: Error, context?: Record<string, unknown>) {
         super(message, code, originalError, context);
         this.name = 'DatabaseException';
 
@@ -21,4 +16,3 @@ export class DatabaseException extends TiroScribeException {
         }
     }
 }
-

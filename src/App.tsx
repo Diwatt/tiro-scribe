@@ -1,16 +1,17 @@
 /**
  * Main application component
- * 
+ *
  * Services are disabled - only recording functionality is enabled
  */
 
-import React from 'react';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {PaperProvider} from 'react-native-paper';
-import {InitGate} from './Components/InitGate';
-import {AppTheme} from './theme/AppTheme';
-import {ServicesProvider} from './Context/ServicesContext';
+import type React from 'react';
+import { PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppToast } from './Components/AppToast';
+import { InitGate } from './Components/InitGate';
+import { ServicesProvider } from './Context/ServicesContext';
 import { AppLogger } from './Service/Logger';
+import { AppTheme } from './theme/AppTheme';
 
 // Only recording loads at app start. DB, transcript, Biocode, NER will be added later.
 
@@ -43,6 +44,7 @@ export function App() {
                 <ServicesProvider services={services}>
                     <InitGate />
                 </ServicesProvider>
+                <AppToast />
             </PaperProvider>
         </SafeAreaProvider>
     );

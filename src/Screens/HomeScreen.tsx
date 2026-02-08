@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
-import { useTheme, ProgressBar, Card } from 'react-native-paper';
 import { observer } from '@legendapp/state/react';
 import { useRouter } from 'expo-router';
-import { StatusReady, SecureSessionButton } from '@/Components';
+import type React from 'react';
+import { useEffect } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Card, ProgressBar, useTheme } from 'react-native-paper';
+import { SecureSessionButton, StatusReady } from '@/Components';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
 import { modelManager, useModelDownloadProgress } from '../Service/ModelManager';
 
-export const Home = observer(function Home(): React.JSX.Element {
+export const Home = observer((): React.JSX.Element => {
     const theme = useTheme();
     const router = useRouter();
     const { progress, isReady, isDownloading } = useModelDownloadProgress();
@@ -24,24 +25,13 @@ export const Home = observer(function Home(): React.JSX.Element {
     };
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {isDownloading && (
                     <Card style={[styles.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
                         <Card.Content>
-                            <Text style={[styles.bannerTitle, { color: theme.colors.onSurface }]}>
-                                Initializing AI Engine…
-                            </Text>
-                            <ProgressBar
-                                progress={progress}
-                                color={theme.colors.primary}
-                                style={styles.bannerProgress}
-                            />
-                            <Text style={[styles.bannerPercent, { color: theme.colors.onSurfaceVariant }]}>
-                                {Math.round(progress * 100)}%
-                            </Text>
+                            <Text style={[styles.bannerTitle, { color: theme.colors.onSurface }]}>Initializing AI Engine…</Text>
+                            <ProgressBar progress={progress} color={theme.colors.primary} style={styles.bannerProgress} />
+                            <Text style={[styles.bannerPercent, { color: theme.colors.onSurfaceVariant }]}>{Math.round(progress * 100)}%</Text>
                         </Card.Content>
                     </Card>
                 )}
@@ -50,16 +40,8 @@ export const Home = observer(function Home(): React.JSX.Element {
             </ScrollView>
 
             <View style={styles.buttonContainer}>
-                <SecureSessionButton
-                    onPress={handlePress}
-                    isRecording={false}
-                    disabled={isDownloading}
-                />
-                {isDownloading && (
-                    <Text style={[styles.warning, { color: theme.colors.error }]}>
-                        Processing will be delayed until models are ready.
-                    </Text>
-                )}
+                <SecureSessionButton onPress={handlePress} isRecording={false} disabled={isDownloading} />
+                {isDownloading && <Text style={[styles.warning, { color: theme.colors.error }]}>Processing will be delayed until models are ready.</Text>}
             </View>
         </View>
     );

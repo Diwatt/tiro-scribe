@@ -10,9 +10,9 @@
 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import type { LoggerInterface } from '../Service/Logger';
 import type { QueueItem } from '../Entity/QueueItem';
 import type { PipelineStage, QueueItemErrorEntry } from '../Entity/Type';
+import type { LoggerInterface } from '../Service/Logger';
 
 dayjs.extend(utc);
 
@@ -65,11 +65,7 @@ export class QueueItemErrorLogger {
      * Newest last. Use for UI ("last error for this item") or export.
      */
     static getRecentErrors(queueItemId?: string): QueueItemErrorEntry[] {
-        const list = queueItemId
-            ? QueueItemErrorLogger._buffer.filter(
-                  (e) => e.queueItemId === queueItemId,
-              )
-            : [...QueueItemErrorLogger._buffer];
+        const list = queueItemId ? QueueItemErrorLogger._buffer.filter((e) => e.queueItemId === queueItemId) : [...QueueItemErrorLogger._buffer];
         return list.map(({ queueItemId: _, ...entry }) => entry);
     }
 
@@ -79,15 +75,9 @@ export class QueueItemErrorLogger {
      * Contains only processing data (no private data).
      */
     static exportForSupport(options?: { queueItemId?: string }): string {
-        const entries = QueueItemErrorLogger.getRecentErrors(
-            options?.queueItemId,
-        );
-        const header = options?.queueItemId
-            ? `QueueItem: ${options.queueItemId}\n`
-            : '';
-        const body = entries.length
-            ? QueueItemErrorLogger.format(entries)
-            : '(no errors recorded in this session)';
+        const entries = QueueItemErrorLogger.getRecentErrors(options?.queueItemId);
+        const header = options?.queueItemId ? `QueueItem: ${options.queueItemId}\n` : '';
+        const body = entries.length ? QueueItemErrorLogger.format(entries) : '(no errors recorded in this session)';
         return header + body;
     }
 }

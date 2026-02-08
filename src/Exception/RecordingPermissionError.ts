@@ -2,7 +2,7 @@
  * RecordingPermissionError - Exception for permission-related errors
  */
 
-import {TiroScribeException} from './TiroScribeException';
+import { TiroScribeException } from './TiroScribeException';
 
 export class RecordingPermissionError extends TiroScribeException {
     constructor(message: string = 'Audio recording permission denied', originalError?: Error) {

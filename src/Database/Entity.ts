@@ -6,12 +6,7 @@
  * class Encounter extends AbstractEntity { ... }
  */
 
-import {
-    Builder,
-    type ClassConstructor,
-    type ClassDecoratorConfig,
-    type OptionsSchema,
-} from '../Decorator/Builder';
+import { Builder, type ClassConstructor, type ClassDecoratorConfig, type OptionsSchema } from '../Decorator/Builder';
 import { MetadataWriter } from '../Decorator/MetadataWriter';
 
 export interface EntityOptions {
@@ -27,11 +22,7 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
     public readonly schema = ENTITY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_ENTITY_OPTIONS';
 
-    public fn(
-        target: ClassConstructor,
-        _context: ClassDecoratorContext<ClassConstructor>,
-        options: EntityOptions,
-    ): void {
+    public fn(target: ClassConstructor, _context: ClassDecoratorContext<ClassConstructor>, options: EntityOptions): void {
         (target as typeof target & { entityName: string }).entityName = options.table_name;
         MetadataWriter.registerEntity(target, options);
     }

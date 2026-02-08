@@ -21,18 +21,14 @@ const ERROR_CODES = {
 export class Registry {
     private readonly repositories = new Map<string, Repository<AbstractEntity>>();
 
-    public getRepository<
-        TEntity extends AbstractEntity,
-        TRepository extends Repository<AbstractEntity> = Repository<TEntity>,
-    >(EntityClass: EntityClass<TEntity>): TRepository {
+    public getRepository<TEntity extends AbstractEntity, TRepository extends Repository<AbstractEntity> = Repository<TEntity>>(
+        EntityClass: EntityClass<TEntity>,
+    ): TRepository {
         const entityName = EntityClass.entityName;
         if (!entityName) {
-            throw new TiroScribeException(
-                `Entity class ${EntityClass.name} must define static entityName`,
-                ERROR_CODES.ENTITY_NAME_REQUIRED,
-                undefined,
-                { entityClass: EntityClass.name },
-            );
+            throw new TiroScribeException(`Entity class ${EntityClass.name} must define static entityName`, ERROR_CODES.ENTITY_NAME_REQUIRED, undefined, {
+                entityClass: EntityClass.name,
+            });
         }
 
         const existing = this.repositories.get(entityName);

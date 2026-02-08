@@ -3,10 +3,10 @@
  * Extends Material Design 3 (MD3) theme with pastel rainbow color palette
  */
 
-import {MD3LightTheme, MD3DarkTheme} from 'react-native-paper';
-import type {MD3Theme} from 'react-native-paper';
-import {colord, extend} from 'colord';
+import { colord, extend } from 'colord';
 import mixPlugin from 'colord/plugins/mix';
+import type { MD3Theme } from 'react-native-paper';
+import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 
 // Extend colord with the mix plugin
 extend([mixPlugin]);
@@ -46,8 +46,8 @@ export interface ActionButtonColors {
  */
 export interface ActionGroupColors {
     critical: ActionButtonColors; // Record, Delete (Amethyst)
-    primary: ActionButtonColors;  // Save, Login, Next (Ocean Blue)
-    success: ActionButtonColors;  // Confirm, Done (Teal)
+    primary: ActionButtonColors; // Save, Login, Next (Ocean Blue)
+    success: ActionButtonColors; // Confirm, Done (Teal)
 }
 
 type ExtendedColors = typeof MD3LightTheme.colors & {
@@ -74,8 +74,8 @@ const BASE_COLORS = {
     peach: '#F7D9C4',
     // Action colors (saturated for contrast)
     amethyst: '#8E7CC3', // Critical actions (Record, Delete)
-    ocean: '#5B84B1',     // Primary actions (Save, Submit, Next)
-    teal: '#45B7A0',      // Success actions (Confirm, Done)
+    ocean: '#5B84B1', // Primary actions (Save, Submit, Next)
+    teal: '#45B7A0', // Success actions (Confirm, Done)
 } as const;
 
 /**
@@ -90,38 +90,38 @@ const TEXT_COLOR_LIGHT = '#FFFFFF';
 const pastelColors = {
     // Base colors (exported for reference)
     ...BASE_COLORS,
-    
+
     // Primary colors (derived from mint)
     primary: colord(BASE_COLORS.mint).darken(0.5).toHex(),
     onPrimary: TEXT_COLOR_LIGHT,
     primaryContainer: BASE_COLORS.mint,
     onPrimaryContainer: colord(BASE_COLORS.mint).darken(0.5).toHex(),
-    
+
     // Secondary colors (derived from blue)
     secondary: colord(BASE_COLORS.blue).darken(0.5).toHex(),
     onSecondary: TEXT_COLOR_LIGHT,
     secondaryContainer: BASE_COLORS.blue,
     onSecondaryContainer: colord(BASE_COLORS.blue).darken(0.5).toHex(),
-    
+
     // Tertiary colors (derived from lavender)
     tertiary: colord(BASE_COLORS.lavender).darken(0.5).toHex(),
     onTertiary: TEXT_COLOR_LIGHT,
     tertiaryContainer: BASE_COLORS.lavender,
     onTertiaryContainer: colord(BASE_COLORS.lavender).darken(0.5).toHex(),
-    
+
     // Error colors (derived from pink)
     error: colord(BASE_COLORS.pink).darken(0.6).toHex(),
     onError: TEXT_COLOR_LIGHT,
     errorContainer: colord(BASE_COLORS.pink).lighten(0.3).toHex(),
     onErrorContainer: colord(BASE_COLORS.pink).darken(0.7).toHex(),
-    
+
     // Background and surface
     background: '#FAFAFA',
     onBackground: TEXT_COLOR,
     surface: '#FFFFFF',
     onSurface: TEXT_COLOR,
     surfaceVariant: colord(BASE_COLORS.peach).lighten(0.4).toHex(),
-    onSurfaceVariant: colord(BASE_COLORS.peach).darken(0.4).toHex(),
+    onSurfaceVariant: colord(TEXT_COLOR).mix('#FFFFFF', 0.48).toHex(), // Neutral gray for labels/body; avoid peach (reads as error)
     outline: colord(BASE_COLORS.mint).darken(0.3).toHex(),
     outlineVariant: colord(BASE_COLORS.mint).lighten(0.2).toHex(),
     shadow: '#000000',
@@ -140,50 +140,50 @@ const pastelColors = {
     surfaceDisabled: colord(TEXT_COLOR).mix('#FFFFFF', 0.12).toHex(),
     onSurfaceDisabled: colord(TEXT_COLOR).mix('#FFFFFF', 0.38).toHex(),
     backdrop: 'rgba(0, 0, 0, 0.5)',
-    
+
     // Status colors - all derived from base pastel colors
-            statusIdle: {
-                background: BASE_COLORS.mint,
-                text: colord(BASE_COLORS.mint).darken(0.65).toHex(),
-                accent: colord(BASE_COLORS.mint).darken(0.65).toHex(),
-                iconBackground: colord(BASE_COLORS.mint).mix(TEXT_COLOR, 0.1).toHex(),
-                shadowColor: colord(BASE_COLORS.mint).darken(0.65).toHex(),
-            },
-            statusProcessing: {
-                background: BASE_COLORS.blue,
-                text: colord(BASE_COLORS.blue).darken(0.65).toHex(),
-                accent: colord(BASE_COLORS.blue).darken(0.65).toHex(),
-                iconBackground: colord(BASE_COLORS.blue).mix(TEXT_COLOR, 0.1).toHex(),
-                shadowColor: colord(BASE_COLORS.blue).darken(0.65).toHex(),
-            },
-            statusBatchWaiting: {
-                background: BASE_COLORS.peach,
-                text: colord(BASE_COLORS.peach).darken(0.65).toHex(),
-                accent: colord(BASE_COLORS.peach).darken(0.65).toHex(),
-                iconBackground: colord(BASE_COLORS.peach).mix(TEXT_COLOR, 0.1).toHex(),
-                shadowColor: colord(BASE_COLORS.peach).darken(0.65).toHex(),
-            },
-            statusSetup: {
-                background: BASE_COLORS.lavender,
-                text: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
-                accent: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
-                iconBackground: colord(BASE_COLORS.lavender).mix(TEXT_COLOR, 0.1).toHex(),
-                shadowColor: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
-            },
-            statusError: {
-                background: BASE_COLORS.pink,
-                text: colord(BASE_COLORS.pink).darken(0.65).toHex(),
-                accent: colord(BASE_COLORS.pink).darken(0.65).toHex(),
-                iconBackground: colord(BASE_COLORS.pink).mix(TEXT_COLOR, 0.1).toHex(),
-                shadowColor: colord(BASE_COLORS.pink).darken(0.65).toHex(),
-            },
-            statusWarning: {
-                background: BASE_COLORS.yellow,
-                text: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
-                accent: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
-                iconBackground: colord(BASE_COLORS.yellow).mix(TEXT_COLOR, 0.1).toHex(),
-                shadowColor: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
-            },
+    statusIdle: {
+        background: BASE_COLORS.mint,
+        text: colord(BASE_COLORS.mint).darken(0.65).toHex(),
+        accent: colord(BASE_COLORS.mint).darken(0.65).toHex(),
+        iconBackground: colord(BASE_COLORS.mint).mix(TEXT_COLOR, 0.1).toHex(),
+        shadowColor: colord(BASE_COLORS.mint).darken(0.65).toHex(),
+    },
+    statusProcessing: {
+        background: BASE_COLORS.blue,
+        text: colord(BASE_COLORS.blue).darken(0.65).toHex(),
+        accent: colord(BASE_COLORS.blue).darken(0.65).toHex(),
+        iconBackground: colord(BASE_COLORS.blue).mix(TEXT_COLOR, 0.1).toHex(),
+        shadowColor: colord(BASE_COLORS.blue).darken(0.65).toHex(),
+    },
+    statusBatchWaiting: {
+        background: BASE_COLORS.peach,
+        text: colord(BASE_COLORS.peach).darken(0.65).toHex(),
+        accent: colord(BASE_COLORS.peach).darken(0.65).toHex(),
+        iconBackground: colord(BASE_COLORS.peach).mix(TEXT_COLOR, 0.1).toHex(),
+        shadowColor: colord(BASE_COLORS.peach).darken(0.65).toHex(),
+    },
+    statusSetup: {
+        background: BASE_COLORS.lavender,
+        text: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
+        accent: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
+        iconBackground: colord(BASE_COLORS.lavender).mix(TEXT_COLOR, 0.1).toHex(),
+        shadowColor: colord(BASE_COLORS.lavender).darken(0.65).toHex(),
+    },
+    statusError: {
+        background: BASE_COLORS.pink,
+        text: colord(BASE_COLORS.pink).darken(0.65).toHex(),
+        accent: colord(BASE_COLORS.pink).darken(0.65).toHex(),
+        iconBackground: colord(BASE_COLORS.pink).mix(TEXT_COLOR, 0.1).toHex(),
+        shadowColor: colord(BASE_COLORS.pink).darken(0.65).toHex(),
+    },
+    statusWarning: {
+        background: BASE_COLORS.yellow,
+        text: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
+        accent: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
+        iconBackground: colord(BASE_COLORS.yellow).mix(TEXT_COLOR, 0.1).toHex(),
+        shadowColor: colord(BASE_COLORS.yellow).darken(0.65).toHex(),
+    },
     secureSessionButton: {
         idleBackground: BASE_COLORS.peach,
         activeBackground: BASE_COLORS.pink,
@@ -223,7 +223,7 @@ const pastelColors = {
 /**
  * Light theme with medical color palette
  */
-export const AppLightTheme: MD3Theme & {colors: ExtendedColors} = {
+export const AppLightTheme: MD3Theme & { colors: ExtendedColors } = {
     ...MD3LightTheme,
     colors: {
         ...MD3LightTheme.colors,
@@ -235,7 +235,7 @@ export const AppLightTheme: MD3Theme & {colors: ExtendedColors} = {
 /**
  * Dark theme with medical color palette (adjusted for dark mode)
  */
-export const AppDarkTheme: MD3Theme & {colors: ExtendedColors} = {
+export const AppDarkTheme: MD3Theme & { colors: ExtendedColors } = {
     ...MD3DarkTheme,
     colors: {
         ...MD3DarkTheme.colors,
@@ -244,32 +244,32 @@ export const AppDarkTheme: MD3Theme & {colors: ExtendedColors} = {
         onPrimary: colord(BASE_COLORS.mint).darken(0.7).toHex(),
         primaryContainer: colord(BASE_COLORS.mint).darken(0.6).toHex(),
         onPrimaryContainer: colord(BASE_COLORS.mint).lighten(0.3).toHex(),
-        
+
         // Secondary colors (derived from blue - lighter for dark mode)
         secondary: colord(BASE_COLORS.blue).lighten(0.2).toHex(),
         onSecondary: colord(BASE_COLORS.blue).darken(0.7).toHex(),
         secondaryContainer: colord(BASE_COLORS.blue).darken(0.6).toHex(),
         onSecondaryContainer: colord(BASE_COLORS.blue).lighten(0.3).toHex(),
-        
+
         // Tertiary colors (derived from lavender - lighter for dark mode)
         tertiary: colord(BASE_COLORS.lavender).lighten(0.2).toHex(),
         onTertiary: colord(BASE_COLORS.lavender).darken(0.7).toHex(),
         tertiaryContainer: colord(BASE_COLORS.lavender).darken(0.6).toHex(),
         onTertiaryContainer: colord(BASE_COLORS.lavender).lighten(0.3).toHex(),
-        
+
         // Error colors (derived from pink)
         error: colord(BASE_COLORS.pink).lighten(0.3).toHex(),
         onError: colord(BASE_COLORS.pink).darken(0.8).toHex(),
         errorContainer: colord(BASE_COLORS.pink).darken(0.7).toHex(),
         onErrorContainer: colord(BASE_COLORS.pink).lighten(0.4).toHex(),
-        
+
         // Background and surface (dark)
         background: colord(BASE_COLORS.mint).darken(0.85).toHex(),
         onBackground: colord(BASE_COLORS.mint).lighten(0.8).toHex(),
         surface: colord(BASE_COLORS.mint).darken(0.83).toHex(),
         onSurface: colord(BASE_COLORS.mint).lighten(0.8).toHex(),
         surfaceVariant: colord(BASE_COLORS.peach).darken(0.7).toHex(),
-        onSurfaceVariant: colord(BASE_COLORS.peach).lighten(0.6).toHex(),
+        onSurfaceVariant: colord(TEXT_COLOR_LIGHT).mix(colord(BASE_COLORS.mint).darken(0.83).toHex(), 0.35).toHex(), // Neutral muted light for labels/body
         outline: colord(BASE_COLORS.mint).lighten(0.4).toHex(),
         outlineVariant: colord(BASE_COLORS.mint).darken(0.7).toHex(),
         shadow: '#000000',
@@ -288,7 +288,7 @@ export const AppDarkTheme: MD3Theme & {colors: ExtendedColors} = {
         surfaceDisabled: colord(colord(BASE_COLORS.mint).lighten(0.8).toHex()).mix(colord(BASE_COLORS.mint).darken(0.83).toHex(), 0.12).toHex(),
         onSurfaceDisabled: colord(colord(BASE_COLORS.mint).lighten(0.8).toHex()).mix(colord(BASE_COLORS.mint).darken(0.83).toHex(), 0.38).toHex(),
         backdrop: 'rgba(0, 0, 0, 0.5)',
-        
+
         // Status colors - all derived from base pastel colors (darker backgrounds for dark mode)
         statusIdle: {
             background: colord(BASE_COLORS.mint).darken(0.7).toHex(),
@@ -378,7 +378,7 @@ export type AppTheme = typeof AppLightTheme;
 /**
  * Helper type for accessing extended theme colors
  */
-export type ExtendedTheme = MD3Theme & {colors: ExtendedColors};
+export type ExtendedTheme = MD3Theme & { colors: ExtendedColors };
 
 /**
  * Default theme (light mode)

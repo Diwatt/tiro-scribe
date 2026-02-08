@@ -18,7 +18,7 @@ describe('EntitySerializer', () => {
         const out = serializer.serialize(record as Record<string, unknown>);
         expect(out.uuid).toBe('u1');
         expect(out.therapistId).toBe('t1');
-        expect(Object.prototype.hasOwnProperty.call(out, 'foo')).toBe(false);
+        expect(Object.hasOwn(out, 'foo')).toBe(false);
     });
 
     it('mergeWithDefaults merges defaults with data (create)', () => {

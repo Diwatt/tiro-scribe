@@ -1,7 +1,7 @@
+import type { Meta, StoryObj } from '@storybook/react-native';
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
-import type {Meta, StoryObj} from '@storybook/react-native';
-import {StylusWritingAnimation} from '../../src/Components';
+import { StyleSheet, View } from 'react-native';
+import { StylusWritingAnimation } from '../../src/Components';
 
 const meta: Meta<typeof StylusWritingAnimation> = {
     title: 'Components/StylusWritingAnimation',

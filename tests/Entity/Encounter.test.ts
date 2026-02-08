@@ -4,8 +4,8 @@
  * tests cover persist/find with encounter-like entities.
  */
 
+import type { AbstractEntity } from '@/Database/AbstractEntity';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
-import { AbstractEntity } from '@/Database/AbstractEntity';
 
 describe('Encounter (via mock)', () => {
     const MockEncounter = createMockEncounterConstructor();

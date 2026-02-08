@@ -8,17 +8,23 @@ import type { FieldTransformer } from './FieldTransformer';
 
 export class JsonTransformer implements FieldTransformer {
     public toStorage(value: unknown): unknown {
-        if (typeof value === 'string') return value;
+        if (typeof value === 'string') {
+            return value;
+        }
         return JSON.stringify(value);
     }
 
     public fromStorage(value: unknown): unknown {
-        if (typeof value !== 'string') return value ?? [];
-        if (value.trim() === '') return [];
+        if (typeof value !== 'string') {
+            return value ?? [];
+        }
+        if (value.trim() === '') {
+            return [];
+        }
         try {
             const parsed = JSON.parse(value) as unknown;
             return parsed ?? [];
-        } catch {
+        } catch (_error: unknown) {
             return [];
         }
     }

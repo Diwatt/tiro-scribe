@@ -1,6 +1,6 @@
+import type { Meta, StoryObj } from '@storybook/react-native';
 import React from 'react';
-import type {Meta, StoryObj} from '@storybook/react-native';
-import {StatusSetup} from '../../src/Components';
+import { StatusSetup } from '../../src/Components';
 
 const actionLogger = (name: string) => () => {
     console.log(`[Storybook Action] ${name} pressed`);

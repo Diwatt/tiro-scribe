@@ -19,7 +19,7 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './src'),
             '@Service': path.resolve(__dirname, './src/Service'),
-            'expo': path.resolve(__dirname, './vitest/mocks/expo.js'),
+            expo: path.resolve(__dirname, './vitest/mocks/expo.js'),
             'expo/src/winter': path.resolve(__dirname, './vitest/mocks/expo-winter.js'),
         },
     },

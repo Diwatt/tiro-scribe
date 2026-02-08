@@ -4,7 +4,7 @@
  * Provides structured logging with different levels and environment-based configuration
  */
 
-import { logger as reactNativeLogger, consoleTransport } from 'react-native-logs';
+import { consoleTransport, logger as reactNativeLogger } from 'react-native-logs';
 
 /**
  * Logger instance type from react-native-logs

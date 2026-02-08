@@ -1,0 +1,26 @@
+---
+description: "TypeScript Architecture, OOP & React Patterns"
+globs: ["src/**/*.ts", "src/**/*.tsx"]
+alwaysApply: true
+---
+
+# Architecture Standards (MVVM / OOP)
+
+## 1. Logic vs View Separation
+- **View (Screens):** "Dumb" components. They strictly render `state$` and bind events. NO business logic.
+- **ViewModel (State):** Pure TypeScript classes containing `observable` state and methods.
+- **Rule:** DO NOT use `useState` or `useEffect` for business logic.
+
+## 2. Class Structure (Strict OOP)
+- **One Class Per File:** Filename must match class name exactly.
+- **No Object Literals:** Do not define state as `{...}` inside a class. Use a `const INITIAL_STATE` or a static factory.
+- **Visibility:** Explicit `public` / `private` / `protected` required everywhere.
+- **Ordering:** 1. Properties (Static -> Instance, ordered by visibility). 2. Constructor. 3. Methods.
+
+## 3. SOLID Principles Implementation
+- **Single Responsibility:** Split huge classes. Example: `SecureRecorder` (Orchestration) vs `AudioChunkCollection` (Data Ops).
+- **Dependency Injection:** Inject dependencies via constructor types (e.g. `LoggerInterface`), do not import concrete implementations directly in reusable classes.
+
+## 4. React Component Standards
+- **Typing:** Use `interface Props`. Return `React.JSX.Element`. Avoid `React.FC`.
+- **Observer:** Wrap any component reading Legend-State with `observer()`.

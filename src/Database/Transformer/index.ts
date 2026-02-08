@@ -3,6 +3,6 @@
  */
 
 export { DateTransformer } from './DateTransformer';
-export { JsonTransformer } from './JsonTransformer';
 export type { FieldTransformer } from './FieldTransformer';
+export { JsonTransformer } from './JsonTransformer';
 export { TransformerRegistry } from './TransformerRegistry';

@@ -3,15 +3,16 @@
  * Renders DeviceIncompatibleScreen | OnboardingScreen | AppNavigator based on device check and therapist presence.
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
+import { AppNavigator } from '../Navigation/AppNavigator';
 import { DeviceIncompatibleScreen } from '../Screens/DeviceIncompatibleScreen';
 import { OnboardingScreen } from '../Screens/OnboardingScreen';
-import { AppNavigator } from '../Navigation/AppNavigator';
+import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 
 type GateState = 'loading' | 'incompatible' | 'onboarding' | 'main';
 

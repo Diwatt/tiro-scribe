@@ -4,18 +4,14 @@
  * Server identifies who is who (e.g. by biocode frequency). No uuid stored.
  */
 
-import type { Dayjs } from 'dayjs';
 import CryptoJS from 'crypto-js';
+import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
-import {
-    EncounterStatus,
-    type DetectedSpeakerProfile,
-    type TranscriptSegment,
-} from './Type';
+import { type DetectedSpeakerProfile, EncounterStatus, type TranscriptSegment } from './Type';
 
 dayjs.extend(utc);
 
@@ -38,7 +34,7 @@ export class Encounter extends AbstractEntity {
     @Column({ default: 0 })
     private totalDuration!: number;
 
-    @Column({ default: EncounterStatus.RECORDING })
+    @Column({ default: EncounterStatus.Recording })
     private status!: EncounterStatus;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
@@ -159,8 +155,6 @@ export class Encounter extends AbstractEntity {
 
     /** Set participant biocodes from raw biocodes + projection key (hashes each). */
     public setParticipantBiocodesFromRaw(rawBiocodes: string[], projectionKey: string): void {
-        this.setParticipantBiocodes(
-            rawBiocodes.map((raw) => CryptoJS.HmacSHA256(raw, projectionKey).toString()),
-        );
+        this.setParticipantBiocodes(rawBiocodes.map((raw) => CryptoJS.HmacSHA256(raw, projectionKey).toString()));
     }
 }

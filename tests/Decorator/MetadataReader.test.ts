@@ -1,6 +1,6 @@
+import { EntityDecorator } from '@/Decorator/EntityDecorator';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
-import { EntityDecorator } from '@/Decorator/EntityDecorator';
 
 describe('MetadataReader', () => {
     describe('getEntity', () => {

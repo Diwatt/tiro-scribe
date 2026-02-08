@@ -1,5 +1,5 @@
-import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
+import { MetadataWriter } from '@/Decorator/MetadataWriter';
 
 describe('MetadataWriter', () => {
     it('ENTITY_METADATA_KEY is a well-known string', () => {

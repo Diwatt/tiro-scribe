@@ -4,23 +4,23 @@
  */
 
 import { DateTransformer } from './DateTransformer';
-import { JsonTransformer } from './JsonTransformer';
 import type { FieldTransformer } from './FieldTransformer';
+import { JsonTransformer } from './JsonTransformer';
 
 export class TransformerRegistry {
     private static readonly _registry = new Map<string, FieldTransformer>();
 
     public static register(name: string, transformer: FieldTransformer): void {
-        this._registry.set(name, transformer);
+        TransformerRegistry._registry.set(name, transformer);
     }
 
     public static get(name: string): FieldTransformer | undefined {
-        return this._registry.get(name);
+        return TransformerRegistry._registry.get(name);
     }
 
     /** Remove a registered transformer (e.g. for test cleanup). */
     public static unregister(name: string): void {
-        this._registry.delete(name);
+        TransformerRegistry._registry.delete(name);
     }
 }
 

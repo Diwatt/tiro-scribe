@@ -4,10 +4,10 @@
  * Used by Repository to manipulate table entries and to get observables at key for entity wrapping.
  */
 
+import type { Observable, ObservableObject } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import { persistObservable } from '@legendapp/state/persist';
 import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
-import type { Observable, ObservableObject } from '@legendapp/state';
 import isMatch from 'lodash/isMatch';
 import omit from 'lodash/omit';
 
@@ -72,10 +72,7 @@ export class TableBacking {
         return pk ?? null;
     }
 
-    private entryMatchesCriteria(
-        entry: Record<string, unknown> | undefined,
-        criteria: Record<string, unknown>,
-    ): boolean {
+    private entryMatchesCriteria(entry: Record<string, unknown> | undefined, criteria: Record<string, unknown>): boolean {
         return entry != null && isMatch(entry, criteria);
     }
 
@@ -90,13 +87,8 @@ export class TableBacking {
     }
 
     /** Observable at key (for wrapping in entity so mutations persist). */
-    public getObservableAtKey(
-        key: string,
-    ): ObservableObject<Record<string, unknown>> | undefined {
-        const data = this._data as unknown as Record<
-            string,
-            ObservableObject<Record<string, unknown>>
-        >;
+    public getObservableAtKey(key: string): ObservableObject<Record<string, unknown>> | undefined {
+        const data = this._data as unknown as Record<string, ObservableObject<Record<string, unknown>>>;
         return data[key];
     }
 }

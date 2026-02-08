@@ -9,8 +9,8 @@
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import {AnonymizationResult, AnonymizedEntity, EntityType} from '@/Entity';
-import { AppLogger, LoggerInterface } from './Logger';
+import { type AnonymizationResult, type AnonymizedEntity, EntityType } from '@/Entity';
+import { AppLogger, type LoggerInterface } from './Logger';
 
 dayjs.extend(customParseFormat);
 
@@ -55,10 +55,7 @@ export class Anonymizer {
      * @param onnxModule - The native ONNX Runtime module instance
      * @param modelPath - Path to the quantized BERT-NER model
      */
-    async initialize(
-        onnxModule: OnnxRuntimeInterface,
-        modelPath: string,
-    ): Promise<void> {
+    async initialize(onnxModule: OnnxRuntimeInterface, modelPath: string): Promise<void> {
         this.onnxRuntime = onnxModule;
         await this.onnxRuntime.loadModel(modelPath);
     }
@@ -97,17 +94,11 @@ export class Anonymizer {
         // Apply replacements
         let cleanText = rawText;
         for (const entity of entities) {
-            cleanText =
-                cleanText.slice(0, entity.startIndex) +
-                entity.replacement +
-                cleanText.slice(entity.endIndex);
+            cleanText = cleanText.slice(0, entity.startIndex) + entity.replacement + cleanText.slice(entity.endIndex);
         }
 
         // Calculate overall confidence (average of all entity confidences)
-        const confidence =
-            entities.length > 0
-                ? entities.reduce((sum, e) => sum + 0.9, 0) / entities.length
-                : 1.0;
+        const confidence = entities.length > 0 ? entities.reduce((sum, e) => sum + 0.9, 0) / entities.length : 1.0;
         return {
             cleanText,
             entities,
@@ -118,9 +109,7 @@ export class Anonymizer {
     /**
      * Layer 1: AI-based Named Entity Recognition using ONNX BERT-NER
      */
-    private async detectEntitiesWithAI(
-        text: string,
-    ): Promise<AnonymizedEntity[]> {
+    private async detectEntitiesWithAI(text: string): Promise<AnonymizedEntity[]> {
         if (!this.onnxRuntime) {
             this.loggerInstance.warn('ONNX Runtime not initialized. Skipping AI-based NER.');
             return [];
@@ -134,14 +123,8 @@ export class Anonymizer {
                 if (result.label === 'PER' || result.label === 'LOC') {
                     entities.push({
                         original: result.text,
-                        replacement:
-                            result.label === 'PER'
-                                ? this.generatePersonToken()
-                                : this.generateLocationToken(),
-                        type:
-                            result.label === 'PER'
-                                ? EntityType.PERSON
-                                : EntityType.LOCATION,
+                        replacement: result.label === 'PER' ? this.generatePersonToken() : this.generateLocationToken(),
+                        type: result.label === 'PER' ? EntityType.Person : EntityType.Location,
                         startIndex: result.start,
                         endIndex: result.end,
                     });
@@ -160,10 +143,7 @@ export class Anonymizer {
     /**
      * Layer 2: Heuristic-based relation detection
      */
-    private detectRelations(
-        text: string,
-        existingEntities: AnonymizedEntity[],
-    ): AnonymizedEntity[] {
+    private detectRelations(text: string, existingEntities: AnonymizedEntity[]): AnonymizedEntity[] {
         const entities: AnonymizedEntity[] = [];
 
         // Family relations patterns
@@ -189,17 +169,13 @@ export class Anonymizer {
             let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some(
-                    e =>
-                        m.index >= e.startIndex &&
-                        m.index + m[0].length <= e.endIndex,
-                );
+                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
                 if (!isOverlapping) {
                     entities.push({
                         original: m[0],
                         replacement: this.generateFamilyRelationToken(),
-                        type: EntityType.FAMILY_RELATION,
+                        type: EntityType.FamilyRelation,
                         startIndex: m.index,
                         endIndex: m.index + m[0].length,
                     });
@@ -212,17 +188,13 @@ export class Anonymizer {
             let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some(
-                    e =>
-                        m.index >= e.startIndex &&
-                        m.index + m[0].length <= e.endIndex,
-                );
+                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
                 if (!isOverlapping) {
                     entities.push({
                         original: m[0],
                         replacement: this.generateWorkRelationToken(),
-                        type: EntityType.WORK_RELATION,
+                        type: EntityType.WorkRelation,
                         startIndex: m.index,
                         endIndex: m.index + m[0].length,
                     });
@@ -235,10 +207,7 @@ export class Anonymizer {
     /**
      * Layer 3: Temporal fuzzing - detect and convert dates/times to relative
      */
-    private detectAndFuzzTemporal(
-        text: string,
-        existingEntities: AnonymizedEntity[],
-    ): AnonymizedEntity[] {
+    private detectAndFuzzTemporal(text: string, existingEntities: AnonymizedEntity[]): AnonymizedEntity[] {
         const entities: AnonymizedEntity[] = [];
 
         if (!this.sessionStartDate) {
@@ -251,7 +220,7 @@ export class Anonymizer {
             // Full dates: "January 12th, 2024" or "12/01/2024"
             /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi,
             // Short dates: "01/12/2024" or "12-01-2024"
-            /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
+            /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/g,
             // Year only: "2024"
             /\b(19|20)\d{2}\b/g,
         ];
@@ -269,11 +238,7 @@ export class Anonymizer {
             let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some(
-                    e =>
-                        m.index >= e.startIndex &&
-                        m.index + m[0].length <= e.endIndex,
-                );
+                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
                 if (!isOverlapping) {
                     const relativeDate = this.convertToRelativeDate(m[0]);
@@ -281,7 +246,7 @@ export class Anonymizer {
                         entities.push({
                             original: m[0],
                             replacement: relativeDate,
-                            type: EntityType.DATE,
+                            type: EntityType.Date,
                             startIndex: m.index,
                             endIndex: m.index + m[0].length,
                         });
@@ -295,11 +260,7 @@ export class Anonymizer {
             let match: RegExpExecArray | null;
             while ((match = pattern.exec(text)) !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some(
-                    e =>
-                        m.index >= e.startIndex &&
-                        m.index + m[0].length <= e.endIndex,
-                );
+                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
                 if (!isOverlapping) {
                     const relativeTime = this.convertToRelativeTime(m[0]);
@@ -307,7 +268,7 @@ export class Anonymizer {
                         entities.push({
                             original: m[0],
                             replacement: relativeTime,
-                            type: EntityType.TIME,
+                            type: EntityType.Time,
                             startIndex: m.index,
                             endIndex: m.index + m[0].length,
                         });
@@ -322,7 +283,9 @@ export class Anonymizer {
      * Convert absolute date to relative date format
      */
     private convertToRelativeDate(dateString: string): string | null {
-        if (!this.sessionStartDate) return null;
+        if (!this.sessionStartDate) {
+            return null;
+        }
 
         try {
             let parsedDate: Date | null = null;
@@ -342,9 +305,7 @@ export class Anonymizer {
                         parsedDate = parsed.toDate();
                         break;
                     }
-                } catch {
-                    continue;
-                }
+                } catch {}
             }
 
             // Handle year-only patterns
@@ -358,10 +319,7 @@ export class Anonymizer {
                 return null;
             }
 
-            const daysDiff = dayjs(parsedDate).diff(
-                dayjs(this.sessionStartDate),
-                'day',
-            );
+            const daysDiff = dayjs(parsedDate).diff(dayjs(this.sessionStartDate), 'day');
 
             if (daysDiff === 0) {
                 return '[SESSION_DAY]';
@@ -403,8 +361,8 @@ export class Anonymizer {
      * Generate anonymized token for persons
      */
     private generatePersonToken(): string {
-        const count = this.relationCounter.get(EntityType.PERSON) || 0;
-        this.relationCounter.set(EntityType.PERSON, count + 1);
+        const count = this.relationCounter.get(EntityType.Person) || 0;
+        this.relationCounter.set(EntityType.Person, count + 1);
         return `[PERSON_${count + 1}]`;
     }
 
@@ -412,8 +370,8 @@ export class Anonymizer {
      * Generate anonymized token for locations
      */
     private generateLocationToken(): string {
-        const count = this.relationCounter.get(EntityType.LOCATION) || 0;
-        this.relationCounter.set(EntityType.LOCATION, count + 1);
+        const count = this.relationCounter.get(EntityType.Location) || 0;
+        this.relationCounter.set(EntityType.Location, count + 1);
         return `[LOCATION_${count + 1}]`;
     }
 

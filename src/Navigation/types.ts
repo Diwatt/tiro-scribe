@@ -3,9 +3,9 @@
  * Defines TypeScript types for React Navigation with proper nesting support
  */
 
-import type {CompositeScreenProps, NavigatorScreenParams} from '@react-navigation/native';
-import type {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
-import type {NativeStackScreenProps} from '@react-navigation/native-stack';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 /**
  * Main Tab Navigator Param List
@@ -23,14 +23,14 @@ export type MainTabParamList = {
  */
 export type RootStackParamList = {
     Main: NavigatorScreenParams<MainTabParamList>;
-    Recording: {autoStart: boolean};
-    TranscriptDetail: {transcriptId: string};
+    Recording: { autoStart: boolean };
+    TranscriptDetail: { transcriptId: string };
 };
 
 /**
  * Helper type for Tab screens that need to access Root Stack navigation
  * Combines BottomTabScreenProps and NativeStackScreenProps using CompositeScreenProps
- * 
+ *
  * @example
  * ```tsx
  * export function Home({navigation, route}: RootTabScreenProps<'Home'>) {
@@ -47,7 +47,4 @@ export type RootTabScreenProps<T extends keyof MainTabParamList> = CompositeScre
 /**
  * Helper type for Root Stack screens
  */
-export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
-    RootStackParamList,
-    T
->;
+export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;

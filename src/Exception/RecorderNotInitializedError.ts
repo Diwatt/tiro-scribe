@@ -2,7 +2,7 @@
  * RecorderNotInitializedError - Exception when recorder is not initialized
  */
 
-import {TiroScribeException} from './TiroScribeException';
+import { TiroScribeException } from './TiroScribeException';
 
 export class RecorderNotInitializedError extends TiroScribeException {
     constructor() {

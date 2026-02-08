@@ -44,14 +44,9 @@ export class EntitySerializer {
      * Merge entity defaults with partial data (and optionally stored record for update).
      * Create: mergeWithDefaults(data). Update: mergeWithDefaults(data, storedRecord).
      */
-    public mergeWithDefaults(
-        data: Partial<Record<string, unknown>>,
-        storedRecord?: Record<string, unknown>,
-    ): Record<string, unknown> {
+    public mergeWithDefaults(data: Partial<Record<string, unknown>>, storedRecord?: Record<string, unknown>): Record<string, unknown> {
         const defaults = buildColumnDefaults(new MetadataReader(this._entityConstructor));
-        return storedRecord != null
-            ? { ...defaults, ...storedRecord, ...data }
-            : { ...defaults, ...data };
+        return storedRecord != null ? { ...defaults, ...storedRecord, ...data } : { ...defaults, ...data };
     }
 
     /**
@@ -66,9 +61,7 @@ export class EntitySerializer {
     /**
      * Unserialize every record in a map (e.g. for findAll). Same as unserialize per value.
      */
-    public unserializeMap(
-        map: Record<string, Record<string, unknown>>,
-    ): Record<string, Record<string, unknown>> {
+    public unserializeMap(map: Record<string, Record<string, unknown>>): Record<string, Record<string, unknown>> {
         return mapValues(map, (v) => this.unserialize(v) as Record<string, unknown>);
     }
 }

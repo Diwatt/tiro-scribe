@@ -14,8 +14,8 @@ import * as Device from 'expo-device';
 import { DeviceType } from 'expo-device';
 import semver from 'semver';
 import { HardwareGuardException } from '../Exception';
-import { AppLogger } from '../Service/Logger';
 import type { LoggerInterface } from '../Service/Logger';
+import { AppLogger } from '../Service/Logger';
 
 export class HardwareGuard {
     // --- public ---
@@ -38,10 +38,7 @@ export class HardwareGuard {
             return false;
         }
         const platformLabel = Device.osName ?? 'device';
-        return (
-            this.hasMinOsVersion(Device.osVersion, this.minSemverCoerced, platformLabel) &&
-            this.hasEnoughRam(this.minRamBytes)
-        );
+        return this.hasMinOsVersion(Device.osVersion, this.minSemverCoerced, platformLabel) && this.hasEnoughRam(this.minRamBytes);
     }
 
     // --- private ---
@@ -52,12 +49,9 @@ export class HardwareGuard {
     private validateVersion(minVersion: string): semver.SemVer {
         const coerced = semver.coerce(minVersion.trim());
         if (!coerced) {
-            throw new HardwareGuardException(
-                `minSemver is not parseable: "${minVersion}"`,
-                HardwareGuardException.INVALID_MIN_VERSION,
-                undefined,
-                { minSemver: minVersion },
-            );
+            throw new HardwareGuardException(`minSemver is not parseable: "${minVersion}"`, HardwareGuardException.INVALID_MIN_VERSION, undefined, {
+                minSemver: minVersion,
+            });
         }
         return coerced;
     }
@@ -73,11 +67,7 @@ export class HardwareGuard {
     }
 
     /** True if osVersion (semver) >= coercedMin. */
-    private hasMinOsVersion(
-        osVersion: string | null | undefined,
-        coercedMin: semver.SemVer,
-        platformLabel: string,
-    ): boolean {
+    private hasMinOsVersion(osVersion: string | null | undefined, coercedMin: semver.SemVer, platformLabel: string): boolean {
         const actual = (osVersion ?? '').trim();
         const isParseableActual = !!semver.coerce(actual);
         if (!actual || !isParseableActual) {
@@ -112,9 +102,7 @@ export class HardwareGuard {
     /** True if Device.supportedCpuArchitectures includes 64-bit (arm64 / x86_64). */
     private is64Bit(): boolean {
         const archs = Device.supportedCpuArchitectures ?? [];
-        const has = archs.some(
-            (a) => (a?.toLowerCase().includes('arm64') ?? false) || (a?.toLowerCase().includes('x86_64') ?? false),
-        );
+        const has = archs.some((a) => (a?.toLowerCase().includes('arm64') ?? false) || (a?.toLowerCase().includes('x86_64') ?? false));
         if (archs.length > 0 && !has) {
             this.log.warn('[HardwareGuard] No 64-bit CPU (arm64/x86_64)', { supportedCpuArchitectures: archs });
             return false;

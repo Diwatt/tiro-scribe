@@ -1,0 +1,29 @@
+---
+description: "Core Tech Stack, AI Services & Global Patterns"
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Tech Stack
+- **Framework:** React Native (Expo)
+- **UI:** React Native Paper (MD3) + Lucide Icons
+- **State:** @legendapp/state (Observables)
+- **Audio/AI:** ONNX Runtime, SecureRecorder (Native Module), Sherpa-ONNX.
+- **Storage:** MMKV (Prefs) / FileSystem (Encrypted Audio).
+
+# AI & Service Implementation Rules
+1. **Service Naming:** Use Capability names (e.g., `VoiceCalibration`), NOT `*Service`.
+2. **Model Loading:** Models (Sherpa/Whisper) are downloaded via `ModelDownloader` and cached.
+3. **Biocode Protocol:** `Hash(SpeakerVector + TherapistID_Salt)`. Never store raw vectors.
+4. **Anonymization:** 3-Layer approach (ONNX BERT + Heuristics + Temporal Fuzzing).
+
+# Global Patterns
+1. **Privacy First:** No raw audio ever leaves the device. PII must be anonymized before storage.
+2. **No Default Exports:** Use named exports (`export class X`) exclusively.
+3. **No "Utils" Folders:** Group logic by feature or domain class. No standalone functions.
+4. **Backward Compatibility:** Ignore it. Refactor cleanly without deprecated wrappers.
+
+# Logging (Strict)
+- **Logger:** Use `AppLogger` instance.
+- **No Timestamps:** The logger handles `dateFormat: 'time'`. DO NOT add `new Date()`.
+- **Context:** Log strictly relevant IDs/State. No PII in logs.

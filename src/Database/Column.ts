@@ -12,14 +12,9 @@
  * // then: this.uuid, this.uuid = x, and this.uuid$ for reactivity.
  */
 
-import {
-    Builder,
-    type FieldDecoratorConfig,
-    type OptionsFromSchema,
-    type OptionsSchema,
-} from '../Decorator/Builder';
+import { Builder, type FieldDecoratorConfig, type OptionsFromSchema, type OptionsSchema } from '../Decorator/Builder';
 import { MetadataWriter } from '../Decorator/MetadataWriter';
-import { AbstractEntity } from './AbstractEntity';
+import type { AbstractEntity } from './AbstractEntity';
 import { TransformerRegistry } from './Transformer';
 
 /** Single source of truth: schema drives both runtime validation and ColumnOptions<T>. */
@@ -30,27 +25,18 @@ const COLUMN_OPTIONS_SCHEMA = {
     as: { required: false as const, type: 'string' as const },
 } satisfies OptionsSchema;
 
-export type ColumnOptions<T = unknown> = OptionsFromSchema<
-    typeof COLUMN_OPTIONS_SCHEMA,
-    { default: T | (() => T) }
->;
+export type ColumnOptions<T = unknown> = OptionsFromSchema<typeof COLUMN_OPTIONS_SCHEMA, { default: T | (() => T) }>;
 
 class ColumnDecorator implements FieldDecoratorConfig<ColumnOptions<unknown>> {
     public readonly schema = COLUMN_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_COLUMN_OPTIONS';
 
-    public before(
-        context: ClassFieldDecoratorContext<unknown, unknown>,
-        options: ColumnOptions<unknown>,
-    ): void {
+    public before(context: ClassFieldDecoratorContext<unknown, unknown>, options: ColumnOptions<unknown>): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
         MetadataWriter.registerField(meta, String(context.name), 'Column', options);
     }
 
-    public initializer(
-        context: ClassFieldDecoratorContext<unknown, unknown>,
-        options: ColumnOptions<unknown>,
-    ): (instance: unknown) => void {
+    public initializer(context: ClassFieldDecoratorContext<unknown, unknown>, options: ColumnOptions<unknown>): (instance: unknown) => void {
         return (instance: unknown) => {
             const self = instance as AbstractEntity;
             const key = String(context.name);
@@ -65,8 +51,7 @@ class ColumnDecorator implements FieldDecoratorConfig<ColumnOptions<unknown>> {
                     return transformer != null ? transformer.fromStorage(raw) : raw;
                 },
                 set(value: unknown) {
-                    const stored =
-                        transformer != null ? transformer.toStorage(value) : value;
+                    const stored = transformer != null ? transformer.toStorage(value) : value;
                     self.setField(key, stored);
                 },
             });

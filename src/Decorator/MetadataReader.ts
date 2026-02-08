@@ -8,9 +8,9 @@
  * Decorators use MetadataWriter to write; MetadataReader reads.
  */
 
-import { MetadataWriter } from './MetadataWriter';
 import { EntityDecorator } from './EntityDecorator';
 import { FieldDecorator } from './FieldDecorator';
+import { MetadataWriter } from './MetadataWriter';
 
 export class MetadataReader {
     constructor(private readonly construct: Function) {}
@@ -26,11 +26,14 @@ export class MetadataReader {
 
     /**
      * All field decorator data: one per decorator per property (e.g. Column + PrimaryKey on same property = 2 entries).
-     * We build FieldDecorator here (not in MetadataWriter) because entityName (class name) is only available when we have the constructor; field decorators run with only (propertyName, decoratorName, options).
+     * We build FieldDecorator here (not in MetadataWriter) because entityName (class name) is only available
+     * when we have the constructor; field decorators run with only (propertyName, decoratorName, options).
      */
     public getFields(): FieldDecorator[] {
         const meta = this.getSymbolMetadata();
-        if (meta == null || typeof meta !== 'object') return [];
+        if (meta == null || typeof meta !== 'object') {
+            return [];
+        }
         const entityName = this.construct.name;
         const out: FieldDecorator[] = [];
         for (const [propertyName, fieldMeta] of Object.entries(meta)) {
@@ -77,7 +80,7 @@ export class MetadataReader {
      * target: constructor or instance (uses target.constructor when instance).
      */
     public static getField(target: object | Function, decoratorName: string): FieldDecorator | undefined {
-        const construct = typeof target === 'function' ? target : (target as object).constructor as Function;
+        const construct = typeof target === 'function' ? target : ((target as object).constructor as Function);
         const reader = new MetadataReader(construct);
         return reader.getFields().find((f) => f.getDecoratorName() === decoratorName);
     }

@@ -1,6 +1,6 @@
+import type { Meta, StoryObj } from '@storybook/react-native';
 import React from 'react';
-import type {Meta, StoryObj} from '@storybook/react-native';
-import {StatusError} from '../../src/Components';
+import { StatusError } from '../../src/Components';
 
 const meta: Meta<typeof StatusError> = {
     title: 'Components/Status/StatusError',

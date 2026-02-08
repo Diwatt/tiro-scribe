@@ -1,5 +1,5 @@
-import { Repository } from '@/Database/Repository';
 import type { AbstractEntity } from '@/Database/AbstractEntity';
+import { Repository } from '@/Database/Repository';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
 
 describe('Repository', () => {

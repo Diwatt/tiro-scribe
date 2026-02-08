@@ -1,33 +1,26 @@
-import React from 'react';
-import {View, StyleSheet} from 'react-native';
-import {Button, useTheme} from 'react-native-paper';
-import {LayersPlus} from 'lucide-react-native';
-import {Status} from './Status';
-import {StatusState} from './StatusTypes';
+import { LayersPlus } from 'lucide-react-native';
+import type React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Button, useTheme } from 'react-native-paper';
+import type { ExtendedTheme } from '@/theme/AppTheme';
+import { Status } from './Status';
+import { StatusState } from './StatusTypes';
 
 interface StatusBatchWaitingProps {
     queueCount?: number;
     onPressAction?: () => void;
 }
 
-export function StatusBatchWaiting({
-    queueCount,
-    onPressAction,
-}: StatusBatchWaitingProps): React.JSX.Element {
-    const theme = useTheme();
-    const statusColors = (theme.colors as any).statusBatchWaiting as {
-        background: string;
-        text: string;
-        accent: string;
-        iconBackground: string;
-        shadowColor: string;
-    };
+export function StatusBatchWaiting({ queueCount, onPressAction }: StatusBatchWaitingProps): React.JSX.Element {
+    const theme = useTheme<ExtendedTheme>();
+    const statusColors = theme.colors.statusBatchWaiting;
     return (
         <Status
             title="Pending"
             subtitle={`${queueCount ?? 0} sessions ready to process.`}
             icon={<LayersPlus size={24} color={statusColors.text} />}
-            state={StatusState.BATCH_WAITING}>
+            state={StatusState.BatchWaiting}
+        >
             <View style={styles.actionRow}>
                 <Button
                     mode="contained"
@@ -35,7 +28,8 @@ export function StatusBatchWaiting({
                     textColor={theme.colors.onPrimary}
                     icon="play"
                     style={styles.actionButton}
-                    onPress={onPressAction}>
+                    onPress={onPressAction}
+                >
                     Process queue now
                 </Button>
             </View>

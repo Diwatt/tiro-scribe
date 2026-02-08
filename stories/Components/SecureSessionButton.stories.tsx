@@ -1,7 +1,7 @@
-import React, {useState, useEffect} from 'react';
-import {View, StyleSheet, Text} from 'react-native';
-import type {Meta, StoryObj} from '@storybook/react-native';
-import {SecureSessionButton} from '../../src/Components';
+import type { Meta, StoryObj } from '@storybook/react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { SecureSessionButton } from '../../src/Components';
 
 const actionLogger = (name: string) => () => {
     console.log(`[Storybook Action] ${name} pressed`);
@@ -12,7 +12,7 @@ const meta: Meta<typeof SecureSessionButton> = {
     component: SecureSessionButton,
     argTypes: {
         isRecording: {
-            control: {type: 'boolean'},
+            control: { type: 'boolean' },
             description: 'Whether the button is in recording state',
         },
         onPress: {
@@ -48,7 +48,7 @@ export const Recording: SecureSessionButtonStory = {
 
 const InteractiveWrapper = () => {
     const [isRecording, setIsRecording] = useState(false);
-    
+
     return (
         <View style={styles.interactiveContainer}>
             <SecureSessionButton
@@ -58,9 +58,7 @@ const InteractiveWrapper = () => {
                     actionLogger('Toggle Recording')();
                 }}
             />
-            <Text style={styles.hint}>
-                Tap the button to see the animation
-            </Text>
+            <Text style={styles.hint}>Tap the button to see the animation</Text>
         </View>
     );
 };
@@ -71,24 +69,19 @@ export const Interactive: SecureSessionButtonStory = {
 
 const AutoAnimateWrapper = () => {
     const [isRecording, setIsRecording] = useState(false);
-    
+
     useEffect(() => {
         const interval = setInterval(() => {
             setIsRecording((prev) => !prev);
         }, 2500);
-        
+
         return () => clearInterval(interval);
     }, []);
-    
+
     return (
         <View style={styles.interactiveContainer}>
-            <SecureSessionButton
-                isRecording={isRecording}
-                onPress={actionLogger('Button Pressed')}
-            />
-            <Text style={styles.hint}>
-                Auto-animating every 2.5 seconds
-            </Text>
+            <SecureSessionButton isRecording={isRecording} onPress={actionLogger('Button Pressed')} />
+            <Text style={styles.hint}>Auto-animating every 2.5 seconds</Text>
         </View>
     );
 };

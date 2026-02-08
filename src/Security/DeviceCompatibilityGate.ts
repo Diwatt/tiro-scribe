@@ -7,8 +7,8 @@
  */
 
 import { Platform } from 'react-native';
-import { AppLogger } from '../Service/Logger';
 import type { LoggerInterface } from '../Service/Logger';
+import { AppLogger } from '../Service/Logger';
 import { HardwareGuard } from './HardwareGuard';
 
 /** Native platforms we run hardware checks for. RN Platform.OS and expo-device (Device.osName) use strings only; no OS enum. */
@@ -56,11 +56,7 @@ export class DeviceCompatibilityGate {
     private getActiveGuard(platform: NativeOS): HardwareGuard {
         if (this.activeGuard == null) {
             const requirements = this.matrix[platform];
-            this.activeGuard = new HardwareGuard(
-                this.logger,
-                requirements.minRamGigabytes,
-                requirements.minSemver,
-            );
+            this.activeGuard = new HardwareGuard(this.logger, requirements.minRamGigabytes, requirements.minSemver);
         }
         return this.activeGuard;
     }

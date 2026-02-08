@@ -1,6 +1,9 @@
 /** Standardized entity decorator data (DTO returned by MetadataReader.getEntity). */
 export class EntityDecorator {
-    constructor(private readonly _decoratorName: 'Entity', private readonly _options: { table_name: string }) {}
+    constructor(
+        private readonly _decoratorName: 'Entity',
+        private readonly _options: { table_name: string },
+    ) {}
 
     public getDecoratorName(): 'Entity' {
         return this._decoratorName;

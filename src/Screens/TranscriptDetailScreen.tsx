@@ -1,13 +1,8 @@
-/**
- * Transcript Detail Screen
- * Chat-like view of the transcription result
- */
-
-import React from 'react';
-import {View, StyleSheet, ScrollView} from 'react-native';
-import {Text, useTheme, Surface, Chip, IconButton} from 'react-native-paper';
-import {ArrowLeft, Download, Share2} from 'lucide-react-native';
-import {useLocalSearchParams, useRouter} from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, Download, Share2 } from 'lucide-react-native';
+import type React from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Chip, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 
 export function TranscriptDetailScreen(): React.JSX.Element {
     const theme = useTheme();
@@ -21,80 +16,41 @@ export function TranscriptDetailScreen(): React.JSX.Element {
 
     // Mock data – id from route, optional query params
     const transcript =
-        params.transcript ||
-        'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
+        params.transcript || 'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
 
     const biocode = params.biocode || 'SUBJ-****-A3F2';
     const date = params.date || '2 hours ago';
     return (
-        <View
-            style={[
-                styles.container,
-                {backgroundColor: theme.colors.background},
-            ]}>
-            <Surface
-                style={[
-                    styles.header,
-                    {backgroundColor: theme.colors.surface},
-                ]}>
-                <IconButton
-                    icon={ArrowLeft}
-                    size={24}
-                    onPress={() => router.back()}
-                />
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            <Surface style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+                <IconButton icon={ArrowLeft} size={24} onPress={() => router.back()} />
                 <View style={styles.headerContent}>
-                    <Text
-                        variant="titleMedium"
-                        style={[styles.title, {color: theme.colors.onSurface}]}>
+                    <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
                         Transcript
                     </Text>
                     <View style={styles.headerMeta}>
-                        <Chip
-                            mode="flat"
-                            compact
-                            style={styles.chip}>
+                        <Chip mode="flat" compact style={styles.chip}>
                             {biocode}
                         </Chip>
-                        <Text
-                            variant="bodySmall"
-                            style={[
-                                styles.date,
-                                {color: theme.colors.onSurfaceVariant},
-                            ]}>
+                        <Text variant="bodySmall" style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
                             {date}
                         </Text>
                     </View>
                 </View>
-                <IconButton
-                    icon={Download}
-                    size={24}
-                    onPress={() => console.log('Download')}
-                />
-                <IconButton
-                    icon={Share2}
-                    size={24}
-                    onPress={() => console.log('Share')}
-                />
+                <IconButton icon={Download} size={24} onPress={() => console.log('Download')} />
+                <IconButton icon={Share2} size={24} onPress={() => console.log('Share')} />
             </Surface>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}>
-                <Surface
-                    style={[
-                        styles.transcriptCard,
-                        {backgroundColor: theme.colors.surface},
-                    ]}>
-                    <Text
-                        variant="bodyLarge"
-                        style={[styles.transcript, {color: theme.colors.onSurface}]}>
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+                <Surface style={[styles.transcriptCard, { backgroundColor: theme.colors.surface }]}>
+                    <Text variant="bodyLarge" style={[styles.transcript, { color: theme.colors.onSurface }]}>
                         {transcript}
                     </Text>
                 </Surface>
             </ScrollView>
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {

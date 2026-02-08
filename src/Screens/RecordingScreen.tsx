@@ -1,41 +1,36 @@
-/**
- * Recording Screen
- * Minimal full-screen modal for secure recording sessions
- * Black background with stop button positioned like Home screen
- */
-
-import React, {useEffect} from 'react';
-import {View, StyleSheet} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useLocalSearchParams, useRouter} from 'expo-router';
-import {observer} from '@legendapp/state/react';
-import {SecureSessionButton} from '@/Components';
-import {useAudioRecording} from '@Service/AudioRecording';
+import { useAudioRecording } from '@Service/AudioRecording';
+import { observer } from '@legendapp/state/react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import type React from 'react';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SecureSessionButton } from '@/Components';
 import { AppLogger } from '@/Service/Logger';
 
 const logger = AppLogger.getInstance();
 
-export const RecordingScreen = observer(function RecordingScreen(): React.JSX.Element {
-    const {autoStart: autoStartParam} = useLocalSearchParams<{autoStart?: string}>();
+export const RecordingScreen = observer((): React.JSX.Element => {
+    const { autoStart: autoStartParam } = useLocalSearchParams<{ autoStart?: string }>();
     const autoStart = autoStartParam === 'true';
     const router = useRouter();
     const audioRecording = useAudioRecording();
     const insets = useSafeAreaInsets();
 
     // Calculate button position: Home screen bottom (30) + tab bar height (~60) + safe area bottom
-    const TAB_BAR_HEIGHT = 60;
-    const HOME_BUTTON_BOTTOM = 30;
-    const buttonBottom = HOME_BUTTON_BOTTOM + TAB_BAR_HEIGHT + insets.bottom;
+    const TabBarHeight = 60;
+    const HomeButtonBottom = 30;
+    const buttonBottom = HomeButtonBottom + TabBarHeight + insets.bottom;
 
     // Auto-start recording if autoStart is true
     useEffect(() => {
         if (autoStart && !audioRecording.isRecording) {
-            logger.debug('🚀 [RecordingScreen] Auto-starting recording', {autoStart});
+            logger.debug('🚀 [RecordingScreen] Auto-starting recording', { autoStart });
             audioRecording.startRecording().catch((err) => {
-                logger.error('❌ [RecordingScreen] Auto-start failed:', {error: err});
+                logger.error('❌ [RecordingScreen] Auto-start failed:', { error: err });
             });
         }
-    }, [autoStart]);
+    }, [autoStart, audioRecording]);
 
     const handleStop = async () => {
         logger.debug('⏹️ [RecordingScreen] Stop recording requested');
@@ -44,11 +39,8 @@ export const RecordingScreen = observer(function RecordingScreen(): React.JSX.El
     };
     return (
         <View style={styles.container}>
-            <View style={[styles.buttonContainer, {bottom: buttonBottom}]}>
-                <SecureSessionButton
-                    onPress={handleStop}
-                    isRecording={true}
-                />
+            <View style={[styles.buttonContainer, { bottom: buttonBottom }]}>
+                <SecureSessionButton onPress={handleStop} isRecording={true} />
             </View>
         </View>
     );

@@ -1,6 +1,6 @@
 import { registry } from '@/Database';
-import { createMockEncounterConstructor } from '../helpers/mockEntity';
 import { TiroScribeException } from '@/Exception';
+import { createMockEncounterConstructor } from '../helpers/mockEntity';
 
 describe('Registry', () => {
     const MockEncounter = createMockEncounterConstructor();

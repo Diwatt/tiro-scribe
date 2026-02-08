@@ -10,15 +10,16 @@
  */
 
 import type * as Ort from 'onnxruntime-react-native';
-import {Biocode} from './Biocode';
+import type { Biocode } from './Biocode';
 
 async function getOrt(): Promise<typeof Ort> {
     return import('onnxruntime-react-native');
 }
-import {Anonymizer} from './Anonymizer';
-import {AudioProcessingResult, ProcessingPayload} from '@/Entity';
-import { AppLogger, LoggerInterface } from './Logger';
-import {TranscriptionNotImplementedError} from '../Exception/TranscriptionNotImplementedError';
+
+import type { AudioProcessingResult, ProcessingPayload } from '@/Entity';
+import { TranscriptionNotImplementedError } from '../Exception/TranscriptionNotImplementedError';
+import type { Anonymizer } from './Anonymizer';
+import { AppLogger, type LoggerInterface } from './Logger';
 
 /**
  * Transcription constants
@@ -40,11 +41,7 @@ export class AudioProcessing {
     private anonymizerService: Anonymizer;
     private loggerInstance: LoggerInterface;
 
-    constructor(
-        biocodeService: Biocode,
-        anonymizerService: Anonymizer,
-        logger: LoggerInterface = AppLogger.getInstance(),
-    ) {
+    constructor(biocodeService: Biocode, anonymizerService: Anonymizer, logger: LoggerInterface = AppLogger.getInstance()) {
         this.biocodeService = biocodeService;
         this.anonymizerService = anonymizerService;
         this.loggerInstance = logger;
@@ -80,11 +77,7 @@ export class AudioProcessing {
      * @param sessionStartDate - Start date/time of the encounter for temporal fuzzing
      * @returns Complete processing payload
      */
-    async processAudio(
-        audioPath: string,
-        encounterUuid: string,
-        sessionStartDate: Date,
-    ): Promise<ProcessingPayload> {
+    async processAudio(audioPath: string, encounterUuid: string, sessionStartDate: Date): Promise<ProcessingPayload> {
         // Set session start date for temporal fuzzing
         this.anonymizerService.setSessionStartDate(sessionStartDate);
 
@@ -92,7 +85,7 @@ export class AudioProcessing {
         // TODO: Implement transcription with ONNX Runtime
         // For now, using placeholder - you need to implement transcription
         let rawText = '';
-        
+
         if (this.transcriptionSession) {
             // TODO: Implement transcription inference
             // rawText = await this.transcribeWithONNX(audioPath);
@@ -104,15 +97,13 @@ export class AudioProcessing {
         }
 
         // Step 2: Anonymize the transcribed text
-        const anonymizationResult =
-            await this.anonymizerService.anonymize(rawText);
+        const anonymizationResult = await this.anonymizerService.anonymize(rawText);
 
         // Step 3: Extract biocode from audio
         const biocodeResult = await this.biocodeService.processAudio(audioPath);
 
         // Step 4: Calculate overall confidence
-        const overallConfidence =
-            (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
+        const overallConfidence = (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
 
         // Step 5: Build final payload
         const payload: ProcessingPayload = {
@@ -131,15 +122,12 @@ export class AudioProcessing {
      * @param sessionStartDate - Start date/time of the session
      * @returns Detailed audio processing result
      */
-    async processAudioDetailed(
-        audioPath: string,
-        sessionStartDate: Date,
-    ): Promise<AudioProcessingResult> {
+    async processAudioDetailed(audioPath: string, sessionStartDate: Date): Promise<AudioProcessingResult> {
         this.anonymizerService.setSessionStartDate(sessionStartDate);
 
         // Parallel processing of transcription and biocode extraction
         let rawText = '';
-        
+
         if (this.transcriptionSession) {
             // TODO: Implement transcription
             // rawText = await this.transcribeWithONNX(audioPath);
@@ -147,14 +135,12 @@ export class AudioProcessing {
         }
 
         const biocodeResult = await this.biocodeService.processAudio(audioPath);
-        const anonymizationResult =
-            await this.anonymizerService.anonymize(rawText);
+        const anonymizationResult = await this.anonymizerService.anonymize(rawText);
         return {
             rawText,
             anonymizedText: anonymizationResult.cleanText,
             biocode: biocodeResult.biocode,
-            confidence:
-                (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
+            confidence: (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
         };
     }
 

@@ -5,82 +5,83 @@
 
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
-import React, { useEffect, useRef } from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PaperProvider } from 'react-native-paper';
-import { Slot, useRouter } from 'expo-router';
 import { observer } from '@legendapp/state/react';
+import { Slot, useRouter } from 'expo-router';
+import type React from 'react';
+import { useEffect, useRef } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
-import { AppTheme } from '@/theme/AppTheme';
 import { ServicesProvider } from '@/Context/ServicesContext';
 import { DeviceIncompatibleScreen } from '@/Screens/DeviceIncompatibleScreen';
 import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
+import { AppTheme } from '@/theme/AppTheme';
 
 const services = {
-  biocodeService: null,
-  anonymizerService: null,
-  audioProcessingService: null,
+    biocodeService: null,
+    anonymizerService: null,
+    audioProcessingService: null,
 };
 
 async function hideSplash(): Promise<void> {
-  try {
-    const SplashScreen = await import('expo-splash-screen');
-    await SplashScreen.hideAsync();
-  } catch {
-    // expo-splash-screen optional
-  }
+    try {
+        const SplashScreen = await import('expo-splash-screen');
+        await SplashScreen.hideAsync();
+    } catch {
+        // expo-splash-screen optional
+    }
 }
 
 function StartupGateContent(): React.JSX.Element | null {
-  const router = useRouter();
-  const replacedForReady = useRef(false);
+    const router = useRouter();
+    const replacedForReady = useRef(false);
 
-  useEffect(() => {
-    startupOrchestrator.runSequence();
-  }, []);
+    useEffect(() => {
+        startupOrchestrator.run();
+    }, []);
 
-  const state = startupOrchestrator.observable.get();
+    const state = startupOrchestrator.state$.get();
 
-  useEffect(() => {
-    if (state === StartupState.BOOTING) return;
-    hideSplash();
-  }, [state]);
+    useEffect(() => {
+        if (state === StartupState.Booting) return;
+        hideSplash();
+    }, [state]);
 
-  useEffect(() => {
-    if (state === StartupState.ONBOARDING) {
-      router.replace('/onboarding');
-      return;
+    useEffect(() => {
+        if (state === StartupState.Onboarding) {
+            router.replace('/onboarding');
+            return;
+        }
+        if (state === StartupState.Ready && !replacedForReady.current) {
+            replacedForReady.current = true;
+            router.replace('/main');
+        }
+    }, [state, router]);
+
+    if (state === StartupState.Booting) {
+        return null;
     }
-    if (state === StartupState.READY && !replacedForReady.current) {
-      replacedForReady.current = true;
-      router.replace('/main');
+    if (state === StartupState.HardwareRejected) {
+        return <DeviceIncompatibleScreen />;
     }
-  }, [state, router]);
-
-  if (state === StartupState.BOOTING) {
-    return null;
-  }
-  if (state === StartupState.HARDWARE_REJECTED) {
-    return <DeviceIncompatibleScreen />;
-  }
-  return <Slot />;
+    return <Slot />;
 }
 
 const ObservedStartupGate = observer(StartupGateContent);
 
 export default function RootLayout(): React.JSX.Element {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppErrorBoundary>
-        <SafeAreaProvider>
-          <PaperProvider theme={AppTheme}>
-            <ServicesProvider services={services}>
-              <ObservedStartupGate />
-            </ServicesProvider>
-          </PaperProvider>
-        </SafeAreaProvider>
-      </AppErrorBoundary>
-    </GestureHandlerRootView>
-  );
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <AppErrorBoundary>
+                <SafeAreaProvider>
+                    <PaperProvider theme={AppTheme}>
+                        <ServicesProvider services={services}>
+                            <ObservedStartupGate />
+                        </ServicesProvider>
+                    </PaperProvider>
+                </SafeAreaProvider>
+            </AppErrorBoundary>
+        </GestureHandlerRootView>
+    );
 }

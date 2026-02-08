@@ -39,10 +39,7 @@ export class ModelDownloader {
      * @param onProgress - Optional progress callback (0-1)
      * @returns Local file path
      */
-    static async ensureModelDownloaded(
-        config: ModelConfig,
-        onProgress?: (progress: number) => void,
-    ): Promise<string> {
+    static async ensureModelDownloaded(config: ModelConfig, onProgress?: (progress: number) => void): Promise<string> {
         const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
 
         // Check if model already exists
@@ -62,18 +59,13 @@ export class ModelDownloader {
         // Download the model
         ModelDownloader.loggerInstance.info(`Downloading model ${config.name} from ${config.url}...`);
 
-        const downloadResumable = FileSystem.createDownloadResumable(
-            config.url,
-            localPath,
-            {},
-            (downloadProgress) => {
-                const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-                this.downloadProgress.set(config.name, progress);
-                if (onProgress) {
-                    onProgress(progress);
-                }
-            },
-        );
+        const downloadResumable = FileSystem.createDownloadResumable(config.url, localPath, {}, (downloadProgress) => {
+            const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+            ModelDownloader.downloadProgress.set(config.name, progress);
+            if (onProgress) {
+                onProgress(progress);
+            }
+        });
 
         try {
             const result = await downloadResumable.downloadAsync();
@@ -83,7 +75,7 @@ export class ModelDownloader {
 
             // Verify checksum if provided
             if (config.checksum) {
-                await this.verifyChecksum(localPath, config.checksum);
+                await ModelDownloader.verifyChecksum(localPath, config.checksum);
             }
 
             ModelDownloader.loggerInstance.info(`Model ${config.name} downloaded successfully to ${localPath}`);
@@ -94,28 +86,19 @@ export class ModelDownloader {
             if (fileInfo.exists) {
                 await FileSystem.deleteAsync(localPath, { idempotent: true });
             }
-            throw new ModelDownloadError(
-                `Failed to download model ${config.name}: ${error}`,
-                error instanceof Error ? error : new Error(String(error)),
-            );
+            throw new ModelDownloadError(`Failed to download model ${config.name}: ${error}`, error instanceof Error ? error : new Error(String(error)));
         }
     }
 
     /**
      * Download multiple models in parallel
      */
-    static async ensureModelsDownloaded(
-        configs: ModelConfig[],
-        onProgress?: (modelName: string, progress: number) => void,
-    ): Promise<Record<string, string>> {
+    static async ensureModelsDownloaded(configs: ModelConfig[], onProgress?: (modelName: string, progress: number) => void): Promise<Record<string, string>> {
         const results: Record<string, string> = {};
 
         await Promise.all(
             configs.map(async (config) => {
-                const path = await this.ensureModelDownloaded(
-                    config,
-                    onProgress ? (progress) => onProgress(config.name, progress) : undefined,
-                );
+                const path = await ModelDownloader.ensureModelDownloaded(config, onProgress ? (progress) => onProgress(config.name, progress) : undefined);
                 results[config.name] = path;
             }),
         );
@@ -125,10 +108,7 @@ export class ModelDownloader {
     /**
      * Verify file checksum (SHA-256)
      */
-    private static async verifyChecksum(
-        filePath: string,
-        expectedChecksum: string,
-    ): Promise<void> {
+    private static async verifyChecksum(filePath: string, expectedChecksum: string): Promise<void> {
         // TODO: Implement SHA-256 checksum verification
         // For now, this is a placeholder
         ModelDownloader.loggerInstance.warn('Checksum verification not implemented');
@@ -138,7 +118,7 @@ export class ModelDownloader {
      * Get download progress for a model
      */
     static getProgress(modelName: string): number {
-        return this.downloadProgress.get(modelName) || 0;
+        return ModelDownloader.downloadProgress.get(modelName) || 0;
     }
 
     /**

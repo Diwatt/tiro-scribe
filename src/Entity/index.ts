@@ -1,21 +1,20 @@
+export { Encounter } from './Encounter';
+export { QueueItem } from './QueueItem';
+export { Therapist } from './Therapist';
+export type {
+    AnonymizationResult,
+    AnonymizedEntity,
+    AudioProcessingResult,
+    BiocodeResult,
+    DetectedSpeakerProfile,
+    ProcessingPayload,
+    QueueItemErrorEntry,
+    SpeakerVector,
+    TranscriptSegment,
+} from './Type';
 export {
-    QueueItemStatus,
-    PipelineStage,
     EncounterStatus,
     EntityType,
+    PipelineStage,
+    QueueItemStatus,
 } from './Type';
-export type {
-    QueueItemErrorEntry,
-    TranscriptSegment,
-    DetectedSpeakerProfile,
-    AnonymizedEntity,
-    AnonymizationResult,
-    ProcessingPayload,
-    AudioProcessingResult,
-    SpeakerVector,
-    BiocodeResult,
-} from './Type';
-
-export { QueueItem } from './QueueItem';
-export { Encounter } from './Encounter';
-export { Therapist } from './Therapist';

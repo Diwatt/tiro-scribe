@@ -2,7 +2,7 @@
  * Validates options objects and decorator metadata. Used by Builder when decorators declare schema/errorCode or unique decorators.
  */
 
-import { DecoratorException, DatabaseException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from '../Exception';
+import { DatabaseException, DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from '../Exception';
 import type { OptionFieldSchema, OptionFieldType, OptionsSchema } from './Type';
 
 export class SchemaValidator {
@@ -12,11 +12,7 @@ export class SchemaValidator {
      * Not invoked from validate() because it needs context.metadata and context.name,
      * which are only available when the field decorator runs, not when options are validated.
      */
-    public ensureFieldDecoratorUniqueness(
-        meta: Record<string | symbol, unknown> | undefined,
-        currentPropertyName: string,
-        decoratorName: string,
-    ): void {
+    public ensureFieldDecoratorUniqueness(meta: Record<string | symbol, unknown> | undefined, currentPropertyName: string, decoratorName: string): void {
         if (meta == null || typeof meta !== 'object') return;
         const m = meta as Record<string, { decorators?: Array<{ decoratorName: string }> }>;
         for (const [key, fieldMeta] of Object.entries(m)) {
@@ -46,43 +42,20 @@ export class SchemaValidator {
         }
     }
 
-    private ensureRequired(
-        key: string,
-        isSet: boolean,
-        field: OptionFieldSchema,
-        options: Record<string, unknown>,
-        errorCode: string,
-    ): void {
+    private ensureRequired(key: string, isSet: boolean, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
         if (field.required === true && !isSet) {
-            throw new DatabaseException(
-                `Option "${key}" is required`,
-                errorCode,
-                undefined,
-                { options },
-            );
+            throw new DatabaseException(`Option "${key}" is required`, errorCode, undefined, { options });
         }
     }
 
-    private ensureType(
-        key: string,
-        value: unknown,
-        isSet: boolean,
-        field: OptionFieldSchema,
-        options: Record<string, unknown>,
-        errorCode: string,
-    ): void {
+    private ensureType(key: string, value: unknown, isSet: boolean, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
         if (!isSet || field.type == null) {
             return;
         }
         const allowed = Array.isArray(field.type) ? [...field.type] : [field.type];
         const actual = this.getType(value);
         if (!allowed.includes(actual)) {
-            throw new DatabaseException(
-                `Option "${key}" must be of type ${allowed.join(' | ')}`,
-                errorCode,
-                undefined,
-                { options, key, actual },
-            );
+            throw new DatabaseException(`Option "${key}" must be of type ${allowed.join(' | ')}`, errorCode, undefined, { options, key, actual });
         }
     }
 

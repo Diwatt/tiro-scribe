@@ -1,0 +1,36 @@
+---
+description: "Strict Enterprise OOP Standards (Symfony Style) - TS/Kotlin/Swift"
+globs: ["src/**/*.ts", "src/**/*.tsx", "ios/**/*.swift", "android/**/*.kt"]
+alwaysApply: true
+---
+
+# 🛡️ Enterprise OOP Standards (Symfony Style)
+
+## 1. Class Structure & Organization (CRITICAL)
+* **One Class Per File:** The filename must match the class name exactly. No exceptions.
+* **No "Utils" / Standalone Functions:** Logic belongs to a Class (Service or Entity). Do not create `utils` folders or procedural code.
+* **Service Naming:** Use Capability names (e.g., `VoiceCalibration`), NEVER append `*Service`. The directory `src/Service/` is sufficient context.
+* **Dependency Injection:** Inject dependencies via constructor using Interfaces/Types. Do not instantiate dependencies inside the class (Tight Coupling).
+
+## 2. Member Visibility & Ordering
+**Rule:** explicit visibility is MANDATORY for ALL members in TypeScript, Kotlin, and Swift.
+* **Visibility:** Always use `public`, `private`, `protected`. Never use implicit visibility (no `internal` by default).
+* **Ordering:**
+    1.  **Properties:** Static first, then Instance. Ordered by visibility (`private` -> `protected` -> `public`).
+    2.  **Constructor / Initializers**.
+    3.  **Methods:** Ordered by visibility (`private` -> `protected` -> `public`). Getters/Setters are methods.
+
+## 3. Strict Coding Style
+* **No Default Exports:** Use named exports (`export class X`) exclusively. This applies to React Components too.
+* **No Magic Strings:** Do not use string literals in conditionals. Use `const` or `enum` to define states/values.
+* **No Object Literals in Classes:** Do not define state as `{...}` inside a class body. Use a static factory or external constant.
+* **Early Returns:** Avoid deep nesting. Check conditions and return early.
+
+## 4. State & Logic Separation
+* **View (Screens):** Dumb components. They strictly render observable state. NO business logic.
+* **State Classes:** Pure TypeScript classes (Singleton or Instantiable) containing `observable` data.
+* **Services:** Stateless classes handling I/O, API, or complex calculations.
+
+## 5. Logging Standards
+* **Logger:** Use `AppLogger` instance via DI.
+* **No Timestamps:** The logger handles `dateFormat: 'time'`. DO NOT add `new Date()`.

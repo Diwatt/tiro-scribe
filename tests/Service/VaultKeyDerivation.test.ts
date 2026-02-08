@@ -3,9 +3,7 @@ import { VaultKeyDerivation } from '@/Security/VaultKeyDerivation';
 describe('VaultKeyDerivation', () => {
     describe('buildSalt', () => {
         it('returns tag-prefixed string with uuid', () => {
-            expect(VaultKeyDerivation.buildSalt('uuid-1', 'vault_primary')).toBe(
-                'scribe_vault_primary_uuid-1',
-            );
+            expect(VaultKeyDerivation.buildSalt('uuid-1', 'vault_primary')).toBe('scribe_vault_primary_uuid-1');
         });
 
         it('uses different tags', () => {

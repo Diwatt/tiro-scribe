@@ -44,25 +44,17 @@ type SchemaFieldValueType<F extends OptionFieldSchema> = F extends { type: infer
     : unknown;
 
 /** Value type for key K: from Overrides when set, otherwise from schema. */
-type OptionValueType<
-    S extends OptionsSchema,
-    K extends keyof S,
-    O extends Partial<{ [Key in keyof S]: unknown }>,
-> = K extends keyof O ? O[K] : SchemaFieldValueType<S[K]>;
+type OptionValueType<S extends OptionsSchema, K extends keyof S, O extends Partial<{ [Key in keyof S]: unknown }>> = K extends keyof O
+    ? O[K]
+    : SchemaFieldValueType<S[K]>;
 
 /** Required keys only: those with required: true in the schema. */
-type RequiredOptionsFromSchema<
-    S extends OptionsSchema,
-    O extends Partial<{ [Key in keyof S]: unknown }>,
-> = {
+type RequiredOptionsFromSchema<S extends OptionsSchema, O extends Partial<{ [Key in keyof S]: unknown }>> = {
     [K in keyof S as S[K] extends { required: true } ? K : never]: OptionValueType<S, K, O>;
 };
 
 /** Optional keys only: those without required: true. */
-type OptionalOptionsFromSchema<
-    S extends OptionsSchema,
-    O extends Partial<{ [Key in keyof S]: unknown }>,
-> = {
+type OptionalOptionsFromSchema<S extends OptionsSchema, O extends Partial<{ [Key in keyof S]: unknown }>> = {
     [K in keyof S as S[K] extends { required: true } ? never : K]?: OptionValueType<S, K, O>;
 };
 
@@ -70,10 +62,11 @@ type OptionalOptionsFromSchema<
  * Derives an options interface from a schema.
  * Use Overrides to give custom types for specific keys (e.g. default: T | (() => T)).
  */
-export type OptionsFromSchema<
-    S extends OptionsSchema,
-    Overrides extends Partial<{ [K in keyof S]: unknown }> = object,
-> = RequiredOptionsFromSchema<S, Overrides> & OptionalOptionsFromSchema<S, Overrides>;
+export type OptionsFromSchema<S extends OptionsSchema, Overrides extends Partial<{ [K in keyof S]: unknown }> = object> = RequiredOptionsFromSchema<
+    S,
+    Overrides
+> &
+    OptionalOptionsFromSchema<S, Overrides>;
 
 /** Constructor type for class decorator targets. */
 export type ClassConstructor = abstract new (...args: any[]) => any;
@@ -81,11 +74,7 @@ export type ClassConstructor = abstract new (...args: any[]) => any;
 /** Interface for entity (class) decorators (e.g. Entity). Implement and pass an instance to Builder.buildEntity. */
 export interface ClassDecoratorConfig<TOptions = object> {
     /** Run on the class target with options. */
-    fn(
-        target: ClassConstructor,
-        context: ClassDecoratorContext<ClassConstructor>,
-        options: TOptions,
-    ): void;
+    fn(target: ClassConstructor, context: ClassDecoratorContext<ClassConstructor>, options: TOptions): void;
     /** Optional schema; when set, builder runs schemaValidator.validate before fn. errorCode used for exceptions. */
     schema?: OptionsSchema;
     errorCode?: string;
@@ -103,10 +92,7 @@ export interface FieldDecoratorConfig<TOptions = object> {
     /** Run synchronously when the decorator is applied (e.g. set metadata). */
     before?(context: ClassFieldDecoratorContext<unknown, unknown>, options: TOptions): void;
     /** Run in addInitializer (instance is `this`). */
-    initializer(
-        context: ClassFieldDecoratorContext<unknown, unknown>,
-        options: TOptions,
-    ): (instance: unknown) => void;
+    initializer(context: ClassFieldDecoratorContext<unknown, unknown>, options: TOptions): (instance: unknown) => void;
     /**
      * When true, only one property of the same class can have this decorator.
      * Requires decoratorName so the builder can check metadata. Used by @PrimaryKey.

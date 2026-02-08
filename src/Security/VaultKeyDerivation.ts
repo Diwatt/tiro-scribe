@@ -33,9 +33,7 @@ export class VaultKeyDerivation {
         const part = (): string => {
             let s = '';
             for (let i = 0; i < VaultKeyDerivation.RECOVERY_PART_LEN; i++) {
-                s += VaultKeyDerivation.RECOVERY_CHARS.charAt(
-                    Math.floor(Math.random() * VaultKeyDerivation.RECOVERY_CHARS.length),
-                );
+                s += VaultKeyDerivation.RECOVERY_CHARS.charAt(Math.floor(Math.random() * VaultKeyDerivation.RECOVERY_CHARS.length));
             }
             return s;
         };

@@ -6,6 +6,7 @@
  * The only generic (T in buildEntity) preserves the decorated class type so static members (e.g. entityName) stay typed.
  */
 
+import { SchemaValidator } from './SchemaValidator';
 import type {
     ClassConstructor,
     ClassDecoratorConfig,
@@ -16,7 +17,6 @@ import type {
     OptionsFromSchema,
     OptionsSchema,
 } from './Type';
-import { SchemaValidator } from './SchemaValidator';
 
 export type {
     ClassConstructor,

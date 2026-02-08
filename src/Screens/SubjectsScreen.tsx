@@ -1,79 +1,37 @@
-/**
- * Subjects Screen
- * Directory of patients (Alphabetical list)
- */
-
+import { User } from 'lucide-react-native';
 import React from 'react';
-import {View, StyleSheet, FlatList} from 'react-native';
-import {Text, useTheme, Card, Avatar, Searchbar} from 'react-native-paper';
-import {User} from 'lucide-react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Avatar, Card, Searchbar, Text, useTheme } from 'react-native-paper';
 
 // Mock data for subjects (uuid for offline/sync)
 const mockSubjects = [
-    {uuid: '1', biocode: 'SUBJ-****-A3F2', lastEncounter: '2 hours ago'},
-    {uuid: '2', biocode: 'SUBJ-****-B7C1', lastEncounter: '1 day ago'},
-    {uuid: '3', biocode: 'SUBJ-****-D9E4', lastEncounter: '3 days ago'},
-    {uuid: '4', biocode: 'SUBJ-****-E5F6', lastEncounter: '1 week ago'},
+    { uuid: '1', biocode: 'SUBJ-****-A3F2', lastEncounter: '2 hours ago' },
+    { uuid: '2', biocode: 'SUBJ-****-B7C1', lastEncounter: '1 day ago' },
+    { uuid: '3', biocode: 'SUBJ-****-D9E4', lastEncounter: '3 days ago' },
+    { uuid: '4', biocode: 'SUBJ-****-E5F6', lastEncounter: '1 week ago' },
 ];
 
-interface SubjectsScreenProps {
-    // No props needed for this screen
-}
+type SubjectsScreenProps = {};
 
 export function SubjectsScreen(props: SubjectsScreenProps): React.JSX.Element {
     const theme = useTheme();
     const [searchQuery, setSearchQuery] = React.useState('');
     return (
-        <View
-            style={[
-                styles.container,
-                {backgroundColor: theme.colors.background},
-            ]}>
-            <Searchbar
-                placeholder="Search subjects..."
-                onChangeText={setSearchQuery}
-                value={searchQuery}
-                style={styles.searchbar}
-            />
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            <Searchbar placeholder="Search subjects..." onChangeText={setSearchQuery} value={searchQuery} style={styles.searchbar} />
             <FlatList
                 data={mockSubjects}
-                keyExtractor={(item) =>
-                    'primaryKey' in item
-                        ? (item as { primaryKey: string }).primaryKey
-                        : (item as { uuid: string }).uuid
-                }
+                keyExtractor={(item) => ('primaryKey' in item ? (item as { primaryKey: string }).primaryKey : (item as { uuid: string }).uuid)}
                 contentContainerStyle={styles.listContent}
-                renderItem={({item}) => (
-                    <Card
-                        style={[
-                            styles.subjectCard,
-                            {backgroundColor: theme.colors.surface},
-                        ]}
-                        mode="outlined">
+                renderItem={({ item }) => (
+                    <Card style={[styles.subjectCard, { backgroundColor: theme.colors.surface }]} mode="outlined">
                         <Card.Content style={styles.cardContent}>
-                            <Avatar.Icon
-                                size={40}
-                                icon={User}
-                                style={[
-                                    styles.avatar,
-                                    {backgroundColor: theme.colors.primaryContainer},
-                                ]}
-                            />
+                            <Avatar.Icon size={40} icon={User} style={[styles.avatar, { backgroundColor: theme.colors.primaryContainer }]} />
                             <View style={styles.subjectInfo}>
-                                <Text
-                                    variant="titleMedium"
-                                    style={[
-                                        styles.biocode,
-                                        {color: theme.colors.onSurface},
-                                    ]}>
+                                <Text variant="titleMedium" style={[styles.biocode, { color: theme.colors.onSurface }]}>
                                     {item.biocode}
                                 </Text>
-                                <Text
-                                    variant="bodySmall"
-                                    style={[
-                                        styles.lastEncounter,
-                                        {color: theme.colors.onSurfaceVariant},
-                                    ]}>
+                                <Text variant="bodySmall" style={[styles.lastEncounter, { color: theme.colors.onSurfaceVariant }]}>
                                     Last encounter: {item.lastEncounter}
                                 </Text>
                             </View>
@@ -83,7 +41,7 @@ export function SubjectsScreen(props: SubjectsScreenProps): React.JSX.Element {
             />
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     container: {

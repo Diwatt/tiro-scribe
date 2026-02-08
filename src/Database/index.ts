@@ -3,19 +3,19 @@
  * Central entry point for data layer.
  */
 
+export type { FieldDecoratorConfig } from '../Decorator';
 export {
-    Column,
     Builder,
+    Column,
     Entity as EntityDecorator,
     MetadataReader,
 } from '../Decorator';
-export type { FieldDecoratorConfig } from '../Decorator';
-export { DateTransformer, TransformerRegistry } from './Transformer';
-export type { FieldTransformer } from './Transformer';
-export { EntitySerializer } from './Serializer';
-export { TableBacking } from './TableBacking';
-export type { DataMap } from './TableBacking';
 export { AbstractEntity } from './AbstractEntity';
 export { registry } from './Registry';
 export { Repository } from './Repository';
+export { EntitySerializer } from './Serializer';
+export type { DataMap } from './TableBacking';
+export { TableBacking } from './TableBacking';
+export type { FieldTransformer } from './Transformer';
+export { DateTransformer, TransformerRegistry } from './Transformer';
 export type { EntityClass, ObservablePrimitive } from './Type';

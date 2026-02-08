@@ -2,7 +2,7 @@
  * NoActiveRecordingError - Exception when no recording is active
  */
 
-import {TiroScribeException} from './TiroScribeException';
+import { TiroScribeException } from './TiroScribeException';
 
 export class NoActiveRecordingError extends TiroScribeException {
     constructor() {

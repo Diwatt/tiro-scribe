@@ -50,9 +50,7 @@ describe('TableBacking', () => {
         backing.setEntry('1', { status: 'pending', x: 1 });
         backing.setEntry('2', { status: 'DONE', x: 1 });
         backing.setEntry('3', { status: 'pending', x: 2 });
-        expect(backing.keysWhere({ status: 'pending' })).toEqual(
-            expect.arrayContaining(['1', '3']),
-        );
+        expect(backing.keysWhere({ status: 'pending' })).toEqual(expect.arrayContaining(['1', '3']));
         expect(backing.keysWhere({ status: 'pending', x: 1 })).toEqual(['1']);
     });
 

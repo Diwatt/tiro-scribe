@@ -1,25 +1,19 @@
 /**
  * Main application navigator
- * 
+ *
  * Navigation Structure:
  * - MainTabNavigator: Home, Subjects, Settings
  * - RootStack: Modals (RecordingScreen, TranscriptDetail)
  */
 
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Home as HomeIcon, Settings as SettingsIcon, Users } from 'lucide-react-native';
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {
-    Home,
-    SubjectsScreen,
-    SettingsScreen,
-    RecordingScreen,
-    TranscriptDetailScreen,
-} from '@/Screens';
-import {useTheme} from 'react-native-paper';
-import {Home as HomeIcon, Users, Settings as SettingsIcon} from 'lucide-react-native';
-import type {RootStackParamList, MainTabParamList} from './types';
+import { useTheme } from 'react-native-paper';
+import { Home, RecordingScreen, SettingsScreen, SubjectsScreen, TranscriptDetailScreen } from '@/Screens';
+import type { MainTabParamList, RootStackParamList } from './types';
 
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -40,32 +34,27 @@ function MainTabNavigator() {
                     backgroundColor: theme.colors.surface,
                     borderTopColor: theme.colors.outlineVariant,
                 },
-            }}>
+            }}
+        >
             <MainTab.Screen
                 name="Home"
                 component={Home}
                 options={{
-                    tabBarIcon: ({color, size}) => (
-                        <HomeIcon size={size} color={color} />
-                    ),
+                    tabBarIcon: ({ color, size }) => <HomeIcon size={size} color={color} />,
                 }}
             />
             <MainTab.Screen
                 name="Subjects"
                 component={SubjectsScreen}
                 options={{
-                    tabBarIcon: ({color, size}) => (
-                        <Users size={size} color={color} />
-                    ),
+                    tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
                 }}
             />
             <MainTab.Screen
                 name="Settings"
                 component={SettingsScreen}
                 options={{
-                    tabBarIcon: ({color, size}) => (
-                        <SettingsIcon size={size} color={color} />
-                    ),
+                    tabBarIcon: ({ color, size }) => <SettingsIcon size={size} color={color} />,
                 }}
             />
         </MainTab.Navigator>
@@ -78,11 +67,8 @@ function MainTabNavigator() {
  */
 function RootNavigator() {
     return (
-        <RootStack.Navigator screenOptions={{headerShown: false}}>
-            <RootStack.Screen
-                name="Main"
-                component={MainTabNavigator}
-            />
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+            <RootStack.Screen name="Main" component={MainTabNavigator} />
             <RootStack.Screen
                 name="Recording"
                 component={RecordingScreen}
