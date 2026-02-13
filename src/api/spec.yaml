@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title: Tiro Scribe Taxonomy API
+  version: 1.0.0
+  description: Domain taxonomy for onboarding (qualifications, therapy methods, languages). Single bootstrap endpoint for mobile performance.
+
+servers:
+  - url: /api
+    description: Base URL (mutator prepends configured base)
+
+paths:
+  /taxonomy:
+    get:
+      tags:
+        - taxonomy
+      operationId: getTaxonomy
+      summary: Bootstrap taxonomy (qualifications, therapy methods, languages)
+      responses:
+        '200':
+          description: Aggregated taxonomy for app bootstrap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Taxonomy'
+
+components:
+  schemas:
+    SelectOption:
+      type: object
+      required:
+        - value
+        - label
+      properties:
+        value:
+          type: string
+          description: Option value (e.g. code or id)
+        label:
+          type: string
+          description: Display label
+    Taxonomy:
+      type: object
+      required:
+        - qualifications
+        - therapyMethods
+        - languages
+      properties:
+        qualifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectOption'
+        therapyMethods:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectOption'
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectOption'

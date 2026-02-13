@@ -52,7 +52,7 @@ export enum EntityType {
 
 /**
  * Represents a single transcribed segment.
- * Stored in Encounter.transcript as a JSON array.
+ * Stored in Transcription.segments as a JSON array.
  */
 export interface TranscriptSegment {
     id: string; // UUID
@@ -71,7 +71,7 @@ export interface TranscriptSegment {
 
 /**
  * Represents a speaker profile detected during the session.
- * Stored in Encounter.detectedSpeakers as a JSON array.
+ * Can be stored in pipeline state or a related entity (e.g. session metadata).
  */
 export interface DetectedSpeakerProfile {
     label: string; // Matches TranscriptSegment.speakerLabel (e.g., "spk_a1b2")

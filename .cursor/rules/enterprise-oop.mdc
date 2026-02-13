@@ -4,33 +4,56 @@ globs: ["src/**/*.ts", "src/**/*.tsx", "ios/**/*.swift", "android/**/*.kt"]
 alwaysApply: true
 ---
 
-# 🛡️ Enterprise OOP Standards (Symfony Style)
+# 🛡️ Enterprise OOP Standards (Symfony / PSR Style)
 
 ## 1. Class Structure & Organization (CRITICAL)
 * **One Class Per File:** The filename must match the class name exactly. No exceptions.
 * **No "Utils" / Standalone Functions:** Logic belongs to a Class (Service or Entity). Do not create `utils` folders or procedural code.
 * **Service Naming:** Use Capability names (e.g., `VoiceCalibration`), NEVER append `*Service`. The directory `src/Service/` is sufficient context.
 * **Dependency Injection:** Inject dependencies via constructor using Interfaces/Types. Do not instantiate dependencies inside the class (Tight Coupling).
+* **Extends / Implements:** Declare `extends` and `implements` on the same line as the class name. Opening brace for the class on its own line; closing brace on the next line after the body.
 
 ## 2. Member Visibility & Ordering
 **Rule:** explicit visibility is MANDATORY for ALL members in TypeScript, Kotlin, and Swift.
-* **Visibility:** Always use `public`, `private`, `protected`. Never use implicit visibility (no `internal` by default).
+* **Visibility:** Always use `public`, `private`, `protected`. Never use implicit visibility (no `internal` by default). Do NOT prefix names with underscore to indicate visibility.
 * **Ordering:**
-    1.  **Properties:** Static first, then Instance. Ordered by visibility (`private` -> `protected` -> `public`).
+    1.  **Properties:** Static first, then Instance. Ordered by visibility (`public` -> `protected` -> `private`).
     2.  **Constructor / Initializers**.
-    3.  **Methods:** Ordered by visibility (`private` -> `protected` -> `public`). Getters/Setters are methods.
+    3.  **Methods:** Ordered by visibility (`public` -> `protected` -> `private`). Getters/Setters are methods.
+* **One Property Per Statement:** Do not declare more than one property per line.
 
-## 3. Strict Coding Style
+## 3. Naming Conventions (PSR / Symfony)
+* **Classes, Interfaces, Types:** PascalCase (e.g. `ConsoleLogger`, `UserRepository`). Suffix interfaces with `Interface` where used as contracts.
+* **Methods and Functions:** camelCase (e.g. `getUserById`, `hasSession`).
+* **Variables and Parameters:** camelCase (e.g. `acceptableTypes`, `primaryKeyColumnName`).
+* **Constants:** SCREAMING_SNAKE_CASE (e.g. `MAX_LENGTH`, `DEFAULT_TIMEOUT`).
+* **Abstract Classes:** Prefix with `Abstract` (e.g. `AbstractEntity`), except test base classes (e.g. `*TestCase`).
+* **Exceptions:** Suffix with `Exception` (e.g. `ValidationException`).
+
+## 4. Files & Formatting (PSR-12 Style)
+* **Line Endings:** Use Unix LF only. File must end with a single newline.
+* **No Trailing Whitespace:** No spaces or tabs at end of line.
+* **Line Length:** Soft limit 120 characters. Prefer splitting lines longer than 80 characters.
+* **One Statement Per Line:** Do not put multiple statements on one line.
+* **Indentation:** Use spaces (project-consistent; PSR uses 4). Do not use tabs for indentation.
+* **Spacing in Argument Lists:** No space before comma; one space after comma. Parameters with default values at the end of the list.
+* **Binary Operators:** One space before and after (`=`, `===`, `&&`, `+`, etc.). Unary operators (`!`, `++`) adjacent to the operand.
+* **Braces:** Opening brace of control structure on its own line; closing brace on the next line after the body. Always use braces for `if`/`for`/`while`/etc. body, even for a single statement.
+
+## 5. Strict Coding Style
 * **No Default Exports:** Use named exports (`export class X`) exclusively. This applies to React Components too.
 * **No Magic Strings:** Do not use string literals in conditionals. Use `const` or `enum` to define states/values.
 * **No Object Literals in Classes:** Do not define state as `{...}` inside a class body. Use a static factory or external constant.
-* **Early Returns:** Avoid deep nesting. Check conditions and return early.
+* **Early Returns:** Avoid deep nesting. Check conditions and return early. Do not use `else`/`elseif` after a branch that returns or throws.
+* **Blank Line Before Final Return:** When the last statement in a block is a `return`, add a blank line before that return.
+* **Instantiation:** Always use parentheses for constructor calls (e.g. `new Foo()` even when no arguments).
+* **Trailing Commas:** Use trailing commas in multi-line arrays, argument lists, and object literals for cleaner diffs.
 
-## 4. State & Logic Separation
+## 6. State & Logic Separation
 * **View (Screens):** Dumb components. They strictly render observable state. NO business logic.
 * **State Classes:** Pure TypeScript classes (Singleton or Instantiable) containing `observable` data.
 * **Services:** Stateless classes handling I/O, API, or complex calculations.
 
-## 5. Logging Standards
+## 7. Logging Standards
 * **Logger:** Use `AppLogger` instance via DI.
 * **No Timestamps:** The logger handles `dateFormat: 'time'`. DO NOT add `new Date()`.

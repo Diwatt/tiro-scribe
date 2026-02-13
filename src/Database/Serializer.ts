@@ -6,15 +6,18 @@
 
 import mapValues from 'lodash/mapValues';
 import pick from 'lodash/pick';
-import { FieldDecorator, MetadataReader } from '../Decorator';
+import { MetadataReader } from '../Decorator';
+import type { AbstractEntity } from './AbstractEntity';
 
 /** Entity constructor with @Column metadata (AbstractEntity subclasses). */
-type EntityConstructor = Function;
+type EntityConstructor = new (...args: unknown[]) => AbstractEntity;
 
 function buildColumnDefaults(reader: MetadataReader): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const f of reader.getFields()) {
-        if (f.getDecoratorName() !== 'Column') continue;
+        if (f.getDecoratorName() !== 'Column') {
+            continue;
+        }
         out[f.getFieldName()] = f.getOption('default');
     }
     return out;

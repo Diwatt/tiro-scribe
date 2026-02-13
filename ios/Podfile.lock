@@ -220,6 +220,8 @@ PODS:
     - ExpoModulesCore
   - ExpoLinking (8.0.11):
     - ExpoModulesCore
+  - ExpoLocalization (17.0.8):
+    - ExpoModulesCore
   - ExpoModulesCore (3.0.29):
     - hermes-engine
     - RCTRequired
@@ -2358,7 +2360,7 @@ DEPENDENCIES:
   - "EXConstants (from `../node_modules/.pnpm/expo-constants@18.0.13_expo@54.0.31_react-native@0.81.5_@babel+core@7.28.6_@react-nativ_eb21b191cefb073802c7de6d69a43df2/node_modules/expo-constants/ios`)"
   - "EXJSONUtils (from `../node_modules/.pnpm/expo-json-utils@0.15.0/node_modules/expo-json-utils/ios`)"
   - "EXManifests (from `../node_modules/.pnpm/expo-manifests@1.0.10_expo@54.0.31/node_modules/expo-manifests/ios`)"
-  - "Expo (from `../node_modules/.pnpm/expo@54.0.31_@babel+core@7.28.6_@expo+metro-runtime@6.1.2_expo-router@6.0.23_react-nati_9d77bd54591c696373f147c8795b7699/node_modules/expo`)"
+  - "Expo (from `../node_modules/.pnpm/expo@54.0.31_@babel+core@7.28.6_@expo+metro-runtime@6.1.2_expo-router@6.0.23_graphql@16_bf051d06de420c44097eac100830ef06/node_modules/expo`)"
   - "expo-dev-client (from `../node_modules/.pnpm/expo-dev-client@6.0.20_expo@54.0.31/node_modules/expo-dev-client/ios`)"
   - "expo-dev-launcher (from `../node_modules/.pnpm/expo-dev-launcher@6.0.20_expo@54.0.31/node_modules/expo-dev-launcher`)"
   - "expo-dev-menu (from `../node_modules/.pnpm/expo-dev-menu@7.0.18_expo@54.0.31/node_modules/expo-dev-menu`)"
@@ -2372,6 +2374,7 @@ DEPENDENCIES:
   - "ExpoHead (from `../node_modules/.pnpm/expo-router@6.0.23_387ec2bf77f94fde0b23d7de44b00a8d/node_modules/expo-router/ios`)"
   - "ExpoKeepAwake (from `../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.31_react@19.1.0/node_modules/expo-keep-awake/ios`)"
   - "ExpoLinking (from `../node_modules/.pnpm/expo-linking@8.0.11_expo@54.0.31_react-native@0.81.5_@babel+core@7.28.6_@react-native-c_52d54f8edccd4f7c85042fa5b39b0d91/node_modules/expo-linking/ios`)"
+  - "ExpoLocalization (from `../node_modules/.pnpm/expo-localization@17.0.8_expo@54.0.31_react@19.1.0/node_modules/expo-localization/ios`)"
   - "ExpoModulesCore (from `../node_modules/.pnpm/expo-modules-core@3.0.29_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_629fa4faebe9516be89c0a1b97f4ac24/node_modules/expo-modules-core`)"
   - "ExpoPrint (from `../node_modules/.pnpm/expo-print@15.0.8_expo@54.0.31_react-native@0.81.5_@babel+core@7.28.6_@react-native-com_9194483386f50bdfa019347f50c9e8bd/node_modules/expo-print/ios`)"
   - "ExpoSecureStore (from `../node_modules/.pnpm/expo-secure-store@14.0.1_expo@54.0.31/node_modules/expo-secure-store/ios`)"
@@ -2471,7 +2474,7 @@ EXTERNAL SOURCES:
   EXManifests:
     :path: "../node_modules/.pnpm/expo-manifests@1.0.10_expo@54.0.31/node_modules/expo-manifests/ios"
   Expo:
-    :path: "../node_modules/.pnpm/expo@54.0.31_@babel+core@7.28.6_@expo+metro-runtime@6.1.2_expo-router@6.0.23_react-nati_9d77bd54591c696373f147c8795b7699/node_modules/expo"
+    :path: "../node_modules/.pnpm/expo@54.0.31_@babel+core@7.28.6_@expo+metro-runtime@6.1.2_expo-router@6.0.23_graphql@16_bf051d06de420c44097eac100830ef06/node_modules/expo"
   expo-dev-client:
     :path: "../node_modules/.pnpm/expo-dev-client@6.0.20_expo@54.0.31/node_modules/expo-dev-client/ios"
   expo-dev-launcher:
@@ -2498,6 +2501,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.31_react@19.1.0/node_modules/expo-keep-awake/ios"
   ExpoLinking:
     :path: "../node_modules/.pnpm/expo-linking@8.0.11_expo@54.0.31_react-native@0.81.5_@babel+core@7.28.6_@react-native-c_52d54f8edccd4f7c85042fa5b39b0d91/node_modules/expo-linking/ios"
+  ExpoLocalization:
+    :path: "../node_modules/.pnpm/expo-localization@17.0.8_expo@54.0.31_react@19.1.0/node_modules/expo-localization/ios"
   ExpoModulesCore:
     :path: "../node_modules/.pnpm/expo-modules-core@3.0.29_react-native@0.81.5_@babel+core@7.28.6_@react-native-community_629fa4faebe9516be89c0a1b97f4ac24/node_modules/expo-modules-core"
   ExpoPrint:
@@ -2688,6 +2693,7 @@ SPEC CHECKSUMS:
   ExpoHead: 7e19b2272edf492262acf8afb391a295198a6b23
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
   ExpoLinking: 8f0aaf69aa56f832913030503b6263dc6f647f37
+  ExpoLocalization: d9168d5300a5b03e5e78b986124d11fb6ec3ebbd
   ExpoModulesCore: 031cf9b42fab2e84dcf34087dbd12ae666c100e0
   ExpoPrint: 813bfa965eda2ecc4b1cdc61612c820e239c382a
   ExpoSecureStore: 9a3665d7161dd1031be386e278bffd623658f316
@@ -2775,6 +2781,6 @@ SPEC CHECKSUMS:
   SecureRecorder: 27deb480a3c1b6f4af1c33cac31d1e93df7b48c6
   Yoga: 65431d43277b661ebc7289c6c5d82f64ce42cfe0
 
-PODFILE CHECKSUM: e30c76271f0ac5a7fdfc94436fbcd417c62367e0
+PODFILE CHECKSUM: 7ae09753998f28acd41696bd211d5315880d84a8
 
 COCOAPODS: 1.16.2

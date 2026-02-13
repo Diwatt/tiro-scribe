@@ -2,7 +2,8 @@ import type React from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import type { TextInputProps as PaperTextInputProps } from 'react-native-paper';
-import { HelperText, TextInput as PaperTextInput } from 'react-native-paper';
+import { HelperText, TextInput as PaperTextInput, useTheme } from 'react-native-paper';
+import type { ExtendedTheme } from '../../theme/AppTheme';
 
 export interface TextInputProps<T extends FieldValues> {
     control: Control<T>;
@@ -26,6 +27,7 @@ export function TextInput<T extends FieldValues>({
     style,
     numericOnly,
 }: TextInputProps<T>): React.JSX.Element {
+    const theme = useTheme<ExtendedTheme>();
     return (
         <Controller
             name={name}
@@ -45,14 +47,15 @@ export function TextInput<T extends FieldValues>({
                             label={label}
                             value={value as string}
                             onChangeText={handleChange}
-                        onBlur={onBlur}
-                        secureTextEntry={secureTextEntry}
-                        keyboardType={keyboardType}
-                        autoCapitalize={autoCapitalize}
-                        mode="outlined"
-                        error={!!error}
-                        style={style}
+                            onBlur={onBlur}
+                            secureTextEntry={secureTextEntry}
+                            keyboardType={keyboardType}
+                            autoCapitalize={autoCapitalize}
+                            mode="outlined"
+                            error={!!error}
+                            style={style}
                             showSoftInputOnFocus
+                            activeOutlineColor={theme.colors.tertiary}
                         />
                         {error?.message ? (
                             <HelperText type="error" visible>

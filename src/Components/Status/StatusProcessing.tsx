@@ -1,5 +1,5 @@
 import type React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ActivityIndicator, ProgressBar, useTheme } from 'react-native-paper';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { Status } from './Status';

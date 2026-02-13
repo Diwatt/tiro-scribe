@@ -4,7 +4,6 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { EntityConstructorInput } from '@/Database/AbstractEntity';
 import { AbstractEntity } from '@/Database/AbstractEntity';
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
@@ -13,9 +12,16 @@ const ENTITY_KEY = MetadataWriter.ENTITY_METADATA_KEY;
 
 type FieldMeta = Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }>;
 
-function attachEntityMetadata(ctor: Function, tableName: string, fieldMeta: FieldMeta): void {
-    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new EntityDecorator('Entity', { table_name: tableName });
+type Constructor = new (...args: unknown[]) => unknown;
+
+function attachEntityMetadata(ctor: Constructor, tableName: string, fieldMeta: FieldMeta, primaryKey?: string): void {
+    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new EntityDecorator('Entity', {
+        tableName,
+    });
     (ctor as unknown as Record<symbol, unknown>)[Symbol.metadata] = fieldMeta;
+    if (primaryKey != null) {
+        (ctor as unknown as Record<string, string>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = primaryKey;
+    }
 }
 
 /** Minimal encounter-like constructor for Serializer/Registry/Repository tests. */
@@ -25,17 +31,19 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
 } {
     class MockEncounter extends AbstractEntity {}
     (MockEncounter as unknown as { entityName: string }).entityName = 'encounters';
-    attachEntityMetadata(MockEncounter, 'encounters', {
-        uuid: {
-            decorators: [
-                { decoratorName: 'PrimaryKey', options: {} },
-                { decoratorName: 'Column', options: { default: () => randomUUID() } },
-            ],
+    attachEntityMetadata(
+        MockEncounter,
+        'encounters',
+        {
+            uuid: {
+                decorators: [{ decoratorName: 'Column', options: { default: () => randomUUID(), type: 'text' } }],
+            },
+            therapistId: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
+            participantBiocodes: { decorators: [{ decoratorName: 'Column', options: { default: [], type: 'text' } }] },
+            status: { decorators: [{ decoratorName: 'Column', options: { default: 'recording', type: 'text' } }] },
         },
-        therapistId: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },
-        participantBiocodes: { decorators: [{ decoratorName: 'Column', options: { default: [] } }] },
-        status: { decorators: [{ decoratorName: 'Column', options: { default: 'recording' } }] },
-    });
+        'uuid',
+    );
     return MockEncounter as unknown as typeof AbstractEntity & { entityName: string; name: string };
 }
 
@@ -46,15 +54,15 @@ export function createTestEntityConstructor(): typeof AbstractEntity & {
 } {
     class TestEntity extends AbstractEntity {}
     (TestEntity as unknown as { entityName: string }).entityName = 'test_entities';
-    attachEntityMetadata(TestEntity, 'test_entities', {
-        id: {
-            decorators: [
-                { decoratorName: 'PrimaryKey', options: {} },
-                { decoratorName: 'Column', options: { default: () => 'test-pk-1' } },
-            ],
+    attachEntityMetadata(
+        TestEntity,
+        'test_entities',
+        {
+            id: { decorators: [{ decoratorName: 'Column', options: { default: () => 'test-pk-1', type: 'text' } }] },
+            name: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
         },
-        name: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },
-    });
+        'id',
+    );
     return TestEntity as unknown as typeof AbstractEntity & { entityName: string; name: string };
 }
 
@@ -66,7 +74,7 @@ export function createNoPkEntityConstructor(): typeof AbstractEntity & {
     class NoPkEntity extends AbstractEntity {}
     (NoPkEntity as unknown as { entityName: string }).entityName = 'no_pk_entities';
     attachEntityMetadata(NoPkEntity, 'no_pk_entities', {
-        x: { decorators: [{ decoratorName: 'Column', options: { default: '' } }] },
-    });
+        x: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
+    }); // no primaryKey = tests PRIMARY_KEY_NOT_DEFINED
     return NoPkEntity as unknown as typeof AbstractEntity & { entityName: string; name: string };
 }

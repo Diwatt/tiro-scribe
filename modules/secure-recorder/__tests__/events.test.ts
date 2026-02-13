@@ -11,7 +11,9 @@ const { SecureRecorder } = jest.requireActual('../src/index');
 const createMinimalNative = () => {
     const listeners = new Map<string, Set<(d: any) => any>>();
     const ensure = (e: string) => {
-        if (!listeners.has(e)) listeners.set(e, new Set());
+        if (!listeners.has(e)) {
+            listeners.set(e, new Set());
+        }
         return listeners.get(e)!;
     };
     return {
@@ -83,7 +85,9 @@ describe('SecureRecorder onerror', () => {
             let status = { state: 'inactive', sessionId: null, filePath: null } as any;
             const listeners = new Map<string, Set<(d: any) => any>>();
             const ensure = (e: string) => {
-                if (!listeners.has(e)) listeners.set(e, new Set());
+                if (!listeners.has(e)) {
+                    listeners.set(e, new Set());
+                }
                 return listeners.get(e)!;
             };
             return {

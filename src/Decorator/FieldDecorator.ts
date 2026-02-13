@@ -23,10 +23,10 @@ export class FieldDecorator {
         return this._fieldName;
     }
 
-    /** All options with values resolved (factory → called, value → as-is). */
-    public getOptions(): Record<string, unknown> {
+    /** All options with values resolved (factory → called, value → as-is). Specify TOptions when the decorator type is known (e.g. getOptions<ColumnOptions>()). */
+    public getOptions<TOptions = Record<string, unknown>>(): TOptions {
         const opts = (this._options as Record<string, unknown>) ?? {};
-        return Object.fromEntries(Object.entries(opts).map(([key, value]) => [key, this.resolveOptionValue(value)]));
+        return Object.fromEntries(Object.entries(opts).map(([key, value]) => [key, this.resolveOptionValue(value)])) as TOptions;
     }
 
     /** Single option by name, resolved (e.g. getOption('default') for Column default: T | (() => T)). */

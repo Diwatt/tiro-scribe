@@ -9,6 +9,8 @@
 import type { ObservableObject } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import { MetadataReader } from '../Decorator';
+import { MetadataWriter } from '../Decorator/MetadataWriter';
+import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
 import type { ObservableNode, ObservablePrimitive } from './Type';
 
@@ -19,7 +21,8 @@ export type EntityConstructorInput = Partial<Record<string, unknown>> | Observab
 
 /** Static contract for entity classes. Subclasses satisfy this via @Entity (entityName) and their constructor. */
 export interface EntityClassStatic<TEntity extends AbstractEntity = AbstractEntity> {
-    new (dataOrObservable?: EntityConstructorInput): TEntity;
+    new (...args: unknown[]): TEntity;
+    readonly name: string;
     entityName: string;
 }
 
@@ -28,6 +31,7 @@ export interface EntityClassStatic<TEntity extends AbstractEntity = AbstractEnti
  * explicit get/set (and get fieldName$() returning this.field$('fieldName')).
  *
  * Constructor: pass plain data (e.g. from create/hydration) or an existing observable (e.g. from Repository backing).
+ * Rest args satisfy ClassConstructor for @Entity decorator typing.
  */
 export abstract class AbstractEntity {
     // --- Properties (public → protected → private) ---
@@ -41,9 +45,9 @@ export abstract class AbstractEntity {
     private readonly _primaryKeyField!: string;
 
     // --- Constructor ---
-    public constructor(dataOrObservable?: EntityConstructorInput) {
-        const reader = new MetadataReader(this.constructor);
-        const primaryKeyField = reader.getField('PrimaryKey')?.getFieldName();
+    public constructor(...args: unknown[]) {
+        const dataOrObservable = args[0] as EntityConstructorInput | undefined;
+        const primaryKeyField = AbstractEntity.resolvePrimaryKeyField(this.constructor);
         if (primaryKeyField == null) {
             throw new DatabaseException(`Entity ${this.constructor.name} must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_NOT_DEFINED', undefined, {
                 entityName: this.constructor.name,
@@ -51,13 +55,16 @@ export abstract class AbstractEntity {
         }
         this._primaryKeyField = primaryKeyField;
 
-        if (this.isObservable(dataOrObservable)) {
+        if (dataOrObservable !== undefined && this.isObservable(dataOrObservable)) {
             this._state$ = dataOrObservable;
             return;
         }
 
+        const reader = new MetadataReader(this.constructor);
         const columnDefaults = reader.getOptionValuesByField('Column', 'default');
-        const merged = { ...columnDefaults, ...(dataOrObservable ?? {}) };
+        const defaults = columnDefaults != null && typeof columnDefaults === 'object' ? columnDefaults : {};
+        const data = dataOrObservable != null && typeof dataOrObservable === 'object' ? dataOrObservable : {};
+        const merged = { ...defaults, ...data };
         this._state$ = observable(merged);
     }
 
@@ -97,11 +104,7 @@ export abstract class AbstractEntity {
      * Repository.persist(entity) calls this internally; prefer repo.persist(entity).
      */
     public toRecord(): Record<string, unknown> {
-        const reader = new MetadataReader(this.constructor);
-        const columnNames = reader
-            .getFields()
-            .filter((f) => f.getDecoratorName() === 'Column')
-            .map((f) => f.getFieldName());
+        const columnNames = AbstractEntity.getColumnNames(this.constructor as MetadataConstructor);
         const out: Record<string, unknown> = {};
         for (const key of columnNames) {
             out[key] = this.getField(key);
@@ -109,8 +112,35 @@ export abstract class AbstractEntity {
         return out;
     }
 
+    /** Cached column names per entity constructor to avoid repeated MetadataReader work in toRecord(). */
+    private static readonly _columnNamesByConstructor = new Map<MetadataConstructor, string[]>();
+
+    private static getColumnNames(construct: MetadataConstructor): string[] {
+        let names = AbstractEntity._columnNamesByConstructor.get(construct);
+        if (names == null) {
+            const reader = new MetadataReader(construct);
+            names = reader
+                .getFields()
+                .filter((f) => f.getDecoratorName() === 'Column')
+                .map((f) => f.getFieldName());
+            AbstractEntity._columnNamesByConstructor.set(construct, names);
+        }
+        return names;
+    }
+
     private get primaryKeyField(): string {
         return this._primaryKeyField;
+    }
+
+    /** Resolves primary key field name for an entity constructor. MetadataReader first; Hermes fallback when metadata unreadable. */
+    public static resolvePrimaryKeyField(construct: MetadataConstructor): string | undefined {
+        const reader = new MetadataReader(construct);
+        const fromMetadata = reader.getField('PrimaryKey')?.getFieldName();
+        if (fromMetadata != null) {
+            return fromMetadata;
+        }
+        const fallback = (construct as unknown as Record<string, unknown>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY];
+        return typeof fallback === 'string' ? fallback : undefined;
     }
 
     private isObservable(obj: unknown): obj is ObservableObject<Record<string, unknown>> {

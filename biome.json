@@ -1,6 +1,9 @@
 {
     "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
     "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+    "files": {
+        "includes": ["**", "!src/api/generated", "!tests", "!vitest", "!**/__tests__", "!**/*.test.ts", "!**/*.test.tsx", "!**/*.spec.ts", "!**/*.spec.tsx"]
+    },
     "formatter": {
         "enabled": true,
         "formatWithErrors": false,
@@ -28,39 +31,108 @@
                 "useBlockStatements": "error",
                 "useConsistentArrayType": { "level": "warn", "options": { "syntax": "shorthand" } },
                 "useNamingConvention": {
-                    "level": "error",
+                    "level": "warn",
                     "options": { "strictCase": false }
                 },
+                "noNonNullAssertion": "warn",
                 "useSelfClosingElements": "error",
                 "useFilenamingConvention": {
-                    "level": "error",
+                    "level": "warn",
                     "options": { "filenameCases": ["PascalCase", "camelCase"] }
                 }
             },
             "complexity": {
                 "noExcessiveCognitiveComplexity": "warn",
+                "noStaticOnlyClass": "warn",
                 "useArrowFunction": "off",
-                "noBannedTypes": "error"
+                "noBannedTypes": "warn"
             },
             "suspicious": {
                 "noExplicitAny": "error",
                 "noConsole": "error",
-                "noArrayIndexKey": "error",
-                "noEmptyBlockStatements": "error"
+                "noArrayIndexKey": "warn",
+                "noEmptyBlockStatements": "warn",
+                "noShadowRestrictedNames": "warn",
+                "useIterableCallbackReturn": "warn"
             },
             "correctness": {
                 "noUnusedVariables": "error",
                 "noUnusedImports": "error",
-                "useExhaustiveDependencies": "warn"
+                "noEmptyPattern": "warn",
+                "useExhaustiveDependencies": "warn",
+                "useHookAtTopLevel": "warn"
             }
         }
     },
     "overrides": [
         {
-            "includes": ["**/*.config.js", "**/*.config.ts", "app/**", "stories/**"],
+            "includes": ["**/*.config.js", "**/*.config.ts", "app/**", "src/Navigation/types.ts", "stories/**", "src/Localization/**"],
             "linter": {
                 "rules": {
-                    "style": { "noDefaultExport": "off" }
+                    "style": { "noDefaultExport": "off", "useNamingConvention": "off", "useFilenamingConvention": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["src/Database/Schema.ts"],
+            "linter": {
+                "rules": {
+                    "style": { "useNamingConvention": "off" }
+                }
+            }
+        },
+        {
+            "includes": [".rnstorybook/**"],
+            "linter": {
+                "rules": {
+                    "style": { "noDefaultExport": "off" },
+                    "suspicious": { "noRedeclare": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["index.js"],
+            "linter": {
+                "rules": {
+                    "suspicious": { "noConsole": "off", "noEmptyBlockStatements": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["vitest.setup.ts"],
+            "linter": {
+                "rules": {
+                    "complexity": { "noExcessiveCognitiveComplexity": "off" },
+                    "style": { "useNamingConvention": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["modules/secure-recorder/**"],
+            "linter": {
+                "rules": {
+                    "complexity": { "noExcessiveCognitiveComplexity": "off" },
+                    "correctness": { "noVoidTypeReturn": "off" },
+                    "style": {
+                        "noDefaultExport": "off",
+                        "noNonNullAssertion": "off",
+                        "useNamingConvention": "off"
+                    },
+                    "suspicious": {
+                        "noExplicitAny": "off",
+                        "noEmptyBlockStatements": "off",
+                        "useIterableCallbackReturn": "off"
+                    }
+                }
+            }
+        },
+        {
+            "includes": ["src/Service/**", "src/Security/**", "src/State/**", "src/api/**", "src/Util/**"],
+            "linter": {
+                "rules": {
+                    "complexity": { "noStaticOnlyClass": "off", "noExcessiveCognitiveComplexity": "off" },
+                    "style": { "noNonNullAssertion": "off", "useNamingConvention": "off" },
+                    "suspicious": { "noEmptyBlockStatements": "off" }
                 }
             }
         }

@@ -6,10 +6,11 @@
  */
 
 import type React from 'react';
+import { AppConfig } from '@/Config';
 import { AppLogger } from './Service/Logger';
 
 let StorybookUIRoot: React.ComponentType | null = null;
-if (typeof __DEV__ !== 'undefined' && __DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
+if (typeof __DEV__ !== 'undefined' && __DEV__ && AppConfig.isStorybookEnabled) {
     try {
         StorybookUIRoot = require('../.rnstorybook').default;
     } catch (e) {

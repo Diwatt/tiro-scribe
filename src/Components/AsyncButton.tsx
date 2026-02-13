@@ -20,13 +20,7 @@ export interface AsyncButtonProps extends Omit<React.ComponentProps<typeof Butto
     contentStyle?: React.ComponentProps<typeof Button>['contentStyle'];
 }
 
-function getLabel(
-    status: ActivityStatus,
-    idleLabel: string,
-    pendingLabel?: string,
-    successLabel?: string,
-    statusKey?: string,
-): string {
+function getLabel(status: ActivityStatus, idleLabel: string, pendingLabel?: string, successLabel?: string, statusKey?: string): string {
     if (statusKey ? globalActivityStatus.is(statusKey, ActivityStatus.Pending) : status === ActivityStatus.Pending) {
         return pendingLabel ?? idleLabel;
     }

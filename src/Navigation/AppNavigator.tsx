@@ -10,9 +10,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home as HomeIcon, Settings as SettingsIcon, Users } from 'lucide-react-native';
-import React from 'react';
 import { useTheme } from 'react-native-paper';
-import { Home, RecordingScreen, SettingsScreen, SubjectsScreen, TranscriptDetailScreen } from '@/Screens';
+import { Home, RecordingScreen, SettingsScreen, SubjectsScreen, TranscriptDetailScreen } from '@/Screen';
+import type { ExtendedTheme } from '@/theme/AppTheme';
 import type { MainTabParamList, RootStackParamList } from './types';
 
 const MainTab = createBottomTabNavigator<MainTabParamList>();
@@ -23,7 +23,7 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
  * Bottom tab navigation for main app sections
  */
 function MainTabNavigator() {
-    const theme = useTheme();
+    const theme = useTheme<ExtendedTheme>();
     return (
         <MainTab.Navigator
             screenOptions={{

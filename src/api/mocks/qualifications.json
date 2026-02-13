@@ -1,0 +1,17 @@
+[
+    { "value": "Psychiatrist", "label": "Psychiatrist (MD)" },
+    { "value": "Child_Psychiatrist", "label": "Child & Adolescent Psychiatrist" },
+    { "value": "General_Practitioner_Psy", "label": "General Practitioner (Mental Health Focus)" },
+    { "value": "Clinical_Psychologist", "label": "Clinical Psychologist" },
+    { "value": "Neuropsychologist", "label": "Neuropsychologist" },
+    { "value": "Work_Psychologist", "label": "Occupational / Work Psychologist" },
+    { "value": "Psychotherapist_State", "label": "Psychotherapist (State Regulated)" },
+    { "value": "Psycho_Practitioner", "label": "Counsellor / Psychopractitioner" },
+    { "value": "Psychoanalyst", "label": "Psychoanalyst" },
+    { "value": "Psychomotor_Therapist", "label": "Psychomotor Therapist" },
+    { "value": "Sophrologist", "label": "Sophrologist" },
+    { "value": "Art_Therapist", "label": "Art Therapist" },
+    { "value": "Psychiatric_Nurse", "label": "Psychiatric Nurse" },
+    { "value": "Student_Supervised", "label": "Student / Intern (Supervised)" },
+    { "value": "Researcher_Non_Clinician", "label": "Researcher (Non-Clinical)" }
+]

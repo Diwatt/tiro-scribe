@@ -1,6 +1,6 @@
 ---
 description: "UX Critique & Wireframing Standards"
-globs: ["src/Screens/**/*.tsx", "src/features/**/*.tsx"]
+globs: ["src/Screen/**/*.tsx", "src/features/**/*.tsx"]
 alwaysApply: false
 ---
 

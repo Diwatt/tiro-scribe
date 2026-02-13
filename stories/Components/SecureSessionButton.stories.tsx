@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SecureSessionButton } from '../../src/Components';
 
-const actionLogger = (name: string) => () => {
-    console.log(`[Storybook Action] ${name} pressed`);
+const actionLogger = (_name: string) => () => {
+    /* no-op for story actions */
 };
 
 const meta: Meta<typeof SecureSessionButton> = {

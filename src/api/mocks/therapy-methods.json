@@ -1,0 +1,17 @@
+[
+    { "value": "CBT", "label": "CBT (Cognitive Behavioral Therapy)" },
+    { "value": "ACT", "label": "ACT (Acceptance and Commitment Therapy)" },
+    { "value": "Mindfulness", "label": "Mindfulness-Based (MBSR/MBCT)" },
+    { "value": "Schema_Therapy", "label": "Schema Therapy" },
+    { "value": "Psychoanalysis", "label": "Psychoanalysis / Psychodynamic Therapy" },
+    { "value": "Transactional_Analysis", "label": "Transactional Analysis (TA)" },
+    { "value": "Systemic_Family", "label": "Systemic & Family Therapy" },
+    { "value": "Humanistic", "label": "Humanistic (Person-Centered / Gestalt)" },
+    { "value": "EMDR", "label": "EMDR" },
+    { "value": "Lifespan_Integration", "label": "Lifespan Integration (LI)" },
+    { "value": "Brainspotting", "label": "Brainspotting" },
+    { "value": "Hypnotherapy", "label": "Clinical Hypnotherapy (Ericksonian)" },
+    { "value": "Sophrology", "label": "Sophrology" },
+    { "value": "Psychomotor_Therapy", "label": "Psychomotor Therapy" },
+    { "value": "Integrative", "label": "Integrative Psychotherapy" }
+]

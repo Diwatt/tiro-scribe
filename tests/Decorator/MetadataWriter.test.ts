@@ -8,7 +8,7 @@ describe('MetadataWriter', () => {
 
     it('registerEntity stores EntityDecorator on constructor', () => {
         const construct = function MockEntity() {};
-        const options = { table_name: 'mock_entities' };
+        const options = { tableName: 'mock_entities' };
         MetadataWriter.registerEntity(construct, options);
         const stored = (construct as unknown as Record<string, unknown>)[MetadataWriter.ENTITY_METADATA_KEY];
         expect(stored).toBeInstanceOf(EntityDecorator);
@@ -19,8 +19,8 @@ describe('MetadataWriter', () => {
         const meta: Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }> = {};
         MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
         expect(meta.id).toBeDefined();
-        expect(meta.id!.decorators).toHaveLength(1);
-        expect(meta.id!.decorators![0]).toEqual({ decoratorName: 'PrimaryKey', options: {} });
+        expect(meta.id?.decorators).toHaveLength(1);
+        expect(meta.id?.decorators?.[0]).toEqual({ decoratorName: 'PrimaryKey', options: {} });
     });
 
     it('registerField appends when property already has decorators', () => {
@@ -28,8 +28,8 @@ describe('MetadataWriter', () => {
             uuid: { decorators: [{ decoratorName: 'Column', options: { default: 1 } }] },
         };
         MetadataWriter.registerField(meta, 'uuid', 'PrimaryKey', {});
-        expect(meta.uuid!.decorators).toHaveLength(2);
-        expect(meta.uuid!.decorators![1]).toEqual({ decoratorName: 'PrimaryKey', options: {} });
+        expect(meta.uuid?.decorators).toHaveLength(2);
+        expect(meta.uuid?.decorators?.[1]).toEqual({ decoratorName: 'PrimaryKey', options: {} });
     });
 
     it('registerField does nothing when meta is null', () => {

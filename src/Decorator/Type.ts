@@ -13,12 +13,22 @@ export type OptionFieldTypeComposition = readonly OptionFieldType[];
  * Declares requirement and type for one option field.
  * Options are optional by default; required defaults to false.
  * Omit type to allow any value; use type (single) or composition (array) to validate.
+ * Use enum to restrict string values to a fixed set (runtime validation).
+ * SchemaValidator applies optional constraints: notBlank (string), integer/min (number).
  */
 export interface OptionFieldSchema {
     /** Default false: when true, the option must be isSet. */
     required?: boolean;
     /** When set, validates that the value is one of these types. Use a single type or a composition (array of types). When omitted, any value is allowed. */
     type?: OptionFieldType | OptionFieldTypeComposition;
+    /** When set (with type 'string'), validates that the value is one of these string literals. */
+    enum?: readonly string[];
+    /** When true with type 'string', value must be not blank (non-empty after trim). Applied by SchemaValidator. */
+    notBlank?: boolean;
+    /** When true with type 'number', value must be an integer. Applied by SchemaValidator. */
+    integer?: boolean;
+    /** When set with type 'number', value must be >= min. Applied by SchemaValidator. */
+    min?: number;
 }
 
 /** Schema for decorator options: key -> OptionFieldSchema. */
@@ -69,13 +79,16 @@ export type OptionsFromSchema<S extends OptionsSchema, Overrides extends Partial
     OptionalOptionsFromSchema<S, Overrides>;
 
 /** Constructor type for class decorator targets. */
-export type ClassConstructor = abstract new (...args: any[]) => any;
+export type ClassConstructor = abstract new (...args: unknown[]) => unknown;
+
+/** Minimal shape for metadata reading (name + indexable). Accepts entity classes without cast. */
+export type MetadataConstructor = { name?: string };
 
 /** Interface for entity (class) decorators (e.g. Entity). Implement and pass an instance to Builder.buildEntity. */
 export interface ClassDecoratorConfig<TOptions = object> {
-    /** Run on the class target with options. */
-    fn(target: ClassConstructor, context: ClassDecoratorContext<ClassConstructor>, options: TOptions): void;
-    /** Optional schema; when set, builder runs schemaValidator.validate before fn. errorCode used for exceptions. */
+    /** Run when the decorator is applied to the class (target, context, options). */
+    decorate(target: ClassConstructor, context: ClassDecoratorContext<ClassConstructor>, options: TOptions): void;
+    /** Optional schema; when set, builder runs schemaValidator.validate before decorate. errorCode used for exceptions. */
     schema?: OptionsSchema;
     errorCode?: string;
     /** Custom validate when schema is not enough. Run after schema validation when schema is set. */

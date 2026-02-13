@@ -1,3 +1,7 @@
+# Ensure Node can resolve packages from project root when pod install runs from ios/
+project_root = File.expand_path('..', __dir__)
+ENV['NODE_PATH'] = File.join(project_root, 'node_modules')
+
 require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
 require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
 
@@ -161,6 +165,20 @@ target 'TiroScribe' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+    # With use_frameworks :linkage => :static, Pods/Headers is not populated, so
+    # ReactCodegen cannot find react/renderer/components/view/ViewEventEmitter.h from
+    # React-Fabric. Add React Native's ReactCommon source path so codegen compiles.
+    rn_package = `cd "#{Pod::Config.instance.installation_root}/.." && node --print "require.resolve('react-native/package.json')"`.strip
+    react_common_path = File.join(File.dirname(rn_package), 'ReactCommon')
+    installer.pods_project.targets.each do |target|
+      if target.name == 'ReactCodegen'
+        target.build_configurations.each do |build_config|
+          current = build_config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+          build_config.build_settings['HEADER_SEARCH_PATHS'] = "#{current} \"#{react_common_path}\""
+        end
+        break
+      end
+    end
     # Register SecureRecorder in ExpoModulesProvider (expo-modules-autolinking does not
     # discover the local file:./modules/secure-recorder package). Patch both the generated
     # Swift file and the configure script so it persists across pod install and builds.

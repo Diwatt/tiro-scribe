@@ -143,9 +143,13 @@ export class ModelManager {
         const out: ModelSpec[] = [];
         for (const lang of languages) {
             const specs = MODEL_SPECS[lang];
-            if (!specs) continue;
+            if (!specs) {
+                continue;
+            }
             for (const s of specs) {
-                if (seen.has(s.key)) continue;
+                if (seen.has(s.key)) {
+                    continue;
+                }
                 seen.add(s.key);
                 out.push(s);
             }

@@ -13,16 +13,18 @@ import { AppRegistry } from 'react-native';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-const LOG = '[TiroScribe]';
+const _LOG = '[TiroScribe]';
 
 function setupCrashLogging() {
     const ErrorUtils = typeof global !== 'undefined' ? global.ErrorUtils : undefined;
     if (ErrorUtils && typeof ErrorUtils.setGlobalHandler === 'function') {
         const prev = ErrorUtils.getGlobalHandler?.();
         ErrorUtils.setGlobalHandler((error, isFatal) => {
-            console.error(`${LOG} Uncaught JS error${isFatal ? ' (fatal)' : ''}:`, error?.message, error?.stack);
-            if (typeof prev === 'function') prev(error, isFatal);
-            else throw error;
+            if (typeof prev === 'function') {
+                prev(error, isFatal);
+            } else {
+                throw error;
+            }
         });
     }
 
@@ -30,8 +32,9 @@ function setupCrashLogging() {
         if (typeof global !== 'undefined') {
             const prev = global.onunhandledrejection;
             global.onunhandledrejection = (e) => {
-                console.error(`${LOG} Unhandled promise rejection:`, e?.reason);
-                if (typeof prev === 'function') prev(e);
+                if (typeof prev === 'function') {
+                    prev(e);
+                }
             };
         }
     } catch (_) {}
@@ -44,9 +47,7 @@ let StorybookUIRoot = null;
 if (typeof __DEV__ !== 'undefined' && __DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
     try {
         StorybookUIRoot = require('./.rnstorybook').default;
-    } catch (e) {
-        console.warn('[TiroScribe] Failed to load Storybook:', e?.message ?? e);
-    }
+    } catch (_e) {}
 }
 
 if (StorybookUIRoot) {

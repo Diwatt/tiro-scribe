@@ -1,9 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
-import React from 'react';
 import { StatusBatchWaiting } from '../../src/Components';
 
-const actionLogger = (name: string) => () => {
-    console.log(`[Storybook Action] ${name} pressed`);
+const actionLogger = (_name: string) => () => {
+    /* no-op for story actions */
 };
 
 const meta: Meta<typeof StatusBatchWaiting> = {

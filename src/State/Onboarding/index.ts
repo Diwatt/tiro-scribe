@@ -1,9 +1,4 @@
-export { LANGUAGES, ONBOARDING_STEPS, QUALIFICATIONS, THERAPY_METHODS } from './Constants';
-export {
-    defaultOnboardingFormData,
-    onboardingSchema,
-    type OnboardingFormData,
-    type ProfileStepData,
-} from './Schema';
-export { onboardingState, type OnboardingStateShape } from './State';
-export type { ProfileValidationResult } from './State';
+export { formValidator, type ProfileStepData } from './FormValidator';
+export { type OnboardingFormData, Schema } from './Schema';
+export { ONBOARDING_STEPS, type OnboardingStateShape, onboardingState } from './State';
+export type { ValidationResult } from './Types';

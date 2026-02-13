@@ -98,7 +98,7 @@ export class Anonymizer {
         }
 
         // Calculate overall confidence (average of all entity confidences)
-        const confidence = entities.length > 0 ? entities.reduce((sum, e) => sum + 0.9, 0) / entities.length : 1.0;
+        const confidence = entities.length > 0 ? entities.reduce((sum, _e) => sum + 0.9, 0) / entities.length : 1.0;
         return {
             cleanText,
             entities,
@@ -166,8 +166,8 @@ export class Anonymizer {
 
         // Check for family relations
         for (const pattern of familyPatterns) {
-            let match: RegExpExecArray | null;
-            while ((match = pattern.exec(text)) !== null) {
+            let match: RegExpExecArray | null = pattern.exec(text);
+            while (match !== null) {
                 const m = match;
                 const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
@@ -180,13 +180,14 @@ export class Anonymizer {
                         endIndex: m.index + m[0].length,
                     });
                 }
+                match = pattern.exec(text);
             }
         }
 
         // Check for work relations
         for (const pattern of workPatterns) {
-            let match: RegExpExecArray | null;
-            while ((match = pattern.exec(text)) !== null) {
+            let match: RegExpExecArray | null = pattern.exec(text);
+            while (match !== null) {
                 const m = match;
                 const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
@@ -199,6 +200,7 @@ export class Anonymizer {
                         endIndex: m.index + m[0].length,
                     });
                 }
+                match = pattern.exec(text);
             }
         }
         return entities;
@@ -235,8 +237,8 @@ export class Anonymizer {
 
         // Process date patterns
         for (const pattern of datePatterns) {
-            let match: RegExpExecArray | null;
-            while ((match = pattern.exec(text)) !== null) {
+            let match: RegExpExecArray | null = pattern.exec(text);
+            while (match !== null) {
                 const m = match;
                 const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
@@ -252,13 +254,14 @@ export class Anonymizer {
                         });
                     }
                 }
+                match = pattern.exec(text);
             }
         }
 
         // Process time patterns
         for (const pattern of timePatterns) {
-            let match: RegExpExecArray | null;
-            while ((match = pattern.exec(text)) !== null) {
+            let match: RegExpExecArray | null = pattern.exec(text);
+            while (match !== null) {
                 const m = match;
                 const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
 
@@ -274,6 +277,7 @@ export class Anonymizer {
                         });
                     }
                 }
+                match = pattern.exec(text);
             }
         }
         return entities;
@@ -311,11 +315,11 @@ export class Anonymizer {
             // Handle year-only patterns
             const yearMatch = dateString.match(/\b(19|20)\d{2}\b/);
             if (yearMatch && !parsedDate) {
-                const year = parseInt(yearMatch[0]);
+                const year = parseInt(yearMatch[0], 10);
                 parsedDate = new Date(year, 0, 1);
             }
 
-            if (!parsedDate || isNaN(parsedDate.getTime())) {
+            if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
                 return null;
             }
 

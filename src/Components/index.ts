@@ -1,11 +1,11 @@
 export { AppErrorBoundary } from './AppErrorBoundary';
+export type { AsyncButtonProps } from './AsyncButton';
+export { AsyncButton } from './AsyncButton';
 export type { CheckboxProps, SelectMenuOption, SelectMenuProps, TextInputProps } from './Form';
 export { Checkbox, SelectMenu, TextInput } from './Form';
 export type { GlobalActivityBarProps } from './GlobalActivityBar';
 export { GlobalActivityBar } from './GlobalActivityBar';
 export { SecureSessionButton } from './SecureSessionButton/SecureSessionButton';
-export type { AsyncButtonProps } from './AsyncButton';
-export { AsyncButton } from './AsyncButton';
 export { StatusBatchWaiting } from './Status/StatusBatchWaiting';
 export { StatusError } from './Status/StatusError';
 export { StatusProcessing } from './Status/StatusProcessing';

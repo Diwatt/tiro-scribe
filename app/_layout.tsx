@@ -4,8 +4,13 @@
  */
 
 import 'react-native-get-random-values';
+import { install as installQuickCrypto } from 'react-native-quick-crypto';
+
+installQuickCrypto();
+
 import 'react-native-gesture-handler';
 import { observer } from '@legendapp/state/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useRouter } from 'expo-router';
 import type React from 'react';
 import { useEffect, useRef } from 'react';
@@ -17,10 +22,14 @@ import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
 import { AppToast } from '@/Components/AppToast';
 import { GlobalActivityBar } from '@/Components/GlobalActivityBar';
 import { ServicesProvider } from '@/Context/ServicesContext';
-import { DeviceIncompatibleScreen } from '@/Screens/DeviceIncompatibleScreen';
+import { Database } from '@/Database/Database';
+import { initAppLocale } from '@/Localization';
+import { DeviceIncompatibleScreen } from '@/Screen/DeviceIncompatibleScreen';
 import { ActivityStatus, globalActivityStatus } from '@/State/GlobalActivityStatus';
 import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
 import { AppTheme } from '@/theme/AppTheme';
+
+const queryClient = new QueryClient();
 
 const services = {
     biocodeService: null,
@@ -37,12 +46,21 @@ async function hideSplash(): Promise<void> {
     }
 }
 
-function StartupGateContent(): React.JSX.Element | null {
+function StartupGateContent(): React.JSX.Element {
     const router = useRouter();
     const replacedForReady = useRef(false);
 
     useEffect(() => {
-        startupOrchestrator.run();
+        let cancelled = false;
+        (async () => {
+            await Database.initialize();
+            if (!cancelled) {
+                await startupOrchestrator.run();
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const state = startupOrchestrator.state$.get();
@@ -55,19 +73,23 @@ function StartupGateContent(): React.JSX.Element | null {
     }, [state]);
 
     useEffect(() => {
-        if (state === StartupState.Onboarding) {
-            router.replace('/onboarding');
+        if (state === StartupState.Booting) {
             return;
         }
-        if (state === StartupState.Ready && !replacedForReady.current) {
-            replacedForReady.current = true;
-            router.replace('/main');
-        }
+        const schedule = (): void => {
+            if (state === StartupState.Onboarding) {
+                router.replace('/onboarding');
+                return;
+            }
+            if (state === StartupState.Ready && !replacedForReady.current) {
+                replacedForReady.current = true;
+                router.replace('/main');
+            }
+        };
+        const id = setTimeout(schedule, 0);
+        return () => clearTimeout(id);
     }, [state, router]);
 
-    if (state === StartupState.Booting) {
-        return null;
-    }
     if (state === StartupState.HardwareRejected) {
         return <DeviceIncompatibleScreen />;
     }
@@ -80,30 +102,31 @@ function GlobalActivityBarSlot(): React.JSX.Element {
     const key = globalActivityStatus.recoveryKitStatusKey;
     const status = globalActivityStatus.state$[key].get() ?? ActivityStatus.Ready;
     const message = globalActivityStatus.message$[key].get();
-    return (
-        <GlobalActivityBar
-            status={status}
-            message={message || undefined}
-        />
-    );
+    return <GlobalActivityBar status={status} message={message || undefined} />;
 }
 
 const ObservedGlobalActivityBar = observer(GlobalActivityBarSlot);
 
 export default function RootLayout(): React.JSX.Element {
+    useEffect(() => {
+        initAppLocale();
+    }, []);
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <AppErrorBoundary>
                 <SafeAreaProvider>
-                    <PaperProvider theme={AppTheme}>
-                        <ServicesProvider services={services}>
-                            <View style={{ flex: 1 }}>
-                                <ObservedStartupGate />
-                                <ObservedGlobalActivityBar />
-                            </View>
-                            <AppToast />
-                        </ServicesProvider>
-                    </PaperProvider>
+                    <QueryClientProvider client={queryClient}>
+                        <PaperProvider theme={AppTheme}>
+                            <ServicesProvider services={services}>
+                                <View style={{ flex: 1 }}>
+                                    <ObservedStartupGate />
+                                    <ObservedGlobalActivityBar />
+                                </View>
+                                <AppToast />
+                            </ServicesProvider>
+                        </PaperProvider>
+                    </QueryClientProvider>
                 </SafeAreaProvider>
             </AppErrorBoundary>
         </GestureHandlerRootView>

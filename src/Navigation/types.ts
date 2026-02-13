@@ -1,6 +1,7 @@
 /**
  * Navigation Types
- * Defines TypeScript types for React Navigation with proper nesting support
+ * Defines TypeScript types for React Navigation with proper nesting support.
+ * Screen keys are PascalCase per React Navigation convention.
  */
 
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';

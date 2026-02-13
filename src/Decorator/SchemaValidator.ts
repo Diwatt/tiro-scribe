@@ -13,10 +13,14 @@ export class SchemaValidator {
      * which are only available when the field decorator runs, not when options are validated.
      */
     public ensureFieldDecoratorUniqueness(meta: Record<string | symbol, unknown> | undefined, currentPropertyName: string, decoratorName: string): void {
-        if (meta == null || typeof meta !== 'object') return;
+        if (meta == null || typeof meta !== 'object') {
+            return;
+        }
         const m = meta as Record<string, { decorators?: Array<{ decoratorName: string }> }>;
         for (const [key, fieldMeta] of Object.entries(m)) {
-            if (key === currentPropertyName) continue;
+            if (key === currentPropertyName) {
+                continue;
+            }
             const decorators = fieldMeta?.decorators;
             if (Array.isArray(decorators) && decorators.some((d) => d.decoratorName === decoratorName)) {
                 throw new DecoratorException(
@@ -39,6 +43,10 @@ export class SchemaValidator {
             const isSet = key in opts;
             this.ensureRequired(key, isSet, field, opts, errorCode);
             this.ensureType(key, value, isSet, field, opts, errorCode);
+            if (isSet) {
+                this.ensureNotBlank(key, value, field, opts, errorCode);
+                this.ensureNumberConstraints(key, value, field, opts, errorCode);
+            }
         }
     }
 
@@ -49,7 +57,16 @@ export class SchemaValidator {
     }
 
     private ensureType(key: string, value: unknown, isSet: boolean, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
-        if (!isSet || field.type == null) {
+        if (!isSet) {
+            return;
+        }
+        if (field.enum != null) {
+            if (typeof value !== 'string' || !field.enum.includes(value)) {
+                throw new DatabaseException(`Option "${key}" must be one of [${field.enum.join(', ')}]`, errorCode, undefined, { options, key, value });
+            }
+            return;
+        }
+        if (field.type == null) {
             return;
         }
         const allowed = Array.isArray(field.type) ? [...field.type] : [field.type];
@@ -65,5 +82,38 @@ export class SchemaValidator {
             return t;
         }
         return 'object';
+    }
+
+    private ensureNotBlank(
+        key: string,
+        value: unknown,
+        field: OptionFieldSchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
+        if (field.notBlank !== true || typeof value !== 'string') {
+            return;
+        }
+        if (value.trim() === '') {
+            throw new DatabaseException(`Option "${key}" must not be blank`, errorCode, undefined, { options, key });
+        }
+    }
+
+    private ensureNumberConstraints(
+        key: string,
+        value: unknown,
+        field: OptionFieldSchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
+        if (typeof value !== 'number') {
+            return;
+        }
+        if (field.integer === true && !Number.isInteger(value)) {
+            throw new DatabaseException(`Option "${key}" must be an integer`, errorCode, undefined, { options, key, value });
+        }
+        if (field.min != null && value < field.min) {
+            throw new DatabaseException(`Option "${key}" must be >= ${field.min}`, errorCode, undefined, { options, key, value, min: field.min });
+        }
     }
 }

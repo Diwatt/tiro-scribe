@@ -1,13 +1,15 @@
-import { ActivityStatus } from '@/State/GlobalActivityStatus';
-import type { ExtendedTheme } from '@/theme/AppTheme';
-import type { StatusColors } from '@/Components/Status/Status';
 import { AlertCircle, AlertTriangle, Check } from 'lucide-react-native';
 import type React from 'react';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { ActivityIndicator, Surface, Text, useTheme } from 'react-native-paper';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { StatusColors } from '@/Components/Status/Status';
+import { useAppLanguage } from '@/Localization';
+import type { TranslationFunctions } from '@/Localization/i18n-types';
+import { ActivityStatus } from '@/State/GlobalActivityStatus';
+import type { ExtendedTheme } from '@/theme/AppTheme';
 
 const BAR_HEIGHT = 48;
 const SLIDE_HIDDEN_OFFSET = -150;
@@ -35,16 +37,16 @@ function getStatusColors(theme: ExtendedTheme, status: ActivityStatus): StatusCo
     }
 }
 
-function getDefaultMessage(status: ActivityStatus): string {
+function getDefaultMessage(translations: TranslationFunctions, status: ActivityStatus): string {
     switch (status) {
         case ActivityStatus.Pending:
-            return 'Chargement…';
+            return translations.activityLoading();
         case ActivityStatus.Success:
-            return 'Terminé';
+            return translations.activityDone();
         case ActivityStatus.Warning:
-            return 'Attention';
+            return translations.activityWarning();
         case ActivityStatus.Error:
-            return 'Une erreur est survenue';
+            return translations.activityError();
         default:
             return '';
     }
@@ -53,6 +55,7 @@ function getDefaultMessage(status: ActivityStatus): string {
 export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Element {
     const { status, message } = props;
     const theme = useTheme<ExtendedTheme>();
+    const { LL } = useAppLanguage();
     const insets = useSafeAreaInsets();
     const translateY = useSharedValue(SLIDE_HIDDEN_OFFSET);
 
@@ -69,15 +72,10 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
     }));
 
     const statusColors = getStatusColors(theme, status);
-    const displayMessage = message ?? getDefaultMessage(status);
+    const displayMessage = message ?? getDefaultMessage(LL, status);
 
     if (!statusColors) {
-        return (
-            <Animated.View
-                style={[styles.container, { paddingTop: insets.top, height: BAR_HEIGHT + insets.top }, animatedStyle]}
-                pointerEvents="none"
-            />
-        );
+        return <Animated.View style={[styles.container, { paddingTop: insets.top, height: BAR_HEIGHT + insets.top }, animatedStyle]} pointerEvents="none" />;
     }
 
     const { background, text, accent, iconBackground, shadowColor } = statusColors;
@@ -107,24 +105,12 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
                 >
                     <View style={styles.content}>
                         <View style={[styles.iconBox, { backgroundColor: iconBackground }]}>
-                            {status === ActivityStatus.Pending && (
-                                <ActivityIndicator size="small" color={accent} />
-                            )}
-                            {status === ActivityStatus.Success && (
-                                <Check size={16} color={text} />
-                            )}
-                            {status === ActivityStatus.Warning && (
-                                <AlertTriangle size={16} color={text} />
-                            )}
-                            {status === ActivityStatus.Error && (
-                                <AlertCircle size={16} color={text} />
-                            )}
+                            {status === ActivityStatus.Pending && <ActivityIndicator size="small" color={accent} />}
+                            {status === ActivityStatus.Success && <Check size={16} color={text} />}
+                            {status === ActivityStatus.Warning && <AlertTriangle size={16} color={text} />}
+                            {status === ActivityStatus.Error && <AlertCircle size={16} color={text} />}
                         </View>
-                        <Text
-                            style={[styles.message, { color: text }]}
-                            numberOfLines={1}
-                            variant="titleMedium"
-                        >
+                        <Text style={[styles.message, { color: text }]} numberOfLines={1} variant="titleMedium">
                             {displayMessage}
                         </Text>
                     </View>

@@ -2,6 +2,6 @@
  * Subjects tab – SubjectsScreen.
  */
 
-import { SubjectsScreen } from '@/Screens/SubjectsScreen';
+import { SubjectsScreen } from '@/Screen/SubjectsScreen';
 
 export default SubjectsScreen;

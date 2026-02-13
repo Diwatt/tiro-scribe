@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
-import { ActivityStatus } from '../../src/State/GlobalActivityStatus';
 import { GlobalActivityBar } from '../../src/Components/GlobalActivityBar';
+import { ActivityStatus } from '../../src/State/GlobalActivityStatus';
 
 const meta: Meta<typeof GlobalActivityBar> = {
     title: 'Components/GlobalActivityBar',
@@ -11,13 +11,7 @@ const meta: Meta<typeof GlobalActivityBar> = {
     argTypes: {
         status: {
             control: 'select',
-            options: [
-                ActivityStatus.Ready,
-                ActivityStatus.Pending,
-                ActivityStatus.Success,
-                ActivityStatus.Warning,
-                ActivityStatus.Error,
-            ],
+            options: [ActivityStatus.Ready, ActivityStatus.Pending, ActivityStatus.Success, ActivityStatus.Warning, ActivityStatus.Error],
         },
         message: { control: 'text' },
     },
@@ -73,12 +67,14 @@ export const AllStatesInteractive: GlobalActivityBarStory = {
         const [message, setMessage] = useState('Génération du PDF…');
         return (
             <View style={{ flex: 1, paddingTop: 60 }}>
-                <GlobalActivityBar
-                    status={status}
-                    message={message}
-                />
+                <GlobalActivityBar status={status} message={message} />
                 <View style={{ gap: 8, padding: 16 }}>
-                    <Button mode="outlined" onPress={() => { setStatus(ActivityStatus.Ready); }}>
+                    <Button
+                        mode="outlined"
+                        onPress={() => {
+                            setStatus(ActivityStatus.Ready);
+                        }}
+                    >
                         Ready (hide)
                     </Button>
                     <Button

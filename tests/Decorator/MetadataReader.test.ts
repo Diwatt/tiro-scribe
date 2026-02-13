@@ -12,11 +12,11 @@ describe('MetadataReader', () => {
 
         it('returns EntityDecorator when registered via MetadataWriter', () => {
             const construct = function WithEntity() {};
-            MetadataWriter.registerEntity(construct, { table_name: 'with_entity' });
+            MetadataWriter.registerEntity(construct, { tableName: 'with_entity' });
             const reader = new MetadataReader(construct);
             const entity = reader.getEntity();
             expect(entity).toBeInstanceOf(EntityDecorator);
-            expect(entity!.getEntityName()).toBe('with_entity');
+            expect(entity?.getEntityName()).toBe('with_entity');
         });
     });
 
@@ -70,7 +70,7 @@ describe('MetadataReader', () => {
             const reader = new MetadataReader(construct);
             const pk = reader.getField('PrimaryKey');
             expect(pk).toBeDefined();
-            expect(pk!.getFieldName()).toBe('pk');
+            expect(pk?.getFieldName()).toBe('pk');
         });
 
         it('returns undefined when no field has decorator name', () => {
@@ -91,7 +91,7 @@ describe('MetadataReader', () => {
             MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
             const pk = MetadataReader.getField(construct, 'PrimaryKey');
             expect(pk).toBeDefined();
-            expect(pk!.getFieldName()).toBe('id');
+            expect(pk?.getFieldName()).toBe('id');
         });
 
         it('accepts instance and uses instance.constructor', () => {
@@ -104,7 +104,7 @@ describe('MetadataReader', () => {
             Object.defineProperty(instance, 'constructor', { value: construct });
             const pk = MetadataReader.getField(instance, 'PrimaryKey');
             expect(pk).toBeDefined();
-            expect(pk!.getFieldName()).toBe('uuid');
+            expect(pk?.getFieldName()).toBe('uuid');
         });
     });
 });

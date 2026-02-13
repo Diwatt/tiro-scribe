@@ -212,7 +212,7 @@ describe('SecureRecorderModule', () => {
         });
 
         it('stream should handle very long file path', async () => {
-            const longPath = '/very/long/path/' + 'a'.repeat(1000) + '.dat';
+            const longPath = `/very/long/path/${'a'.repeat(1000)}.dat`;
             mockNativeModule.stream.mockResolvedValue(undefined);
             await SecureRecorderModule.stream(longPath);
             expect(mockNativeModule.stream).toHaveBeenCalledWith(longPath);

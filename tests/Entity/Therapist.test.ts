@@ -1,24 +1,22 @@
 /**
- * Therapist behavior tests. Real Therapist uses Stage 3 decorators and SecureStore.
- * We test login (password hash comparison) via CryptoJS mock and a small helper.
+ * Therapist behavior tests.
  */
 
-import CryptoJS from 'crypto-js';
+import { Therapist } from '@/Entity/Therapist';
 
-function passwordMatches(password: string, storedHash: string): boolean {
-    const hash = CryptoJS.SHA256(password).toString();
-    return hash === storedHash;
-}
+describe('Therapist', () => {
+    describe('isValidPassword', () => {
+        it('returns true when hash matches stored', () => {
+            const therapist = new Therapist({});
+            const hash = 'a1b2c3d4e5';
+            therapist.setPasswordHash(hash);
+            expect(therapist.isValidPassword(hash)).toBe(true);
+        });
 
-describe('Therapist (login logic)', () => {
-    it('passwordMatches returns true when hash matches', () => {
-        const password = 'secret';
-        const hash = CryptoJS.SHA256(password).toString();
-        expect(passwordMatches(password, hash)).toBe(true);
-    });
-
-    it('passwordMatches returns false when password wrong', () => {
-        const hash = CryptoJS.SHA256('correct').toString();
-        expect(passwordMatches('wrong', hash)).toBe(false);
+        it('returns false when hash does not match', () => {
+            const therapist = new Therapist({});
+            therapist.setPasswordHash('correct_hash');
+            expect(therapist.isValidPassword('wrong_hash')).toBe(false);
+        });
     });
 });

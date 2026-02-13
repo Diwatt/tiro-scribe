@@ -18,13 +18,11 @@ type ReactNativeLogger = ReturnType<typeof reactNativeLogger.createLogger>;
  * Ensures a single logger instance is created and reused throughout the app
  */
 export class AppLogger {
-    private static instance: ReactNativeLogger | null = null;
-
     /**
      * Get the singleton logger instance
      * Creates the instance on first call, returns the same instance on subsequent calls
      */
-    static getInstance(): ReactNativeLogger {
+    public static getInstance(): ReactNativeLogger {
         if (!AppLogger.instance) {
             AppLogger.instance = reactNativeLogger.createLogger({
                 severity: __DEV__ ? 'debug' : 'error',
@@ -44,6 +42,8 @@ export class AppLogger {
         }
         return AppLogger.instance;
     }
+
+    private static instance: ReactNativeLogger | null = null;
 }
 
 /**

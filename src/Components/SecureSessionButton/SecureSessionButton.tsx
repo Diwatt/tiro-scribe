@@ -4,6 +4,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { useAppLanguage } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { RecorderState } from '../../../modules/secure-recorder/src';
 import { AppLogger } from '../../Service/Logger';
@@ -14,11 +15,11 @@ const logger = AppLogger.getInstance();
  * Button constants
  */
 const BUTTON = {
-    HEIGHT: 56,
-    SHADOW_OFFSET_HEIGHT: 12,
-    SHADOW_OPACITY: 0.6,
-    SHADOW_RADIUS: 24,
-    ELEVATION: 16,
+    height: 56,
+    shadowOffsetHeight: 12,
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 16,
 } as const;
 
 interface Props {
@@ -31,13 +32,14 @@ interface Props {
 export const SecureSessionButton = observer(
     ({ isRecording: externalIsRecording, onPress: externalOnPress, onRecordingChange, disabled = false }: Props): React.JSX.Element => {
         const theme = useTheme<ExtendedTheme>();
+        const { LL } = useAppLanguage();
         const criticalAction = theme.colors.actions.critical;
         const audioRecording = useAudioRecording();
 
-        // Use external isRecording if provided, otherwise use useSelector for reactivity
-        // useSelector ensures observer() tracks the observable properly
+        // useSelector must be called unconditionally (hooks rules)
         const state$ = audioRecording.getState();
-        const isRecording = externalIsRecording !== undefined ? externalIsRecording : useSelector(() => state$.state.get() === RecorderState.RECORDING);
+        const fromStore = useSelector(() => state$.state.get() === RecorderState.RECORDING);
+        const isRecording = externalIsRecording !== undefined ? externalIsRecording : fromStore;
 
         // Log state changes
         useEffect(() => {
@@ -48,9 +50,10 @@ export const SecureSessionButton = observer(
             });
         }, [isRecording, externalIsRecording, state$]);
 
-        // Colors from theme
-        const backgroundColor = isRecording ? theme.colors.error : criticalAction.background;
-        const textColor = isRecording ? theme.colors.onError : criticalAction.text;
+        // Colors from theme (recording state uses secureSessionButton semantic colors)
+        const sessionColors = theme.colors.secureSessionButton;
+        const backgroundColor = isRecording ? sessionColors.activeBackground : criticalAction.background;
+        const textColor = isRecording ? sessionColors.recordingIconColorLight : criticalAction.text;
 
         const handlePress = async () => {
             // Read current state directly (not from render-time const) to get latest value
@@ -94,7 +97,7 @@ export const SecureSessionButton = observer(
         };
 
         // Extract RGB from shadow color - shadow is a string color
-        const shadowColorRgb = criticalAction.shadow || '#000000';
+        const shadowColorRgb = criticalAction.shadow ?? theme.colors.shadow;
         return (
             <View style={styles.centerHelper}>
                 <View style={[styles.shadowWrapper, { shadowColor: shadowColorRgb }]}>
@@ -103,7 +106,7 @@ export const SecureSessionButton = observer(
                         onPress={disabled ? undefined : handlePress}
                         disabled={disabled}
                     >
-                        <Text style={[styles.text, { color: textColor }]}>{isRecording ? 'Stop' : 'Record'}</Text>
+                        <Text style={[styles.text, { color: textColor }]}>{isRecording ? LL.recordButtonStop() : LL.recordButtonRecord()}</Text>
                     </Pressable>
                 </View>
             </View>
@@ -118,13 +121,13 @@ const styles = StyleSheet.create({
     },
     shadowWrapper: {
         // Drop shadow for call-to-action button - floating effect
-        shadowOffset: { width: 0, height: BUTTON.SHADOW_OFFSET_HEIGHT },
-        shadowOpacity: BUTTON.SHADOW_OPACITY,
-        shadowRadius: BUTTON.SHADOW_RADIUS,
-        elevation: BUTTON.ELEVATION, // Android shadow
+        shadowOffset: { width: 0, height: BUTTON.shadowOffsetHeight },
+        shadowOpacity: BUTTON.shadowOpacity,
+        shadowRadius: BUTTON.shadowRadius,
+        elevation: BUTTON.elevation, // Android shadow
     },
     container: {
-        height: BUTTON.HEIGHT,
+        height: BUTTON.height,
         minWidth: 120,
         paddingHorizontal: 24,
         borderRadius: 28,

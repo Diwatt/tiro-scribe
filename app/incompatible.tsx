@@ -3,7 +3,7 @@
  */
 
 import type React from 'react';
-import { DeviceIncompatibleScreen } from '@/Screens/DeviceIncompatibleScreen';
+import { DeviceIncompatibleScreen } from '@/Screen/DeviceIncompatibleScreen';
 
 export default function IncompatibleScreen(): React.JSX.Element {
     return <DeviceIncompatibleScreen />;

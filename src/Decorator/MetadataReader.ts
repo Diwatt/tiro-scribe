@@ -11,9 +11,10 @@
 import { EntityDecorator } from './EntityDecorator';
 import { FieldDecorator } from './FieldDecorator';
 import { MetadataWriter } from './MetadataWriter';
+import type { MetadataConstructor } from './Type';
 
 export class MetadataReader {
-    constructor(private readonly construct: Function) {}
+    constructor(private readonly construct: MetadataConstructor) {}
 
     /**
      * Entity decorator data (stored by MetadataWriter as EntityDecorator; returned as-is).
@@ -34,7 +35,7 @@ export class MetadataReader {
         if (meta == null || typeof meta !== 'object') {
             return [];
         }
-        const entityName = this.construct.name;
+        const entityName = this.construct.name ?? '';
         const out: FieldDecorator[] = [];
         for (const [propertyName, fieldMeta] of Object.entries(meta)) {
             const decorators = fieldMeta?.decorators;
@@ -79,8 +80,8 @@ export class MetadataReader {
      * Use for unique decorators: reader.getField('PrimaryKey').getFieldName().
      * target: constructor or instance (uses target.constructor when instance).
      */
-    public static getField(target: object | Function, decoratorName: string): FieldDecorator | undefined {
-        const construct = typeof target === 'function' ? target : ((target as object).constructor as Function);
+    public static getField(target: object | MetadataConstructor, decoratorName: string): FieldDecorator | undefined {
+        const construct: MetadataConstructor = typeof target === 'function' ? target : (target as object).constructor as MetadataConstructor;
         const reader = new MetadataReader(construct);
         return reader.getFields().find((f) => f.getDecoratorName() === decoratorName);
     }
@@ -90,5 +91,24 @@ export class MetadataReader {
      */
     public getField(decoratorName: string): FieldDecorator | undefined {
         return this.getFields().find((f) => f.getDecoratorName() === decoratorName);
+    }
+
+    /**
+     * All field decorators with this decorator name (e.g. getFieldsByDecorator('Column') for all @Column properties).
+     */
+    public getFieldsByDecorator(decoratorName: string): FieldDecorator[] {
+        return this.getFields().filter((f) => f.getDecoratorName() === decoratorName);
+    }
+
+    /**
+     * Column decorator for the primary key property (same property as getField('PrimaryKey')).
+     * Returns undefined if there is no primary key or that property has no @Column.
+     */
+    public getPrimaryKeyColumn(): FieldDecorator | undefined {
+        const pkField = this.getField('PrimaryKey');
+        if (pkField == null) {
+            return undefined;
+        }
+        return this.getFieldByProperty(pkField.getFieldName()).find((f) => f.getDecoratorName() === 'Column');
     }
 }

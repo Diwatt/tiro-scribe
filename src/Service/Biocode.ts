@@ -7,9 +7,9 @@
  * 3. Store projected vector for matching while preventing reverse engineering
  */
 
-import CryptoJS from 'crypto-js';
 import * as FileSystem from 'expo-file-system';
 import type * as Ort from 'onnxruntime-react-native';
+import QuickCrypto from 'react-native-quick-crypto';
 
 /** Lazy-loaded ONNX Runtime; avoids loading native module until Biocode actually needs it. */
 let ortModule: typeof Ort | null = null;
@@ -28,7 +28,7 @@ import {
     SpeakerVectorExtractionError,
     VectorLengthMismatchError,
 } from '../Exception';
-import { TherapistVault } from '../Security/TherapistVault';
+import { masterKeyVault } from '../Security/MasterKeyVault';
 import { AppLogger, type LoggerInterface } from './Logger';
 
 /**
@@ -54,10 +54,7 @@ export interface ProjectedVector {
 
 export class Biocode {
     private speakerSession: Ort.InferenceSession | null = null;
-    private modelPath: string | null = null;
     private projectionMatrix: number[][] | null = null;
-    private therapistUuid: string | null = null;
-    private loggerInstance: LoggerInterface;
 
     constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.loggerInstance = logger;
@@ -128,7 +125,7 @@ export class Biocode {
      */
     async setTherapistCredentials(therapist: Therapist): Promise<void> {
         this.therapistUuid = therapist.primaryKey;
-        const projectionKey = await TherapistVault.getProjectionKey(therapist);
+        const projectionKey = await masterKeyVault.load(therapist.getUuid());
         this.projectionMatrix = this.generateProjectionMatrix(projectionKey);
     }
 
@@ -287,7 +284,7 @@ export class Biocode {
      * This is a simplified version - you may need to use a native audio processing library
      * or implement proper mel spectrogram extraction
      */
-    private async preprocessAudio(audioPath: string): Promise<Float32Array> {
+    private async preprocessAudio(_audioPath: string): Promise<Float32Array> {
         // TODO: Implement proper audio preprocessing
         // For now, this is a placeholder. You'll need to:
         // 1. Load audio file (WAV format, 16kHz, mono)
@@ -438,7 +435,7 @@ export class Biocode {
         // Generate deterministic biocode from projected vector
         // This ensures same voice always produces same biocode
         const vectorString = projected.join(',');
-        const biocode = CryptoJS.SHA256(vectorString).toString();
+        const biocode = QuickCrypto.createHash('sha256').update(vectorString).digest().toString('hex');
         return {
             biocode,
             confidence: speakerVector.confidence,

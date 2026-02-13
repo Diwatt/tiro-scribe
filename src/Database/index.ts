@@ -11,11 +11,11 @@ export {
     MetadataReader,
 } from '../Decorator';
 export { AbstractEntity } from './AbstractEntity';
+export { ForeignKey } from './ForeignKey';
+export type { ForeignKeyOptions, OnDeleteAction } from './ForeignKey';
 export { registry } from './Registry';
 export { Repository } from './Repository';
 export { EntitySerializer } from './Serializer';
-export type { DataMap } from './TableBacking';
-export { TableBacking } from './TableBacking';
 export type { FieldTransformer } from './Transformer';
 export { DateTransformer, TransformerRegistry } from './Transformer';
 export type { EntityClass, ObservablePrimitive } from './Type';

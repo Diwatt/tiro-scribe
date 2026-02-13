@@ -10,9 +10,6 @@ export interface EntityClass<TEntity extends AbstractEntity = AbstractEntity> ex
     repositoryClass?: new () => Repository<AbstractEntity>;
 }
 
-/** Property key where the entity's observable state is stored on the instance. */
-export const OBSERVABLE_KEY = '_obs' as const;
-
 /** Node shape used by Legend-State for observable properties (get/set). */
 export interface ObservableNode {
     get?(): unknown;

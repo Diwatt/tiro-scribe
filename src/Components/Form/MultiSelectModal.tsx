@@ -3,16 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import {
-    type StyleProp,
     Dimensions,
     Keyboard,
     type KeyboardEvent,
     Modal,
     Pressable,
+    TextInput as RNTextInput,
     ScrollView,
+    type StyleProp,
     StyleSheet,
     Text,
-    TextInput as RNTextInput,
     View,
     type ViewStyle,
 } from 'react-native';
@@ -53,11 +53,11 @@ const styles = StyleSheet.create({
     modalContent: {
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
+        height: '80%',
         maxHeight: '80%',
         paddingBottom: 24,
-        flexGrow: 0,
     },
-    listWrap: { flex: 1, minHeight: 0 },
+    listWrap: { flex: 1, minHeight: 200 },
     searchInput: {
         marginHorizontal: 16,
         marginTop: 16,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         fontSize: 16,
     },
-    list: { paddingBottom: 8 },
+    list: { flex: 1, paddingBottom: 8 },
     doneButton: { marginHorizontal: 16, marginTop: 16 },
 });
 

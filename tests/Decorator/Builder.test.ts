@@ -1,7 +1,5 @@
 import { vi } from 'vitest';
 import { Builder } from '@/Decorator/Builder';
-import { MetadataReader } from '@/Decorator/MetadataReader';
-import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import type { ClassDecoratorConfig, FieldDecoratorConfig, OptionsSchema } from '@/Decorator/Type';
 import { DatabaseException } from '@/Exception/DatabaseException';
 
@@ -9,7 +7,7 @@ describe('Builder', () => {
     describe('buildEntity', () => {
         it('returns a function that returns a decorator', () => {
             const config: ClassDecoratorConfig<object> = {
-                fn: vi.fn(),
+                decorate: vi.fn(),
             };
             const decoratorFactory = Builder.buildEntity(config);
             expect(typeof decoratorFactory).toBe('function');
@@ -18,27 +16,27 @@ describe('Builder', () => {
         });
 
         it('defaults options to {} when not provided', () => {
-            const fn = vi.fn();
-            const config: ClassDecoratorConfig<object> = { fn };
+            const decorate = vi.fn();
+            const config: ClassDecoratorConfig<object> = { decorate };
             const decorator = Builder.buildEntity(config)();
             const target = function TestEntity() {};
             const context = {} as ClassDecoratorContext<typeof target>;
             decorator(target, context);
-            expect(fn).toHaveBeenCalledWith(target, context, {});
+            expect(decorate).toHaveBeenCalledWith(target, context, {});
         });
 
-        it('passes options to fn', () => {
-            const fn = vi.fn();
-            const config: ClassDecoratorConfig<{ table_name: string }> = { fn };
+        it('passes options to decorate', () => {
+            const decorate = vi.fn();
+            const config: ClassDecoratorConfig<{ table_name: string }> = { decorate };
             const decorator = Builder.buildEntity(config)({ table_name: 'tests' });
             const target = function TestEntity() {};
             const context = {} as ClassDecoratorContext<typeof target>;
             decorator(target, context);
-            expect(fn).toHaveBeenCalledWith(target, context, { table_name: 'tests' });
+            expect(decorate).toHaveBeenCalledWith(target, context, { table_name: 'tests' });
         });
 
         it('returns target from decorator', () => {
-            const config: ClassDecoratorConfig<object> = { fn: vi.fn() };
+            const config: ClassDecoratorConfig<object> = { decorate: vi.fn() };
             const decorator = Builder.buildEntity(config)();
             const target = function T() {};
             const result = decorator(target, {} as ClassDecoratorContext<typeof target>);
@@ -50,7 +48,7 @@ describe('Builder', () => {
             const config: ClassDecoratorConfig<object> = {
                 schema,
                 errorCode: 'INVALID_ENTITY',
-                fn: vi.fn(),
+                decorate: vi.fn(),
             };
             expect(() => Builder.buildEntity(config)()).toThrow(DatabaseException);
             expect(() => Builder.buildEntity(config)({ table_name: 'ok' })()).not.toThrow();
@@ -58,9 +56,9 @@ describe('Builder', () => {
 
         it('calls custom validate when provided', () => {
             const validate = vi.fn();
-            const config: ClassDecoratorConfig<object> = { fn: vi.fn(), validate };
+            const config: ClassDecoratorConfig<object> = { decorate: vi.fn(), validate };
             const decorator = Builder.buildEntity(config)({ x: 1 });
-            decorator(function T() {}, {} as any);
+            decorator(function T() {}, {} as never);
             expect(validate).toHaveBeenCalledWith({ x: 1 });
         });
     });

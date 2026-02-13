@@ -1,6 +1,6 @@
 import type React from 'react';
-import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import { useTheme } from 'react-native-paper';
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import type { ExtendedTheme } from '../theme/AppTheme';
 
 const TOAST_BORDER_LEFT_WIDTH = 5;

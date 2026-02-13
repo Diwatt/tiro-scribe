@@ -21,7 +21,9 @@ class PrimaryKeyDecorator implements FieldDecoratorConfig<Record<string, never>>
     }
 
     public initializer(_context: ClassFieldDecoratorContext<unknown, unknown>, _options: Record<string, never>): (instance: unknown) => void {
-        return () => {};
+        return () => {
+            /* no-op: decorator does not mutate instance */
+        };
     }
 }
 

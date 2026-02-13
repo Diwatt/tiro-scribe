@@ -7,6 +7,7 @@ import { DateTransformer } from './DateTransformer';
 import type { FieldTransformer } from './FieldTransformer';
 import { JsonTransformer } from './JsonTransformer';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: registry pattern with static API
 export class TransformerRegistry {
     private static readonly _registry = new Map<string, FieldTransformer>();
 

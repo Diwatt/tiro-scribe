@@ -1,28 +1,28 @@
 /**
- * OnboardingState – Orchestrates the onboarding wizard: steps, submit, voice calibration, recovery, finalize.
- *
- * Recovery code flow: TherapistVault (Security) creates the code on submit(); we keep it in state$
- * only for the duration of the recovery step so the UI can show it and offer copy/share. When the
- * user taps "Save Recovery Kit", we pass that code to RecoveryKit (Security), which generates the
- * PDF and opens the share sheet. State does not handle the document itself—only wizard state and
- * UI feedback (isBusy, error). Recovery kit status is in GlobalActivityStatus and drives AsyncButton.
+ * OnboardingState – ViewModel for the onboarding wizard. Orchestrates flow via Entity (Therapist),
+ * Database (registry), and Service (VoiceCalibration). Manages observables and RecoveryKit (UI-bound).
  */
 
 import { observable } from '@legendapp/state';
 import { registry } from '../../Database/Registry';
+import type { CreateTherapistInput } from '../../Entity/Therapist';
 import { Therapist } from '../../Entity/Therapist';
-import { RecoveryKit, TherapistVault } from '../../Security';
-import { voiceCalibration } from '../../Service';
+import { AppLanguage } from '../../Localization/AppLanguage';
+import { CryptoEngine, masterKeyVault, RecoveryCode, RecoveryKit } from '../../Security';
 import { AppLogger } from '../../Service/Logger';
-import { startupOrchestrator } from '../StartupOrchestrator';
-import Toast from 'react-native-toast-message';
+import { voiceCalibration } from '../../Service/VoiceCalibration';
 import { ActivityStatus, globalActivityStatus } from '../GlobalActivityStatus';
-import type { OnboardingFormData, ProfileStepData } from './Schema';
-import { profileSchema } from './Schema';
+import { startupOrchestrator } from '../StartupOrchestrator';
+import type { ProfileStepData } from './FormValidator';
+import { formValidator } from './FormValidator';
+import type { OnboardingFormData } from './Schema';
+import type { ValidationResult } from './Types';
 
-const RECOVERY_KIT_SUCCESS_RESET_MS = 3000;
+/** Re-export for consumers. */
+export type { ValidationResult } from './Types';
 
-export type ProfileValidationResult = { success: true } | { success: false; errors: Record<string, string> };
+/** Number of steps in the onboarding wizard (progress UI). */
+export const ONBOARDING_STEPS = 4;
 
 const logger = AppLogger.getInstance();
 
@@ -31,6 +31,7 @@ export type OnboardingStateShape = {
     isBusy: boolean;
     error: string | undefined;
     recoveryCode: string;
+    practiceLanguages: string[];
 };
 
 export class OnboardingState {
@@ -39,164 +40,179 @@ export class OnboardingState {
         isBusy: false,
         error: undefined,
         recoveryCode: '',
+        practiceLanguages: [AppLanguage.getInstance().getLocale()],
     });
 
-    /** Injected: Security layer generates and shares the PDF; we only pass the code we hold for this step. */
     private readonly recoveryKit: RecoveryKit;
-
-    /** Set after submit(), used by calibrate() and finalize(), cleared on reset(). */
     private pendingTherapist: Therapist | null = null;
 
     public constructor(recoveryKit: RecoveryKit) {
         this.recoveryKit = recoveryKit;
     }
 
-    public async submit(data: OnboardingFormData): Promise<void> {
+    /**
+     * Centralizes isBusy toggling and try/catch error handling for async actions.
+     * Clears error before run; on catch sets error via getErrorMessage (or default).
+     */
+    private async runAsyncAction(action: () => Promise<void>, getErrorMessage?: (error: unknown) => string): Promise<void> {
         this.state$.error.set(undefined);
         this.state$.isBusy.set(true);
         try {
-            const { therapist, recoveryCode } = await TherapistVault.createAccount(data.email, data.password, null, data.languages);
-            therapist.setQualification(data.qualifications.length > 0 ? data.qualifications.join(',') : null);
-            therapist.setYearsOfExperience(parseInt(data.experience, 10));
-            therapist.setTherapyMethod(data.methods.length > 0 ? data.methods.join(',') : null);
-            this.pendingTherapist = therapist;
-            this.state$.recoveryCode.set(recoveryCode);
-            this.state$.step.set(3);
+            await action();
         } catch (error: unknown) {
-            this.state$.error.set(error instanceof Error ? error.message : 'Account creation failed.');
+            logger.debug('[OnboardingState] runAsyncAction caught', {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            const message = getErrorMessage ? getErrorMessage(error) : error instanceof Error ? error.message : String(error);
+            this.state$.error.set(message);
         } finally {
             this.state$.isBusy.set(false);
         }
+    }
+
+    public async submit(data: OnboardingFormData): Promise<void> {
+        logger.debug('[OnboardingState] submit', { stepBefore: this.state$.step.get(), data });
+        const practiceLanguages = this.state$.practiceLanguages.get() ?? [];
+        await this.runAsyncAction(
+            async () => {
+                const input = this.buildAccountInput(data, practiceLanguages);
+                const crypto = new CryptoEngine();
+                const recovery = new RecoveryCode();
+                const { therapist, artifacts } = Therapist.create(input, crypto, recovery);
+                await masterKeyVault.save(therapist.getUuid(), artifacts.masterKey);
+                this.pendingTherapist = therapist;
+                this.state$.recoveryCode.set(artifacts.recoveryCode);
+                this.state$.step.set(3);
+                logger.debug('[OnboardingState] submit success', { step: 3, recoveryCodeLength: artifacts.recoveryCode?.length ?? 0 });
+            },
+            () => {
+                const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+                return Ll.onboardingErrorAccountCreation();
+            },
+        );
     }
 
     public async calibrateVoice(): Promise<void> {
-        this.state$.error.set(undefined);
-        this.state$.isBusy.set(true);
-        try {
-            const vector = await voiceCalibration.run();
-            if (this.pendingTherapist) {
-                this.pendingTherapist.setBiocodeEmbedding(vector);
-            }
-            this.state$.step.set(4);
-        } catch (error: unknown) {
-            this.state$.error.set(error instanceof Error ? error.message : 'Voice calibration failed.');
-        } finally {
-            this.state$.isBusy.set(false);
-        }
+        logger.debug('[OnboardingState] calibrateVoice', { hasPendingTherapist: this.pendingTherapist != null });
+        await this.runAsyncAction(
+            async () => {
+                const vector = await voiceCalibration.run();
+                if (this.pendingTherapist) {
+                    this.pendingTherapist.setBiocodeEmbedding(vector);
+                }
+                this.state$.step.set(4);
+                logger.debug('[OnboardingState] calibrateVoice success', { step: 4 });
+            },
+            () => {
+                const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+                return Ll.onboardingErrorVoiceCalibration();
+            },
+        );
     }
 
-    public finalize(savedCodeChecked: boolean): void {
+    public async finalize(recoveryCodeSaveConfirmed: boolean): Promise<void> {
+        logger.debug('[OnboardingState] finalize', {
+            recoveryCodeSaveConfirmed,
+            hasPendingTherapist: this.pendingTherapist != null,
+        });
+        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
         this.state$.error.set(undefined);
-        if (!savedCodeChecked) {
-            this.state$.error.set('Please confirm you have saved your recovery code.');
+        if (!recoveryCodeSaveConfirmed) {
+            this.state$.error.set(Ll.onboardingErrorConfirmSaveCode());
+            logger.debug('[OnboardingState] finalize aborted', { reason: 'recoveryCodeSaveConfirmed false' });
             return;
         }
         const therapist = this.pendingTherapist;
         if (!therapist) {
-            this.state$.error.set('Session lost. Please start over.');
+            this.state$.error.set(Ll.onboardingErrorSessionLost());
+            logger.debug('[OnboardingState] finalize aborted', { reason: 'no pendingTherapist' });
             return;
         }
         try {
-            const repo = registry.getRepository(Therapist);
-            repo.persist(therapist);
+            await registry.getRepository(Therapist).persist(therapist);
             startupOrchestrator.run();
+            logger.debug('[OnboardingState] finalize success');
         } catch (error: unknown) {
-            this.state$.error.set(error instanceof Error ? error.message : 'Failed to save account.');
+            logger.debug('[OnboardingState] finalize persist failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            this.state$.error.set(error instanceof Error ? error.message : Ll.onboardingErrorSaveAccount());
         }
     }
 
+    private buildAccountInput(data: OnboardingFormData, practiceLanguagesFallback: string[]): CreateTherapistInput {
+        const languages = Array.isArray(data.languages) && data.languages.length > 0 ? data.languages : practiceLanguagesFallback;
+        return {
+            email: data.email,
+            password: data.password,
+            languages,
+            qualifications: Array.isArray(data.qualifications) ? data.qualifications : [],
+            experience: String(data.experience ?? '').trim(),
+            methods: Array.isArray(data.methods) ? data.methods : [],
+        };
+    }
+
     public goToStep(step: number): void {
+        logger.debug('[OnboardingState] goToStep', { step, stepBefore: this.state$.step.get() });
         this.state$.error.set(undefined);
         this.state$.step.set(step);
     }
 
-    /**
-     * Returns a validation result for profile step data: either { success: true } or
-     * { success: false, errors: Record<fieldKey, message> } for the view to apply.
-     */
-    public getProfileStepValidation(data: ProfileStepData): ProfileValidationResult {
-        const result = profileSchema.safeParse(data);
-        if (result.success) {
-            return { success: true };
-        }
-        const errors: Record<string, string> = {};
-        result.error.issues.forEach((issue) => {
-            const key = issue.path[0];
-            if (typeof key === 'string') {
-                errors[key] = issue.message;
-            }
+    public getProfileStepValidation(data: ProfileStepData): ValidationResult {
+        const result = formValidator.validateProfile(data);
+        logger.debug('[OnboardingState] getProfileStepValidation', {
+            success: result.success,
+            ...(result.success === false && { errorKeys: Object.keys(result.errors.fieldErrors) }),
         });
-        return { success: false, errors };
+        return result;
     }
 
     public reset(): void {
+        logger.debug('[OnboardingState] reset', { stepBefore: this.state$.step.get() });
         this.state$.step.set(1);
         this.state$.error.set(undefined);
         this.state$.recoveryCode.set('');
         this.state$.isBusy.set(false);
+        this.state$.practiceLanguages.set([AppLanguage.getInstance().getLocale()]);
         globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
         this.pendingTherapist = null;
     }
 
-    /**
-     * Copies the current recovery code to the system clipboard.
-     * View is responsible for showing "copied" feedback (e.g. Snackbar).
-     */
     public async copyRecoveryCodeToClipboard(): Promise<void> {
         const code = this.state$.recoveryCode.get();
+        logger.debug('[OnboardingState] copyRecoveryCodeToClipboard', {
+            hasCode: !!code,
+            codeLength: code?.length ?? 0,
+        });
         if (!code) {
             return;
         }
         await this.recoveryKit.copyToClipboard(code);
     }
 
-    /**
-     * Generates a PDF Recovery Kit and opens the OS share sheet.
-     * Updates GlobalActivityStatus (pending → success | error); resets to ready 3s after success.
-     */
     public async generateAndShareRecoveryKit(): Promise<void> {
-        this.state$.error.set(undefined);
-        globalActivityStatus.setStatus(
-            globalActivityStatus.recoveryKitStatusKey,
-            ActivityStatus.Pending,
-            'Génération du PDF…',
-        );
         const code = this.state$.recoveryCode.get();
+        logger.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
+        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+        this.state$.error.set(undefined);
+        globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Pending, Ll.recoveryKitGeneratingPdf());
         if (!code) {
-            this.state$.error.set('No recovery code available.');
+            this.state$.error.set(Ll.onboardingErrorNoRecoveryCode());
             globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
             return;
         }
         try {
             const uri = await this.recoveryKit.generatePdf(code);
             await this.recoveryKit.share(uri);
-            globalActivityStatus.setStatus(
-                globalActivityStatus.recoveryKitStatusKey,
-                ActivityStatus.Success,
-                'Kit de secours enregistré',
-            );
-            Toast.show({
-                type: 'success',
-                text1: 'Kit de secours enregistré',
-                text2: 'Votre kit a été généré et partagé.',
-            });
-            setTimeout(() => {
-                globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
-            }, RECOVERY_KIT_SUCCESS_RESET_MS);
+            globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Success, Ll.recoveryKitSaved());
+            logger.debug('[OnboardingState] generateAndShareRecoveryKit success');
+            globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Failed to generate or share recovery kit.';
+            const message = error instanceof Error ? error.message : Ll.recoveryKitErrorGeneric();
             logger.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
             this.state$.error.set(message);
-            globalActivityStatus.setStatus(
-                globalActivityStatus.recoveryKitStatusKey,
-                ActivityStatus.Error,
-                message,
-            );
-            Toast.show({
-                type: 'error',
-                text1: 'Erreur',
-                text2: message,
-            });
+            globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Error, message);
         }
     }
 }

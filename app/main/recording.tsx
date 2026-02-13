@@ -2,6 +2,6 @@
  * Recording modal – full-screen recording; params: autoStart.
  */
 
-import { RecordingScreen } from '@/Screens/RecordingScreen';
+import { RecordingScreen } from '@/Screen/RecordingScreen';
 
 export default RecordingScreen;

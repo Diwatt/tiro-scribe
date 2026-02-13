@@ -4,6 +4,28 @@ globs: ["src/**/*.ts", "src/**/*.tsx"]
 alwaysApply: true
 ---
 
+# Folder Structure (Domain-Driven)
+
+Code under `src/` is organized by **domain** and **layer**:
+
+| Folder | Purpose |
+|--------|--------|
+| **Components/** | Shared UI components (dumb presentational). |
+| **Context/** | React context providers (e.g. services). |
+| **Database/** | Persistence: entities, repository, decorators, serialization. |
+| **Entity/** | Domain entities (pure data + getters/setters; no I/O). |
+| **Exception/** | Custom error types. |
+| **Localization/** | App language: locale, translations, `AppLanguage`, `useAppLanguage`. |
+| **Navigation/** | Routing and screen types. |
+| **Security/** | Crypto, secure storage, vault, recovery kit, device/hardware gate. |
+| **Service/** | Capabilities (auth, biocode, voice calibration, model download, etc.). No `*Service` suffix on class names. |
+| **State/** | ViewModels / observable state (e.g. onboarding wizard, global activity). |
+| **Screen/** | Screen components (one per route; dumb, render state + bind events). |
+| **theme/** | Theming (colors, semantic status). |
+
+- **No top-level “i18n” or “utils”:** Localization lives in `Localization/`; logic lives in classes (Service, State, Entity).
+- **Imports:** Prefer `@/Localization`, `@/Security`, `@/Service`, etc. for domain roots.
+
 # Architecture Standards (MVVM / OOP)
 
 ## 1. Logic vs View Separation
@@ -15,7 +37,7 @@ alwaysApply: true
 - **One Class Per File:** Filename must match class name exactly.
 - **No Object Literals:** Do not define state as `{...}` inside a class. Use a `const INITIAL_STATE` or a static factory.
 - **Visibility:** Explicit `public` / `private` / `protected` required everywhere.
-- **Ordering:** 1. Properties (Static -> Instance, ordered by visibility). 2. Constructor. 3. Methods.
+- **Ordering:** 1. Properties (Static -> Instance, visibility: public -> protected -> private). 2. Constructor. 3. Methods (visibility: public -> protected -> private).
 
 ## 3. SOLID Principles Implementation
 - **Single Responsibility:** Split huge classes. Example: `SecureRecorder` (Orchestration) vs `AudioChunkCollection` (Data Ops).

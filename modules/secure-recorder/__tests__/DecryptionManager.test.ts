@@ -130,7 +130,7 @@ describe('DecryptionManager', () => {
 
     describe('B - Boundary Cases (Edge Cases)', () => {
         it('stream should handle very long file path', async () => {
-            const longPath = '/very/long/path/' + 'a'.repeat(1000) + '.dat';
+            const longPath = `/very/long/path/${'a'.repeat(1000)}.dat`;
             mockNativeModule.stream.mockResolvedValue(undefined);
             await decryptionManager.stream(longPath);
             expect(mockNativeModule.stream).toHaveBeenCalledWith(longPath);

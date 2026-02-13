@@ -57,10 +57,7 @@ export function ChipGroup<T extends FieldValues>({
     const normalized = normalizeOptions(options);
     const [search, setSearch] = useState('');
     const showSearch = searchable ?? normalized.length > SEARCHABLE_THRESHOLD;
-    const filtered =
-        showSearch && search.trim()
-            ? normalized.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()))
-            : normalized;
+    const filtered = showSearch && search.trim() ? normalized.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase())) : normalized;
 
     return (
         <Controller
@@ -69,15 +66,7 @@ export function ChipGroup<T extends FieldValues>({
             render={({ field: { value, onChange }, fieldState: { error } }) => (
                 <>
                     {label ? <Text style={[styles.label, labelStyle, { color: theme.colors.onSurfaceVariant }]}>{label}</Text> : null}
-                    {showSearch ? (
-                        <TextInput
-                            mode="outlined"
-                            placeholder="Search…"
-                            value={search}
-                            onChangeText={setSearch}
-                            style={styles.searchInput}
-                        />
-                    ) : null}
+                    {showSearch ? <TextInput mode="outlined" placeholder="Search…" value={search} onChangeText={setSearch} style={styles.searchInput} /> : null}
                     <View style={[styles.chipRow, chipRowStyle]}>
                         {filtered.map((option) => (
                             <Chip
@@ -86,11 +75,7 @@ export function ChipGroup<T extends FieldValues>({
                                 selected={(value as string[])?.includes(option.value) ?? false}
                                 onPress={() => {
                                     const current = (value as string[]) ?? [];
-                                    onChange(
-                                        current.includes(option.value)
-                                            ? current.filter((x) => x !== option.value)
-                                            : [...current, option.value],
-                                    );
+                                    onChange(current.includes(option.value) ? current.filter((x) => x !== option.value) : [...current, option.value]);
                                 }}
                             >
                                 {option.label}

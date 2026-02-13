@@ -9,13 +9,13 @@
  * Therapist -> Registry -> TherapistRepository -> Therapist.
  */
 
-import { TiroScribeException } from '../Exception';
+import { DatabaseException } from '../Exception';
 import type { AbstractEntity } from './AbstractEntity';
 import { Repository } from './Repository';
 import type { EntityClass } from './Type';
 
 const ERROR_CODES = {
-    ENTITY_NAME_REQUIRED: 'ENTITY_NAME_REQUIRED',
+    entityNameRequired: 'ENTITY_NAME_REQUIRED',
 } as const;
 
 export class Registry {
@@ -26,9 +26,12 @@ export class Registry {
     ): TRepository {
         const entityName = EntityClass.entityName;
         if (!entityName) {
-            throw new TiroScribeException(`Entity class ${EntityClass.name} must define static entityName`, ERROR_CODES.ENTITY_NAME_REQUIRED, undefined, {
-                entityClass: EntityClass.name,
-            });
+            throw new DatabaseException(
+                `Entity class ${EntityClass.name} must define static entityName`,
+                ERROR_CODES.entityNameRequired,
+                undefined,
+                { entityClass: EntityClass.name },
+            );
         }
 
         const existing = this.repositories.get(entityName);

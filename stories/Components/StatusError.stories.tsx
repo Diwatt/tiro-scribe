@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
-import React from 'react';
 import { StatusError } from '../../src/Components';
 
 const meta: Meta<typeof StatusError> = {
@@ -10,7 +9,7 @@ const meta: Meta<typeof StatusError> = {
 export default meta;
 type StatusErrorStory = StoryObj<typeof StatusError>;
 
-export const Error: StatusErrorStory = {
+export const ErrorStory: StatusErrorStory = {
     args: {
         title: 'Error',
         message: 'An unexpected error occurred',

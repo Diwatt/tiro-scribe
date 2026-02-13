@@ -1,57 +1,54 @@
 /**
- * Encounter entity: property declarations with visibility; @Column on the property.
+ * Encounter entity: metadata only. Transcript and prosody live in Transcription / ProsodyMetrics.
  * Normal encounter = therapist (1 biocode) + 1 subject (1 biocode); can store more (e.g. couple).
- * Server identifies who is who (e.g. by biocode frequency). No uuid stored.
  */
 
-import CryptoJS from 'crypto-js';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import QuickCrypto, { Buffer } from 'react-native-quick-crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
-import { type DetectedSpeakerProfile, EncounterStatus, type TranscriptSegment } from './Type';
+import { ForeignKey } from '../Database/ForeignKey';
+import { EncounterStatus } from './Type';
+import { Therapist } from './Therapist';
 
 dayjs.extend(utc);
 
-@Entity({ table_name: 'encounters' })
+@Entity({ tableName: 'encounters' })
 export class Encounter extends AbstractEntity {
     @PrimaryKey()
-    @Column({ default: () => uuidv4() })
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
     private uuid!: string;
 
-    @Column({ default: '' })
+    /** References Therapist (UUID). Real column for REFERENCES constraint. */
+    @ForeignKey({ target: () => Therapist, onDelete: 'RESTRICT' })
+    @Column({ default: '', type: 'varchar', length: 36 })
     private therapistId!: string;
 
     /** Hashed biocodes: therapist (1) + 1+ subjects. Server assigns roles (e.g. by frequency). */
-    @Column({ default: [] })
+    @Column({ default: '[]', type: 'text', as: 'json' })
     private participantBiocodes!: string[];
 
-    @Column({ default: [] })
-    private audioFragments!: string[];
+    /** File paths to encrypted audio chunks. */
+    @Column({ default: '[]', type: 'text', as: 'json' })
+    private encryptedAudioPaths!: string[];
 
-    @Column({ default: 0 })
+    /** Duration in milliseconds (whole number). */
+    @Column({ default: 0, type: 'integer' })
     private totalDuration!: number;
 
-    @Column({ default: EncounterStatus.Recording })
+    @Column({ default: EncounterStatus.Recording, type: 'varchar', length: 16, index: true })
     private status!: EncounterStatus;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     private createdAt!: Dayjs;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     private updatedAt!: Dayjs;
-
-    /** JSON array of TranscriptSegment (stored as string, transformed via 'json'). */
-    @Column({ default: '[]', as: 'json' })
-    private transcript!: TranscriptSegment[];
-
-    /** JSON array of DetectedSpeakerProfile (stored as string, transformed via 'json'). */
-    @Column({ default: '[]', as: 'json' })
-    private detectedSpeakers!: DetectedSpeakerProfile[];
 
     public getUuid(): string {
         return this.uuid;
@@ -65,7 +62,6 @@ export class Encounter extends AbstractEntity {
         this.therapistId = value;
     }
 
-    /** getProps for array participantBiocodes */
     public getParticipantBiocodes(): string[] {
         return this.participantBiocodes;
     }
@@ -82,21 +78,20 @@ export class Encounter extends AbstractEntity {
         this.setParticipantBiocodes(this.getParticipantBiocodes().filter((b) => b !== item));
     }
 
-    /** getProps for array audioFragments */
-    public getAudioFragments(): string[] {
-        return this.audioFragments;
+    public getEncryptedAudioPaths(): string[] {
+        return this.encryptedAudioPaths;
     }
 
-    public setAudioFragments(value: string[]): void {
-        this.audioFragments = value;
+    public setEncryptedAudioPaths(value: string[]): void {
+        this.encryptedAudioPaths = value;
     }
 
-    public addAudioFragment(path: string): void {
-        this.setAudioFragments([...this.getAudioFragments(), path]);
+    public addEncryptedAudioPath(path: string): void {
+        this.setEncryptedAudioPaths([...this.getEncryptedAudioPaths(), path]);
     }
 
-    public removeAudioFragment(path: string): void {
-        this.setAudioFragments(this.getAudioFragments().filter((p) => p !== path));
+    public removeEncryptedAudioPath(path: string): void {
+        this.setEncryptedAudioPaths(this.getEncryptedAudioPaths().filter((p) => p !== path));
     }
 
     public getTotalDuration(): number {
@@ -131,30 +126,15 @@ export class Encounter extends AbstractEntity {
         this.updatedAt = value;
     }
 
-    public getTranscript(): TranscriptSegment[] {
-        return this.transcript;
-    }
-
-    public setTranscript(value: TranscriptSegment[]): void {
-        this.transcript = value;
-    }
-
-    public getDetectedSpeakers(): DetectedSpeakerProfile[] {
-        return this.detectedSpeakers;
-    }
-
-    public setDetectedSpeakers(value: DetectedSpeakerProfile[]): void {
-        this.detectedSpeakers = value;
-    }
-
-    /** Add an audio fragment and optionally update total duration. */
-    public addAudioFragmentWithDuration(path: string, durationMs: number): void {
-        this.addAudioFragment(path);
+    /** Add an encrypted audio path and optionally update total duration. */
+    public addEncryptedAudioPathWithDuration(path: string, durationMs: number): void {
+        this.addEncryptedAudioPath(path);
         this.setTotalDuration(this.getTotalDuration() + durationMs);
     }
 
     /** Set participant biocodes from raw biocodes + projection key (hashes each). */
     public setParticipantBiocodesFromRaw(rawBiocodes: string[], projectionKey: string): void {
-        this.setParticipantBiocodes(rawBiocodes.map((raw) => CryptoJS.HmacSHA256(raw, projectionKey).toString()));
+        const keyBuf = Buffer.from(projectionKey, 'hex');
+        this.setParticipantBiocodes(rawBiocodes.map((raw) => QuickCrypto.createHmac('sha256', keyBuf).update(raw, 'utf8').digest('hex')));
     }
 }

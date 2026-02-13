@@ -41,7 +41,6 @@ export class RecoveryKit {
             throw new Error('Sharing is not available on this device.');
         }
         await Sharing.shareAsync(uri, {
-            // biome-ignore lint/style/useNamingConvention: expo-sharing API requires UTI for iOS share sheet
             UTI: '.pdf',
             mimeType: 'application/pdf',
         });

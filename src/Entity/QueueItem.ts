@@ -7,47 +7,52 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
+import { ForeignKey } from '../Database/ForeignKey';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 import { PipelineStage, QueueItemStatus } from './Type';
+import { Encounter } from './Encounter';
 
 dayjs.extend(utc);
 
 const MAX_RETRY_COUNT = 3;
 
-@Entity({ table_name: 'queue_items' })
+@Entity({ tableName: 'queue_items' })
 export class QueueItem extends AbstractEntity {
     @PrimaryKey()
-    @Column({ default: () => uuidv4() })
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
     private uuid!: string;
 
-    @Column({ default: '' })
+    /** References Encounter (UUID). Real column for REFERENCES constraint. */
+    @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
+    @Column({ default: '', type: 'varchar', length: 36 })
     private encounterId!: string;
 
-    @Column({ default: '' })
+    @Column({ default: '', type: 'text' })
     private filePath!: string;
 
     /** Byte offset into the encrypted file for resumable batch processing. */
-    @Column({ default: 0 })
+    @Column({ default: 0, type: 'integer' })
     private processingOffset!: number;
 
-    @Column({ default: QueueItemStatus.Pending })
+    @Column({ default: QueueItemStatus.Pending, type: 'varchar', length: 16 })
     private status!: QueueItemStatus;
 
-    @Column({ default: PipelineStage.Waiting })
+    @Column({ default: PipelineStage.Waiting, type: 'varchar', length: 16 })
     private pipelineStage!: PipelineStage;
 
-    @Column({ default: 0 })
+    /** 0–100 whole percent. */
+    @Column({ default: 0, type: 'integer' })
     private progressPercent!: number;
 
-    @Column({ default: 0 })
+    @Column({ default: 0, type: 'integer' })
     private retryCount!: number;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
     private createdAt!: Dayjs;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), as: 'date' })
+    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
     private updatedAt!: Dayjs;
 
     public getUuid(): string {

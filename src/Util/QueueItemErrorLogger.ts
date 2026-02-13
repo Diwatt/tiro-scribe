@@ -48,7 +48,9 @@ export class QueueItemErrorLogger {
     }
 
     /** No-op: logs are not in DB, so nothing to clear. Kept for API compatibility. */
-    clear(): void {}
+    clear(): void {
+        /* no-op */
+    }
 
     /** Format a single error entry as readable text. */
     static formatOne(entry: QueueItemErrorEntry): string {

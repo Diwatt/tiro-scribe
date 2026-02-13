@@ -1,29 +1,47 @@
 /**
- * TherapistRepository: Repository<Therapist> with session check.
- * Therapists table stores exactly one therapist. "Active session" = that therapist has unlocked key (master key in SecureStore).
+ * TherapistRepository: Repository<Therapist> with session check and login orchestration.
+ * Orchestrates persistence and vault (session key storage).
+ * Vault is injected for testability; defaults to masterKeyVault when omitted.
  */
 
-import { Therapist } from '../Entity/Therapist';
-import { TherapistVault } from '../Security/TherapistVault';
+import { Therapist } from '@/Entity/Therapist';
+import type { CryptoEngine } from '@/Security/CryptoEngine';
+import { masterKeyVault, type MasterKeyVaultInterface } from '@/Security/MasterKeyVault';
 import { Repository } from './Repository';
 
 export class TherapistRepository extends Repository<Therapist> {
-    public constructor() {
+    private readonly vault: MasterKeyVaultInterface;
+
+    public constructor(vault: MasterKeyVaultInterface = masterKeyVault) {
         super(Therapist, Therapist.entityName);
+        this.vault = vault;
     }
 
     /**
-     * Checks if the (single) therapist is currently logged in.
-     * Logic: therapists table has one row and that therapist has an unlocked key (master key in SecureStore).
+     * Checks if the (single) therapist has an active session (master key in vault).
      */
-    async hasActiveSession(): Promise<boolean> {
-        const therapists = this.findAll();
-        for (const therapist of therapists) {
-            const unlocked = await TherapistVault.unlockLocalKey(therapist);
-            if (unlocked) {
-                return true;
-            }
+    public async hasActiveSession(): Promise<boolean> {
+        const therapist = await this.findOneBy({});
+        if (!therapist) {
+            return false;
         }
-        return false;
+        return this.vault.exists(therapist.getUuid());
+    }
+
+    /**
+     * Attempts login: unlocks therapist, stores master key in vault if valid.
+     * @returns true if login succeeded, false if no therapist or wrong password.
+     */
+    public async login(password: string, crypto: CryptoEngine): Promise<boolean> {
+        const therapist = await this.findOneBy({});
+        if (!therapist) {
+            return false;
+        }
+        const masterKey = therapist.unlock(password, crypto);
+        if (masterKey == null) {
+            return false;
+        }
+        await this.vault.save(therapist.getUuid(), masterKey);
+        return true;
     }
 }

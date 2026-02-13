@@ -108,7 +108,7 @@ export class ModelDownloader {
     /**
      * Verify file checksum (SHA-256)
      */
-    private static async verifyChecksum(filePath: string, expectedChecksum: string): Promise<void> {
+    private static async verifyChecksum(_filePath: string, _expectedChecksum: string): Promise<void> {
         // TODO: Implement SHA-256 checksum verification
         // For now, this is a placeholder
         ModelDownloader.loggerInstance.warn('Checksum verification not implemented');

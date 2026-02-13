@@ -15,7 +15,6 @@ import { DeviceType } from 'expo-device';
 import semver from 'semver';
 import { HardwareGuardException } from '../Exception';
 import type { LoggerInterface } from '../Service/Logger';
-import { AppLogger } from '../Service/Logger';
 
 export class HardwareGuard {
     // --- public ---

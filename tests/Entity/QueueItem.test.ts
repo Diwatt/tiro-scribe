@@ -8,8 +8,12 @@ import { QueueItemStatus } from '@/Entity/Type';
 const MAX_RETRY_COUNT = 3;
 
 function isProcessable(status: QueueItemStatus, retryCount: number): boolean {
-    if (status === QueueItemStatus.Pending) return true;
-    if (status === QueueItemStatus.Failed && retryCount < MAX_RETRY_COUNT) return true;
+    if (status === QueueItemStatus.Pending) {
+        return true;
+    }
+    if (status === QueueItemStatus.Failed && retryCount < MAX_RETRY_COUNT) {
+        return true;
+    }
     return false;
 }
 

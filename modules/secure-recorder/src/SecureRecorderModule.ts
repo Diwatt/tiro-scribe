@@ -11,8 +11,7 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         if (!this._nativeModule) {
             try {
                 this._nativeModule = requireNativeModule('SecureRecorder');
-            } catch (error) {
-                console.error('Failed to load SecureRecorder native module:', error);
+            } catch (_error) {
                 throw new Error(
                     'SecureRecorder is a custom native module and is not available in Expo Go. Use a dev build: npx expo run:ios (or npx expo run:android). Rebuild and fully restart the app after adding the module.',
                 );

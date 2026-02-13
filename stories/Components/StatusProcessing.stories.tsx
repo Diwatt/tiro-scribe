@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
-import React from 'react';
 import { StatusProcessing } from '../../src/Components';
 
 const meta: Meta<typeof StatusProcessing> = {

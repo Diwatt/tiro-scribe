@@ -17,8 +17,8 @@ import { SecureRecorder } from '../src/SecureRecorder';
 import type { EventEmitter, NativeRecorderModule, RecordingStatus } from '../src/Type';
 
 describe('SecureRecorder - Comprehensive Tests', () => {
-    let mockNativeModule: jest.Mocked<NativeRecorderModule>;
-    let mockEventEmitter: jest.Mocked<EventEmitter>;
+    let _mockNativeModule: jest.Mocked<NativeRecorderModule>;
+    let _mockEventEmitter: jest.Mocked<EventEmitter>;
     let createFakeNative: () => jest.Mocked<NativeRecorderModule & EventEmitter>;
 
     beforeEach(() => {
@@ -31,7 +31,9 @@ describe('SecureRecorder - Comprehensive Tests', () => {
             };
             const listeners = new Map<string, Set<(d: any) => any>>();
             const ensure = (e: string) => {
-                if (!listeners.has(e)) listeners.set(e, new Set());
+                if (!listeners.has(e)) {
+                    listeners.set(e, new Set());
+                }
                 return listeners.get(e)!;
             };
             const fake = {
@@ -346,7 +348,7 @@ describe('SecureRecorder - Comprehensive Tests', () => {
             const recorder = new SecureRecorder('test', fake, fake);
             await waitForSync();
             await recorder.start();
-            const initialPath = recorder.filePath;
+            const _initialPath = recorder.filePath;
             // Simulate path change
             const status: RecordingStatus = {
                 state: RecorderState.RECORDING,

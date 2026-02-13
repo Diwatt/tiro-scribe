@@ -7,16 +7,7 @@
  */
 
 import { SchemaValidator } from './SchemaValidator';
-import type {
-    ClassConstructor,
-    ClassDecoratorConfig,
-    FieldDecoratorConfig,
-    OptionFieldSchema,
-    OptionFieldType,
-    OptionFieldTypeComposition,
-    OptionsFromSchema,
-    OptionsSchema,
-} from './Type';
+import type { ClassConstructor, ClassDecoratorConfig, FieldDecoratorConfig } from './Type';
 
 export type {
     ClassConstructor,
@@ -29,12 +20,13 @@ export type {
     OptionsSchema,
 } from './Type';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: decorator builder with static schemaValidator
 export class Builder {
     private static readonly schemaValidator = new SchemaValidator();
 
     /**
      * Builds an entity (class) decorator from a config implementing ClassDecoratorConfig.
-     * Options default to {} when not set; validate/fn always receive an object.
+     * Options default to {} when not set; validate/decorate always receive an object.
      * Returns the same constructor type so static members (e.g. entityName) are preserved.
      */
     public static buildEntity(
@@ -47,7 +39,7 @@ export class Builder {
             }
             config.validate?.(opts);
             return <T extends ClassConstructor>(target: T, context: ClassDecoratorContext<T>) => {
-                config.fn(target, context, opts);
+                config.decorate(target, context, opts);
                 return target;
             };
         };
