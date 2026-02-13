@@ -11,11 +11,13 @@ export {
     MetadataReader,
 } from '../Decorator';
 export { AbstractEntity } from './AbstractEntity';
-export { ForeignKey } from './ForeignKey';
-export type { ForeignKeyOptions, OnDeleteAction } from './ForeignKey';
+export { Executor } from './Executor';
+export type { CompiledStatement } from './Executor';
+export { Hydrator } from './Hydrator';
 export { registry } from './Registry';
 export { Repository } from './Repository';
+export type { RealForeignKeyColumn } from './Hydrator';
 export { EntitySerializer } from './Serializer';
 export type { FieldTransformer } from './Transformer';
 export { DateTransformer, TransformerRegistry } from './Transformer';
-export type { EntityClass, ObservablePrimitive } from './Type';
+export type { EntityClass } from './Type';

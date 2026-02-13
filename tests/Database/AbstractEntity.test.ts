@@ -1,6 +1,6 @@
 /**
  * AbstractEntity tests — ZOMBIES: Zero, One, Many, Boundary, Interface, Exceptions.
- * SUT: AbstractEntity (base entity with observable state, getField/setField, toRecord).
+ * SUT: AbstractEntity (base entity with plain state, getField/setField, toPlainObject).
  */
 
 import type { AbstractEntity } from '@/Database/AbstractEntity';
@@ -14,8 +14,7 @@ type TestEntityInstance = AbstractEntity & {
     getField: (k: string) => unknown;
     setField: (k: string, v: unknown) => void;
     primaryKey: string;
-    field$: <T>(k: string) => { get: () => T; set: (v: T) => void };
-    toRecord: () => Record<string, unknown>;
+    toPlainObject: () => Record<string, unknown>;
 };
 
 describe('AbstractEntity', () => {
@@ -32,13 +31,13 @@ describe('AbstractEntity', () => {
 
         it('constructor with undefined builds state from defaults only', () => {
             const e = new TestEntity(undefined as never) as TestEntityInstance;
-            expect(e.getField('id')).toBe('test-pk-1');
+            expect(e.getField('id')).toBe('test-primary-key-1');
             expect(e.getField('name')).toBe('');
         });
 
         it('constructor with empty object merges defaults', () => {
             const e = new TestEntity({}) as TestEntityInstance;
-            expect(e.getField('id')).toBe('test-pk-1');
+            expect(e.getField('id')).toBe('test-primary-key-1');
             expect(e.getField('name')).toBe('');
         });
 
@@ -51,7 +50,7 @@ describe('AbstractEntity', () => {
     describe('O — One (minimal happy path)', () => {
         it('builds state from plain data with defaults', () => {
             const e = new TestEntity({ name: 'foo' }) as TestEntityInstance;
-            expect(e.getField('id')).toBe('test-pk-1');
+            expect(e.getField('id')).toBe('test-primary-key-1');
             expect(e.getField('name')).toBe('foo');
         });
 
@@ -60,9 +59,9 @@ describe('AbstractEntity', () => {
             expect(e.primaryKey).toBe('my-id');
         });
 
-        it('toRecord returns only column keys with current values', () => {
+        it('toPlainObject returns only column keys with current values', () => {
             const e = new TestEntity({ id: 'r1', name: 'rec' }) as TestEntityInstance;
-            const record = e.toRecord();
+            const record = e.toPlainObject();
             expect(record.id).toBe('r1');
             expect(record.name).toBe('rec');
             expect(Object.keys(record).sort()).toEqual(['id', 'name']);
@@ -72,8 +71,8 @@ describe('AbstractEntity', () => {
     describe('B — Boundary', () => {
         it('primaryKey setter updates value', () => {
             const e = new TestEntity({ name: 'n' }) as TestEntityInstance;
-            e.primaryKey = 'new-pk';
-            expect(e.primaryKey).toBe('new-pk');
+            e.primaryKey = 'new-primary-key';
+            expect(e.primaryKey).toBe('new-primary-key');
         });
 
         it('setField then getField reflects update', () => {
@@ -83,21 +82,12 @@ describe('AbstractEntity', () => {
         });
     });
 
-    describe('I — Interface (getField / setField / field$)', () => {
+    describe('I — Interface (getField / setField)', () => {
         it('getField returns value, setField updates', () => {
             const e = new TestEntity({ name: 'a' }) as TestEntityInstance;
             expect(e.getField('name')).toBe('a');
             e.setField('name', 'b');
             expect(e.getField('name')).toBe('b');
-        });
-
-        it('field$ returns object with get/set for the key', () => {
-            const e = new TestEntity({ name: 'x' }) as TestEntityInstance;
-            const node = e.field$<string>('name');
-            expect(node).toBeDefined();
-            expect(node.get()).toBe('x');
-            node.set('y');
-            expect(e.getField('name')).toBe('y');
         });
     });
 

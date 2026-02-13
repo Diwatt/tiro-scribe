@@ -257,7 +257,7 @@ describe('DefinitionLanguageWriter', () => {
             const writer = new DefinitionLanguageWriter(tx);
             await writer.write(definition);
             expect(warnSpy).toHaveBeenCalledTimes(1);
-            expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual column/);
+            expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual\/generated column/);
             warnSpy.mockRestore();
             // @ts-expect-error cleanup
             delete global.__DEV__;

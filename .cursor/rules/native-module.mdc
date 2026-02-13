@@ -1,6 +1,6 @@
 ---
 description: "Native Modules (Swift/Kotlin), Security & Isomorphic Rules"
-globs: ["ios/**/*.swift", "android/**/*.kt", "**/SecureRecorder**", "**/services/BiocodeService.ts"]
+globs: ["ios/**/*.swift", "android/**/*.kt", "**/SecureRecorder**", "**/Service/Biocode*"]
 alwaysApply: true
 ---
 

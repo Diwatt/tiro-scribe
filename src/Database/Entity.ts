@@ -32,13 +32,11 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
 
         const meta = (context as { metadata?: Record<string, FieldMetadata> }).metadata;
         if (meta == null || typeof meta !== 'object') {
-            throw new DatabaseException(
-                `Entity "${options.tableName}" must define a primary key with @PrimaryKey().`,
-                'PRIMARY_KEY_REQUIRED',
-                undefined,
-                { tableName: options.tableName },
-            );
+            throw new DatabaseException(`Entity "${options.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
+                tableName: options.tableName,
+            });
         }
+
         let primaryKeyProp: string | null = null;
         for (const [propName, fieldMeta] of Object.entries(meta)) {
             const decorators = fieldMeta?.decorators;
@@ -56,13 +54,11 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
                 (target as unknown as Record<string, string>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = propName;
             }
         }
+
         if (primaryKeyProp == null) {
-            throw new DatabaseException(
-                `Entity "${options.tableName}" must define a primary key with @PrimaryKey().`,
-                'PRIMARY_KEY_REQUIRED',
-                undefined,
-                { tableName: options.tableName },
-            );
+            throw new DatabaseException(`Entity "${options.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
+                tableName: options.tableName,
+            });
         }
     }
 }

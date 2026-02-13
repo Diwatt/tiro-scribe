@@ -9,7 +9,7 @@ import {
     SqliteIntrospector,
     SqliteQueryCompiler,
 } from 'kysely';
-import type { DatabaseSchema } from '@/Database/Schema';
+import type { DatabaseSchema } from '@/Database/Type';
 
 /** Cold Kysely instance: builds SQL only. Use .compile() then execute with Database.getConnection().execute(compiled.sql, compiled.parameters). */
 export const qb = new Kysely<DatabaseSchema>({

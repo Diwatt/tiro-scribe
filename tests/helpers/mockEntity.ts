@@ -58,7 +58,7 @@ export function createTestEntityConstructor(): typeof AbstractEntity & {
         TestEntity,
         'test_entities',
         {
-            id: { decorators: [{ decoratorName: 'Column', options: { default: () => 'test-pk-1', type: 'text' } }] },
+            id: { decorators: [{ decoratorName: 'Column', options: { default: () => 'test-primary-key-1', type: 'text' } }] },
             name: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
         },
         'id',

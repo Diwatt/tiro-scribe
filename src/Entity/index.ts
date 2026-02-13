@@ -5,14 +5,20 @@ import { QueueItem } from './QueueItem';
 import { Therapist } from './Therapist';
 import { Transcription } from './Transcription';
 
-/** All entity classes for schema sync (order: parents before dependents). Add new entities here when you create them. */
-export const ENTITY_CLASSES: EntityClass[] = [
-    Therapist,
-    Encounter,
-    QueueItem,
-    Transcription,
-    ProsodyMetrics,
-];
+/**
+ * Single source of truth: table name + entity class (order: parents before dependents).
+ * Drives ENTITY_CLASSES and Kysely DatabaseSchema. Add new entities here when you create them.
+ */
+export const ENTITY_TABLES = [
+    ['therapists', Therapist],
+    ['encounters', Encounter],
+    ['queue_items', QueueItem],
+    ['transcriptions', Transcription],
+    ['prosody_metrics', ProsodyMetrics],
+] as const satisfies readonly (readonly [string, EntityClass])[];
+
+/** Entity classes for schema sync; derived from ENTITY_TABLES. */
+export const ENTITY_CLASSES: EntityClass[] = ENTITY_TABLES.map(([, Entity]) => Entity);
 
 export { Encounter, ProsodyMetrics, QueueItem, Therapist, Transcription };
 export type {

@@ -8,9 +8,9 @@
  * private therapistId!: string;
  */
 
-import type { EntityClassStatic } from './AbstractEntity';
 import { Builder, type FieldDecoratorConfig, type OptionsSchema } from '../Decorator/Builder';
 import { MetadataWriter } from '../Decorator/MetadataWriter';
+import type { EntityClassStatic } from './AbstractEntity';
 
 export enum OnDeleteAction {
     Cascade = 'CASCADE',
@@ -20,8 +20,8 @@ export enum OnDeleteAction {
 }
 
 export interface ForeignKeyOptions {
-    /** Target entity class (e.g. () => Therapist). Lazy to avoid circular imports. */
-    target: () => EntityClassStatic;
+    /** Target entity class. Use () => EntityClass for lazy ref (avoids circular imports), or pass the class directly. */
+    target: (() => EntityClassStatic) | EntityClassStatic;
     /** Column name on the target table (e.g. 'uuid'). Default: 'uuid'. */
     column?: string;
     /** Action when the referenced row is deleted. Default: RESTRICT. */
@@ -43,18 +43,12 @@ class ForeignKeyDecorator implements FieldDecoratorConfig<ForeignKeyOptions> {
     public readonly schema = FOREIGN_KEY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_FOREIGN_KEY_OPTIONS';
 
-    public before(
-        context: ClassFieldDecoratorContext<unknown, unknown>,
-        options: ForeignKeyOptions,
-    ): void {
+    public before(context: ClassFieldDecoratorContext<unknown, unknown>, options: ForeignKeyOptions): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
         MetadataWriter.registerField(meta, String(context.name), 'ForeignKey', options);
     }
 
-    public initializer(
-        _context: ClassFieldDecoratorContext<unknown, unknown>,
-        _options: ForeignKeyOptions,
-    ): (instance: unknown) => void {
+    public initializer(_context: ClassFieldDecoratorContext<unknown, unknown>, _options: ForeignKeyOptions): (instance: unknown) => void {
         return () => {
             /* no-op: metadata only, no instance wiring */
         };

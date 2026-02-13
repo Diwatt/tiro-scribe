@@ -1,15 +1,12 @@
 /**
  * Column decorator: use on a property declaration. Registers default in metadata and wires the property
- * to the observable store (get/set delegate to getField/setField). With as: 'date' uses Date API.
+ * to the entity state (get/set delegate to getField/setField). With as: 'date' uses Date API.
  *
- * For each @Column() field "foo" you get:
- * - this.foo / this.foo = x — value access (through _state$, observability preserved).
- * - this.foo$ — observable node for reactive subscriptions (observer, useSelector).
+ * For each @Column() field "foo" you get: this.foo / this.foo = x (value access through fieldValues).
  *
  * @example
  * @Column({ default: () => crypto.randomUUID(), type: 'text' })
  * public uuid!: string;
- * // then: this.uuid, this.uuid = x, and this.uuid$ for reactivity.
  */
 
 import { Builder, type FieldDecoratorConfig, type OptionsFromSchema, type OptionsSchema } from '../Decorator/Builder';
@@ -81,7 +78,6 @@ class ColumnDecorator implements FieldDecoratorConfig<ColumnOptions<unknown>> {
             const key = String(context.name);
             const transformer = options.as != null ? TransformerRegistry.get(options.as) : undefined;
 
-            // Value accessor: this.therapistId / this.therapistId = x — delegates to getField/setField (_state$) so observability is preserved.
             Object.defineProperty(self, key, {
                 configurable: true,
                 enumerable: true,
@@ -92,16 +88,6 @@ class ColumnDecorator implements FieldDecoratorConfig<ColumnOptions<unknown>> {
                 set(value: unknown) {
                     const stored = transformer != null ? transformer.toStorage(value) : value;
                     self.setField(key, stored);
-                },
-            });
-
-            // Observable accessor: this.therapistId$ — for reactive subscriptions (observer, useSelector).
-            const observableKey = `${key}$`;
-            Object.defineProperty(self, observableKey, {
-                configurable: true,
-                enumerable: false,
-                get() {
-                    return self.field$(key);
                 },
             });
         };

@@ -68,9 +68,9 @@ describe('MetadataReader', () => {
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'pk', 'PrimaryKey', {});
             const reader = new MetadataReader(construct);
-            const pk = reader.getField('PrimaryKey');
-            expect(pk).toBeDefined();
-            expect(pk?.getFieldName()).toBe('pk');
+            const primaryKeyField = reader.getField('PrimaryKey');
+            expect(primaryKeyField).toBeDefined();
+            expect(primaryKeyField?.getFieldName()).toBe('pk');
         });
 
         it('returns undefined when no field has decorator name', () => {
@@ -89,9 +89,9 @@ describe('MetadataReader', () => {
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
             MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
-            const pk = MetadataReader.getField(construct, 'PrimaryKey');
-            expect(pk).toBeDefined();
-            expect(pk?.getFieldName()).toBe('id');
+            const primaryKeyField = MetadataReader.getField(construct, 'PrimaryKey');
+            expect(primaryKeyField).toBeDefined();
+            expect(primaryKeyField?.getFieldName()).toBe('id');
         });
 
         it('accepts instance and uses instance.constructor', () => {
@@ -102,9 +102,9 @@ describe('MetadataReader', () => {
             MetadataWriter.registerField(meta, 'uuid', 'PrimaryKey', {});
             const instance = Object.create(construct.prototype);
             Object.defineProperty(instance, 'constructor', { value: construct });
-            const pk = MetadataReader.getField(instance, 'PrimaryKey');
-            expect(pk).toBeDefined();
-            expect(pk?.getFieldName()).toBe('uuid');
+            const primaryKeyField = MetadataReader.getField(instance, 'PrimaryKey');
+            expect(primaryKeyField).toBeDefined();
+            expect(primaryKeyField?.getFieldName()).toBe('uuid');
         });
     });
 });

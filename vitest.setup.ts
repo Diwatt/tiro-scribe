@@ -149,9 +149,9 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
                     const afterInto = sql.slice(sqlLower.indexOf('insert into') + 11).trimStart();
                     const tableMatch = afterInto.match(/^"?(\w+)"?\s*\(/);
                     const table = tableMatch ? tableMatch[1] : afterInto.split(/\s+/)[0]?.replace(/"/g, '') ?? 'unknown';
-                    const pk = args[0] as string;
+                    const primaryKey = args[0] as string;
                     const data = args[1] as string;
-                    getTableStore(table).set(pk, data);
+                    getTableStore(table).set(primaryKey, data);
                     return { rows: [] };
                 }
                 const selectMatch = sql.match(/select .+ from\s+"?(\w+)"?/i);
@@ -159,10 +159,10 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
                     const table = selectMatch[1];
                     const tbl = getTableStore(table);
                     if (sql.toLowerCase().includes('where')) {
-                        const pk = args[0] as string;
-                        const d = tbl.get(pk);
+                        const primaryKey = args[0] as string;
+                        const d = tbl.get(primaryKey);
                         if (d !== undefined) {
-                            return { rows: [{ uuid: pk, data: d }] };
+                            return { rows: [{ uuid: primaryKey, data: d }] };
                         }
                         const whereColMatch = sql.match(/where\s+"?(\w+)"?\s*=\s*\?/i);
                         if (whereColMatch && args.length >= 1) {
@@ -173,7 +173,7 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
                                 const parsed = JSON.parse(dataStr) as Record<string, unknown>;
                                 return parsed[camel] === value || parsed[column] === value;
                             });
-                            return { rows: filtered.map(([pk, dataStr]) => ({ uuid: pk, data: dataStr })) };
+                            return { rows: filtered.map(([primaryKey, dataStr]) => ({ uuid: primaryKey, data: dataStr })) };
                         }
                         const jsonExtractMatch = sql.match(/json_extract\(data, '\$\.(\w+)'\) = \?/);
                         if (jsonExtractMatch && args.length >= 1) {
@@ -183,11 +183,11 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
                                 const parsed = JSON.parse(dataStr) as Record<string, unknown>;
                                 return parsed[key] === value;
                             });
-                            return { rows: filtered.map(([pk, dataStr]) => ({ uuid: pk, data: dataStr })) };
+                            return { rows: filtered.map(([primaryKey, dataStr]) => ({ uuid: primaryKey, data: dataStr })) };
                         }
                         return { rows: [] };
                     }
-                    const rows = Array.from(tbl.entries()).map(([pk, data]) => ({ uuid: pk, data }));
+                    const rows = Array.from(tbl.entries()).map(([primaryKey, data]) => ({ uuid: primaryKey, data }));
                     const limitMatch = sql.match(/limit \? offset \?/i);
                     if (limitMatch && args.length >= 2) {
                         const limitVal = (args[args.length - 2] as number) ?? 1000;
@@ -199,8 +199,8 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
                 if (sql.toLowerCase().includes('select 1') || sql.toLowerCase().includes('select 1 as')) {
                     const tableMatch = sql.match(/from\s+"?(\w+)"?/i);
                     if (tableMatch) {
-                        const pk = args[0] as string;
-                        const has = getTableStore(tableMatch[1]).has(pk);
+                        const primaryKey = args[0] as string;
+                        const has = getTableStore(tableMatch[1]).has(primaryKey);
                         return { rows: has ? [{ 1: 1 }] : [] };
                     }
                 }

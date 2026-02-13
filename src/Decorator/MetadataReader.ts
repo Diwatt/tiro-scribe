@@ -105,10 +105,10 @@ export class MetadataReader {
      * Returns undefined if there is no primary key or that property has no @Column.
      */
     public getPrimaryKeyColumn(): FieldDecorator | undefined {
-        const pkField = this.getField('PrimaryKey');
-        if (pkField == null) {
+        const primaryKeyField = this.getField('PrimaryKey');
+        if (primaryKeyField == null) {
             return undefined;
         }
-        return this.getFieldByProperty(pkField.getFieldName()).find((f) => f.getDecoratorName() === 'Column');
+        return this.getFieldByProperty(primaryKeyField.getFieldName()).find((f) => f.getDecoratorName() === 'Column');
     }
 }

@@ -26,6 +26,7 @@ alwaysApply: true
 * **Classes, Interfaces, Types:** PascalCase (e.g. `ConsoleLogger`, `UserRepository`). Suffix interfaces with `Interface` where used as contracts.
 * **Methods and Functions:** camelCase (e.g. `getUserById`, `hasSession`).
 * **Variables and Parameters:** camelCase (e.g. `acceptableTypes`, `primaryKeyColumnName`).
+* **No acronyms in identifiers (except common ones):** Do not use abbreviations such as `pk`, `fk` in variable, parameter, or column names. Use full words: `primaryKey`, `foreignKey`. Common exceptions: `id` and `uid` are acceptable. Do **not** repeat the folder or module name: e.g. in `Database/` use `primaryKeyColumnName` not `databasePrimaryKeyColumnName`; in `Entity/` use `primaryKey` not `entityPrimaryKey`.
 * **Constants:** SCREAMING_SNAKE_CASE (e.g. `MAX_LENGTH`, `DEFAULT_TIMEOUT`).
 * **Abstract Classes:** Prefix with `Abstract` (e.g. `AbstractEntity`), except test base classes (e.g. `*TestCase`).
 * **Exceptions:** Suffix with `Exception` (e.g. `ValidationException`).

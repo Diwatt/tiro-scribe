@@ -4,16 +4,16 @@
  * Returns TableDefinition so the DDL writer stays decoupled from entity classes (see TableDefinition JSDoc).
  */
 
-import snakeCase from 'lodash/snakeCase';
 import type { FieldDecorator } from '@/Decorator/FieldDecorator';
 import type { MetadataReader } from '@/Decorator/MetadataReader';
 import { DatabaseException } from '@/Exception';
+import type { EntityClassStatic } from '../AbstractEntity';
 import type { ColumnOptions } from '../Column';
 import type { ForeignKeyOptions } from '../ForeignKey';
 import { OnDeleteAction } from '../ForeignKey';
+import snakeCase from 'lodash/snakeCase';
 import type { FullTextSearchFieldSpec } from './TableDefinition';
 import { TableDefinition } from './TableDefinition';
-import type { EntityClassStatic } from '../AbstractEntity';
 
 /** Primary key column descriptor for DDL (name, SQL type, optional length). */
 interface PrimaryKeyColumnDef {
@@ -72,20 +72,17 @@ export class DefinitionBuilder {
 
     private getForeignKeyReferencesClause(reader: MetadataReader, propertyName: string): string | null {
         const decorators = reader.getFieldByProperty(propertyName);
-        const fkDecorator = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
-        if (fkDecorator == null) {
+        const foreignKeyDecorator = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
+        if (foreignKeyDecorator == null) {
             return null;
         }
-        const options = fkDecorator.getOptions<ForeignKeyOptions>();
+        const options = foreignKeyDecorator.getOptions<ForeignKeyOptions>();
         const targetClass = (typeof options.target === 'function' ? options.target() : options.target) as EntityClassStatic;
         const referencedTable = targetClass?.entityName;
         if (referencedTable == null || typeof referencedTable !== 'string' || referencedTable.trim() === '') {
-            throw new DatabaseException(
-                'ForeignKey target must be an @Entity class with tableName.',
-                'INVALID_FOREIGN_KEY_TARGET',
-                undefined,
-                { propertyName },
-            );
+            throw new DatabaseException('ForeignKey target must be an @Entity class with tableName.', 'INVALID_FOREIGN_KEY_TARGET', undefined, {
+                propertyName,
+            });
         }
         const referencedColumn = options.column ?? 'uuid';
         const onDelete = options.onDelete ?? OnDeleteAction.Restrict;
@@ -109,8 +106,8 @@ export class DefinitionBuilder {
     }
 
     /**
-     * Builds column DDL: PK, data, then real columns for @ForeignKey fields, then virtual columns for index-only fields.
-     * SQLite forbids REFERENCES on virtual columns, so FK fields must be real columns.
+     * Builds column DDL: primary key, data, then real columns for @ForeignKey fields, then virtual columns for index-only fields.
+     * SQLite forbids REFERENCES on virtual columns, so foreign key fields must be real columns.
      */
     private buildColumns(): string[] {
         const columns: string[] = [];
@@ -121,14 +118,14 @@ export class DefinitionBuilder {
 
         for (const field of this.columnFields) {
             const propertyName = field.getFieldName();
-            const hasFk = this.foreignKeyClauseByPropertyName.has(propertyName);
+            const hasForeignKey = this.foreignKeyClauseByPropertyName.has(propertyName);
             const options = field.getOptions<ColumnOptions>();
 
-            if (hasFk) {
+            if (hasForeignKey) {
                 const sqlType = this.formatSqlType(String(options.type).toUpperCase(), options.length);
-                const fkClause = this.foreignKeyClauseByPropertyName.get(propertyName) ?? '';
+                const foreignKeyClause = this.foreignKeyClauseByPropertyName.get(propertyName) ?? '';
                 const columnName = snakeCase(propertyName);
-                columns.push(`${columnName} ${sqlType}${fkClause}`);
+                columns.push(`${columnName} ${sqlType}${foreignKeyClause}`);
                 continue;
             }
 
@@ -147,10 +144,10 @@ export class DefinitionBuilder {
 
         for (const field of this.columnFields) {
             const propertyName = field.getFieldName();
-            const hasFk = this.foreignKeyClauseByPropertyName.has(propertyName);
+            const hasForeignKey = this.foreignKeyClauseByPropertyName.has(propertyName);
             const options = field.getOptions<ColumnOptions>();
 
-            if (hasFk) {
+            if (hasForeignKey) {
                 const columnName = snakeCase(propertyName);
                 indexes.push(`CREATE INDEX IF NOT EXISTS idx_${this.tableName}_${columnName} ON ${this.tableName}(${columnName});`);
                 continue;

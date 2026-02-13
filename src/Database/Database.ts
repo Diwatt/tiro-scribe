@@ -1,15 +1,16 @@
 /**
  * Database: SQLite connection and schema sync (singleton).
  * Use Database.initialize() (or initialize(entityClasses) for DI) then Database.getConnection().
+ * Schema sync on initialize is additive only (create missing tables/columns); see DefinitionLanguageWriter.
  */
 
 import { open } from '@op-engineering/op-sqlite';
 import { AppConfig } from '@/Config';
-import { MetadataReader } from '@/Decorator/MetadataReader';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import type { TransactionLike } from '@/Database/Schema/DefinitionLanguageWriter';
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import type { EntityClass } from '@/Database/Type';
+import { MetadataReader } from '@/Decorator/MetadataReader';
 import { ENTITY_CLASSES } from '@/Entity';
 
 /**
@@ -22,8 +23,7 @@ export class Database {
 
     private constructor() {}
 
-    private static readonly NOT_INITIALIZED_MESSAGE =
-        'Database not initialized. Call Database.initialize() before using repositories.';
+    private static readonly NOT_INITIALIZED_MESSAGE = 'Database not initialized. Call Database.initialize() before using repositories.';
 
     /**
      * Initializes the database (idempotent). Uses default entity list from @/Entity when omitted.
@@ -73,5 +73,5 @@ export class Database {
     }
 }
 
-export { registry } from '@/Database/Registry';
 export { AbstractEntity } from '@/Database/AbstractEntity';
+export { registry } from '@/Database/Registry';

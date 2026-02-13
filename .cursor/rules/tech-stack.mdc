@@ -6,15 +6,15 @@ alwaysApply: true
 
 # Tech Stack
 - **Framework:** React Native (Expo)
-- **UI:** React Native Paper (MD3) + Lucide Icons
+- **UI:** React Native Paper (Material Design 3) + Lucide Icons
 - **State:** @legendapp/state (Observables)
-- **Audio/AI:** ONNX Runtime, SecureRecorder (Native Module), Sherpa-ONNX.
-- **Storage:** MMKV (Prefs) / FileSystem (Encrypted Audio).
+- **Audio/AI:** ONNX Runtime, SecureRecorder (Native Module), Sherpa-ONNX
+- **Storage:** MMKV (Preferences) / FileSystem (Encrypted Audio)
 
 # AI & Service Implementation Rules
-1. **Service Naming:** Use Capability names (e.g., `VoiceCalibration`), NOT `*Service`.
+1. **Service Naming:** Use Capability names (e.g. `VoiceCalibration`), NOT `*Service`.
 2. **Model Loading:** Models (Sherpa/Whisper) are downloaded via `ModelDownloader` and cached.
-3. **Biocode Protocol:** `Hash(SpeakerVector + TherapistID_Salt)`. Never store raw vectors.
+3. **Biocode Protocol:** `Hash(SpeakerVector + TherapistIdentifier_Salt)`. Never store raw vectors.
 4. **Anonymization:** 3-Layer approach (ONNX BERT + Heuristics + Temporal Fuzzing).
 
 # Global Patterns
@@ -26,4 +26,4 @@ alwaysApply: true
 # Logging (Strict)
 - **Logger:** Use `AppLogger` instance.
 - **No Timestamps:** The logger handles `dateFormat: 'time'`. DO NOT add `new Date()`.
-- **Context:** Log strictly relevant IDs/State. No PII in logs.
+- **Context:** Log strictly relevant identifiers/state. No PII in logs.

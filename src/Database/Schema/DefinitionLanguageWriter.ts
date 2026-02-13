@@ -1,10 +1,13 @@
 /**
  * Writes a TableDefinition to SQLite: CREATE TABLE, Smart Migrations (ADD COLUMN), CREATE INDEX, FTS table + triggers.
  * Single responsibility: definition → Data Definition Language execution (no entity metadata).
+ *
+ * Schema sync is additive only: creates missing tables, adds missing columns and indexes. It does not drop or rename
+ * columns, change types, or run versioned migration scripts. For removals or renames, use manual DDL or a migration framework.
  */
 
-import snakeCase from 'lodash/snakeCase';
 import { AppLogger } from '@/Service/Logger';
+import snakeCase from 'lodash/snakeCase';
 import type { TableDefinition } from './TableDefinition';
 
 export interface TransactionLike {
@@ -22,7 +25,10 @@ export class DefinitionLanguageWriter {
         this.tx = tx;
     }
 
-    /** Runs DDL for the given definition (CREATE TABLE, migrate missing columns, indexes, full-text search table and triggers). */
+    /**
+     * Runs DDL for the given definition (CREATE TABLE, migrate missing columns, indexes, full-text search table and triggers).
+     * tableName and columns come from DefinitionBuilder/entity metadata only; do not pass user-controlled input.
+     */
     public async write(definition: TableDefinition): Promise<void> {
         const createTableSql = `CREATE TABLE IF NOT EXISTS ${definition.tableName} (\n  ${definition.columns.join(',\n  ')}\n);`;
         await this.tx.execute(createTableSql);
@@ -40,7 +46,8 @@ export class DefinitionLanguageWriter {
 
     /**
      * Smart migration: add any columns present in the definition but missing in the existing table.
-     * Parses column names from definition DDL (first token). For virtual columns, ADD COLUMN may fail on older SQLite; errors are logged and skipped.
+     * Column names are parsed as the first token of each DDL line (definition is from entity metadata; format is simple "name TYPE ...").
+     * For virtual columns, ADD COLUMN may fail on older SQLite; errors are logged and skipped.
      */
     private async migrateMissingColumns(definition: TableDefinition): Promise<void> {
         const result = await this.tx.execute(`PRAGMA table_info(${definition.tableName})`) as { rows?: TableInfoRow[] };
@@ -61,16 +68,27 @@ export class DefinitionLanguageWriter {
         }
     }
 
+    /**
+     * Adds a column. Only virtual/generated columns may have errors caught and logged (e.g. older SQLite);
+     * physical columns (e.g. foreign keys) must throw on failure to avoid database corruption.
+     */
     private async addColumnOrWarn(tableName: string, columnName: string, columnDdl: string): Promise<boolean> {
+        const isVirtualOrGenerated =
+            columnDdl.includes('GENERATED ALWAYS') || columnDdl.includes('VIRTUAL');
         try {
             await this.tx.execute(`ALTER TABLE ${tableName} ADD COLUMN ${columnDdl}`);
             return true;
         } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            const isVirtual = columnDdl.includes('GENERATED ALWAYS') || columnDdl.includes('VIRTUAL');
-            if (isVirtual && typeof __DEV__ !== 'undefined' && __DEV__) {
+            if (isVirtualOrGenerated) {
                 AppLogger.getInstance().warn(
-                    `[DefinitionLanguageWriter] ADD COLUMN failed for virtual column "${columnName}" (older SQLite may not support it): ${message}`,
+                    '[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)',
+                    {
+                        tableName,
+                        columnName,
+                        columnDdl,
+                        error: err,
+                        errorMessage: err instanceof Error ? err.message : String(err),
+                    },
                 );
                 return false;
             }

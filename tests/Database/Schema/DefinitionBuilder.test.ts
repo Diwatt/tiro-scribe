@@ -81,7 +81,7 @@ describe('DefinitionBuilder', () => {
     });
 
     describe('O — One (minimal happy path)', () => {
-        it('build returns TableDefinition with tableName and primary key column when one entity and one pk column', () => {
+        it('build returns TableDefinition with tableName and primary key column when one entity and one primary key column', () => {
             const reader = createMockReader({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('uuid', 'varchar', 36),
@@ -237,7 +237,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('id', 'text');
             const col = createColumnField('ownerId', { type: 'varchar', length: 36, index: true });
             const targetEntity = { entityName: 'owners' };
-            const fk = new FieldDecorator('ForeignKey', 'Entity', 'ownerId', {
+            const foreignKeyDecorator = new FieldDecorator('ForeignKey', 'Entity', 'ownerId', {
                 target: () => targetEntity,
                 onDelete: OnDeleteAction.Restrict,
             });
@@ -245,7 +245,7 @@ describe('DefinitionBuilder', () => {
                 getEntity: () => createEntityDecorator('assets'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [col] : []),
-                getFieldByProperty: (prop) => (prop === 'ownerId' ? [col, fk] : []),
+                getFieldByProperty: (prop) => (prop === 'ownerId' ? [col, foreignKeyDecorator] : []),
             });
             const definition = new DefinitionBuilder(reader).build();
             const ownerIdColumn = definition.columns.find((c) => c.includes('owner_id'))!;
@@ -270,7 +270,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const fkColumn = createColumnField('parentId', { type: 'varchar', length: 36, index: false });
             const targetEntity = { entityName: 'parents' };
-            const fk = new FieldDecorator('ForeignKey', 'Entity', 'parentId', {
+            const foreignKeyDecorator = new FieldDecorator('ForeignKey', 'Entity', 'parentId', {
                 target: () => targetEntity,
                 column: 'uuid',
                 onDelete: OnDeleteAction.Restrict,
@@ -279,7 +279,7 @@ describe('DefinitionBuilder', () => {
                 getEntity: () => createEntityDecorator('children'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [fkColumn] : []),
-                getFieldByProperty: (prop) => (prop === 'parentId' ? [fkColumn, fk] : []),
+                getFieldByProperty: (prop) => (prop === 'parentId' ? [fkColumn, foreignKeyDecorator] : []),
             });
             const definition = new DefinitionBuilder(reader).build();
             const parentCol = definition.columns.find((c) => c.includes('parent_id'))!;
@@ -352,7 +352,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const col = createColumnField('refId', { type: 'varchar', length: 36, index: true });
             const badTarget: unknown = {};
-            const fk = new FieldDecorator('ForeignKey', 'Entity', 'refId', {
+            const foreignKeyDecorator = new FieldDecorator('ForeignKey', 'Entity', 'refId', {
                 target: () => badTarget as { entityName?: string },
                 onDelete: OnDeleteAction.Restrict,
             });
@@ -360,7 +360,7 @@ describe('DefinitionBuilder', () => {
                 getEntity: () => createEntityDecorator('edges'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [col] : []),
-                getFieldByProperty: (prop) => (prop === 'refId' ? [col, fk] : []),
+                getFieldByProperty: (prop) => (prop === 'refId' ? [col, foreignKeyDecorator] : []),
             });
             expect(() => new DefinitionBuilder(reader)).toThrow(DatabaseException);
         });
