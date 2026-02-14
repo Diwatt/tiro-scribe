@@ -28,4 +28,44 @@ export class DiscourseMetrics extends AbstractEntity {
 
     @Column({ default: '[]', type: 'text', as: 'json' })
     public topics!: string[];
+
+    public getEncounterId(): string {
+        return this.encounterId;
+    }
+
+    public getPrimaryEmotion(): string {
+        return this.primaryEmotion;
+    }
+
+    public getSentimentScore(): number {
+        return this.sentimentScore;
+    }
+
+    public getTopics(): string[] {
+        return this.topics;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public setEncounterId(value: string): void {
+        this.encounterId = value;
+    }
+
+    public setPrimaryEmotion(value: string): void {
+        this.primaryEmotion = value;
+    }
+
+    public setSentimentScore(value: number): void {
+        this.sentimentScore = value;
+    }
+
+    public setTopics(value: string[]): void {
+        this.topics = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
+    }
 }

@@ -27,4 +27,44 @@ export class ProsodyMetrics extends AbstractEntity {
 
     @Column({ default: 0, type: 'real' })
     public coherence!: number;
+
+    public getCoherence(): number {
+        return this.coherence;
+    }
+
+    public getEncounterId(): string {
+        return this.encounterId;
+    }
+
+    public getPitchMean(): number {
+        return this.pitchMean;
+    }
+
+    public getSpeakingRate(): number {
+        return this.speakingRate;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public setCoherence(value: number): void {
+        this.coherence = value;
+    }
+
+    public setEncounterId(value: string): void {
+        this.encounterId = value;
+    }
+
+    public setPitchMean(value: number): void {
+        this.pitchMean = value;
+    }
+
+    public setSpeakingRate(value: number): void {
+        this.speakingRate = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
+    }
 }

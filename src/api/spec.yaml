@@ -1,30 +1,91 @@
 openapi: 3.0.3
 info:
-  title: Tiro Scribe Taxonomy API
+  title: Tiro API
   version: 1.0.0
-  description: Domain taxonomy for onboarding (qualifications, therapy methods, languages). Single bootstrap endpoint for mobile performance.
+  description: |
+    App configuration API used to bootstrap the client (onboarding, model config, etc.).
+    - **Onboarding:** taxonomy (qualifications, therapy methods, languages) for wizard steps.
+    - **Models:** ONNX model configs (url, hash, size) for on-device download and integrity.
 
 servers:
   - url: /api
     description: Base URL (mutator prepends configured base)
 
+tags:
+  - name: app-config
+    description: App configuration for onboarding and runtime
+  - name: onboarding
+    description: Taxonomy and options for the onboarding flow
+  - name: models
+    description: ONNX model configs for download and integrity
+
 paths:
   /taxonomy:
     get:
       tags:
-        - taxonomy
+        - app-config
+        - onboarding
       operationId: getTaxonomy
-      summary: Bootstrap taxonomy (qualifications, therapy methods, languages)
+      summary: Onboarding taxonomy (qualifications, therapy methods, languages)
+      description: Returns select options for the onboarding wizard (profile, methods, languages).
       responses:
         '200':
-          description: Aggregated taxonomy for app bootstrap
+          description: Taxonomy for app bootstrap
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Taxonomy'
+  /models:
+    get:
+      tags:
+        - app-config
+        - models
+      operationId: getModels
+      summary: Model configs (use_case → config) for download
+      description: Returns ONNX model configs keyed by use_case (e.g. speaker_id, vad). Used for download, integrity (hash), and progress (size_bytes).
+      responses:
+        '200':
+          description: Map of use_case to model config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigMap'
 
 components:
   schemas:
+    ModelConfig:
+      type: object
+      required:
+        - id
+        - use_case
+        - version
+        - url
+        - hash
+        - size_bytes
+        - min_app_version
+      properties:
+        id:
+          type: string
+          description: Identifiant technique du modèle (ex. cam-pp-v1-quant)
+        use_case:
+          type: string
+          description: Identifiant fonctionnel pour le code (ex. speaker_id, vad)
+        version:
+          type: string
+          description: Version du modèle (SemVer obligatoire)
+        url:
+          type: string
+          format: uri
+          description: URL de téléchargement (CDN recommandé)
+        hash:
+          type: string
+          description: "Intégrité 'algo:hash' (ex. sha256:7e8f9a...). Priorité SHA-256 pour la performance native mobile."
+        size_bytes:
+          type: integer
+          description: Taille exacte pour la barre de progression (en octets)
+        min_app_version:
+          type: string
+          description: Version de l'app requise pour charger ce modèle (SemVer)
     SelectOption:
       type: object
       required:
@@ -37,6 +98,11 @@ components:
         label:
           type: string
           description: Display label
+    ModelConfigMap:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/ModelConfig'
+      description: use_case -> ModelConfig (ex. speaker_id, vad)
     Taxonomy:
       type: object
       required:

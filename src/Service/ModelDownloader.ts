@@ -1,160 +1,201 @@
 /**
- * ModelDownloader - Downloads ONNX models on first app launch
- *
- * Models are downloaded from a CDN/server and cached locally
+ * ModelDownloader - Downloads ONNX models on first app launch.
+ * Model configs come from Tiro API GET /models only; no client-side fallback.
+ * Local path pattern from AppConfig.modelLocalPathSubdir (e.g. models/${config.id}.onnx).
  */
 
-import * as FileSystem from 'expo-file-system/legacy';
-import { ModelDownloadError } from '../Exception/ModelDownloadError';
+import { AppConfig } from '@/Config/AppConfig';
+import { Directory, File, Paths } from 'expo-file-system';
+import type { ModelConfig } from '@/api/generated/models';
+import { getModels } from '@/api/generated/models/models';
+import { ModelDownloaderException } from '../Exception/ModelDownloaderException';
 import { AppLogger, type LoggerInterface } from './Logger';
 
-export interface ModelConfig {
-    name: string;
-    url: string;
-    localPath: string;
-    checksum?: string; // Optional SHA-256 checksum for verification
-}
+export type { ModelConfig };
 
-export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-    SPEAKER_RECOGNITION: {
-        name: 'speaker-recognition',
-        url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recognition-models/3dspeaker_speechbrain.zipformer.onnx',
-        localPath: 'models/speaker-recognition.onnx',
-    },
-    BERT_NER: {
-        name: 'bert-ner',
-        url: 'https://your-cdn.com/models/bert-ner-quantized.onnx', // Update with your model URL
-        localPath: 'models/bert-ner-quantized.onnx',
-    },
-    // Add more models as needed
-};
+/** Cached model configs from GET /models. */
+let modelConfigsCache: Promise<Record<string, ModelConfig>> | null = null;
 
 export class ModelDownloader {
-    private static downloadProgress: Map<string, number> = new Map();
-    private static loggerInstance: LoggerInterface = AppLogger.getInstance();
+    private static instance: ModelDownloader | null = null;
+    private readonly downloadProgress: Map<string, number> = new Map();
 
-    /**
-     * Download a model if it doesn't exist locally
-     * @param config - Model configuration
-     * @param onProgress - Optional progress callback (0-1)
-     * @returns Local file path
-     */
-    static async ensureModelDownloaded(config: ModelConfig, onProgress?: (progress: number) => void): Promise<string> {
-        const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
+    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
 
-        // Check if model already exists
-        const fileInfo = await FileSystem.getInfoAsync(localPath);
-        if (fileInfo.exists) {
-            ModelDownloader.loggerInstance.debug(`Model ${config.name} already exists at ${localPath}`);
-            return localPath;
+    public static getInstance(): ModelDownloader {
+        if (ModelDownloader.instance == null) {
+            ModelDownloader.instance = new ModelDownloader();
         }
 
-        // Create models directory if it doesn't exist
-        const dirPath = localPath.substring(0, localPath.lastIndexOf('/'));
-        const dirInfo = await FileSystem.getInfoAsync(dirPath);
-        if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
-        }
+        return ModelDownloader.instance;
+    }
 
-        // Download the model
-        ModelDownloader.loggerInstance.info(`Downloading model ${config.name} from ${config.url}...`);
+    /** Relative path under document dir (e.g. models/${config.id}.onnx). */
+    public getLocalPath(config: ModelConfig): string {
+        return `${AppConfig.modelLocalPathSubdir}/${config.id}.onnx`;
+    }
 
-        const downloadResumable = FileSystem.createDownloadResumable(config.url, localPath, {}, (downloadProgress) => {
-            const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-            ModelDownloader.downloadProgress.set(config.name, progress);
-            if (onProgress) {
-                onProgress(progress);
-            }
-        });
-
-        try {
-            const result = await downloadResumable.downloadAsync();
-            if (!result) {
-                throw new ModelDownloadError('Download failed - no result');
-            }
-
-            // Verify checksum if provided
-            if (config.checksum) {
-                await ModelDownloader.verifyChecksum(localPath, config.checksum);
-            }
-
-            ModelDownloader.loggerInstance.info(`Model ${config.name} downloaded successfully to ${localPath}`);
-            return localPath;
-        } catch (error) {
-            // Clean up partial download on error
-            const fileInfo = await FileSystem.getInfoAsync(localPath);
-            if (fileInfo.exists) {
-                await FileSystem.deleteAsync(localPath, { idempotent: true });
-            }
-            throw new ModelDownloadError(`Failed to download model ${config.name}: ${error}`, error instanceof Error ? error : new Error(String(error)));
+    public async delete(config: ModelConfig): Promise<void> {
+        const file = this.fileForConfig(config);
+        if (file.exists) {
+            file.delete();
+            this.logger.debug(`Deleted model ${config.use_case} from ${file.uri}`);
         }
     }
 
-    /**
-     * Download multiple models in parallel
-     */
-    static async ensureModelsDownloaded(configs: ModelConfig[], onProgress?: (modelName: string, progress: number) => void): Promise<Record<string, string>> {
-        const results: Record<string, string> = {};
+    public async ensureDownloaded(config: ModelConfig, onProgress?: (progress: number) => void): Promise<string> {
+        const subdir = AppConfig.modelLocalPathSubdir;
+        const file = this.fileForConfig(config);
+        if (file.exists) {
+            this.logger.debug(`Model ${config.use_case} (${config.id}) already exists at ${file.uri}`);
+            return file.uri;
+        }
 
+        const modelsDir = new Directory(Paths.document, subdir);
+        if (!modelsDir.exists) {
+            modelsDir.create({ intermediates: true, idempotent: true });
+        }
+
+        this.logger.info(`Downloading model ${config.use_case} (${config.id}) from ${config.url}...`);
+
+        if (onProgress) {
+            this.downloadProgress.set(config.use_case, 0);
+            onProgress(0);
+        }
+
+        try {
+            await File.downloadFileAsync(config.url, file, { idempotent: true });
+
+            const hash = config.hash?.trim();
+            if (hash != null && hash !== '' && hash.startsWith('sha256:') && hash.length > 7) {
+                await this.verifyChecksum(file, hash);
+            }
+
+            this.downloadProgress.set(config.use_case, 1);
+            if (onProgress) {
+                onProgress(1);
+            }
+            this.logger.info(`Model ${config.use_case} downloaded successfully to ${file.uri}`);
+
+            return file.uri;
+        } catch (error) {
+            if (file.exists) {
+                file.delete();
+            }
+            throw new ModelDownloaderException(`Failed to download model ${config.use_case}: ${error}`, error instanceof Error ? error : new Error(String(error)));
+        }
+    }
+
+    public async ensureDownloadedByKey(key: string, onProgress?: (progress: number) => void): Promise<string> {
+        const config = await this.getConfig(key);
+        return this.ensureDownloaded(config, onProgress);
+    }
+
+    public async ensureManyDownloaded(configs: ModelConfig[], onProgress?: (useCase: string, progress: number) => void): Promise<Record<string, string>> {
+        const results: Record<string, string> = {};
         await Promise.all(
             configs.map(async (config) => {
-                const path = await ModelDownloader.ensureModelDownloaded(config, onProgress ? (progress) => onProgress(config.name, progress) : undefined);
-                results[config.name] = path;
+                const path = await this.ensureDownloaded(config, onProgress ? (progress) => onProgress(config.use_case, progress) : undefined);
+                results[config.use_case] = path;
             }),
         );
+
         return results;
     }
 
-    /**
-     * Verify file checksum (SHA-256)
-     */
-    private static async verifyChecksum(_filePath: string, _expectedChecksum: string): Promise<void> {
-        // TODO: Implement SHA-256 checksum verification
-        // For now, this is a placeholder
-        ModelDownloader.loggerInstance.warn('Checksum verification not implemented');
-    }
-
-    /**
-     * Get download progress for a model
-     */
-    static getProgress(modelName: string): number {
-        return ModelDownloader.downloadProgress.get(modelName) || 0;
-    }
-
-    /**
-     * Check if model exists locally
-     */
-    static async modelExists(config: ModelConfig): Promise<boolean> {
-        const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
-        const fileInfo = await FileSystem.getInfoAsync(localPath);
-        return fileInfo.exists;
-    }
-
-    /**
-     * Delete a downloaded model
-     */
-    static async deleteModel(config: ModelConfig): Promise<void> {
-        const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
-        const fileInfo = await FileSystem.getInfoAsync(localPath);
-        if (fileInfo.exists) {
-            await FileSystem.deleteAsync(localPath, { idempotent: true });
-            ModelDownloader.loggerInstance.debug(`Deleted model ${config.name} from ${localPath}`);
+    public async getConfig(key: string): Promise<ModelConfig> {
+        const configs = await this.getConfigs();
+        const config = configs[key];
+        if (config == null) {
+            throw new ModelDownloaderException(`Unknown model use_case: ${key}`);
         }
+
+        return config;
     }
 
-    /**
-     * Get total size of all downloaded models
-     */
-    static async getTotalModelSize(): Promise<number> {
-        let totalSize = 0;
-
-        for (const config of Object.values(MODEL_CONFIGS)) {
-            const localPath = `${FileSystem.documentDirectory}${config.localPath}`;
-            const fileInfo = await FileSystem.getInfoAsync(localPath);
-            if (fileInfo.exists && 'size' in fileInfo) {
-                totalSize += fileInfo.size;
+    public async getConfigByLocalPath(localPath: string): Promise<ModelConfig | null> {
+        const configs = await this.getConfigs();
+        for (const config of Object.values(configs)) {
+            const file = this.fileForConfig(config);
+            if (this.getLocalPath(config) === localPath || file.uri === localPath) {
+                return config;
             }
         }
+
+        return null;
+    }
+
+    public async getConfigs(): Promise<Record<string, ModelConfig>> {
+        if (modelConfigsCache != null) {
+            return modelConfigsCache;
+        }
+        const promise = (async (): Promise<Record<string, ModelConfig>> => {
+            let data: Record<string, ModelConfig> | null = null;
+            try {
+                const response = await getModels();
+                data = response.data != null ? (response.data as Record<string, ModelConfig>) : null;
+            } catch (error) {
+                this.logger.warn('[ModelDownloader] GET /models failed', {
+                    error: error instanceof Error ? error.message : String(error),
+                });
+                throw new ModelDownloaderException(
+                    'Model configs unavailable. Please check your connection and retry.',
+                    error instanceof Error ? error : new Error(String(error)),
+                );
+            }
+            if (data == null || Object.keys(data).length === 0) {
+                throw new ModelDownloaderException('Model configs unavailable: GET /models returned no data.');
+            }
+
+            return data;
+        })();
+        modelConfigsCache = promise;
+        promise.catch(() => {
+            modelConfigsCache = null;
+        });
+
+        return modelConfigsCache;
+    }
+
+    public getProgress(useCase: string): number {
+        return this.downloadProgress.get(useCase) ?? 0;
+    }
+
+    public async getTotalSize(): Promise<number> {
+        const configs = await this.getConfigs();
+        let totalSize = 0;
+        for (const config of Object.values(configs)) {
+            const file = this.fileForConfig(config);
+            if (file.exists) {
+                totalSize += file.size;
+            }
+        }
+
         return totalSize;
+    }
+
+    private fileForConfig(config: ModelConfig): File {
+        const subdir = AppConfig.modelLocalPathSubdir;
+        return new File(Paths.document, subdir, `${config.id}.onnx`);
+    }
+
+    private async verifyChecksum(file: File, expectedHash: string): Promise<void> {
+        const match = /^sha256:([a-fA-F0-9]+)$/.exec(expectedHash);
+        if (match == null) {
+            this.logger.warn('[ModelDownloader] Unsupported hash format, skip verification', {
+                expectedHash: expectedHash.slice(0, 20),
+            });
+
+            return;
+        }
+        const expectedHex = match[1].toLowerCase();
+        const { createHash } = await import('react-native-quick-crypto');
+        const base64 = await file.base64();
+        const buffer = Buffer.from(base64, 'base64');
+        const digest = createHash('sha256').update(buffer).digest('hex');
+        const digestHex = typeof digest === 'string' ? digest : Buffer.from(digest as Uint8Array).toString('hex');
+        if (digestHex !== expectedHex) {
+            throw new ModelDownloaderException(`Hash mismatch for ${file.uri}: expected ${expectedHex.slice(0, 16)}..., got ${digestHex.slice(0, 16)}...`);
+        }
     }
 }

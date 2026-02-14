@@ -9,7 +9,7 @@ export { FileOperationError } from './FileOperationError';
 export { HardwareGuardException } from './HardwareGuardException';
 export { InvalidAudioFormatError } from './InvalidAudioFormatError';
 export { InvalidDimensionError } from './InvalidDimensionError';
-export { ModelDownloadError } from './ModelDownloadError';
+export { ModelDownloaderException } from './ModelDownloaderException';
 export { NoActiveRecordingError } from './NoActiveRecordingError';
 export { RecorderNotInitializedError } from './RecorderNotInitializedError';
 export type { RecordingError } from './RecordingError';

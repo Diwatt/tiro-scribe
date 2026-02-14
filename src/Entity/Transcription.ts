@@ -22,4 +22,28 @@ export class Transcription extends AbstractEntity {
 
     @Column({ default: '[]', type: 'text', as: 'json', fullText: true, fullTextPath: '$.text' })
     public segments!: TranscriptSegment[];
+
+    public getEncounterId(): string {
+        return this.encounterId;
+    }
+
+    public getSegments(): TranscriptSegment[] {
+        return this.segments;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public setEncounterId(value: string): void {
+        this.encounterId = value;
+    }
+
+    public setSegments(value: TranscriptSegment[]): void {
+        this.segments = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
+    }
 }

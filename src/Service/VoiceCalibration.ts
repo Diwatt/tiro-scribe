@@ -1,15 +1,16 @@
 /**
- * VoiceCalibration – Records 5s, runs embedded ecapa_tdnn, returns 512-dim vector, deletes audio.
- * Used in Onboarding Step 3. Model is bundled in assets so no download required.
+ * VoiceCalibration – Records 5s, runs ONNX Cam++ speaker model, returns embedding vector, deletes audio.
+ * Used in Onboarding Step 3. Cam++ model is pre-downloaded when entering Onboarding (StartupOrchestrator).
  */
 
-import * as FileSystem from 'expo-file-system/legacy';
+import { File } from 'expo-file-system';
 import { audioRecording } from './AudioRecording';
 import type { LoggerInterface } from './Logger';
 import { AppLogger } from './Logger';
 
 const CALIBRATION_DURATION_MS = 5000;
-const EMBEDDING_DIM = 512;
+/** Cam++ typical embedding dim (192); Biocode uses this for projection. */
+const EMBEDDING_DIM = 192;
 
 export class VoiceCalibration {
     private static instance: VoiceCalibration | null = null;
@@ -27,8 +28,8 @@ export class VoiceCalibration {
     }
 
     /**
-     * Record 5s, run inference with bundled speaker model, delete audio, return vector.
-     * If embedded model or preprocessing is not ready, returns a placeholder vector so the flow completes.
+     * Record 5s, run inference with Cam++ speaker model (downloaded on first use), delete audio, return vector.
+     * If model or preprocessing fails, returns a placeholder vector so the flow completes.
      */
     async run(): Promise<number[]> {
         try {
@@ -44,7 +45,10 @@ export class VoiceCalibration {
             const vector = await this.extractSpeakerVectorFromFile(filePath);
 
             try {
-                await FileSystem.deleteAsync(filePath, { idempotent: true });
+                const file = new File(filePath);
+                if (file.exists) {
+                    file.delete();
+                }
             } catch (error: unknown) {
                 this.log.warn('[VoiceCalibration] Failed to delete temp audio', {
                     error: error instanceof Error ? error.message : String(error),
@@ -62,22 +66,18 @@ export class VoiceCalibration {
     private async extractSpeakerVectorFromFile(audioPath: string): Promise<number[]> {
         try {
             const { Biocode } = await import('./Biocode');
+            const { ModelDownloader } = await import('./ModelDownloader');
             const biocode = new Biocode(this.log);
-            const bundledPath = await this.resolveBundledSpeakerModelPath();
-            await biocode.initialize(bundledPath);
+            const modelPath = await ModelDownloader.getInstance().ensureDownloadedByKey('speaker_id');
+            await biocode.initialize(modelPath);
             const result = await biocode.extractSpeakerVector(audioPath);
             return result.vector;
         } catch (error: unknown) {
-            this.log.warn('[VoiceCalibration] Embedded model inference failed, using placeholder', {
+            this.log.warn('[VoiceCalibration] Cam++ model inference failed, using placeholder', {
                 error: error instanceof Error ? error.message : String(error),
             });
             return this.getPlaceholderVector();
         }
-    }
-
-    private async resolveBundledSpeakerModelPath(): Promise<string> {
-        const docDir = FileSystem.documentDirectory ?? '';
-        return `${docDir}models/ecapa_tdnn.onnx`;
     }
 
     private getPlaceholderVector(): number[] {

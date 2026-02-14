@@ -99,4 +99,92 @@ export class Encounter extends AbstractEntity {
         const keyBuf = Buffer.from(projectionKey, 'hex');
         this.participantBiocodes = rawBiocodes.map((raw) => QuickCrypto.createHmac('sha256', keyBuf).update(raw, 'utf8').digest('hex'));
     }
+
+    public getCreatedAt(): Dayjs {
+        return this.createdAt;
+    }
+
+    public getEncryptedAudioPaths(): string[] {
+        return this.encryptedAudioPaths;
+    }
+
+    public getIsIncognito(): boolean {
+        return this.isIncognito;
+    }
+
+    public getParticipantBiocodes(): string[] {
+        return this.participantBiocodes;
+    }
+
+    public getPatientAlias(): string | null {
+        return this.patientAlias;
+    }
+
+    public getStatus(): EncounterStatus {
+        return this.status;
+    }
+
+    public getSyncedAt(): Dayjs | null {
+        return this.syncedAt;
+    }
+
+    public getTherapistId(): string {
+        return this.therapistId;
+    }
+
+    public getTotalDuration(): number {
+        return this.totalDuration;
+    }
+
+    public getUpdatedAt(): Dayjs {
+        return this.updatedAt;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public setCreatedAt(value: Dayjs): void {
+        this.createdAt = value;
+    }
+
+    public setEncryptedAudioPaths(value: string[]): void {
+        this.encryptedAudioPaths = value;
+    }
+
+    public setIsIncognito(value: boolean): void {
+        this.isIncognito = value;
+    }
+
+    public setParticipantBiocodes(value: string[]): void {
+        this.participantBiocodes = value;
+    }
+
+    public setPatientAlias(value: string | null): void {
+        this.patientAlias = value;
+    }
+
+    public setStatus(value: EncounterStatus): void {
+        this.status = value;
+    }
+
+    public setSyncedAt(value: Dayjs | null): void {
+        this.syncedAt = value;
+    }
+
+    public setTherapistId(value: string): void {
+        this.therapistId = value;
+    }
+
+    public setTotalDuration(value: number): void {
+        this.totalDuration = value;
+    }
+
+    public setUpdatedAt(value: Dayjs): void {
+        this.updatedAt = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
+    }
 }

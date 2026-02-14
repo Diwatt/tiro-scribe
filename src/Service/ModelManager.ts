@@ -1,14 +1,13 @@
 /**
  * ModelManager – Background worker for heavy AI models (Whisper, Camembert/BERT).
  * Queues models by Therapist.languages. Exposes getState$() and useModelDownloadProgress() for Home banner.
- * Uses FileSystem.createDownloadResumable. Optional WiFi-only check.
+ * Uses expo-file-system File.downloadFileAsync. Optional WiFi-only check.
  */
 
+import { Directory, File, Paths } from 'expo-file-system';
 import { observable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
-import * as FileSystem from 'expo-file-system/legacy';
 import type { Therapist } from '../Entity/Therapist';
-import { ModelDownloadError } from '../Exception/ModelDownloadError';
 import type { LoggerInterface } from './Logger';
 import { AppLogger } from './Logger';
 
@@ -94,14 +93,13 @@ export class ModelManager {
         if (this.downloadPromise) {
             return this.downloadPromise;
         }
-        const docDir = FileSystem.documentDirectory ?? '';
         let completed = 0;
         const total = specs.length;
         this.downloadPromise = (async () => {
             this.state$.set({ progress: 0, isReady: false, isDownloading: true });
             try {
                 for (const spec of specs) {
-                    await this.downloadOne(spec, docDir, (p) => {
+                    await this.downloadOne(spec, (p) => {
                         const overall = (completed + p) / total;
                         this.state$.progress.set(overall);
                     });
@@ -161,27 +159,23 @@ export class ModelManager {
         return true;
     }
 
-    private async downloadOne(spec: ModelSpec, docDir: string, onProgress: (p: number) => void): Promise<string> {
-        const localPath = `${docDir}${spec.localPath}`;
-        const fileInfo = await FileSystem.getInfoAsync(localPath);
-        if (fileInfo.exists) {
-            return localPath;
+    private async downloadOne(spec: ModelSpec, onProgress: (p: number) => void): Promise<string> {
+        const pathParts = spec.localPath.split('/');
+        const file = new File(Paths.document, ...pathParts);
+        if (file.exists) {
+            return file.uri;
         }
-        const dirPath = localPath.substring(0, localPath.lastIndexOf('/'));
-        const dirInfo = await FileSystem.getInfoAsync(dirPath);
-        if (!dirInfo.exists) {
-            await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
+        const parentPath = pathParts.slice(0, -1);
+        if (parentPath.length > 0) {
+            const parentDir = new Directory(Paths.document, ...parentPath);
+            if (!parentDir.exists) {
+                parentDir.create({ intermediates: true, idempotent: true });
+            }
         }
-        const downloadResumable = FileSystem.createDownloadResumable(spec.url, localPath, {}, (ev) => {
-            const total = ev.totalBytesExpectedToWrite ?? 1;
-            const written = ev.totalBytesWritten ?? 0;
-            onProgress(total > 0 ? written / total : 0);
-        });
-        const result = await downloadResumable.downloadAsync();
-        if (!result || result.status !== 200) {
-            throw new ModelDownloadError(`Download failed for ${spec.key}: status ${result?.status ?? 'unknown'}`, new Error(String(result?.status)));
-        }
-        return localPath;
+        onProgress(0);
+        await File.downloadFileAsync(spec.url, file, { idempotent: true });
+        onProgress(1);
+        return file.uri;
     }
 }
 

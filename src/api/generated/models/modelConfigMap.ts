@@ -5,8 +5,9 @@
  * Domain taxonomy for onboarding (qualifications, therapy methods, languages). Single bootstrap endpoint for mobile performance.
  * OpenAPI spec version: 1.0.0
  */
+import type { ModelConfig } from './modelConfig';
 
-export * from './modelConfig';
-export * from './modelConfigMap';
-export * from './selectOption';
-export * from './taxonomy';
+/**
+ * use_case -> ModelConfig (ex. speaker_id, vad)
+ */
+export interface ModelConfigMap {[key: string]: ModelConfig}

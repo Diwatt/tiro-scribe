@@ -55,4 +55,124 @@ export class Therapist extends AbstractEntity {
 
     @Column({ default: null, type: 'integer' })
     public yearsOfExperience!: number | null;
+
+    public getBiocode(): string | null {
+        return this.biocode;
+    }
+
+    public getBiocodeEmbedding(): number[] {
+        return this.biocodeEmbedding;
+    }
+
+    public getEmail(): string {
+        return this.email;
+    }
+
+    public getEncryptedMasterKeyPrimary(): string {
+        return this.encryptedMasterKeyPrimary;
+    }
+
+    public getEncryptedMasterKeyRecovery(): string {
+        return this.encryptedMasterKeyRecovery;
+    }
+
+    public getLanguages(): string[] {
+        return this.languages;
+    }
+
+    public getLocalKeyId(): string | null {
+        return this.localKeyId;
+    }
+
+    public getMasterKeyCheckHash(): string {
+        return this.masterKeyCheckHash;
+    }
+
+    public getName(): string | null {
+        return this.name;
+    }
+
+    public getPasswordHash(): string {
+        return this.passwordHash;
+    }
+
+    public getQualification(): string | null {
+        return this.qualification;
+    }
+
+    public getRecoveryCodeHash(): string {
+        return this.recoveryCodeHash;
+    }
+
+    public getTherapyMethod(): string | null {
+        return this.therapyMethod;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public getYearsOfExperience(): number | null {
+        return this.yearsOfExperience;
+    }
+
+    public setBiocode(value: string | null): void {
+        this.biocode = value;
+    }
+
+    public setBiocodeEmbedding(value: number[]): void {
+        this.biocodeEmbedding = value;
+    }
+
+    public setEmail(value: string): void {
+        this.email = value;
+    }
+
+    public setEncryptedMasterKeyPrimary(value: string): void {
+        this.encryptedMasterKeyPrimary = value;
+    }
+
+    public setEncryptedMasterKeyRecovery(value: string): void {
+        this.encryptedMasterKeyRecovery = value;
+    }
+
+    public setLanguages(value: string[]): void {
+        this.languages = value;
+    }
+
+    public setLocalKeyId(value: string | null): void {
+        this.localKeyId = value;
+    }
+
+    public setMasterKeyCheckHash(value: string): void {
+        this.masterKeyCheckHash = value;
+    }
+
+    public setName(value: string | null): void {
+        this.name = value;
+    }
+
+    public setPasswordHash(value: string): void {
+        this.passwordHash = value;
+    }
+
+    public setQualification(value: string | null): void {
+        this.qualification = value;
+    }
+
+    public setRecoveryCodeHash(value: string): void {
+        this.recoveryCodeHash = value;
+    }
+
+    public setTherapyMethod(value: string | null): void {
+        this.therapyMethod = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
+    }
+
+    public setYearsOfExperience(value: number | null): void {
+        this.yearsOfExperience = value;
+    }
 }

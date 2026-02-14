@@ -59,4 +59,84 @@ export class QueueItem extends AbstractEntity {
         }
         return false;
     }
+
+    public getCreatedAt(): Dayjs {
+        return this.createdAt;
+    }
+
+    public getEncounterId(): string {
+        return this.encounterId;
+    }
+
+    public getFilePath(): string {
+        return this.filePath;
+    }
+
+    public getPipelineStage(): PipelineStage {
+        return this.pipelineStage;
+    }
+
+    public getProcessingOffset(): number {
+        return this.processingOffset;
+    }
+
+    public getProgressPercent(): number {
+        return this.progressPercent;
+    }
+
+    public getRetryCount(): number {
+        return this.retryCount;
+    }
+
+    public getStatus(): QueueItemStatus {
+        return this.status;
+    }
+
+    public getUpdatedAt(): Dayjs {
+        return this.updatedAt;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public setCreatedAt(value: Dayjs): void {
+        this.createdAt = value;
+    }
+
+    public setEncounterId(value: string): void {
+        this.encounterId = value;
+    }
+
+    public setFilePath(value: string): void {
+        this.filePath = value;
+    }
+
+    public setPipelineStage(value: PipelineStage): void {
+        this.pipelineStage = value;
+    }
+
+    public setProcessingOffset(value: number): void {
+        this.processingOffset = value;
+    }
+
+    public setProgressPercent(value: number): void {
+        this.progressPercent = value;
+    }
+
+    public setRetryCount(value: number): void {
+        this.retryCount = value;
+    }
+
+    public setStatus(value: QueueItemStatus): void {
+        this.status = value;
+    }
+
+    public setUpdatedAt(value: Dayjs): void {
+        this.updatedAt = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
+    }
 }

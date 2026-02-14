@@ -242,13 +242,33 @@ vi.mock('@/Database/Database', () => {
     };
 });
 
-vi.mock('expo-file-system', () => ({
-    File: vi.fn(),
-    Directory: vi.fn(),
-    Paths: {
-        document: 'file:///document',
-    },
-}));
+vi.mock('expo-file-system', () => {
+    const documentUri = 'file:///document';
+    const stubFile = (uri: string) => ({
+        exists: false,
+        uri,
+        size: 0,
+        delete: vi.fn(),
+        base64: vi.fn().mockResolvedValue(''),
+    });
+    const stubDir = (uri: string) => ({
+        exists: false,
+        uri,
+        create: vi.fn(),
+    });
+    const toUri = (args: (string | { uri?: string })[]) => {
+        const base = typeof args[0] === 'object' && args[0] != null && 'uri' in args[0] ? (args[0] as { uri: string }).uri : String(args[0]);
+        const rest = args.slice(1).map((a) => (typeof a === 'string' ? a : (a as { uri: string }).uri));
+        return rest.length > 0 ? `${base.replace(/\/?$/, '')}/${rest.join('/')}` : base;
+    };
+    return {
+        File: vi.fn((...args: (string | { uri?: string })[]) => stubFile(toUri(args))),
+        Directory: vi.fn((...args: (string | { uri?: string })[]) => stubDir(toUri(args))),
+        Paths: {
+            document: { uri: documentUri },
+        },
+    };
+});
 
 vi.mock('expo-secure-store', () => ({
     getItemAsync: vi.fn(() => Promise.resolve(null)),

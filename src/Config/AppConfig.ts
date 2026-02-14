@@ -19,4 +19,9 @@ export const AppConfig = Object.freeze({
     get isStorybookEnabled(): boolean {
         return process.env.STORYBOOK_ENABLED === 'true';
     },
+
+    /** Subdir under document dir for ONNX models; path = ${modelLocalPathSubdir}/${modelId}.onnx. Override: EXPO_PUBLIC_MODEL_LOCAL_PATH_SUBDIR */
+    get modelLocalPathSubdir(): string {
+        return process.env.EXPO_PUBLIC_MODEL_LOCAL_PATH_SUBDIR ?? 'models';
+    },
 });

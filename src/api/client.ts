@@ -16,20 +16,43 @@ function delay<T>(ms: number, value: T): Promise<T> {
     return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 
+const MOCK_MODELS: Record<string, unknown> = {
+    speaker_id: {
+        id: 'cam-pp-voxceleb-en-16k',
+        use_case: 'speaker_id',
+        version: '1.0.0',
+        url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_CAM++.onnx',
+        hash: 'sha256:',
+        size_bytes: 29_000_000,
+        min_app_version: '0.0.0',
+    },
+    vad: {
+        id: 'vad-default',
+        use_case: 'vad',
+        version: '1.0.0',
+        url: 'https://example.com/models/vad.onnx',
+        hash: 'sha256:',
+        size_bytes: 0,
+        min_app_version: '0.0.0',
+    },
+};
+
 function loadMock(path: string): { data: unknown; status: 200; headers: Headers } | null {
-    if (!path.includes('/taxonomy')) {
-        return null;
+    if (path.includes('/models')) {
+        return { data: MOCK_MODELS, status: 200, headers: new Headers() };
     }
-    const data = {
-        qualifications: require('./mocks/qualifications.json'),
-        therapyMethods: require('./mocks/therapy-methods.json'),
-        languages: require('./mocks/languages.json'),
-    };
-    return {
-        data,
-        status: 200,
-        headers: new Headers(),
-    };
+    if (path.includes('/taxonomy')) {
+        return {
+            data: {
+                qualifications: require('./mocks/qualifications.json'),
+                therapyMethods: require('./mocks/therapy-methods.json'),
+                languages: require('./mocks/languages.json'),
+            },
+            status: 200,
+            headers: new Headers(),
+        };
+    }
+    return null;
 }
 
 /**

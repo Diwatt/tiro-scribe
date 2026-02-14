@@ -7,7 +7,7 @@
  * 3. Store projected vector for matching while preventing reverse engineering
  */
 
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import type * as Ort from 'onnxruntime-react-native';
 import QuickCrypto from 'react-native-quick-crypto';
 
@@ -94,24 +94,20 @@ export class Biocode {
         }
 
         // Check if file exists in document directory (for downloaded models)
-        // Use the same pattern as ModelDownloader
-        const documentDir = (FileSystem as typeof FileSystem & { documentDirectory?: string }).documentDirectory || '';
-        const documentPath = `${documentDir}${modelPath}`;
-        const fileInfo = await FileSystem.getInfoAsync(documentPath);
-
-        if (fileInfo.exists) {
-            return documentPath;
+        const pathParts = modelPath.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+            const file = new File(Paths.document, ...pathParts);
+            if (file.exists) {
+                return file.uri;
+            }
         }
 
-        // Try to download the model if it's a known model
-        const { ModelDownloader, MODEL_CONFIGS } = await import('./ModelDownloader');
-
-        // Check if this is a known model config
-        const modelKey = Object.keys(MODEL_CONFIGS).find((key) => MODEL_CONFIGS[key].localPath === modelPath);
-
-        if (modelKey) {
-            // Download the model
-            return await ModelDownloader.ensureModelDownloaded(MODEL_CONFIGS[modelKey]);
+        // Try to resolve via taxonomy/default configs (by localPath)
+        const { ModelDownloader } = await import('./ModelDownloader');
+        const downloader = ModelDownloader.getInstance();
+        const config = await downloader.getConfigByLocalPath(modelPath);
+        if (config != null) {
+            return await downloader.ensureDownloaded(config);
         }
 
         throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);
