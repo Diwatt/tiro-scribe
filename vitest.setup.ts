@@ -143,12 +143,15 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
         createMockExecute: () =>
             vi.fn(async (sql: string, params?: unknown[]) => {
                 const args = Array.isArray(params) ? params : [];
-                // Kysely: "insert into \"table\" (\"col\"...) values (?, ...)" (lowercase)
-                const sqlLower = sql.trim().toLowerCase();
-                if (sqlLower.startsWith('insert into')) {
-                    const afterInto = sql.slice(sqlLower.indexOf('insert into') + 11).trimStart();
+                // INSERT INTO or INSERT OR REPLACE INTO (EntityGateway uses Kysely)
+                const sqlTrimmed = sql.trim();
+                const sqlLower = sqlTrimmed.toLowerCase();
+                const isInsert = sqlLower.startsWith('insert into') || sqlLower.startsWith('insert or replace into');
+                if (isInsert) {
+                    const intoIndex = sqlLower.indexOf(' into ');
+                    const afterInto = sqlTrimmed.slice(intoIndex + 6).trimStart();
                     const tableMatch = afterInto.match(/^"?(\w+)"?\s*\(/);
-                    const table = tableMatch ? tableMatch[1] : afterInto.split(/\s+/)[0]?.replace(/"/g, '') ?? 'unknown';
+                    const table = tableMatch ? tableMatch[1] : (afterInto.split(/\s+/)[0]?.replace(/"/g, '') ?? 'unknown');
                     const primaryKey = args[0] as string;
                     const data = args[1] as string;
                     getTableStore(table).set(primaryKey, data);
@@ -188,11 +191,16 @@ const { mockTableStore, createMockExecute } = vi.hoisted(() => {
                         return { rows: [] };
                     }
                     const rows = Array.from(tbl.entries()).map(([primaryKey, data]) => ({ uuid: primaryKey, data }));
-                    const limitMatch = sql.match(/limit \? offset \?/i);
-                    if (limitMatch && args.length >= 2) {
+                    const limitOffsetMatch = sql.match(/limit \? offset \?/i);
+                    const limitOnlyMatch = sql.match(/limit \?/i) && !sql.match(/offset \?/i);
+                    if (limitOffsetMatch && args.length >= 2) {
                         const limitVal = (args[args.length - 2] as number) ?? 1000;
                         const offsetVal = (args[args.length - 1] as number) ?? 0;
                         return { rows: rows.slice(offsetVal, offsetVal + limitVal) };
+                    }
+                    if (limitOnlyMatch && args.length >= 1) {
+                        const limitVal = (args[args.length - 1] as number) ?? 1000;
+                        return { rows: rows.slice(0, limitVal) };
                     }
                     return { rows };
                 }

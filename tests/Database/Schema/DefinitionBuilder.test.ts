@@ -1,29 +1,63 @@
 /**
  * DefinitionBuilder tests — ZOMBIES: Zero, One, Many, Boundary, Interface, Exceptions.
- * SUT: DefinitionBuilder. All dependencies (MetadataReader) are mocked.
+ * SUT: DefinitionBuilder. All dependencies (EntityMetadata) are mocked.
  */
 
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
-import type { MetadataReader } from '@/Decorator/MetadataReader';
 import { FieldDecorator } from '@/Decorator/FieldDecorator';
+import type { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
-import { OnDeleteAction } from '@/Database/ForeignKey';
+import { OnDeleteAction } from '@/Database/Decorator';
+import type { ForeignKeyOptions } from '@/Database/Decorator';
 import { DatabaseException } from '@/Exception';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
 import { describe, it, expect, vi } from 'vitest';
 
-function createMockReader(overrides: {
+function createMockMetadata(overrides: {
+    getTableName?: () => string;
+    getPrimaryKeyColumnField?: () => FieldDecorator | undefined;
+    getColumnFields?: () => FieldDecorator[];
+    getForeignKeyOptions?: (propertyName: string) => ForeignKeyOptions | undefined;
+    getForeignKeyTargetTableName?: (propertyName: string) => string | null;
+}): EntityMetadata {
+    return {
+        getTableName: overrides.getTableName ?? vi.fn(),
+        getPrimaryKeyColumnField: overrides.getPrimaryKeyColumnField ?? vi.fn(),
+        getColumnFields: overrides.getColumnFields ?? vi.fn(() => []),
+        getForeignKeyOptions: overrides.getForeignKeyOptions ?? vi.fn(() => undefined),
+        getForeignKeyTargetTableName: overrides.getForeignKeyTargetTableName ?? vi.fn(() => null),
+    } as unknown as EntityMetadata;
+}
+
+function metadataFromReaderLike(readerLike: {
     getEntity?: () => EntityDecorator | undefined;
     getPrimaryKeyColumn?: () => FieldDecorator | undefined;
     getFieldsByDecorator?: (name: string) => FieldDecorator[];
     getFieldByProperty?: (propertyName: string) => FieldDecorator[];
-}): MetadataReader {
-    return {
-        getEntity: overrides.getEntity ?? vi.fn(),
-        getPrimaryKeyColumn: overrides.getPrimaryKeyColumn ?? vi.fn(),
-        getFieldsByDecorator: overrides.getFieldsByDecorator ?? vi.fn(() => []),
-        getFieldByProperty: overrides.getFieldByProperty ?? vi.fn(() => []),
-    } as unknown as MetadataReader;
+}): EntityMetadata {
+    return createMockMetadata({
+        getTableName: () => readerLike.getEntity?.()?.getOption('tableName') ?? '',
+        getPrimaryKeyColumnField: readerLike.getPrimaryKeyColumn,
+        getColumnFields: () => readerLike.getFieldsByDecorator?.('Column') ?? [],
+        getForeignKeyOptions: (prop) => {
+            const decorators = readerLike.getFieldByProperty?.(prop) ?? [];
+            const fk = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
+            return fk?.getOptions<ForeignKeyOptions>();
+        },
+        getForeignKeyTargetTableName: (prop) => {
+            const opts = (() => {
+                const decorators = readerLike.getFieldByProperty?.(prop) ?? [];
+                const fk = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
+                return fk?.getOptions<ForeignKeyOptions>();
+            })();
+            if (opts == null) {
+                return null;
+            }
+            const target = typeof opts.target === 'function' ? opts.target() : opts.target;
+            const table = (target as { entityName?: string })?.entityName;
+            return table != null && String(table).trim() !== '' ? table : null;
+        },
+    });
 }
 
 function createEntityDecorator(tableName: string): EntityDecorator {
@@ -43,13 +77,15 @@ function createColumnField(
 
 describe('DefinitionBuilder', () => {
     describe('Z — Zero (missing / null inputs)', () => {
-        it('throws DatabaseException with code ENTITY_METADATA_REQUIRED when getEntity returns undefined', () => {
-            const reader = createMockReader({
-                getEntity: () => undefined,
-                getPrimaryKeyColumn: () => createPrimaryKeyColumnField('uuid', 'varchar', 36),
+        it('throws DatabaseException with code ENTITY_METADATA_REQUIRED when getTableName would be empty', () => {
+            const metadata = createMockMetadata({
+                getTableName: () => {
+                    throw new DatabaseException('Entity must have @Entity.', 'ENTITY_METADATA_REQUIRED', undefined);
+                },
+                getPrimaryKeyColumnField: () => createPrimaryKeyColumnField('uuid', 'varchar', 36),
             });
             try {
-                new DefinitionBuilder(reader);
+                new DefinitionBuilder(metadata);
                 expect.fail('should have thrown');
             } catch (e) {
                 expect(e).toBeInstanceOf(DatabaseException);
@@ -57,13 +93,13 @@ describe('DefinitionBuilder', () => {
             }
         });
 
-        it('throws DatabaseException with code ENTITY_METADATA_REQUIRED when getPrimaryKeyColumn returns undefined', () => {
-            const reader = createMockReader({
-                getEntity: () => createEntityDecorator('my_table'),
-                getPrimaryKeyColumn: () => undefined,
+        it('throws DatabaseException with code ENTITY_METADATA_REQUIRED when getPrimaryKeyColumnField returns undefined', () => {
+            const metadata = createMockMetadata({
+                getTableName: () => 'my_table',
+                getPrimaryKeyColumnField: () => undefined,
             });
             try {
-                new DefinitionBuilder(reader);
+                new DefinitionBuilder(metadata);
                 expect.fail('should have thrown');
             } catch (e) {
                 expect(e).toBeInstanceOf(DatabaseException);
@@ -71,23 +107,23 @@ describe('DefinitionBuilder', () => {
             }
         });
 
-        it('throws when both getEntity and getPrimaryKeyColumn are undefined', () => {
-            const reader = createMockReader({
-                getEntity: () => undefined,
-                getPrimaryKeyColumn: () => undefined,
+        it('throws when getPrimaryKeyColumnField is undefined', () => {
+            const metadata = createMockMetadata({
+                getTableName: () => 't',
+                getPrimaryKeyColumnField: () => undefined,
             });
-            expect(() => new DefinitionBuilder(reader)).toThrow(DatabaseException);
+            expect(() => new DefinitionBuilder(metadata)).toThrow(DatabaseException);
         });
     });
 
     describe('O — One (minimal happy path)', () => {
         it('build returns TableDefinition with tableName and primary key column when one entity and one primary key column', () => {
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('uuid', 'varchar', 36),
                 getFieldsByDecorator: () => [],
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition).toBeInstanceOf(TableDefinition);
             expect(definition.tableName).toBe('items');
@@ -99,12 +135,12 @@ describe('DefinitionBuilder', () => {
         });
 
         it('build uses snake_case for primary key column name when property is camelCase', () => {
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('my_entities'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('primaryKeyId', 'varchar', 36),
                 getFieldsByDecorator: () => [],
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition.primaryKeyColumnName).toBe('primary_key_id');
             expect(definition.columns[0]).toContain('primary_key_id');
@@ -118,13 +154,13 @@ describe('DefinitionBuilder', () => {
                 column: 'uuid',
                 onDelete: OnDeleteAction.Cascade,
             });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('children'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: () => [],
                 getFieldByProperty: (prop) => (prop === 'uuid' ? [pkField, fkOnPk] : []),
             });
-            const definition = new DefinitionBuilder(reader).build();
+            const definition = new DefinitionBuilder(metadata).build();
             expect(definition.columns[0]).toBe('uuid VARCHAR(36) REFERENCES parents(uuid) ON DELETE CASCADE PRIMARY KEY');
             expect(definition.indexes).toEqual([]);
         });
@@ -136,12 +172,12 @@ describe('DefinitionBuilder', () => {
             const indexedA = createColumnField('therapistId', { type: 'varchar', length: 36, index: true });
             const indexedB = createColumnField('createdAt', { type: 'datetime', index: true });
             const notIndexed = createColumnField('name', { type: 'varchar', index: false });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('encounters'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [indexedA, indexedB, notIndexed] : []),
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition.columns.length).toBeGreaterThan(2);
             expect(definition.columns.some((c) => c.includes('therapist_id') && c.includes('VIRTUAL'))).toBe(true);
@@ -158,12 +194,12 @@ describe('DefinitionBuilder', () => {
                 fullText: true,
                 fullTextPath: '$.text',
             });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('encounters'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [ftsField] : []),
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition.fullTextSearchFields).toHaveLength(1);
             expect(definition.fullTextSearchFields[0].name).toBe('transcript');
@@ -179,7 +215,7 @@ describe('DefinitionBuilder', () => {
                 column: 'uuid',
                 onDelete: OnDeleteAction.Restrict,
             });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('encounters'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) =>
@@ -187,7 +223,7 @@ describe('DefinitionBuilder', () => {
                 getFieldByProperty: (prop) =>
                     prop === 'therapistId' ? [therapistIdField, fkField] : [],
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             const therapistIdColumn = definition.columns.find((c) => c.includes('therapist_id') && c.includes('REFERENCES'));
             expect(therapistIdColumn).toBeDefined();
@@ -198,23 +234,23 @@ describe('DefinitionBuilder', () => {
 
     describe('B — Boundary', () => {
         it('build with primary key type without length does not append length in SQL type', () => {
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
                 getFieldsByDecorator: () => [],
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition.columns[0]).toBe('id TEXT PRIMARY KEY');
         });
 
         it('build with VARCHAR and length 1 uses VARCHAR(1)', () => {
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('code', 'varchar', 1),
                 getFieldsByDecorator: () => [],
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition.columns[0]).toContain('VARCHAR(1)');
         });
@@ -222,12 +258,12 @@ describe('DefinitionBuilder', () => {
         it('excludes primary key property from column fields when building indexed columns', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const otherColumn = createColumnField('name', { type: 'varchar', index: true });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [otherColumn] : []),
             });
-            const builder = new DefinitionBuilder(reader);
+            const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
             expect(definition.columns.filter((c) => c.includes('uuid') && c.includes('PRIMARY KEY'))).toHaveLength(1);
             expect(definition.columns.filter((c) => c.includes('name') || c.includes('uuid'))).toHaveLength(2);
@@ -241,13 +277,13 @@ describe('DefinitionBuilder', () => {
                 target: () => targetEntity,
                 onDelete: OnDeleteAction.Restrict,
             });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('assets'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [col] : []),
                 getFieldByProperty: (prop) => (prop === 'ownerId' ? [col, foreignKeyDecorator] : []),
             });
-            const definition = new DefinitionBuilder(reader).build();
+            const definition = new DefinitionBuilder(metadata).build();
             const ownerIdColumn = definition.columns.find((c) => c.includes('owner_id'))!;
             expect(ownerIdColumn).toContain('REFERENCES owners(uuid) ON DELETE RESTRICT');
         });
@@ -255,13 +291,13 @@ describe('DefinitionBuilder', () => {
         it('does not add virtual column for non-indexed, non-FK Column fields', () => {
             const pkField = createPrimaryKeyColumnField('id', 'text');
             const nonIndexed = createColumnField('label', { type: 'varchar', index: false });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('tags'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [nonIndexed] : []),
                 getFieldByProperty: () => [],
             });
-            const definition = new DefinitionBuilder(reader).build();
+            const definition = new DefinitionBuilder(metadata).build();
             expect(definition.columns.filter((c) => c.includes('label'))).toHaveLength(0);
             expect(definition.indexes.some((i) => i.includes('label'))).toBe(false);
         });
@@ -275,13 +311,13 @@ describe('DefinitionBuilder', () => {
                 column: 'uuid',
                 onDelete: OnDeleteAction.Restrict,
             });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('children'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [fkColumn] : []),
                 getFieldByProperty: (prop) => (prop === 'parentId' ? [fkColumn, foreignKeyDecorator] : []),
             });
-            const definition = new DefinitionBuilder(reader).build();
+            const definition = new DefinitionBuilder(metadata).build();
             const parentCol = definition.columns.find((c) => c.includes('parent_id'))!;
             expect(parentCol).toContain('REFERENCES parents(uuid) ON DELETE RESTRICT');
             expect(definition.indexes.some((i) => i.includes('idx_children_parent_id'))).toBe(true);
@@ -292,47 +328,49 @@ describe('DefinitionBuilder', () => {
         it('constructor calls getEntity and getPrimaryKeyColumn exactly once', () => {
             const getEntity = vi.fn(() => createEntityDecorator('t'));
             const getPrimaryKeyColumn = vi.fn(() => createPrimaryKeyColumnField('id', 'text'));
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity,
                 getPrimaryKeyColumn,
                 getFieldsByDecorator: () => [],
             });
-            new DefinitionBuilder(reader);
+            new DefinitionBuilder(metadata);
             expect(getEntity).toHaveBeenCalledTimes(1);
             expect(getPrimaryKeyColumn).toHaveBeenCalledTimes(1);
         });
 
         it('constructor calls getFieldsByDecorator with "Column"', () => {
             const getFieldsByDecorator = vi.fn(() => []);
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('t'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
                 getFieldsByDecorator,
             });
-            new DefinitionBuilder(reader);
+            new DefinitionBuilder(metadata);
             expect(getFieldsByDecorator).toHaveBeenCalledWith('Column');
         });
 
-        it('build returns same tableName and primaryKeyColumnName as provided by reader', () => {
-            const reader = createMockReader({
+        it('build returns same tableName and primaryKeyColumnName as provided by metadata', () => {
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('my_custom_table'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('primaryKey', 'varchar', 36),
                 getFieldsByDecorator: () => [],
             });
-            const definition = new DefinitionBuilder(reader).build();
+            const definition = new DefinitionBuilder(metadata).build();
             expect(definition.tableName).toBe('my_custom_table');
             expect(definition.primaryKeyColumnName).toBe('primary_key');
         });
     });
 
     describe('E — Exceptions', () => {
-        it('constructor throws DatabaseException with code ENTITY_METADATA_REQUIRED when entity is null', () => {
-            const reader = createMockReader({
-                getEntity: () => undefined as unknown as EntityDecorator,
-                getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
+        it('constructor propagates DatabaseException when getTableName throws ENTITY_METADATA_REQUIRED', () => {
+            const metadata = createMockMetadata({
+                getTableName: () => {
+                    throw new DatabaseException('Not an @Entity.', 'ENTITY_METADATA_REQUIRED', undefined);
+                },
+                getPrimaryKeyColumnField: () => createPrimaryKeyColumnField('id', 'text'),
             });
             try {
-                new DefinitionBuilder(reader);
+                new DefinitionBuilder(metadata);
                 expect.fail('should have thrown');
             } catch (e) {
                 expect(e).toBeInstanceOf(DatabaseException);
@@ -341,11 +379,11 @@ describe('DefinitionBuilder', () => {
         });
 
         it('constructor throws when getPrimaryKeyColumn returns null', () => {
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('t'),
                 getPrimaryKeyColumn: () => undefined as unknown as FieldDecorator,
             });
-            expect(() => new DefinitionBuilder(reader)).toThrow(DatabaseException);
+            expect(() => new DefinitionBuilder(metadata)).toThrow(DatabaseException);
         });
 
         it('throws DatabaseException when ForeignKey target has no entityName', () => {
@@ -356,13 +394,13 @@ describe('DefinitionBuilder', () => {
                 target: () => badTarget as { entityName?: string },
                 onDelete: OnDeleteAction.Restrict,
             });
-            const reader = createMockReader({
+            const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('edges'),
                 getPrimaryKeyColumn: () => pkField,
                 getFieldsByDecorator: (name) => (name === 'Column' ? [col] : []),
                 getFieldByProperty: (prop) => (prop === 'refId' ? [col, foreignKeyDecorator] : []),
             });
-            expect(() => new DefinitionBuilder(reader)).toThrow(DatabaseException);
+            expect(() => new DefinitionBuilder(metadata)).toThrow(DatabaseException);
         });
     });
 });

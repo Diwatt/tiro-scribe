@@ -8,9 +8,9 @@
  * private therapistId!: string;
  */
 
-import { Builder, type FieldDecoratorConfig, type OptionsSchema } from '../Decorator/Builder';
-import { MetadataWriter } from '../Decorator/MetadataWriter';
-import type { EntityClassStatic } from './AbstractEntity';
+import { Builder, type FieldDecoratorConfig, type OptionsSchema } from '../../Decorator/Builder';
+import { MetadataWriter } from '../../Decorator/MetadataWriter';
+import type { EntityClassStatic } from '../AbstractEntity';
 
 export enum OnDeleteAction {
     Cascade = 'CASCADE',

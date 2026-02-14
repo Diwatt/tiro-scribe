@@ -6,8 +6,8 @@
  * columns, change types, or run versioned migration scripts. For removals or renames, use manual DDL or a migration framework.
  */
 
-import { AppLogger } from '@/Service/Logger';
 import snakeCase from 'lodash/snakeCase';
+import { AppLogger } from '@/Service/Logger';
 import type { TableDefinition } from './TableDefinition';
 
 export interface TransactionLike {
@@ -50,7 +50,7 @@ export class DefinitionLanguageWriter {
      * For virtual columns, ADD COLUMN may fail on older SQLite; errors are logged and skipped.
      */
     private async migrateMissingColumns(definition: TableDefinition): Promise<void> {
-        const result = await this.tx.execute(`PRAGMA table_info(${definition.tableName})`) as { rows?: TableInfoRow[] };
+        const result = (await this.tx.execute(`PRAGMA table_info(${definition.tableName})`)) as { rows?: TableInfoRow[] };
         const rows = result?.rows ?? [];
         const existingNames = new Set(rows.map((r) => String((r as { name?: string }).name ?? '')));
 
@@ -73,23 +73,19 @@ export class DefinitionLanguageWriter {
      * physical columns (e.g. foreign keys) must throw on failure to avoid database corruption.
      */
     private async addColumnOrWarn(tableName: string, columnName: string, columnDdl: string): Promise<boolean> {
-        const isVirtualOrGenerated =
-            columnDdl.includes('GENERATED ALWAYS') || columnDdl.includes('VIRTUAL');
+        const isVirtualOrGenerated = columnDdl.includes('GENERATED ALWAYS') || columnDdl.includes('VIRTUAL');
         try {
             await this.tx.execute(`ALTER TABLE ${tableName} ADD COLUMN ${columnDdl}`);
             return true;
         } catch (err) {
             if (isVirtualOrGenerated) {
-                AppLogger.getInstance().warn(
-                    '[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)',
-                    {
-                        tableName,
-                        columnName,
-                        columnDdl,
-                        error: err,
-                        errorMessage: err instanceof Error ? err.message : String(err),
-                    },
-                );
+                AppLogger.getInstance().warn('[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)', {
+                    tableName,
+                    columnName,
+                    columnDdl,
+                    error: err,
+                    errorMessage: err instanceof Error ? err.message : String(err),
+                });
                 return false;
             }
             throw err;
@@ -108,7 +104,9 @@ export class DefinitionLanguageWriter {
         const { tableName, primaryKeyColumnName, fullTextSearchFields } = definition;
         const fullTextSearchTable = `${tableName}_fts`;
         const fullTextSearchColumns = fullTextSearchFields.map((f) => `content_${snakeCase(f.name)}`).join(', ');
-        await this.tx.execute(`CREATE VIRTUAL TABLE IF NOT EXISTS ${fullTextSearchTable} USING fts5(${primaryKeyColumnName} UNINDEXED, ${fullTextSearchColumns});`);
+        await this.tx.execute(
+            `CREATE VIRTUAL TABLE IF NOT EXISTS ${fullTextSearchTable} USING fts5(${primaryKeyColumnName} UNINDEXED, ${fullTextSearchColumns});`,
+        );
 
         const extractors = fullTextSearchFields.map((f) => this.buildFullTextSearchExtractorExpression(f.name, f.jsonPath)).join(', ');
         const targetCols = [primaryKeyColumnName, ...fullTextSearchFields.map((f) => `content_${snakeCase(f.name)}`)].join(', ');

@@ -11,13 +11,15 @@ export {
     MetadataReader,
 } from '../Decorator';
 export { AbstractEntity } from './AbstractEntity';
-export { Executor } from './Executor';
-export type { CompiledStatement } from './Executor';
-export { Hydrator } from './Hydrator';
+export { Criteria } from './Criteria';
+export type { CompiledStatement } from './EntityGateway';
+export { EntityGateway } from './EntityGateway';
+export type { OrderBy, QueryCriteria, QueryOptions } from './QueryCompiler';
+export type { RealForeignKeyColumn } from './RowMapper';
+export { RowMapper } from './RowMapper';
 export { registry } from './Registry';
 export { Repository } from './Repository';
-export type { RealForeignKeyColumn } from './Hydrator';
-export { EntitySerializer } from './Serializer';
+export { RecordNormalizer } from './RecordNormalizer';
 export type { FieldTransformer } from './Transformer';
 export { DateTransformer, TransformerRegistry } from './Transformer';
 export type { EntityClass } from './Type';

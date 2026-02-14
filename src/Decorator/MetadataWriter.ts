@@ -3,7 +3,7 @@
  *
  * ## What it does
  * When you use @Entity, @Column, or @PrimaryKey, the decorators need to store their
- * options somewhere so the rest of the app (Repository, Serializer, AbstractEntity)
+ * options somewhere so the rest of the app (Repository, RecordNormalizer, AbstractEntity)
  * can read them later. MetadataWriter is that “write” API: it’s the single place
  * that knows how and where to attach metadata to the class constructor.
  *
@@ -22,9 +22,10 @@
  *
  * ## Who reads what was written
  * **MetadataReader** reads the same keys/structure (entity key + Symbol.metadata). Used by
- * Repository (primary key field name), Serializer (column names + defaults), AbstractEntity (defaults, primary key).
+ * Repository (primary key field name), RecordNormalizer (column names + defaults), AbstractEntity (defaults, primary key).
  */
 
+import type { EntityOptions } from './EntityDecorator';
 import { EntityDecorator } from './EntityDecorator';
 import type { ClassConstructor } from './Type';
 
@@ -36,8 +37,11 @@ export class MetadataWriter {
     /** Key on constructor for primary key field name (Hermes fallback when Symbol.metadata unreadable). */
     public static readonly PRIMARY_KEY_FIELD_KEY = '__primaryKeyField';
 
+    /** Key on constructor for primary key column def (Hermes fallback: type/length for DDL when Symbol.metadata unreadable). */
+    public static readonly PRIMARY_KEY_COLUMN_DEF_KEY = '__primaryKeyColumnDef';
+
     /** Called by @Entity to store entity decorator data. Stores an EntityDecorator so readers get the same type directly. */
-    public static registerEntity(construct: ClassConstructor, options: { tableName: string }): void {
+    public static registerEntity(construct: ClassConstructor, options: EntityOptions): void {
         const c = construct as unknown as Record<string, unknown>;
         c[MetadataWriter.ENTITY_METADATA_KEY] = new EntityDecorator('Entity', options);
     }

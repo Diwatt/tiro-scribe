@@ -1,4 +1,5 @@
 import type { EntityClass } from '@/Database/Type';
+import { DiscourseMetrics } from './DiscourseMetrics';
 import { Encounter } from './Encounter';
 import { ProsodyMetrics } from './ProsodyMetrics';
 import { QueueItem } from './QueueItem';
@@ -15,12 +16,13 @@ export const ENTITY_TABLES = [
     ['queue_items', QueueItem],
     ['transcriptions', Transcription],
     ['prosody_metrics', ProsodyMetrics],
+    ['discourse_metrics', DiscourseMetrics],
 ] as const satisfies readonly (readonly [string, EntityClass])[];
 
 /** Entity classes for schema sync; derived from ENTITY_TABLES. */
 export const ENTITY_CLASSES: EntityClass[] = ENTITY_TABLES.map(([, Entity]) => Entity);
 
-export { Encounter, ProsodyMetrics, QueueItem, Therapist, Transcription };
+export { DiscourseMetrics, Encounter, ProsodyMetrics, QueueItem, Therapist, Transcription };
 export type {
     AnonymizationResult,
     AnonymizedEntity,

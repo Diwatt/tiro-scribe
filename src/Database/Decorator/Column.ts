@@ -9,19 +9,33 @@
  * public uuid!: string;
  */
 
-import { Builder, type FieldDecoratorConfig, type OptionsFromSchema, type OptionsSchema } from '../Decorator/Builder';
-import { MetadataWriter } from '../Decorator/MetadataWriter';
-import type { AbstractEntity } from './AbstractEntity';
-import { TransformerRegistry } from './Transformer';
-import { DatabaseException } from '../Exception';
+import { Builder, type FieldDecoratorConfig, type OptionsFromSchema, type OptionsSchema } from '../../Decorator/Builder';
+import { MetadataWriter } from '../../Decorator/MetadataWriter';
+import { DatabaseException } from '../../Exception';
+import type { AbstractEntity } from '../AbstractEntity';
+import { TransformerRegistry } from '../Transformer';
 
 /**
  * SQLite type affinity for virtual columns and schema. Single source of truth.
  * @see https://www.sqlite.org/datatype3.html
  */
 const SQLITE_TYPE_VALUES = [
-    'text', 'integer', 'int', 'real', 'blob', 'numeric', 'boolean',
-    'date', 'datetime', 'varchar', 'char', 'character', 'decimal', 'float', 'double', 'clob',
+    'text',
+    'integer',
+    'int',
+    'real',
+    'blob',
+    'numeric',
+    'boolean',
+    'date',
+    'datetime',
+    'varchar',
+    'char',
+    'character',
+    'decimal',
+    'float',
+    'double',
+    'clob',
 ] as const;
 
 export type SqliteType = (typeof SQLITE_TYPE_VALUES)[number];

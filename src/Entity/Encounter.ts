@@ -1,6 +1,8 @@
 /**
  * Encounter entity: metadata only. Transcript and prosody live in Transcription / ProsodyMetrics.
- * Normal encounter = therapist (1 biocode) + 1 subject (1 biocode); can store more (e.g. couple).
+ * Participants = therapist + 1+ clients (solo, couple, family). All stored in participantBiocodes.
+ * Therapist's biocode is stored once on Therapist (set at calibration); use getClientBiocodes(therapist.biocode) to get client-only list.
+ * Incognito (Bunker): isIncognito true, patientAlias is display id (e.g. PATIENT_AXZD).
  */
 
 import type { Dayjs } from 'dayjs';
@@ -9,10 +11,10 @@ import utc from 'dayjs/plugin/utc';
 import QuickCrypto, { Buffer } from 'react-native-quick-crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
+import { ForeignKey } from '../Database/Decorator';
 import { Column, Entity, PrimaryKey } from '../Decorator';
-import { ForeignKey } from '../Database/ForeignKey';
-import { EncounterStatus } from './Type';
 import { Therapist } from './Therapist';
+import { EncounterStatus } from './Type';
 
 dayjs.extend(utc);
 
@@ -20,121 +22,81 @@ dayjs.extend(utc);
 export class Encounter extends AbstractEntity {
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    private uuid!: string;
+    public uuid!: string;
 
     /** References Therapist (UUID). Real column for REFERENCES constraint. */
     @ForeignKey({ target: () => Therapist, onDelete: 'RESTRICT' })
     @Column({ default: '', type: 'varchar', length: 36 })
-    private therapistId!: string;
+    public therapistId!: string;
 
-    /** Hashed biocodes: therapist (1) + 1+ subjects. Server assigns roles (e.g. by frequency). */
+    /** Projected-voice biocodes of all participants (therapist + 1+ clients). From Biocode service. */
     @Column({ default: '[]', type: 'text', as: 'json' })
-    private participantBiocodes!: string[];
+    public participantBiocodes!: string[];
 
     /** File paths to encrypted audio chunks. */
     @Column({ default: '[]', type: 'text', as: 'json' })
-    private encryptedAudioPaths!: string[];
+    public encryptedAudioPaths!: string[];
 
     /** Duration in milliseconds (whole number). */
     @Column({ default: 0, type: 'integer' })
-    private totalDuration!: number;
+    public totalDuration!: number;
 
     @Column({ default: EncounterStatus.Recording, type: 'varchar', length: 16, index: true })
-    private status!: EncounterStatus;
+    public status!: EncounterStatus;
+
+    /** Incognito (Ministre) mode: when true, patient is anonymized (patientAlias used). */
+    @Column({ default: false, type: 'boolean', index: true })
+    public isIncognito!: boolean;
+
+    /** When isIncognito: anonymized patient id (e.g. PATIENT_AXZD). */
+    @Column({ default: null, type: 'varchar', length: 32 })
+    public patientAlias!: string | null;
+
+    /** UTC when this encounter was synced to cloud (null = not synced). */
+    @Column({ default: null, type: 'datetime', as: 'date' })
+    public syncedAt!: Dayjs | null;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    private createdAt!: Dayjs;
+    public createdAt!: Dayjs;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    private updatedAt!: Dayjs;
-
-    public getUuid(): string {
-        return this.uuid;
-    }
-
-    public getTherapistId(): string {
-        return this.therapistId;
-    }
-
-    public setTherapistId(value: string): void {
-        this.therapistId = value;
-    }
-
-    public getParticipantBiocodes(): string[] {
-        return this.participantBiocodes;
-    }
-
-    public setParticipantBiocodes(value: string[]): void {
-        this.participantBiocodes = value;
-    }
+    public updatedAt!: Dayjs;
 
     public addParticipantBiocode(item: string): void {
-        this.setParticipantBiocodes([...this.getParticipantBiocodes(), item]);
+        this.participantBiocodes = [...this.participantBiocodes, item];
     }
 
     public removeParticipantBiocode(item: string): void {
-        this.setParticipantBiocodes(this.getParticipantBiocodes().filter((b) => b !== item));
+        this.participantBiocodes = this.participantBiocodes.filter((b) => b !== item);
     }
 
-    public getEncryptedAudioPaths(): string[] {
-        return this.encryptedAudioPaths;
-    }
-
-    public setEncryptedAudioPaths(value: string[]): void {
-        this.encryptedAudioPaths = value;
+    /** Client biocodes only (participants minus therapist). Pass therapist.biocode from Therapist; if omitted, returns all participants. */
+    public getClientBiocodes(therapistBiocode?: string | null): string[] {
+        if (therapistBiocode == null || therapistBiocode === '') {
+            return [...this.participantBiocodes];
+        }
+        return this.participantBiocodes.filter((b) => b !== therapistBiocode);
     }
 
     public addEncryptedAudioPath(path: string): void {
-        this.setEncryptedAudioPaths([...this.getEncryptedAudioPaths(), path]);
+        this.encryptedAudioPaths = [...this.encryptedAudioPaths, path];
     }
 
     public removeEncryptedAudioPath(path: string): void {
-        this.setEncryptedAudioPaths(this.getEncryptedAudioPaths().filter((p) => p !== path));
-    }
-
-    public getTotalDuration(): number {
-        return this.totalDuration;
-    }
-
-    public setTotalDuration(value: number): void {
-        this.totalDuration = value;
-    }
-
-    public getStatus(): EncounterStatus {
-        return this.status;
-    }
-
-    public setStatus(value: EncounterStatus): void {
-        this.status = value;
-    }
-
-    public getCreatedAt(): Dayjs {
-        return this.createdAt;
-    }
-
-    public setCreatedAt(value: Dayjs): void {
-        this.createdAt = value;
-    }
-
-    public getUpdatedAt(): Dayjs {
-        return this.updatedAt;
-    }
-
-    public setUpdatedAt(value: Dayjs): void {
-        this.updatedAt = value;
+        this.encryptedAudioPaths = this.encryptedAudioPaths.filter((p) => p !== path);
     }
 
     /** Add an encrypted audio path and optionally update total duration. */
     public addEncryptedAudioPathWithDuration(path: string, durationMs: number): void {
         this.addEncryptedAudioPath(path);
-        this.setTotalDuration(this.getTotalDuration() + durationMs);
+        this.totalDuration = this.totalDuration + durationMs;
     }
 
     /** Set participant biocodes from raw biocodes + projection key (hashes each). */
     public setParticipantBiocodesFromRaw(rawBiocodes: string[], projectionKey: string): void {
         const keyBuf = Buffer.from(projectionKey, 'hex');
-        this.setParticipantBiocodes(rawBiocodes.map((raw) => QuickCrypto.createHmac('sha256', keyBuf).update(raw, 'utf8').digest('hex')));
+        this.participantBiocodes = rawBiocodes.map((raw) => QuickCrypto.createHmac('sha256', keyBuf).update(raw, 'utf8').digest('hex'));
     }
 }

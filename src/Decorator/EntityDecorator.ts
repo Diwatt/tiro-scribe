@@ -1,4 +1,8 @@
-export type EntityOptions = { tableName: string };
+export type EntityOptions = {
+    tableName: string;
+    /** Optional export name from @/Repository for custom repository (e.g. 'TherapistRepository'). */
+    repositoryClass?: string;
+};
 
 /** Standardized entity decorator data (DTO returned by MetadataReader.getEntity). */
 export class EntityDecorator {

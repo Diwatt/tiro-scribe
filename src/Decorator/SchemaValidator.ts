@@ -84,13 +84,7 @@ export class SchemaValidator {
         return 'object';
     }
 
-    private ensureNotBlank(
-        key: string,
-        value: unknown,
-        field: OptionFieldSchema,
-        options: Record<string, unknown>,
-        errorCode: string,
-    ): void {
+    private ensureNotBlank(key: string, value: unknown, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
         if (field.notBlank !== true || typeof value !== 'string') {
             return;
         }
@@ -99,13 +93,7 @@ export class SchemaValidator {
         }
     }
 
-    private ensureNumberConstraints(
-        key: string,
-        value: unknown,
-        field: OptionFieldSchema,
-        options: Record<string, unknown>,
-        errorCode: string,
-    ): void {
+    private ensureNumberConstraints(key: string, value: unknown, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
         if (typeof value !== 'number') {
             return;
         }

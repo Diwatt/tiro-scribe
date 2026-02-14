@@ -4,7 +4,6 @@
  */
 
 import type { AbstractEntity } from '@/Database/AbstractEntity';
-import { DatabaseException } from '@/Exception';
 import { createNoPkEntityConstructor, createTestEntityConstructor } from '../helpers/mockEntity';
 
 const TestEntity = createTestEntityConstructor();
@@ -19,14 +18,9 @@ type TestEntityInstance = AbstractEntity & {
 
 describe('AbstractEntity', () => {
     describe('Z — Zero (missing / empty)', () => {
-        it('throws DatabaseException when entity has no @PrimaryKey', () => {
-            expect(() => new NoPkEntity()).toThrow(DatabaseException);
-            expect(() => new NoPkEntity()).toThrow(/primary key/);
-            try {
-                new NoPkEntity();
-            } catch (e) {
-                expect((e as DatabaseException).code).toBe('PRIMARY_KEY_NOT_DEFINED');
-            }
+        it('accessing primaryKey throws when entity has no @PrimaryKey (resolve at use)', () => {
+            const e = new NoPkEntity();
+            expect(() => (e as TestEntityInstance).primaryKey).toThrow();
         });
 
         it('constructor with undefined builds state from defaults only', () => {
@@ -92,13 +86,19 @@ describe('AbstractEntity', () => {
     });
 
     describe('E — Exceptions', () => {
-        it('constructor throws with code PRIMARY_KEY_NOT_DEFINED when no @PrimaryKey', () => {
-            try {
-                new NoPkEntity();
-            } catch (e) {
-                expect(e).toBeInstanceOf(DatabaseException);
-                expect((e as DatabaseException).code).toBe('PRIMARY_KEY_NOT_DEFINED');
-            }
+        it('primaryKey getter throws when no @PrimaryKey (getPrimaryKeyField fails)', () => {
+            const e = new NoPkEntity();
+            expect(() => (e as TestEntityInstance).primaryKey).toThrow();
+        });
+    });
+
+    describe('M — Many (multiple columns)', () => {
+        it('toPlainObject returns all column keys for entity with multiple fields', () => {
+            const e = new TestEntity({ id: 'i1', name: 'n1' }) as TestEntityInstance;
+            const plain = e.toPlainObject();
+            expect(Object.keys(plain).sort()).toEqual(['id', 'name']);
+            expect(plain.id).toBe('i1');
+            expect(plain.name).toBe('n1');
         });
     });
 });

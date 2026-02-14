@@ -125,7 +125,7 @@ export class Biocode {
      */
     async setTherapistCredentials(therapist: Therapist): Promise<void> {
         this.therapistUuid = therapist.primaryKey;
-        const projectionKey = await masterKeyVault.load(therapist.getUuid());
+        const projectionKey = await masterKeyVault.load(therapist.uuid);
         this.projectionMatrix = this.generateProjectionMatrix(projectionKey);
     }
 

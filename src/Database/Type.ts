@@ -4,7 +4,6 @@
 
 import type { ENTITY_TABLES } from '@/Entity';
 import type { AbstractEntity, EntityClassStatic } from './AbstractEntity';
-import type { Repository } from './Repository';
 
 /** Inserts an underscore before each capital letter (for camelCase → snake_case). */
 type InsertUnderscoreBeforeCap<S extends string> = S extends `${infer A}${infer B}`
@@ -36,7 +35,5 @@ type SchemaFromTables<T extends readonly (readonly [string, new (...args: unknow
 /** Database schema for Kysely (table names → row types). Single source of truth: ENTITY_TABLES in @/Entity. */
 export type DatabaseSchema = SchemaFromTables<typeof ENTITY_TABLES>;
 
-/** What getRepository() accepts: entity class (EntityClassStatic) + optional custom repo class. */
-export interface EntityClass<TEntity extends AbstractEntity = AbstractEntity> extends EntityClassStatic<TEntity> {
-    repositoryClass?: new () => Repository<AbstractEntity>;
-}
+/** What getRepository() accepts: entity class (EntityClassStatic). Custom repos are registered in Registry. */
+export type EntityClass<TEntity extends AbstractEntity = AbstractEntity> = EntityClassStatic<TEntity>;

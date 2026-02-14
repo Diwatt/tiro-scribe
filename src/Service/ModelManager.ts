@@ -130,7 +130,7 @@ export class ModelManager {
             return [];
         }
         try {
-            const raw = therapist.getLanguages();
+            const raw = therapist.languages;
             const parsed = JSON.parse(raw || '[]') as string[];
             return Array.isArray(parsed) ? parsed : [];
         } catch {

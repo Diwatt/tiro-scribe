@@ -8,7 +8,8 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { Database, registry } from '@/Database/Database';
+import { Database } from '@/Database/Database';
+import { registry } from '@/Database/Registry';
 import { Therapist } from '@/Entity/Therapist';
 import { deviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 
@@ -31,7 +32,8 @@ export default function GateScreen(): React.JSX.Element | null {
                 setGateState('incompatible');
                 return;
             }
-            const therapists = await registry.getRepository(Therapist).findAll();
+            const repo = await registry.getRepository(Therapist);
+            const therapists = await repo.findAll();
             if (cancelled) {
                 return;
             }

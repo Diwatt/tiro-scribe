@@ -6,11 +6,11 @@
 
 import { open } from '@op-engineering/op-sqlite';
 import { AppConfig } from '@/Config';
+import { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import type { TransactionLike } from '@/Database/Schema/DefinitionLanguageWriter';
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import type { EntityClass } from '@/Database/Type';
-import { MetadataReader } from '@/Decorator/MetadataReader';
 import { ENTITY_CLASSES } from '@/Entity';
 
 /**
@@ -66,12 +66,9 @@ export class Database {
         await this.connection.transaction(async (tx) => {
             const writer = new DefinitionLanguageWriter(tx as TransactionLike);
             for (const EntityCls of entityClasses) {
-                const definition = new DefinitionBuilder(new MetadataReader(EntityCls)).build();
+                const definition = new DefinitionBuilder(EntityMetadata.for(EntityCls)).build();
                 await writer.write(definition);
             }
         });
     }
 }
-
-export { AbstractEntity } from '@/Database/AbstractEntity';
-export { registry } from '@/Database/Registry';

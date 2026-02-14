@@ -17,9 +17,9 @@ alwaysApply: true
 **Rule:** explicit visibility is MANDATORY for ALL members in TypeScript, Kotlin, and Swift.
 * **Visibility:** Always use `public`, `private`, `protected`. Never use implicit visibility (no `internal` by default). Do NOT prefix names with underscore to indicate visibility.
 * **Ordering:**
-    1.  **Properties:** Static first, then Instance. Ordered by visibility (`public` -> `protected` -> `private`).
+    1.  **Properties:** Static first, then Instance. Within each: visibility order (`public` -> `protected` -> `private`), then alphabetically by name.
     2.  **Constructor / Initializers**.
-    3.  **Methods:** Ordered by visibility (`public` -> `protected` -> `private`). Getters/Setters are methods.
+    3.  **Methods:** Visibility order (`public` -> `protected` -> `private`), then alphabetically by name. Getters/Setters are methods.
 * **One Property Per Statement:** Do not declare more than one property per line.
 
 ## 3. Naming Conventions (PSR / Symfony)
@@ -43,10 +43,11 @@ alwaysApply: true
 
 ## 5. Strict Coding Style
 * **No Default Exports:** Use named exports (`export class X`) exclusively. This applies to React Components too.
+* **No Inline Type Imports:** Do not use inline type imports (e.g. `import('./Module').TypeName` or `import('kysely').UpdateObject`) in type positions. Use a top-level `import type { TypeName } from 'module'` at the top of the file instead. Dynamic `import()` for runtime/code-splitting (e.g. lazy-loading modules) remains allowed.
 * **No Magic Strings:** Do not use string literals in conditionals. Use `const` or `enum` to define states/values.
 * **No Object Literals in Classes:** Do not define state as `{...}` inside a class body. Use a static factory or external constant.
 * **Early Returns:** Avoid deep nesting. Check conditions and return early. Do not use `else`/`elseif` after a branch that returns or throws.
-* **Blank Line Before Final Return:** When the last statement in a block is a `return`, add a blank line before that return.
+* **Blank Line Before Final Return:** When the last statement in a block is a `return` and the block has more than one statement, add a blank line before that return. Do not add a blank line when the block body is only that single return (e.g. simple getters).
 * **Instantiation:** Always use parentheses for constructor calls (e.g. `new Foo()` even when no arguments).
 * **Trailing Commas:** Use trailing commas in multi-line arrays, argument lists, and object literals for cleaner diffs.
 

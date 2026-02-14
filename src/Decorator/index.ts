@@ -3,11 +3,11 @@
  * Implemented decorators (Entity, Column, PrimaryKey) live in ../Database.
  */
 
-export type { ColumnOptions, SqliteType } from '../Database/Column';
-export { Column } from '../Database/Column';
-export type { EntityOptions } from '../Database/Entity';
-export { Entity } from '../Database/Entity';
-export { PrimaryKey } from '../Database/PrimaryKey';
+export type { ColumnOptions, SqliteType } from '../Database/Decorator';
+export { Column } from '../Database/Decorator';
+export type { EntityOptions } from '../Database/Decorator';
+export { Entity } from '../Database/Decorator';
+export { PrimaryKey } from '../Database/Decorator';
 export type {
     ClassDecoratorConfig,
     FieldDecoratorConfig,

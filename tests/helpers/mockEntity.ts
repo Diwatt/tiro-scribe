@@ -24,7 +24,7 @@ function attachEntityMetadata(ctor: Constructor, tableName: string, fieldMeta: F
     }
 }
 
-/** Minimal encounter-like constructor for Serializer/Registry/Repository tests. */
+/** Minimal encounter-like constructor for RecordNormalizer/Registry/Repository tests. */
 export function createMockEncounterConstructor(): typeof AbstractEntity & {
     entityName: string;
     name: string;
@@ -36,7 +36,10 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
         'encounters',
         {
             uuid: {
-                decorators: [{ decoratorName: 'Column', options: { default: () => randomUUID(), type: 'text' } }],
+                decorators: [
+                    { decoratorName: 'PrimaryKey', options: {} },
+                    { decoratorName: 'Column', options: { default: () => randomUUID(), type: 'text' } },
+                ],
             },
             therapistId: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
             participantBiocodes: { decorators: [{ decoratorName: 'Column', options: { default: [], type: 'text' } }] },
@@ -58,7 +61,12 @@ export function createTestEntityConstructor(): typeof AbstractEntity & {
         TestEntity,
         'test_entities',
         {
-            id: { decorators: [{ decoratorName: 'Column', options: { default: () => 'test-primary-key-1', type: 'text' } }] },
+            id: {
+                decorators: [
+                    { decoratorName: 'PrimaryKey', options: {} },
+                    { decoratorName: 'Column', options: { default: () => 'test-primary-key-1', type: 'text' } },
+                ],
+            },
             name: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
         },
         'id',

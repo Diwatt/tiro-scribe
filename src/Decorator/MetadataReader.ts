@@ -81,7 +81,7 @@ export class MetadataReader {
      * target: constructor or instance (uses target.constructor when instance).
      */
     public static getField(target: object | MetadataConstructor, decoratorName: string): FieldDecorator | undefined {
-        const construct: MetadataConstructor = typeof target === 'function' ? target : (target as object).constructor as MetadataConstructor;
+        const construct: MetadataConstructor = typeof target === 'function' ? target : ((target as object).constructor as MetadataConstructor);
         const reader = new MetadataReader(construct);
         return reader.getFields().find((f) => f.getDecoratorName() === decoratorName);
     }
@@ -100,15 +100,4 @@ export class MetadataReader {
         return this.getFields().filter((f) => f.getDecoratorName() === decoratorName);
     }
 
-    /**
-     * Column decorator for the primary key property (same property as getField('PrimaryKey')).
-     * Returns undefined if there is no primary key or that property has no @Column.
-     */
-    public getPrimaryKeyColumn(): FieldDecorator | undefined {
-        const primaryKeyField = this.getField('PrimaryKey');
-        if (primaryKeyField == null) {
-            return undefined;
-        }
-        return this.getFieldByProperty(primaryKeyField.getFieldName()).find((f) => f.getDecoratorName() === 'Column');
-    }
 }

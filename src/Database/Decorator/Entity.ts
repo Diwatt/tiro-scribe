@@ -7,22 +7,35 @@
  * class Encounter extends AbstractEntity { ... }
  */
 
-import { Builder, type ClassConstructor, type ClassDecoratorConfig, type OptionsSchema } from '../Decorator/Builder';
-import { MetadataWriter } from '../Decorator/MetadataWriter';
-import { DatabaseException } from '../Exception';
+import { Builder, type ClassConstructor, type ClassDecoratorConfig, type OptionsSchema } from '../../Decorator/Builder';
+import { MetadataWriter } from '../../Decorator/MetadataWriter';
+import { DatabaseException } from '../../Exception';
 
 export interface EntityOptions {
     /** Table name used for persistence (Registry / Repository). */
     tableName: string;
+    /** Optional export name of a custom repository from @/Repository (e.g. 'TherapistRepository'). Must be a single identifier; Registry throws if not exported there. */
+    repositoryClass?: string;
 }
 
 const ENTITY_OPTIONS_SCHEMA: OptionsSchema = {
     tableName: { required: true, type: 'string', notBlank: true },
+    repositoryClass: { required: false, type: 'string', notBlank: true },
 };
+
+/** Export name must be a single identifier (no path). Registry validates that it exists in @/Repository. */
+const REPOSITORY_CLASS_NAME_REGEX = /^[A-Z][a-zA-Z0-9]*$/;
 
 type FieldMetadata = { decorators?: Array<{ decoratorName: string; options: unknown }> };
 
-class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
+interface PrimaryKeyColumnDef {
+    propertyName: string;
+    type: string;
+    length?: number;
+}
+
+class EntityDecorator implements ClassDecoratorConfig<EntityOptions>
+{
     public readonly schema = ENTITY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_ENTITY_OPTIONS';
 
@@ -42,8 +55,8 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
             const decorators = fieldMeta?.decorators;
             if (Array.isArray(decorators) && decorators.some((d) => d.decoratorName === 'PrimaryKey')) {
                 primaryKeyProp = propName;
-                const hasColumn = decorators.some((d) => d.decoratorName === 'Column');
-                if (!hasColumn) {
+                const columnDecorator = decorators.find((d) => d.decoratorName === 'Column');
+                if (columnDecorator == null) {
                     throw new DatabaseException(
                         `Primary key property "${propName}" must have a @Column() decorator.`,
                         'PRIMARY_KEY_COLUMN_REQUIRED',
@@ -51,7 +64,9 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
                         { propertyName: propName },
                     );
                 }
-                (target as unknown as Record<string, string>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = propName;
+                const c = target as unknown as Record<string, unknown>;
+                c[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = propName;
+                c[MetadataWriter.PRIMARY_KEY_COLUMN_DEF_KEY] = this.buildPrimaryKeyColumnDef(propName, columnDecorator.options);
             }
         }
 
@@ -60,6 +75,26 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
                 tableName: options.tableName,
             });
         }
+    }
+
+    public validate(options: EntityOptions): void {
+        const name = options.repositoryClass;
+        if (name != null && name.length > 0 && !REPOSITORY_CLASS_NAME_REGEX.test(name)) {
+            throw new DatabaseException(
+                `Entity repositoryClass must be an export name from @/Repository (e.g. 'TherapistRepository'), not a path. Got: ${name}`,
+                'INVALID_ENTITY_OPTIONS',
+                undefined,
+                { repositoryClass: name },
+            );
+        }
+    }
+
+    private buildPrimaryKeyColumnDef(propertyName: string, options: unknown): PrimaryKeyColumnDef {
+        const columnOptions = (options as Record<string, unknown>) ?? {};
+        const type = (columnOptions.type != null ? String(columnOptions.type) : 'text') as string;
+        const length = typeof columnOptions.length === 'number' ? columnOptions.length : undefined;
+
+        return { propertyName, type, length };
     }
 }
 

@@ -5,10 +5,11 @@
 
 import { observable } from '@legendapp/state';
 import { registry } from '../../Database/Registry';
-import type { CreateTherapistInput } from '../../Entity/Therapist';
 import { Therapist } from '../../Entity/Therapist';
 import { AppLanguage } from '../../Localization/AppLanguage';
 import { CryptoEngine, masterKeyVault, RecoveryCode, RecoveryKit } from '../../Security';
+import type { CreateTherapistInput } from '../../Security/TherapistForge';
+import { TherapistForge } from '../../Security/TherapistForge';
 import { AppLogger } from '../../Service/Logger';
 import { voiceCalibration } from '../../Service/VoiceCalibration';
 import { ActivityStatus, globalActivityStatus } from '../GlobalActivityStatus';
@@ -79,8 +80,8 @@ export class OnboardingState {
                 const input = this.buildAccountInput(data, practiceLanguages);
                 const crypto = new CryptoEngine();
                 const recovery = new RecoveryCode();
-                const { therapist, artifacts } = Therapist.create(input, crypto, recovery);
-                await masterKeyVault.save(therapist.getUuid(), artifacts.masterKey);
+                const { therapist, artifacts } = TherapistForge.create(input, crypto, recovery);
+                await masterKeyVault.save(therapist.uuid, artifacts.masterKey);
                 this.pendingTherapist = therapist;
                 this.state$.recoveryCode.set(artifacts.recoveryCode);
                 this.state$.step.set(3);
@@ -99,7 +100,7 @@ export class OnboardingState {
             async () => {
                 const vector = await voiceCalibration.run();
                 if (this.pendingTherapist) {
-                    this.pendingTherapist.setBiocodeEmbedding(vector);
+                    this.pendingTherapist.biocodeEmbedding = vector;
                 }
                 this.state$.step.set(4);
                 logger.debug('[OnboardingState] calibrateVoice success', { step: 4 });
@@ -130,7 +131,8 @@ export class OnboardingState {
             return;
         }
         try {
-            await registry.getRepository(Therapist).persist(therapist);
+            const repo = await registry.getRepository(Therapist);
+            await repo.persist(therapist);
             startupOrchestrator.run();
             logger.debug('[OnboardingState] finalize success');
         } catch (error: unknown) {

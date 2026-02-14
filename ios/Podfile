@@ -183,5 +183,23 @@ target 'TiroScribe' do
     # discover the local file:./modules/secure-recorder package). Patch both the generated
     # Swift file and the configure script so it persists across pod install and builds.
     patch_expo_modules_provider_for_secure_recorder!(installer)
+
+    # op-sqlite: libsql_experimental.xcframework has libsql.h in both ios-arm64 and
+    # ios-arm64-simulator; both get copied to op_sqlite.framework/Headers/libsql.h,
+    # causing "Multiple commands produce" error. Keep only one Headers entry for libsql.h.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'op-sqlite'
+
+      headers_phase = target.build_phases.find do |p|
+        p.respond_to?(:files) && p.files.any? { |bf| (bf.file_ref&.path || bf.file_ref&.name) == 'libsql.h' }
+      end
+      next unless headers_phase
+
+      libsql_build_files = headers_phase.files.select do |bf|
+        (bf.file_ref&.path || bf.file_ref&.name) == 'libsql.h'
+      end
+      libsql_build_files.drop(1).each { |bf| headers_phase.remove_build_file(bf) }
+      break
+    end
   end
 end

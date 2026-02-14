@@ -20,7 +20,8 @@ export const Home = observer((): React.JSX.Element => {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            const therapists = await registry.getRepository(Therapist).findAll();
+            const repo = await registry.getRepository(Therapist);
+            const therapists = await repo.findAll();
             if (cancelled) {
                 return;
             }

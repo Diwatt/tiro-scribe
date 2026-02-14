@@ -8,8 +8,8 @@
  * public uuid!: string;
  */
 
-import { Builder, type FieldDecoratorConfig } from '../Decorator/Builder';
-import { MetadataWriter } from '../Decorator/MetadataWriter';
+import { Builder, type FieldDecoratorConfig } from '../../Decorator/Builder';
+import { MetadataWriter } from '../../Decorator/MetadataWriter';
 
 class PrimaryKeyDecorator implements FieldDecoratorConfig<Record<string, never>> {
     public readonly unique = true;

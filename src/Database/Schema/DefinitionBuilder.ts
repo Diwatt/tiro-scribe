@@ -4,14 +4,12 @@
  * Returns TableDefinition so the DDL writer stays decoupled from entity classes (see TableDefinition JSDoc).
  */
 
-import type { FieldDecorator } from '@/Decorator/FieldDecorator';
-import type { MetadataReader } from '@/Decorator/MetadataReader';
-import { DatabaseException } from '@/Exception';
-import type { EntityClassStatic } from '../AbstractEntity';
-import type { ColumnOptions } from '../Column';
-import type { ForeignKeyOptions } from '../ForeignKey';
-import { OnDeleteAction } from '../ForeignKey';
 import snakeCase from 'lodash/snakeCase';
+import type { FieldDecorator } from '@/Decorator/FieldDecorator';
+import { DatabaseException } from '@/Exception';
+import type { ColumnOptions } from '../Decorator';
+import { EntityMetadata } from '../Decorator';
+import { OnDeleteAction } from '../Decorator';
 import type { FullTextSearchFieldSpec } from './TableDefinition';
 import { TableDefinition } from './TableDefinition';
 
@@ -34,13 +32,12 @@ export class DefinitionBuilder {
     /** Property name → " REFERENCES table(column) ON DELETE action" for columns with @ForeignKey. */
     private readonly foreignKeyClauseByPropertyName: Map<string, string>;
 
-    public constructor(reader: MetadataReader) {
-        const entity = reader.getEntity();
-        const primaryKeyColumnField = reader.getPrimaryKeyColumn();
-        if (entity == null || primaryKeyColumnField == null) {
-            throw new DatabaseException('Reader must target an entity class (@Entity and @PrimaryKey).', 'ENTITY_METADATA_REQUIRED', undefined);
+    public constructor(metadata: EntityMetadata) {
+        this.tableName = metadata.getTableName();
+        const primaryKeyColumnField = metadata.getPrimaryKeyColumnField();
+        if (primaryKeyColumnField == null) {
+            throw new DatabaseException('Entity must have @Entity and @PrimaryKey.', 'ENTITY_METADATA_REQUIRED', undefined);
         }
-        this.tableName = entity.getOption('tableName');
         this.primaryKeyPropertyName = primaryKeyColumnField.getFieldName();
         this.primaryKeyColumnName = snakeCase(this.primaryKeyPropertyName);
         const primaryKeyOptions = primaryKeyColumnField.getOptions<ColumnOptions>();
@@ -51,14 +48,14 @@ export class DefinitionBuilder {
             type: primaryKeyType,
             length: primaryKeyLength,
         };
-        this.columnFields = reader.getFieldsByDecorator('Column').filter((f) => f.getFieldName() !== this.primaryKeyPropertyName);
-        this.foreignKeyClauseByPropertyName = this.buildForeignKeyClauses(reader);
+        this.columnFields = metadata.getColumnFields().filter((f) => f.getFieldName() !== this.primaryKeyPropertyName);
+        this.foreignKeyClauseByPropertyName = this.buildForeignKeyClauses(metadata);
     }
 
-    private buildForeignKeyClauses(reader: MetadataReader): Map<string, string> {
+    private buildForeignKeyClauses(metadata: EntityMetadata): Map<string, string> {
         const map = new Map<string, string>();
         const addIfPresent = (propertyName: string): void => {
-            const clause = this.getForeignKeyReferencesClause(reader, propertyName);
+            const clause = this.getForeignKeyReferencesClause(metadata, propertyName);
             if (clause != null) {
                 map.set(propertyName, clause);
             }
@@ -67,25 +64,24 @@ export class DefinitionBuilder {
         for (const field of this.columnFields) {
             addIfPresent(field.getFieldName());
         }
+
         return map;
     }
 
-    private getForeignKeyReferencesClause(reader: MetadataReader, propertyName: string): string | null {
-        const decorators = reader.getFieldByProperty(propertyName);
-        const foreignKeyDecorator = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
-        if (foreignKeyDecorator == null) {
+    private getForeignKeyReferencesClause(metadata: EntityMetadata, propertyName: string): string | null {
+        const options = metadata.getForeignKeyOptions(propertyName);
+        if (options == null) {
             return null;
         }
-        const options = foreignKeyDecorator.getOptions<ForeignKeyOptions>();
-        const targetClass = (typeof options.target === 'function' ? options.target() : options.target) as EntityClassStatic;
-        const referencedTable = targetClass?.entityName;
-        if (referencedTable == null || typeof referencedTable !== 'string' || referencedTable.trim() === '') {
+        const referencedTable = metadata.getForeignKeyTargetTableName(propertyName);
+        if (referencedTable == null || referencedTable.trim() === '') {
             throw new DatabaseException('ForeignKey target must be an @Entity class with tableName.', 'INVALID_FOREIGN_KEY_TARGET', undefined, {
                 propertyName,
             });
         }
         const referencedColumn = options.column ?? 'uuid';
         const onDelete = options.onDelete ?? OnDeleteAction.Restrict;
+
         return ` REFERENCES ${referencedTable}(${referencedColumn}) ON DELETE ${onDelete}`;
     }
 

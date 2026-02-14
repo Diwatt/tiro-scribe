@@ -41,7 +41,7 @@ export class QueueItemErrorLogger {
             timestamp: dayjs.utc().toISOString(),
             stage,
             message,
-            queueItemId: this.queueItem.getUuid(),
+            queueItemId: this.queueItem.uuid,
         };
         QueueItemErrorLogger._push(entry);
         this.appLog?.warn(`[${stage}] ${message}`);

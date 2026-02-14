@@ -6,7 +6,7 @@
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import { registry } from '../Database/Registry';
-import type { TherapistRepository } from '../Database/TherapistRepository';
+import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '../Entity/Therapist';
 import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 
@@ -42,7 +42,8 @@ export class StartupOrchestrator {
             return;
         }
 
-        const hasSession = await registry.getRepository<Therapist, TherapistRepository>(Therapist).hasActiveSession();
+        const repo = await registry.getRepository<Therapist, TherapistRepository>(Therapist);
+        const hasSession = await repo.hasActiveSession();
         if (hasSession) {
             this.state.set(StartupState.Ready);
             return;
