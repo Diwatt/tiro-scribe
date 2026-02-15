@@ -50,16 +50,6 @@ export class QueueItem extends AbstractEntity {
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
     public updatedAt!: Dayjs;
 
-    public get isProcessable(): boolean {
-        if (this.status === QueueItemStatus.Pending) {
-            return true;
-        }
-        if (this.status === QueueItemStatus.Failed && this.retryCount < MAX_RETRY_COUNT) {
-            return true;
-        }
-        return false;
-    }
-
     public getCreatedAt(): Dayjs {
         return this.createdAt;
     }
@@ -138,5 +128,15 @@ export class QueueItem extends AbstractEntity {
 
     public setUuid(value: string): void {
         this.uuid = value;
+    }
+
+    public get isProcessable(): boolean {
+        if (this.status === QueueItemStatus.Pending) {
+            return true;
+        }
+        if (this.status === QueueItemStatus.Failed && this.retryCount < MAX_RETRY_COUNT) {
+            return true;
+        }
+        return false;
     }
 }

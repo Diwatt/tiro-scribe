@@ -8,15 +8,25 @@
  * exportForSupport() for "send to us".
  */
 
+import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import type { QueueItem } from '../Entity/QueueItem';
-import type { PipelineStage, QueueItemErrorEntry } from '../Entity/Type';
+import type { PipelineStage } from '../Entity/Type';
 import type { LoggerInterface } from '../Service/Logger';
 
 dayjs.extend(utc);
 
 const MAX_BUFFER_SIZE = 200;
+
+/** Technical error log (last error on QueueItem). timestamp: Dayjs UTC. */
+export class QueueItemErrorEntry {
+    constructor(
+        public timestamp: Dayjs,
+        public stage: PipelineStage,
+        public message: string,
+    ) {}
+}
 
 type BufferEntry = QueueItemErrorEntry & { queueItemId?: string };
 
@@ -38,7 +48,7 @@ export class QueueItemErrorLogger {
     /** Record error to app logger and in-memory buffer only (no DB). */
     record(stage: PipelineStage, message: string): void {
         const entry: BufferEntry = {
-            timestamp: dayjs.utc().toISOString(),
+            timestamp: dayjs.utc(),
             stage,
             message,
             queueItemId: this.queueItem.uuid,
@@ -54,7 +64,7 @@ export class QueueItemErrorLogger {
 
     /** Format a single error entry as readable text. */
     static formatOne(entry: QueueItemErrorEntry): string {
-        return `[${entry.timestamp}] ${entry.stage}: ${entry.message}`;
+        return `[${entry.timestamp.toISOString()}] ${entry.stage}: ${entry.message}`;
     }
 
     /** Format error entries as readable text (one line per entry). */

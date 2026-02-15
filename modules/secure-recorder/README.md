@@ -161,6 +161,24 @@ The encrypted file format:
 - **Android**: `[12-byte IV][encrypted audio data][16-byte GCM tag]`
 - **iOS**: `[12-byte nonce][encrypted audio data][16-byte GCM tag]`
 
+## Reference architecture (mandatory for AI)
+
+This module implements the **sensor** part of the app reference architecture. Its output is contract-bound so downstream AI (VAD, ASR, CREPE, CAM++) can assume a single, fixed format.
+
+**Canonical spec:** `docs/app_design_architecture.md` (project root). Any change to format or limits must stay aligned with that doc.
+
+**Contract (decrypted output):**
+
+| Requirement | Value | Enforced in |
+|-------------|--------|-------------|
+| Sample rate | 16 000 Hz | `AudioConfig` (iOS/Android) |
+| Format | PCM 16-bit mono | `AudioConfig` |
+| Capture | UNPROCESSED (Android) / `.measurement` (iOS) | `AudioRecorder` |
+| Max duration | 4 hours | `LimitRegistry` |
+| Max file size | 500 MB | `LimitRegistry` |
+
+Do not add AGC, noise suppression, or resampling to other rates in this module; the architecture assumes raw, clinical-grade input for all models.
+
 ## Security
 
 - **Encryption**: AES-256-GCM

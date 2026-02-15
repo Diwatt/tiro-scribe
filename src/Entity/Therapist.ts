@@ -175,4 +175,8 @@ export class Therapist extends AbstractEntity {
     public setYearsOfExperience(value: number | null): void {
         this.yearsOfExperience = value;
     }
+
+    public isValidPassword(hash: string): boolean {
+        return this.passwordHash === hash;
+    }
 }

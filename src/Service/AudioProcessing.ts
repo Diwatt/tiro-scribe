@@ -16,10 +16,35 @@ async function getOrt(): Promise<typeof Ort> {
     return import('onnxruntime-react-native');
 }
 
-import type { AudioProcessingResult, ProcessingPayload } from '@/Entity';
+import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { TranscriptionNotImplementedError } from '../Exception/TranscriptionNotImplementedError';
 import type { Anonymizer } from './Anonymizer';
 import { AppLogger, type LoggerInterface } from './Logger';
+
+dayjs.extend(utc);
+
+/** Payload passed through the audio pipeline. timestamp: Dayjs UTC. */
+export class ProcessingPayload {
+    constructor(
+        public biocode: string,
+        public cleanTranscript: string,
+        public confidence: number,
+        public encounterUuid: string,
+        public timestamp: Dayjs,
+    ) {}
+}
+
+/** Detailed result from audio processing. */
+export class AudioProcessingResult {
+    constructor(
+        public rawText: string,
+        public anonymizedText: string,
+        public biocode: string,
+        public confidence: number,
+    ) {}
+}
 
 /**
  * Transcription constants
@@ -106,14 +131,13 @@ export class AudioProcessing {
         const overallConfidence = (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
 
         // Step 5: Build final payload
-        const payload: ProcessingPayload = {
-            biocode: biocodeResult.biocode,
-            cleanTranscript: anonymizationResult.cleanText,
-            confidence: overallConfidence,
+        return new ProcessingPayload(
+            biocodeResult.biocode,
+            anonymizationResult.cleanText,
+            overallConfidence,
             encounterUuid,
-            timestamp: Date.now(),
-        };
-        return payload;
+            dayjs.utc(),
+        );
     }
 
     /**
@@ -136,12 +160,12 @@ export class AudioProcessing {
 
         const biocodeResult = await this.biocodeService.processAudio(audioPath);
         const anonymizationResult = await this.anonymizerService.anonymize(rawText);
-        return {
+        return new AudioProcessingResult(
             rawText,
-            anonymizedText: anonymizationResult.cleanText,
-            biocode: biocodeResult.biocode,
-            confidence: (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
-        };
+            anonymizationResult.cleanText,
+            biocodeResult.biocode,
+            (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
+        );
     }
 
     /**

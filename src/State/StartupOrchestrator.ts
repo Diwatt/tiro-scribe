@@ -56,7 +56,7 @@ export class StartupOrchestrator {
     /** Start Cam++ model download in background so it is ready before voice calibration step. */
     private predownloadCamPlusModel(): void {
         import('../Service/ModelDownloader').then(({ ModelDownloader }): Promise<string> => {
-            return ModelDownloader.getInstance().ensureDownloadedByKey('speaker_id');
+            return ModelDownloader.getInstance().ensureCachedByKey('speaker_id');
         }).catch(() => {
             // Ignore; VoiceCalibration.run() will retry or use placeholder
         });

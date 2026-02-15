@@ -1,7 +1,7 @@
 /**
- * Built-in transformer: Dayjs ↔ UTC ISO string.
+ * Built-in transformer: Dayjs ↔ UTC ISO 8601 string.
+ * Single datetime convention: wall-clock = UTC ISO string in DB and DTOs (see Entity/Type.ts).
  * Registered as 'date' in TransformerRegistry.
- * Stores UTC in the database (ISO 8601 string); fromStorage returns dayjs in UTC mode.
  */
 
 import dayjs, { type Dayjs } from 'dayjs';

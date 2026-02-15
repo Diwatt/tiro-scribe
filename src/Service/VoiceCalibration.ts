@@ -68,7 +68,7 @@ export class VoiceCalibration {
             const { Biocode } = await import('./Biocode');
             const { ModelDownloader } = await import('./ModelDownloader');
             const biocode = new Biocode(this.log);
-            const modelPath = await ModelDownloader.getInstance().ensureDownloadedByKey('speaker_id');
+            const modelPath = await ModelDownloader.getInstance().ensureCachedByKey('speaker_id');
             await biocode.initialize(modelPath);
             const result = await biocode.extractSpeakerVector(audioPath);
             return result.vector;

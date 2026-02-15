@@ -3,7 +3,7 @@
  * Adapter to connect Queue with AudioProcessing
  */
 
-import type { ProcessingPayload } from '@/Entity';
+import type { ProcessingPayload } from './AudioProcessing';
 import { InvalidAudioFormatError } from '../Exception/InvalidAudioFormatError';
 import type { AudioProcessing } from './AudioProcessing';
 import { AppLogger, type LoggerInterface } from './Logger';

@@ -39,6 +39,9 @@ class AudioRecorder {
    */
   internal func start() throws -> AudioRecord {
     // Configure audio session for recording
+    // ISOMORPHIC with Android: .record + .measurement = unprocessed audio (equivalent to
+    // Android MediaRecorder.AudioSource.UNPROCESSED). Measurement mode minimizes/removes
+    // system signal processing (AGC, noise reduction) for clean input.
     let audioSession = sessionFactory()
     
     do {

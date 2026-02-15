@@ -22,7 +22,7 @@ class AudioRecorder(
   private val factory: (AudioConfig) -> AudioRecord = { config ->
     // Default factory implementation (isomorphic: matches iOS function closure pattern)
     AudioRecord.Builder()
-      .setAudioSource(android.media.MediaRecorder.AudioSource.MIC)
+      .setAudioSource(android.media.MediaRecorder.AudioSource.UNPROCESSED)
       .setAudioFormat(
         android.media.AudioFormat.Builder()
           .setEncoding(config.audioFormat)

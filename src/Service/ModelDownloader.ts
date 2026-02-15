@@ -1,5 +1,5 @@
 /**
- * ModelDownloader - Downloads ONNX models on first app launch.
+ * ModelDownloader - Fetches and caches ONNX models on first app launch.
  * Model configs come from Tiro API GET /models only; no client-side fallback.
  * Local path pattern from AppConfig.modelLocalPathSubdir (e.g. models/${config.id}.onnx).
  */
@@ -18,7 +18,7 @@ let modelConfigsCache: Promise<Record<string, ModelConfig>> | null = null;
 
 export class ModelDownloader {
     private static instance: ModelDownloader | null = null;
-    private readonly downloadProgress: Map<string, number> = new Map();
+    private readonly progressByUseCase: Map<string, number> = new Map();
 
     public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
 
@@ -43,7 +43,7 @@ export class ModelDownloader {
         }
     }
 
-    public async ensureDownloaded(config: ModelConfig, onProgress?: (progress: number) => void): Promise<string> {
+    public async ensureCached(config: ModelConfig, onProgress?: (progress: number) => void): Promise<string> {
         const subdir = AppConfig.modelLocalPathSubdir;
         const file = this.fileForConfig(config);
         if (file.exists) {
@@ -56,10 +56,10 @@ export class ModelDownloader {
             modelsDir.create({ intermediates: true, idempotent: true });
         }
 
-        this.logger.info(`Downloading model ${config.use_case} (${config.id}) from ${config.url}...`);
+        this.logger.info(`Fetching model ${config.use_case} (${config.id}) from ${config.url}...`);
 
         if (onProgress) {
-            this.downloadProgress.set(config.use_case, 0);
+            this.progressByUseCase.set(config.use_case, 0);
             onProgress(0);
         }
 
@@ -71,31 +71,31 @@ export class ModelDownloader {
                 await this.verifyChecksum(file, hash);
             }
 
-            this.downloadProgress.set(config.use_case, 1);
+            this.progressByUseCase.set(config.use_case, 1);
             if (onProgress) {
                 onProgress(1);
             }
-            this.logger.info(`Model ${config.use_case} downloaded successfully to ${file.uri}`);
+            this.logger.info(`Model ${config.use_case} cached at ${file.uri}`);
 
             return file.uri;
         } catch (error) {
             if (file.exists) {
                 file.delete();
             }
-            throw new ModelDownloaderException(`Failed to download model ${config.use_case}: ${error}`, error instanceof Error ? error : new Error(String(error)));
+            throw new ModelDownloaderException(`Failed to fetch model ${config.use_case}: ${error}`, error instanceof Error ? error : new Error(String(error)));
         }
     }
 
-    public async ensureDownloadedByKey(key: string, onProgress?: (progress: number) => void): Promise<string> {
+    public async ensureCachedByKey(key: string, onProgress?: (progress: number) => void): Promise<string> {
         const config = await this.getConfig(key);
-        return this.ensureDownloaded(config, onProgress);
+        return this.ensureCached(config, onProgress);
     }
 
-    public async ensureManyDownloaded(configs: ModelConfig[], onProgress?: (useCase: string, progress: number) => void): Promise<Record<string, string>> {
+    public async ensureManyCached(configs: ModelConfig[], onProgress?: (useCase: string, progress: number) => void): Promise<Record<string, string>> {
         const results: Record<string, string> = {};
         await Promise.all(
             configs.map(async (config) => {
-                const path = await this.ensureDownloaded(config, onProgress ? (progress) => onProgress(config.use_case, progress) : undefined);
+                const path = await this.ensureCached(config, onProgress ? (progress) => onProgress(config.use_case, progress) : undefined);
                 results[config.use_case] = path;
             }),
         );
@@ -158,7 +158,7 @@ export class ModelDownloader {
     }
 
     public getProgress(useCase: string): number {
-        return this.downloadProgress.get(useCase) ?? 0;
+        return this.progressByUseCase.get(useCase) ?? 0;
     }
 
     public async getTotalSize(): Promise<number> {

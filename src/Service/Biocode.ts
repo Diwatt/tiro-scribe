@@ -9,7 +9,11 @@
 
 import { File, Paths } from 'expo-file-system';
 import type * as Ort from 'onnxruntime-react-native';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import QuickCrypto from 'react-native-quick-crypto';
+
+dayjs.extend(utc);
 
 /** Lazy-loaded ONNX Runtime; avoids loading native module until Biocode actually needs it. */
 let ortModule: typeof Ort | null = null;
@@ -20,7 +24,7 @@ async function getOrt(): Promise<typeof Ort> {
     return ortModule;
 }
 
-import type { BiocodeResult, SpeakerVector, Therapist } from '@/Entity';
+import type { Therapist } from '@/Entity';
 import {
     InvalidAudioFormatError,
     InvalidDimensionError,
@@ -30,6 +34,23 @@ import {
 } from '../Exception';
 import { masterKeyVault } from '../Security/MasterKeyVault';
 import { AppLogger, type LoggerInterface } from './Logger';
+
+/** Extracted speaker vector from audio (e.g. Sherpa-ONNX). */
+export class SpeakerVector {
+    constructor(
+        public vector: number[],
+        public confidence: number,
+    ) {}
+}
+
+/** Result of Biocode.generateBiocode / processAudio. timestamp: Dayjs UTC. */
+export class BiocodeResult {
+    constructor(
+        public biocode: string,
+        public confidence: number,
+        public timestamp: dayjs.Dayjs,
+    ) {}
+}
 
 /**
  * Biocode constants for LCG algorithm and vector dimensions
@@ -107,7 +128,7 @@ export class Biocode {
         const downloader = ModelDownloader.getInstance();
         const config = await downloader.getConfigByLocalPath(modelPath);
         if (config != null) {
-            return await downloader.ensureDownloaded(config);
+            return await downloader.ensureCached(config);
         }
 
         throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);
@@ -266,10 +287,7 @@ export class Biocode {
 
             // Calculate confidence based on vector magnitude
             const confidence = Math.min(1.0, Math.sqrt(normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)));
-            return {
-                vector: normalizedEmbedding,
-                confidence,
-            };
+            return new SpeakerVector(normalizedEmbedding, confidence);
         } catch (error) {
             throw new SpeakerVectorExtractionError(`Failed to extract speaker vector: ${error}`, error instanceof Error ? error : new Error(String(error)));
         }
@@ -432,11 +450,7 @@ export class Biocode {
         // This ensures same voice always produces same biocode
         const vectorString = projected.join(',');
         const biocode = QuickCrypto.createHash('sha256').update(vectorString).digest().toString('hex');
-        return {
-            biocode,
-            confidence: speakerVector.confidence,
-            timestamp: Date.now(),
-        };
+        return new BiocodeResult(biocode, speakerVector.confidence, dayjs.utc());
     }
 
     /**

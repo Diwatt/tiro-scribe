@@ -1,5 +1,9 @@
 /**
- * ProsodyMetrics entity: analytics per encounter (pitch, speaking rate, coherence).
+ * ProsodyMetrics entity: raw physical signal time-series per encounter.
+ * Only voiceFrames (VoiceFrame[]) and model metadata (modelName, modelVersion).
+ * No global stats (pitchMean, jitterPercent, speakingRate, etc.); analysis is server-side.
+ * Time coherence: VoiceFrame.startTime and duration are in milliseconds from recording start;
+ * segmentId links to Utterance.id; frame interval [startTime, startTime+duration] should lie inside utterance [startTime, endTime].
  * One-to-one with Encounter; cascade delete when encounter is removed.
  */
 
@@ -8,6 +12,20 @@ import { AbstractEntity } from '../Database/AbstractEntity';
 import { ForeignKey } from '../Database/Decorator';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 import { Encounter } from './Encounter';
+
+/** One frame of raw signal metrics (F0, RMS, stability, timbre, periodicity). No derived/semantic fields. */
+export class VoiceFrame {
+    constructor(
+        public startTime: number,
+        public duration: number,
+        public pitch: number,
+        public energy: number,
+        public spectralTilt: number,
+        /** Periodicity [0–1] from pitch tracker (voicedness/voicing confidence). */
+        public periodicity: number,
+        public segmentId?: string,
+    ) {}
+}
 
 @Entity({ tableName: 'prosody_metrics' })
 export class ProsodyMetrics extends AbstractEntity {
@@ -19,52 +37,55 @@ export class ProsodyMetrics extends AbstractEntity {
     @Column({ default: '', type: 'varchar', length: 36 })
     public encounterId!: string;
 
-    @Column({ default: 0, type: 'real' })
-    public pitchMean!: number;
+    /** Model name (e.g. silero-vad). */
+    @Column({ default: '', type: 'varchar', length: 64 })
+    public modelName!: string;
 
-    @Column({ default: 0, type: 'real' })
-    public speakingRate!: number;
+    /** Model version (e.g. 4.0.0). */
+    @Column({ default: '', type: 'varchar', length: 16 })
+    public modelVersion!: string;
 
-    @Column({ default: 0, type: 'real' })
-    public coherence!: number;
-
-    public getCoherence(): number {
-        return this.coherence;
-    }
+    /** Time-series of raw signal frames (JSON). */
+    @Column({ default: '[]', type: 'text', as: 'json' })
+    public voiceFrames!: VoiceFrame[];
 
     public getEncounterId(): string {
         return this.encounterId;
     }
 
-    public getPitchMean(): number {
-        return this.pitchMean;
+    public getModelName(): string {
+        return this.modelName;
     }
 
-    public getSpeakingRate(): number {
-        return this.speakingRate;
+    public getModelVersion(): string {
+        return this.modelVersion;
     }
 
     public getUuid(): string {
         return this.uuid;
     }
 
-    public setCoherence(value: number): void {
-        this.coherence = value;
+    public getVoiceFrames(): VoiceFrame[] {
+        return this.voiceFrames;
     }
 
     public setEncounterId(value: string): void {
         this.encounterId = value;
     }
 
-    public setPitchMean(value: number): void {
-        this.pitchMean = value;
+    public setModelName(value: string): void {
+        this.modelName = value;
     }
 
-    public setSpeakingRate(value: number): void {
-        this.speakingRate = value;
+    public setModelVersion(value: string): void {
+        this.modelVersion = value;
     }
 
     public setUuid(value: string): void {
         this.uuid = value;
+    }
+
+    public setVoiceFrames(value: VoiceFrame[]): void {
+        this.voiceFrames = value;
     }
 }

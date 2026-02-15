@@ -12,7 +12,8 @@ import AVFoundation
  * - bufferSize calculated as sampleRate * 0.01 (10ms buffer, ~160 frames)
  * - Provides createFormat() method for AVAudioFormat creation
  * 
- * NOTE: 16kHz is optimal for voice recognition models (Whisper, Sherpa-ONNX)
+ * NOTE: 16kHz is forced (isomorphic with Android AudioConfig.sampleRate = 16000).
+ * Optimal for voice recognition models (Whisper, Sherpa-ONNX).
  */
 class AudioConfig {
   internal let sampleRate: Double = 16000.0

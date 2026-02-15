@@ -9,10 +9,29 @@
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import { type AnonymizationResult, type AnonymizedEntity, EntityType } from '@/Entity';
+import { EntityType } from '@/Entity';
 import { AppLogger, type LoggerInterface } from './Logger';
 
 dayjs.extend(customParseFormat);
+
+/** Represents a redacted span. */
+export class Redaction {
+    constructor(
+        public original: string,
+        public replacement: string,
+        public type: EntityType,
+        public index: number,
+    ) {}
+}
+
+/** Result of anonymize(): clean text, redactions, confidence. */
+export class AnonymizationResult {
+    constructor(
+        public cleanText: string,
+        public entities: Redaction[],
+        public confidence: number,
+    ) {}
+}
 
 /**
  * Entity replacement tokens for anonymization
@@ -74,7 +93,7 @@ export class Anonymizer {
      * @returns Anonymized text with entity metadata
      */
     async anonymize(rawText: string): Promise<AnonymizationResult> {
-        const entities: AnonymizedEntity[] = [];
+        const entities: Redaction[] = [];
 
         // Layer 1: AI-based NER (ONNX BERT-NER)
         const aiEntities = await this.detectEntitiesWithAI(rawText);
@@ -88,28 +107,24 @@ export class Anonymizer {
         const temporalEntities = this.detectAndFuzzTemporal(rawText, entities);
         entities.push(...temporalEntities);
 
-        // Sort entities by start index (descending) to replace from end to start
-        entities.sort((a, b) => b.startIndex - a.startIndex);
+        // Sort by start index (descending) to replace from end to start
+        entities.sort((a, b) => b.index - a.index);
 
-        // Apply replacements
+        // Apply replacements (end = index + original.length)
         let cleanText = rawText;
         for (const entity of entities) {
-            cleanText = cleanText.slice(0, entity.startIndex) + entity.replacement + cleanText.slice(entity.endIndex);
+            const end = entity.index + entity.original.length;
+            cleanText = cleanText.slice(0, entity.index) + entity.replacement + cleanText.slice(end);
         }
 
-        // Calculate overall confidence (average of all entity confidences)
         const confidence = entities.length > 0 ? entities.reduce((sum, _e) => sum + 0.9, 0) / entities.length : 1.0;
-        return {
-            cleanText,
-            entities,
-            confidence: Math.min(confidence, 1.0),
-        };
+        return new AnonymizationResult(cleanText, entities, Math.min(confidence, 1.0));
     }
 
     /**
      * Layer 1: AI-based Named Entity Recognition using ONNX BERT-NER
      */
-    private async detectEntitiesWithAI(text: string): Promise<AnonymizedEntity[]> {
+    private async detectEntitiesWithAI(text: string): Promise<Redaction[]> {
         if (!this.onnxRuntime) {
             this.loggerInstance.warn('ONNX Runtime not initialized. Skipping AI-based NER.');
             return [];
@@ -117,17 +132,18 @@ export class Anonymizer {
 
         try {
             const results = await this.onnxRuntime.runInference(text);
-            const entities: AnonymizedEntity[] = [];
+            const entities: Redaction[] = [];
 
             for (const result of results) {
                 if (result.label === 'PER' || result.label === 'LOC') {
-                    entities.push({
-                        original: result.text,
-                        replacement: result.label === 'PER' ? this.generatePersonToken() : this.generateLocationToken(),
-                        type: result.label === 'PER' ? EntityType.Person : EntityType.Location,
-                        startIndex: result.start,
-                        endIndex: result.end,
-                    });
+                    entities.push(
+                        new Redaction(
+                            result.text,
+                            result.label === 'PER' ? this.generatePersonToken() : this.generateLocationToken(),
+                            result.label === 'PER' ? EntityType.Person : EntityType.Location,
+                            result.start,
+                        ),
+                    );
                 }
             }
             return entities;
@@ -143,10 +159,9 @@ export class Anonymizer {
     /**
      * Layer 2: Heuristic-based relation detection
      */
-    private detectRelations(text: string, existingEntities: AnonymizedEntity[]): AnonymizedEntity[] {
-        const entities: AnonymizedEntity[] = [];
+    private detectRelations(text: string, existingEntities: Redaction[]): Redaction[] {
+        const entities: Redaction[] = [];
 
-        // Family relations patterns
         const familyPatterns = [
             /\b(mother|mom|mama|mum|mommy)\b/gi,
             /\b(father|dad|daddy|papa|pop)\b/gi,
@@ -157,48 +172,33 @@ export class Anonymizer {
             /\b(husband|wife|spouse|partner)\b/gi,
         ];
 
-        // Work relations patterns
         const workPatterns = [
             /\b(boss|manager|supervisor|employer)\b/gi,
             /\b(colleague|co-worker|coworker|team member)\b/gi,
             /\b(employee|staff|subordinate)\b/gi,
         ];
 
-        // Check for family relations
         for (const pattern of familyPatterns) {
             let match: RegExpExecArray | null = pattern.exec(text);
             while (match !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
+                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
 
                 if (!isOverlapping) {
-                    entities.push({
-                        original: m[0],
-                        replacement: this.generateFamilyRelationToken(),
-                        type: EntityType.FamilyRelation,
-                        startIndex: m.index,
-                        endIndex: m.index + m[0].length,
-                    });
+                    entities.push(new Redaction(m[0], this.generateFamilyRelationToken(), EntityType.FamilyRelation, m.index));
                 }
                 match = pattern.exec(text);
             }
         }
 
-        // Check for work relations
         for (const pattern of workPatterns) {
             let match: RegExpExecArray | null = pattern.exec(text);
             while (match !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
+                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
 
                 if (!isOverlapping) {
-                    entities.push({
-                        original: m[0],
-                        replacement: this.generateWorkRelationToken(),
-                        type: EntityType.WorkRelation,
-                        startIndex: m.index,
-                        endIndex: m.index + m[0].length,
-                    });
+                    entities.push(new Redaction(m[0], this.generateWorkRelationToken(), EntityType.WorkRelation, m.index));
                 }
                 match = pattern.exec(text);
             }
@@ -209,72 +209,51 @@ export class Anonymizer {
     /**
      * Layer 3: Temporal fuzzing - detect and convert dates/times to relative
      */
-    private detectAndFuzzTemporal(text: string, existingEntities: AnonymizedEntity[]): AnonymizedEntity[] {
-        const entities: AnonymizedEntity[] = [];
+    private detectAndFuzzTemporal(text: string, existingEntities: Redaction[]): Redaction[] {
+        const entities: Redaction[] = [];
 
         if (!this.sessionStartDate) {
             this.loggerInstance.warn('Session start date not set. Temporal fuzzing disabled.');
             return entities;
         }
 
-        // Date patterns
         const datePatterns = [
-            // Full dates: "January 12th, 2024" or "12/01/2024"
             /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi,
-            // Short dates: "01/12/2024" or "12-01-2024"
             /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/g,
-            // Year only: "2024"
             /\b(19|20)\d{2}\b/g,
         ];
 
-        // Time patterns
         const timePatterns = [
-            // "3:30 PM" or "15:30"
             /\b(\d{1,2}):(\d{2})\s*(AM|PM)?\b/gi,
-            // "yesterday", "today", "tomorrow"
             /\b(yesterday|today|tomorrow)\b/gi,
         ];
 
-        // Process date patterns
         for (const pattern of datePatterns) {
             let match: RegExpExecArray | null = pattern.exec(text);
             while (match !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
+                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
 
                 if (!isOverlapping) {
                     const relativeDate = this.convertToRelativeDate(m[0]);
                     if (relativeDate) {
-                        entities.push({
-                            original: m[0],
-                            replacement: relativeDate,
-                            type: EntityType.Date,
-                            startIndex: m.index,
-                            endIndex: m.index + m[0].length,
-                        });
+                        entities.push(new Redaction(m[0], relativeDate, EntityType.Date, m.index));
                     }
                 }
                 match = pattern.exec(text);
             }
         }
 
-        // Process time patterns
         for (const pattern of timePatterns) {
             let match: RegExpExecArray | null = pattern.exec(text);
             while (match !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.startIndex && m.index + m[0].length <= e.endIndex);
+                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
 
                 if (!isOverlapping) {
                     const relativeTime = this.convertToRelativeTime(m[0]);
                     if (relativeTime) {
-                        entities.push({
-                            original: m[0],
-                            replacement: relativeTime,
-                            type: EntityType.Time,
-                            startIndex: m.index,
-                            endIndex: m.index + m[0].length,
-                        });
+                        entities.push(new Redaction(m[0], relativeTime, EntityType.Time, m.index));
                     }
                 }
                 match = pattern.exec(text);
