@@ -9,13 +9,13 @@ import { useAppLanguage } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
-import { modelManager, useModelDownloadProgress } from '../Service/ModelManager';
+import { inferenceManager, useArtifactDownloadProgress } from '../Service/InferenceManager';
 
 export const Home = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const router = useRouter();
     const { LL } = useAppLanguage();
-    const { progress, isReady: _isReady, isDownloading } = useModelDownloadProgress();
+    const { progress, isReady: _isReady, isDownloading } = useArtifactDownloadProgress();
 
     useEffect(() => {
         let cancelled = false;
@@ -26,7 +26,7 @@ export const Home = observer((): React.JSX.Element => {
                 return;
             }
             const current = therapists[0] ?? null;
-            modelManager.downloadMissingModels(current);
+            inferenceManager.downloadMissingArtifacts(current);
         })();
         return () => {
             cancelled = true;

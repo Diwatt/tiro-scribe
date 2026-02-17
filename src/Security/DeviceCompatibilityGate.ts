@@ -2,7 +2,7 @@
  * DeviceCompatibilityGate – Compatibility matrix (min RAM, min OS version per platform) and hardware check.
  * Runs hardware compatibility only on native (ios/android); other platforms skip the check.
  *
- * RAM rationale (ModelManager: Whisper medium int8 + NER + speaker): ~1 + 0.5 + 0.3 + 1.5 GB headroom → 3.5 GB.
+ * RAM rationale (InferenceManager: Whisper medium int8 + NER + speaker): ~1 + 0.5 + 0.3 + 1.5 GB headroom → 3.5 GB.
  * Defaults: iOS 3.5 GB / 12.0, Android 3.5 GB / 9.0. 64-bit required; no CPU core check.
  */
 

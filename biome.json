@@ -2,7 +2,7 @@
     "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
     "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
     "files": {
-        "includes": ["**", "!src/api/generated", "!tests", "!vitest", "!**/__tests__", "!**/*.test.ts", "!**/*.test.tsx", "!**/*.spec.ts", "!**/*.spec.tsx"]
+        "includes": ["**", "!src/Api/generated", "!tests", "!vitest", "!**/__tests__", "!**/*.test.ts", "!**/*.test.tsx", "!**/*.spec.ts", "!**/*.spec.tsx"]
     },
     "formatter": {
         "enabled": true,
@@ -127,7 +127,7 @@
             }
         },
         {
-            "includes": ["src/Service/**", "src/Security/**", "src/State/**", "src/api/**", "src/Util/**"],
+            "includes": ["src/Service/**", "src/Security/**", "src/State/**", "src/Api/**", "src/Util/**"],
             "linter": {
                 "rules": {
                     "complexity": { "noStaticOnlyClass": "off", "noExcessiveCognitiveComplexity": "off" },

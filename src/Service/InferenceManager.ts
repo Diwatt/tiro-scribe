@@ -1,6 +1,6 @@
 /**
- * ModelManager – Background worker for heavy AI models (Whisper, Camembert/BERT).
- * Queues models by Therapist.languages. Exposes getState$() and useModelDownloadProgress() for Home banner.
+ * InferenceManager – Background worker for inference artifacts (Whisper, Camembert/BERT).
+ * Queues artifacts by Therapist.languages. Exposes getState$() and useArtifactDownloadProgress() for Home banner.
  * Uses expo-file-system File.downloadFileAsync. Optional WiFi-only check.
  */
 
@@ -11,70 +11,75 @@ import type { Therapist } from '../Entity/Therapist';
 import type { LoggerInterface } from './Logger';
 import { AppLogger } from './Logger';
 
-export interface ModelSpec {
+export interface ArtifactSpec {
     key: string;
     url: string;
     localPath: string;
 }
 
-export interface ModelDownloadProgressState {
+export interface ArtifactDownloadProgressState {
     progress: number;
     isReady: boolean;
     isDownloading: boolean;
 }
 
-const MODEL_SPECS: Record<string, ModelSpec[]> = {
+const ARTIFACT_SPECS: Record<string, ArtifactSpec[]> = {
     fr: [
         {
             key: 'whisper_fr',
-            url: 'https://example.com/models/whisper_medium_int8.onnx',
-            localPath: 'models/whisper_medium_int8.onnx',
+            url: 'https://example.com/artifacts/whisper_medium_int8.onnx',
+            localPath: 'artifacts/whisper_medium_int8.onnx',
         },
         {
             key: 'camembert_ner',
-            url: 'https://example.com/models/camembert_ner.onnx',
-            localPath: 'models/camembert_ner.onnx',
+            url: 'https://example.com/artifacts/camembert_ner.onnx',
+            localPath: 'artifacts/camembert_ner.onnx',
         },
     ],
     en: [
         {
             key: 'whisper_en',
-            url: 'https://example.com/models/whisper_medium_int8.en.onnx',
-            localPath: 'models/whisper_medium_int8.en.onnx',
+            url: 'https://example.com/artifacts/whisper_medium_int8.en.onnx',
+            localPath: 'artifacts/whisper_medium_int8.en.onnx',
         },
-        { key: 'bert_ner', url: 'https://example.com/models/bert_ner.onnx', localPath: 'models/bert_ner.onnx' },
+        {
+            key: 'bert_ner',
+            url: 'https://example.com/artifacts/bert_ner.onnx',
+            localPath: 'artifacts/bert_ner.onnx',
+        },
     ],
 };
 
-export class ModelManager {
-    private static instance: ModelManager | null = null;
+export class InferenceManager {
+    private static instance: InferenceManager | null = null;
     private readonly log: LoggerInterface;
-    private readonly state$ = observable<ModelDownloadProgressState>({
+    private readonly state$ = observable<ArtifactDownloadProgressState>({
         progress: 0,
         isReady: true,
         isDownloading: false,
     });
     private downloadPromise: Promise<void> | null = null;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    public constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.log = logger;
     }
 
-    static getInstance(): ModelManager {
-        if (ModelManager.instance == null) {
-            ModelManager.instance = new ModelManager();
+    public static getInstance(): InferenceManager {
+        if (InferenceManager.instance == null) {
+            InferenceManager.instance = new InferenceManager();
         }
-        return ModelManager.instance;
+
+        return InferenceManager.instance;
     }
 
-    getState$() {
+    public getState$() {
         return this.state$;
     }
 
     /**
-     * Start downloading missing models for the given therapist. Idempotent; safe to call on Home mount.
+     * Start downloading missing artifacts for the given therapist. Idempotent; safe to call on Home mount.
      */
-    async downloadMissingModels(therapist: Therapist | null): Promise<void> {
+    public async downloadMissingArtifacts(therapist: Therapist | null): Promise<void> {
         const languages = this.getLanguages(therapist);
         if (languages.length === 0) {
             this.state$.set({ progress: 1, isReady: true, isDownloading: false });
@@ -87,7 +92,7 @@ export class ModelManager {
         }
         const wifiOk = await this.ensureWiFiOnly();
         if (!wifiOk) {
-            this.log.warn('[ModelManager] Skipping download: not on WiFi');
+            this.log.warn('[InferenceManager] Skipping download: not on WiFi');
             return;
         }
         if (this.downloadPromise) {
@@ -108,7 +113,7 @@ export class ModelManager {
                 }
                 this.state$.set({ progress: 1, isReady: true, isDownloading: false });
             } catch (error: unknown) {
-                this.log.warn('[ModelManager] Download error', {
+                this.log.warn('[InferenceManager] Download error', {
                     error: error instanceof Error ? error.message : String(error),
                 });
                 this.state$.set({
@@ -127,20 +132,23 @@ export class ModelManager {
         if (!therapist) {
             return [];
         }
+        const raw = therapist.languages;
+        if (Array.isArray(raw)) {
+            return raw;
+        }
         try {
-            const raw = therapist.languages;
-            const parsed = JSON.parse(raw || '[]') as string[];
+            const parsed = JSON.parse(typeof raw === 'string' ? raw : '[]') as unknown;
             return Array.isArray(parsed) ? parsed : [];
         } catch {
             return [];
         }
     }
 
-    private collectSpecs(languages: string[]): ModelSpec[] {
+    private collectSpecs(languages: string[]): ArtifactSpec[] {
         const seen = new Set<string>();
-        const out: ModelSpec[] = [];
+        const out: ArtifactSpec[] = [];
         for (const lang of languages) {
-            const specs = MODEL_SPECS[lang];
+            const specs = ARTIFACT_SPECS[lang];
             if (!specs) {
                 continue;
             }
@@ -152,6 +160,7 @@ export class ModelManager {
                 out.push(s);
             }
         }
+
         return out;
     }
 
@@ -159,15 +168,15 @@ export class ModelManager {
         return true;
     }
 
-    private async downloadOne(spec: ModelSpec, onProgress: (p: number) => void): Promise<string> {
+    private async downloadOne(spec: ArtifactSpec, onProgress: (p: number) => void): Promise<string> {
         const pathParts = spec.localPath.split('/');
-        const file = new File(Paths.document, ...pathParts);
+        const file = new File(Paths.document, spec.localPath);
         if (file.exists) {
             return file.uri;
         }
         const parentPath = pathParts.slice(0, -1);
         if (parentPath.length > 0) {
-            const parentDir = new Directory(Paths.document, ...parentPath);
+            const parentDir = new Directory(Paths.document, parentPath.join('/'));
             if (!parentDir.exists) {
                 parentDir.create({ intermediates: true, idempotent: true });
             }
@@ -175,18 +184,19 @@ export class ModelManager {
         onProgress(0);
         await File.downloadFileAsync(spec.url, file, { idempotent: true });
         onProgress(1);
+
         return file.uri;
     }
 }
 
-const modelManager = ModelManager.getInstance();
+const inferenceManager = InferenceManager.getInstance();
 
 /**
- * Hook: returns { progress, isReady, isDownloading }. Updates when ModelManager state changes.
+ * Hook: returns { progress, isReady, isDownloading }. Updates when InferenceManager state changes.
  * Component using this hook should be wrapped with observer() so it re-renders on progress updates.
  */
-export function useModelDownloadProgress(): ModelDownloadProgressState {
-    const state$ = modelManager.getState$();
+export function useArtifactDownloadProgress(): ArtifactDownloadProgressState {
+    const state$ = inferenceManager.getState$();
     return useSelector(() => ({
         progress: state$.progress.get(),
         isReady: state$.isReady.get(),
@@ -194,4 +204,4 @@ export function useModelDownloadProgress(): ModelDownloadProgressState {
     }));
 }
 
-export { modelManager };
+export { inferenceManager };

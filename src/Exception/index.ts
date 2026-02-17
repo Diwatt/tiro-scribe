@@ -3,13 +3,14 @@
  * Centralized export point for all exceptions and error types
  */
 
+export { ApiClientException } from './ApiClientException';
+export { ArtifactRegistryException } from './ArtifactRegistryException';
 export { DatabaseException } from './DatabaseException';
 export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
 export { FileOperationError } from './FileOperationError';
 export { HardwareGuardException } from './HardwareGuardException';
 export { InvalidAudioFormatError } from './InvalidAudioFormatError';
 export { InvalidDimensionError } from './InvalidDimensionError';
-export { ModelDownloaderException } from './ModelDownloaderException';
 export { NoActiveRecordingError } from './NoActiveRecordingError';
 export { RecorderNotInitializedError } from './RecorderNotInitializedError';
 export type { RecordingError } from './RecordingError';

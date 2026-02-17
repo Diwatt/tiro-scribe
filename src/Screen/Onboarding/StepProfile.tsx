@@ -4,27 +4,31 @@ import { useCallback } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, useTheme } from 'react-native-paper';
-import { useGetTaxonomy } from '@/api/generated/taxonomy/taxonomy';
+import { useClinicalAttributes } from '@/Api';
 import { ChipGroup, MultiSelectModal, TextInput } from '@/Components/Form';
 import { useAppLanguage } from '@/Localization';
 import type { OnboardingFormData, ProfileStepData } from '@/State/Onboarding';
 import { onboardingState } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
-const TAXONOMY_QUERY_OPTIONS = {
-    query: { staleTime: Infinity, gcTime: Infinity },
+const CLINICAL_ATTRIBUTES_QUERY_OPTIONS = {
+    staleTime: Infinity,
+    gcTime: Infinity,
 } as const;
 
 export const StepProfile = observer(function StepProfile(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { LL } = useAppLanguage();
+    const { locale, LL } = useAppLanguage();
     const { control, getValues, setError } = useFormContext<OnboardingFormData>();
     const error = onboardingState.state$.error.get();
 
-    const taxonomyQuery = useGetTaxonomy(TAXONOMY_QUERY_OPTIONS);
-    const data = taxonomyQuery.data?.data;
+    const clinicalAttributesQuery = useClinicalAttributes({
+        ...CLINICAL_ATTRIBUTES_QUERY_OPTIONS,
+        locale,
+    });
+    const data = clinicalAttributesQuery.data;
     const { qualifications = [], therapyMethods = [], languages = [] } = data ?? {};
-    const isLoading = taxonomyQuery.isLoading;
+    const isLoading = clinicalAttributesQuery.isLoading;
 
     const handleContinue = useCallback(() => {
         const data = getValues() as ProfileStepData;

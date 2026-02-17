@@ -124,14 +124,14 @@ export class Biocode {
         }
 
         // Try to resolve via taxonomy/default configs (by localPath)
-        const { ModelDownloader } = await import('./ModelDownloader');
-        const downloader = ModelDownloader.getInstance();
-        const config = await downloader.getConfigByLocalPath(modelPath);
+        const { ArtifactRegistry } = await import('./ArtifactRegistry');
+        const registry = ArtifactRegistry.getInstance();
+        const config = await registry.getConfigByLocalPath(modelPath);
         if (config != null) {
-            return await downloader.ensureCached(config);
+            return await registry.ensureCached(config);
         }
 
-        throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);
+        throw new InvalidAudioFormatError(`Artifact not found at ${modelPath}. Please ensure the artifact is downloaded or provide a valid artifact URL.`);
     }
 
     /**

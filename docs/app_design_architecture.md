@@ -113,13 +113,69 @@ On each PCM buffer, two virtual paths:
 - **Pattern:** Doc describes “Pull” (JS calls `readChunkAt(offset)`, native responds by event).  
 - **Current API:** `stream(encryptedPath)` + events; no `readChunkAt(offset)` in JS or native.  
 - **Models:** VAD (e.g. Silero), ASR (e.g. whisper_small_int8), Speaker (CAM++), Pitch (CREPE).  
+- **Language-aware model selection:** For language-dependent use cases (notably ASR), the config API exposes one entry per role with a `variants` array (each variant has `language`, `id`, `url`, etc.). The app selects one variant by **app/device language** to reduce download size (e.g. English-only ASR when the phone is in English). No duplicate role keys; client resolves to a single asset per use_case.  
 - **Segmentation:** Rolling buffer; if duration > 2 s and VAD silence → cut & process; hard cap 28 s (Whisper).
 
 **Status:** ✅ **Done** – EncryptionStream, StreamDecryptionManager, `stream(path)` + listeners. 🚧 **WIP** – Pull-style orchestrator and ONNX integration. ⚠️ **Incoherent** – Doc says `readChunkAt(offset)`; implementation is event-driven `stream(path)`.
 
 ---
 
-## 7. AI / Cursor rules (summary)
+## 7. Computational psychiatry & acoustic biomarkers (planned)
+
+**Scope:** This section describes the intended analysis framework for presenting objective physical measurements to therapists. Implementation is **planned for later**; **most of the computation and aggregation will run server-side**. The app’s role is to capture and upload canonical inputs (e.g. VoiceFrame time-series, transcript); the server derives higher-order indices and longitudinal baselines.
+
+### 7.1 Objective neutrality principle
+
+The system does **not** provide diagnoses. It provides **objective physical measurements (Acoustic Biomarkers)** to augment the therapist’s clinical intuition. The primary value lies in **longitudinal tracking**: comparing a patient’s current-session metrics against their own historical baseline (Δ_t = Value_t − Value_baseline).
+
+### 7.2 Core acoustic biomarkers
+
+**A. Prosodic variability (F₀ / pitch)**
+
+- **Reduced F₀ variance (monotony):** “Flat” vocal melody; often correlated with MDD, blunted affect, or emotional withdrawal.
+- **Increased mean F₀:** Higher-than-baseline average pitch; frequently associated with anxiety, acute stress, or emerging manic phases.
+- **Baseline instability:** Erratic pitch shifts; may indicate emotional dysregulation or high acute distress.
+
+**B. Micro-perturbations (stability metrics)**
+
+Extracted by high-fidelity estimators (e.g. CREPE); often imperceptible to the human ear but indicate physiological tension.
+
+- **Jitter (frequency instability):** Micro-tremors in pitch; linked to anxiety, neurological fatigue, or high cognitive load.
+- **Shimmer (amplitude instability):** Micro-fluctuations in volume/energy; correlated with vocal fatigue, breathiness, or burnout-related exhaustion.
+
+**C. Temporal & rhythmic dynamics**
+
+- **Articulation rate (syllables/sec):** Decrease → bradypsychia, depressive inhibition, or medication sedation; increase → pressured speech, flight of ideas, or hypomanic agitation.
+- **Response latency:** Silent gap between therapist prompt and patient response; increase → higher cognitive load, psychomotor retardation, or early neurodegenerative signs.
+- **Pause-to-speech ratio:** Increased intra-phrase pausing suggests word-finding difficulties or fragmented thought processes.
+
+**D. Spectral quality (timbre)**
+
+- **Spectral tilt:** Steeper tilt → “dull” or “muffled” voice, often linked to low vitality or apathy.
+- **Vowel space area (VSA):** Shrinkage → mumbled or “crushed” speech, often a marker of cognitive fatigue or neurological impairment.
+
+### 7.3 Analysis framework for therapists
+
+To maintain clinical neutrality, indicators are presented as **indices of change** (not labels or diagnoses):
+
+| Index           | Primary metric        | Clinical interpretation (neutral)                          |
+|----------------|------------------------|------------------------------------------------------------|
+| **Fluency**    | Timing / VAD / rate    | Assessment of psychomotor speed and cognitive flow.        |
+| **Stability**  | Jitter / shimmer       | Assessment of physiological and emotional tension.         |
+| **Melodic**    | F₀ range / variance    | Assessment of affective range and expressivity.             |
+| **Timbral**    | Spectral tilt / VSA    | Assessment of vocal energy and articulatory precision.     |
+
+**Implementation note:** Raw or low-level metrics (VoiceFrame time-series, transcript, timestamps) are produced on-device or uploaded; **jitter, shimmer, articulation rate, response latency, spectral tilt, VSA, and the four indices above are derived and aggregated server-side**. The app does not compute or display these indices; that is reserved for a future server and therapist-facing UI.
+
+### 7.4 Evidence base and limitations
+
+**What academia supports:** Meta-analyses and systematic reviews show that **speech acoustics correlate with psychiatric conditions at the group level** (e.g. depression vs healthy controls): prosodic features (F₀, intensity, speech rate, jitter/shimmer) are the most replicated; effect sizes are moderate to large for pitch and loudness in MDD; automated detection reaches AUC ~0.89–0.91 in research settings. **Longitudinal and within-person change** is supported: e.g. speech rate and response latency track symptom severity over time; response latencies have been used in clinical trials (e.g. bipolar depression) to enrich samples and measure treatment effect. So we can reasonably offer **aggregate indices of change** (Fluency, Stability, Melodic, Timbral) and **comparison to the patient’s own baseline** (Δ_t), not one-off “scores.”
+
+**What we cannot deduce:** There is **no precise, one-to-one mapping** from a single metric to a diagnosis or condition. Studies differ by task, language, recording setup, and population; many have methodological bias; generalizability to real-world therapy sessions is limited. Some metrics (e.g. jitter/shimmer) show inconsistent results across disorders (e.g. no significant difference across mood states in some bipolar studies). So the system will **not** infer “this pattern ⇒ MDD” or “this value ⇒ anxiety”; it will provide **global, neutral indices** and **deviations from the patient’s baseline**, leaving interpretation to the clinician. The table in §7.3 and the biomarker descriptions in §7.2 are **interpretative aids** (in line with published correlates), not deterministic deductions.
+
+---
+
+## 8. AI / Cursor rules (summary)
 
 - **Time:** Use integer milliseconds for duration/timestamp (once codebase is aligned).
 - **Audio:** Assume UNPROCESSED/RAW; do not add AGC, filters, or noise reduction.
@@ -128,16 +184,17 @@ On each PCM buffer, two virtual paths:
 
 ---
 
-## 8. Roadmap & implementation status
+## 9. Roadmap & implementation status
 
 ### Phase 1 – Model assets
 
 | Task | Status |
 |------|--------|
-| Silero VAD v5 (`silero_vad.onnx`) | 🚧 WIP – ModelDownloader from API; exact asset TBD |
+| Silero VAD v5 (`silero_vad.onnx`) | 🚧 WIP – ArtifactRegistry from API; exact asset TBD |
 | Whisper Medium (e.g. int8, ~500–800 MB) | 🚧 WIP – Config-driven; small currently referenced |
 | Speaker: CAM++ (e.g. 512-d) | 🚧 WIP – chosen for speaker recognition |
 | Pitch f0: CREPE | 🚧 WIP – chosen for pitch extraction |
+| Language-specific ASR (e.g. en-only vs multilingual) | 🚧 WIP – select by app language to lower download size |
 
 ### Phase 2 – DSP utilities (e.g. AudioUtils)
 
@@ -176,7 +233,7 @@ On each PCM buffer, two virtual paths:
 
 ---
 
-## 9. Company & product context (Tiro)
+## 10. Company & product context (Tiro)
 
 - **Vision:** “Verify, don’t trust” – digital institution, not classic SaaS.  
 - **Mission:** Best clinical tool for therapists + largest anonymized dataset for mental health research.  
@@ -188,7 +245,7 @@ On each PCM buffer, two virtual paths:
 
 ---
 
-## 10. Implementation status summary
+## 11. Implementation status summary
 
 | Area | Status | Notes |
 |------|--------|-------|
@@ -202,7 +259,7 @@ On each PCM buffer, two virtual paths:
 | Time units (ms) | ✅ Done | Utterance, VoiceFrame, Encounter.totalDuration all in milliseconds |
 | VoiceFrame naming (startTime, periodicity) | ✅ Done | Doc and code aligned |
 | Pull-mode orchestrator (readChunkAt) | ⚠️ Incoherent | Doc describes pull; API is push/events |
-| ONNX pipeline (VAD, ASR, Speaker) | 🚧 WIP | ModelDownloader, AudioProcessing; full pipeline in progress |
+| ONNX pipeline (VAD, ASR, Speaker) | 🚧 WIP | ArtifactRegistry, AudioProcessing; full pipeline in progress |
 | High-fidelity models (Whisper Medium, CREPE pitch, CAM++ speaker) | 🚧 WIP | CREPE and CAM++ chosen; config-driven rollout |
 | DSP (client: pcm16ToFloat32, EBU R128 transcript only; jitter/shimmer/HNR server-side) | ❌ Not started | Micro-prosody derived server-side from prosody metrics |
 | HighResTranscription & segment checkpointing | ❌ Not started | |

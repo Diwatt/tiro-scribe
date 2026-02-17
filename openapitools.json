@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.20.0",
+    "generators": {
+      "api": {
+        "generatorName": "typescript-axios",
+        "inputSpec": "src/Api/spec.yaml",
+        "output": "src/Api/generated",
+        "additionalProperties": {
+          "apiPackage": "Api",
+          "enumPropertyNaming": "PascalCase",
+          "modelPackage": "Model",
+          "npmName": "",
+          "paramNaming": "camelCase",
+          "sortModelPropertiesByRequiredFlag": true,
+          "sortParamsByRequiredFlag": true,
+          "supportsES6": true,
+          "useSingleRequestParameter": false,
+          "withSeparateModelsAndApi": true
+        },
+        "globalProperties": {
+          "apiDocs": false,
+          "modelDocs": false
+        }
+      }
+    }
+  }
+}

@@ -131,9 +131,9 @@ type RootTranslation = {
     settingsAbout: string;
     /** Version */
     settingsVersion: string;
-    /** Initializing AI Engine… */
+    /** Initializing inference engine… */
     homeInitializingAi: string;
-    /** Processing will be delayed until models are ready. */
+    /** Processing will be delayed until artifacts are ready. */
     homeProcessingDelayed: string;
     /** Transcript */
     transcriptTitle: string;
@@ -229,7 +229,9 @@ export type TranslationFunctions = {
     settingsDarkModeDesc: () => LocalizedString;
     settingsAbout: () => LocalizedString;
     settingsVersion: () => LocalizedString;
+    /** Initializing inference engine… */
     homeInitializingAi: () => LocalizedString;
+    /** Processing will be delayed until artifacts are ready. */
     homeProcessingDelayed: () => LocalizedString;
     transcriptTitle: () => LocalizedString;
     subjectsSearchPlaceholder: () => LocalizedString;

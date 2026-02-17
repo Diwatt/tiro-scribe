@@ -1,41 +1,22 @@
 /**
  * MSW handlers for tests and storybook.
- * GET /taxonomy = qualifications, therapyMethods, languages.
- * GET /models = model config map (use_case -> ModelConfig).
+ * GET /clinical-attributes = qualifications, therapyMethods, languages.
+ * GET /artifacts = model artifacts array (look up by use_case).
  */
 
-import type { ModelConfigMap, Taxonomy } from '@/api/generated/models';
-import { getGetModelsMockHandler } from '@/api/generated/models/models.msw';
-import { getGetTaxonomyMockHandler } from '@/api/generated/taxonomy/taxonomy.msw';
+import { http, HttpResponse } from 'msw';
+import type { ClinicalAttributes } from '@/Api/generated/Types';
 
-const taxonomy: Taxonomy = {
+const clinicalAttributes: ClinicalAttributes = {
     qualifications: require('./qualifications.json'),
     therapyMethods: require('./therapy-methods.json'),
     languages: require('./languages.json'),
 };
 
-const mockModels: Record<string, unknown> = {
-    speaker_id: {
-        id: 'cam-pp-voxceleb-en-16k',
-        use_case: 'speaker_id',
-        version: '1.0.0',
-        url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/wespeaker_en_voxceleb_CAM++.onnx',
-        hash: 'sha256:',
-        size_bytes: 29_000_000,
-        min_app_version: '0.0.0',
-    },
-    vad: {
-        id: 'vad-default',
-        use_case: 'vad',
-        version: '1.0.0',
-        url: 'https://example.com/models/vad.onnx',
-        hash: 'sha256:',
-        size_bytes: 0,
-        min_app_version: '0.0.0',
-    },
-};
+/** Artifact configs for GET /artifacts: array, look up by use_case. */
+const mockArtifacts = require('./model-artifacts.json') as unknown[];
 
-export const taxonomyHandlers = [
-    getGetTaxonomyMockHandler(taxonomy),
-    getGetModelsMockHandler(mockModels as ModelConfigMap),
+export const clinicalAttributesHandlers = [
+    http.get('*/api/clinical-attributes', () => HttpResponse.json(clinicalAttributes)),
+    http.get('*/api/artifacts', () => HttpResponse.json(mockArtifacts)),
 ];

@@ -10,6 +10,7 @@ Code under `src/` is organized by **domain** and **layer**:
 
 | Folder | Purpose |
 |--------|--------|
+| **Api/** | Backend API client: HTTP transport, unified client, model resolution, generated types. Import from `@/Api`. |
 | **Components/** | Shared UI components (dumb presentational). |
 | **Context/** | React context providers (e.g. services). |
 | **Database/** | Persistence: entities, repository, decorators, serialization. |
@@ -24,7 +25,7 @@ Code under `src/` is organized by **domain** and **layer**:
 | **theme/** | Theming (colors, semantic status). |
 
 - **No top-level “i18n” or “utils”:** Localization lives in `Localization/`; logic lives in classes (Service, State, Entity).
-- **Imports:** Prefer `@/Localization`, `@/Security`, `@/Service`, etc. for domain roots.
+- **Imports:** Prefer `@/Api`, `@/Localization`, `@/Security`, `@/Service`, etc. for domain roots.
 
 # Architecture Standards (MVVM / OOP)
 

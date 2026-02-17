@@ -3,89 +3,122 @@ info:
   title: Tiro API
   version: 1.0.0
   description: |
-    App configuration API used to bootstrap the client (onboarding, model config, etc.).
-    - **Onboarding:** taxonomy (qualifications, therapy methods, languages) for wizard steps.
-    - **Models:** ONNX model configs (url, hash, size) for on-device download and integrity.
+    App configuration API used to bootstrap the client (onboarding, model artifacts, etc.).
+    - **Onboarding:** clinical attributes (qualifications, therapy methods, languages) for wizard steps.
+    - **Model artifacts:** Inference model artifacts (url, hash, size) for on-device download and integrity.
 
 servers:
   - url: /api
     description: Base URL (mutator prepends configured base)
 
 tags:
-  - name: app-config
-    description: App configuration for onboarding and runtime
+  - name: tiro
+    description: Tiro API – bootstrap (clinical attributes, model artifacts)
   - name: onboarding
-    description: Taxonomy and options for the onboarding flow
-  - name: models
-    description: ONNX model configs for download and integrity
+    description: Clinical attributes and options for the onboarding flow
+  - name: artifacts
+    description: Model artifacts for download and integrity
 
 paths:
-  /taxonomy:
+  /clinical-attributes:
     get:
       tags:
-        - app-config
+        - tiro
         - onboarding
-      operationId: getTaxonomy
-      summary: Onboarding taxonomy (qualifications, therapy methods, languages)
-      description: Returns select options for the onboarding wizard (profile, methods, languages).
+      operationId: getClinicalAttributes
+      summary: Clinical attributes (qualifications, therapy methods, languages)
+      description: |
+        Returns select options for the onboarding wizard (profile, methods, languages).
+        Pass locale to get labels in that language (BCP-47 or tag, e.g. en, fr). Omit for server default.
+      parameters:
+        - name: locale
+          in: query
+          required: false
+          description: Preferred language for labels (e.g. en, fr). Server returns labels in this locale when supported.
+          schema:
+            type: string
+            example: en
       responses:
         '200':
-          description: Taxonomy for app bootstrap
+          description: Clinical attributes for app bootstrap (labels in requested locale when provided)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Taxonomy'
-  /models:
+                $ref: '#/components/schemas/ClinicalAttributes'
+  /artifacts:
     get:
       tags:
-        - app-config
-        - models
-      operationId: getModels
-      summary: Model configs (use_case → config) for download
-      description: Returns ONNX model configs keyed by use_case (e.g. speaker_id, vad). Used for download, integrity (hash), and progress (size_bytes).
+        - tiro
+        - artifacts
+      operationId: getArtifacts
+      summary: Model artifacts for download
+      description: |
+        Returns model artifacts for on-device download. Array of entries; each has use_case and variants. Client looks up by use_case and picks one variant by app/device language when multiple. Used for download, integrity (hash), and progress (size_bytes).
       responses:
         '200':
-          description: Map of use_case to model config
+          description: Array of model artifacts (look up by use_case)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ModelConfigMap'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelArtifact'
 
 components:
   schemas:
-    ModelConfig:
+    ModelArtifactVariant:
       type: object
+      description: |
+        One model artifact variant for a use_case. When default is true, client must use this variant without searching by app language (language-agnostic). Otherwise (default false) client selects by app language.
       required:
+        - language
+        - default
         - id
-        - use_case
         - version
         - url
         - hash
         - size_bytes
         - min_app_version
       properties:
+        language:
+          type: string
+          description: |
+            Primary language tag only (lowercase), or the literal "multilingual".
+            Must match the client app locale format: expo-localization is normalized to primary tag (e.g. en, fr) via AppLanguage.
+            Use "en", "fr", etc. for language-specific variants; use "multilingual" for language-agnostic model artifacts (VAD, pitch, speaker).
+            Do not use region subtags (e.g. prefer "en" not "en-US") to avoid client mismatch.
+        default:
+          type: boolean
+          description: When true, use this variant as-is; do not search by app language. When false, variant is chosen only when app language matches.
         id:
           type: string
-          description: Identifiant technique du modèle (ex. cam-pp-v1-quant)
-        use_case:
-          type: string
-          description: Identifiant fonctionnel pour le code (ex. speaker_id, vad)
         version:
           type: string
-          description: Version du modèle (SemVer obligatoire)
         url:
           type: string
           format: uri
-          description: URL de téléchargement (CDN recommandé)
         hash:
           type: string
-          description: "Intégrité 'algo:hash' (ex. sha256:7e8f9a...). Priorité SHA-256 pour la performance native mobile."
         size_bytes:
           type: integer
-          description: Taille exacte pour la barre de progression (en octets)
         min_app_version:
           type: string
-          description: Version de l'app requise pour charger ce modèle (SemVer)
+    ModelArtifact:
+      type: object
+      description: |
+        One model artifact entry per use_case. Always has a variants array (one or more). Client picks one variant by app language when needed; single-variant entries (e.g. VAD) have one item in variants.
+      required:
+        - use_case
+        - variants
+      properties:
+        use_case:
+          type: string
+          description: Model artifact use case (e.g. speaker_id, vad, asr)
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelArtifactVariant'
+          minItems: 1
     SelectOption:
       type: object
       required:
@@ -98,12 +131,7 @@ components:
         label:
           type: string
           description: Display label
-    ModelConfigMap:
-      type: object
-      additionalProperties:
-        $ref: '#/components/schemas/ModelConfig'
-      description: use_case -> ModelConfig (ex. speaker_id, vad)
-    Taxonomy:
+    ClinicalAttributes:
       type: object
       required:
         - qualifications

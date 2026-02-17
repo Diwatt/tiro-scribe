@@ -1,5 +1,5 @@
 ---
-description: "Core Tech Stack, AI Services & Global Patterns"
+description: "Core Tech Stack, Inference & Global Patterns"
 globs: ["**/*"]
 alwaysApply: true
 ---
@@ -8,12 +8,12 @@ alwaysApply: true
 - **Framework:** React Native (Expo)
 - **UI:** React Native Paper (Material Design 3) + Lucide Icons
 - **State:** @legendapp/state (Observables)
-- **Audio/AI:** ONNX Runtime, SecureRecorder (Native Module), Sherpa-ONNX
+- **Audio/Inference:** ONNX Runtime, SecureRecorder (Native Module), Sherpa-ONNX
 - **Storage:** MMKV (Preferences) / FileSystem (Encrypted Audio)
 
-# AI & Service Implementation Rules
+# Inference & Service Implementation Rules
 1. **Service Naming:** Use Capability names (e.g. `VoiceCalibration`), NOT `*Service`.
-2. **Model Loading:** Models (Sherpa/Whisper) are downloaded via `ModelDownloader` and cached.
+2. **Artifact Loading:** Inference artifacts (Sherpa/Whisper ONNX) are fetched via `ArtifactRegistry` and cached.
 3. **Biocode Protocol:** `Hash(SpeakerVector + TherapistIdentifier_Salt)`. Never store raw vectors.
 4. **Anonymization:** 3-Layer approach (ONNX BERT + Heuristics + Temporal Fuzzing).
 

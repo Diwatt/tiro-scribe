@@ -6,6 +6,8 @@ alwaysApply: true
 
 # 🛡️ Enterprise OOP Standards (Symfony / PSR Style)
 
+* **Generated code:** Code under `src/Api/generated/` (OpenAPI client, etc.) is auto-generated; do not edit. It is exempt from this rule. Application code that wraps or uses it (e.g. ApiRegistry, ClinicalAttributesClient) must still follow this rule.
+
 ## 1. Class Structure & Organization (CRITICAL)
 * **One Class Per File:** The filename must match the class name exactly. No exceptions.
 * **No "Utils" / Standalone Functions:** Logic belongs to a Class (Service or Entity). Do not create `utils` folders or procedural code.
