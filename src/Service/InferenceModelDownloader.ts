@@ -4,7 +4,7 @@
  *
  * Components:
  * - InferenceModelConfigResolver: Fetches model configurations from API
- * - ModelFileSystemManager: Handles file system operations and paths
+ * - ModelArtifactStorage: Handles file system operations for model artifacts
  * - ChecksumVerifier: Validates SHA256 checksums
  * - DownloadSessionManager: Tracks download sessions and state
  * - FileDownloader: Actually downloads files with progress tracking
@@ -13,19 +13,21 @@
 import type { InferenceModelFile, SelectedVariant } from '@/Api';
 import { AppLogger, type LoggerInterface } from './Logger';
 import { InferenceModelConfigResolver } from './InferenceModelDownload/InferenceModelConfigResolver';
-import { ModelFileSystemManager } from './InferenceModelDownload/ModelFileSystemManager';
+import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import { ChecksumVerifier } from './InferenceModelDownload/ChecksumVerifier';
-import { DownloadSessionManager, type DownloadSession } from './InferenceModelDownload/DownloadSessionManager';
+import { DownloadSessionManager } from './InferenceModelDownload/DownloadSessionManager';
+import { type DownloadSession, DownloadState } from './InferenceModelDownload/DownloadSession';
 import { FileDownloader } from './InferenceModelDownload/FileDownloader';
+import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 
 export type { SelectedVariant, DownloadSession };
-export type { DownloadState } from './InferenceModelDownload/DownloadSessionManager';
+export type { DownloadState } from './InferenceModelDownload/DownloadSession';
 
 export class InferenceModelDownloader {
     private static instance: InferenceModelDownloader | null = null;
 
     private readonly configResolver: InferenceModelConfigResolver;
-    private readonly fileSystemManager: ModelFileSystemManager;
+    private readonly artifactStorage: ModelArtifactStorage;
     private readonly checksumVerifier: ChecksumVerifier;
     private readonly sessionManager: DownloadSessionManager;
     private readonly fileDownloader: FileDownloader;
@@ -33,10 +35,10 @@ export class InferenceModelDownloader {
     public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {
         // Initialize components with dependency injection
         this.configResolver = new InferenceModelConfigResolver(logger);
-        this.fileSystemManager = new ModelFileSystemManager(logger);
+        this.artifactStorage = new ModelArtifactStorage(logger);
         this.checksumVerifier = new ChecksumVerifier();
         this.sessionManager = new DownloadSessionManager();
-        this.fileDownloader = new FileDownloader(this.fileSystemManager, this.checksumVerifier, logger);
+        this.fileDownloader = new FileDownloader(logger);
     }
 
     public static getInstance(): InferenceModelDownloader {
@@ -49,7 +51,7 @@ export class InferenceModelDownloader {
 
     /** Path to a specific file in the variant. Relative under document dir. */
     public getLocalPathForFile(config: SelectedVariant, file: InferenceModelFile): string {
-        return this.fileSystemManager.getLocalPathForFile(config, file);
+        return this.artifactStorage.resolvePath(config, file);
     }
 
     /**
@@ -60,7 +62,7 @@ export class InferenceModelDownloader {
         const config = await this.configResolver.getConfig(capability, appLanguage);
 
         // Create session
-        const session = this.sessionManager.createSession(config.capability, config);
+        const session = this.sessionManager.create(config.capability, config);
 
         // Start download asynchronously
         this.startDownload(session).catch((error) => {
@@ -74,21 +76,22 @@ export class InferenceModelDownloader {
      * Get the current session for a capability.
      */
     public getSession(capability: string): DownloadSession | undefined {
-        return this.sessionManager.getSession(capability);
+        return this.sessionManager.get(capability);
     }
 
     /**
      * Get all active download sessions.
      */
     public getSessions(): DownloadSession[] {
-        return this.sessionManager.getSessions();
+        return this.sessionManager.all();
     }
 
     /**
      * Check if a download is in progress for a capability.
      */
     public isDownloading(capability: string): boolean {
-        return this.sessionManager.isDownloading(capability);
+        const session = this.sessionManager.get(capability);
+        return session?.isDownloading() ?? false;
     }
 
     /**
@@ -96,18 +99,18 @@ export class InferenceModelDownloader {
      * This will mark the session as cancelled and clean up any partially downloaded files.
      */
     public async cancel(capability: string): Promise<void> {
-        const session = this.sessionManager.getSession(capability);
+        const session = this.sessionManager.get(capability);
         if (!session) {
             return;
         }
 
-        if (this.sessionManager.isDownloading(capability)) {
+        if (session.isDownloading()) {
             // Mark as cancelled
-            this.sessionManager.cancelSession(capability);
+            session.cancel();
 
             // Clean up any partially downloaded files
             try {
-                await this.fileSystemManager.delete(session.config);
+                await this.artifactStorage.deleteVariant(session.config);
             } catch (error) {
                 this.logger.warn(`Failed to clean up files after cancelling ${capability}:`, error);
             }
@@ -120,55 +123,55 @@ export class InferenceModelDownloader {
      * Remove a completed or failed session from tracking.
      */
     public removeSession(capability: string): void {
-        this.sessionManager.removeSession(capability);
+        this.sessionManager.remove(capability);
     }
 
     /**
      * Clear all sessions (useful for cleanup).
      */
     public clearSessions(): void {
-        this.sessionManager.clearSessions();
+        this.sessionManager.clearAll();
     }
 
     public async delete(config: SelectedVariant): Promise<void> {
-        await this.fileSystemManager.delete(config);
+        await this.artifactStorage.deleteVariant(config);
     }
 
     public async ensureCached(config: SelectedVariant, onProgress?: (progress: number) => void): Promise<string> {
         // Check if already cached
-        if (this.fileSystemManager.primaryFileExists(config)) {
-            const uri = this.fileSystemManager.getPrimaryFileUri(config);
+        if (this.artifactStorage.hasPrimary(config)) {
+            const uri = this.artifactStorage.getPrimaryUri(config);
             this.logger.debug(`Model ${config.capability} (${config.id}) already exists at ${uri}`);
             return uri;
         }
 
         // Check if there's already a session for this capability
-        let session = this.sessionManager.getSession(config.capability);
+        let session = this.sessionManager.get(config.capability);
         if (!session) {
             // Create a temporary session for tracking
-            session = this.sessionManager.createSession(config.capability, config);
+            session = this.sessionManager.create(config.capability, config);
         }
 
         // Update session state
-        this.sessionManager.updateSessionState(config.capability, 'downloading');
+        session.setState(DownloadState.Downloading);
 
         try {
             // Download the model with progress tracking
-            await this.fileDownloader.downloadModel(config, (progress) => {
-                this.sessionManager.updateSessionProgress(config.capability, progress);
+            await this.downloadVariant(config, (progress) => {
+                session.setProgress(progress);
                 if (onProgress) {
                     onProgress(progress);
                 }
             });
 
             // Update session to completed
-            this.sessionManager.updateSessionState(config.capability, 'completed');
-            this.sessionManager.updateSessionProgress(config.capability, 1);
+            session.setState(DownloadState.Completed);
+            session.setProgress(1);
 
-            return this.fileSystemManager.getPrimaryFileUri(config);
+            return this.artifactStorage.getPrimaryUri(config);
         } catch (error) {
             // Update session to failed
-            this.sessionManager.updateSessionError(config.capability, error instanceof Error ? error : new Error(String(error)));
+            session.setError(error instanceof Error ? error : new Error(String(error)));
             throw error;
         }
     }
@@ -198,13 +201,13 @@ export class InferenceModelDownloader {
     public async getConfigByLocalPath(localPath: string, appLanguage?: string): Promise<SelectedVariant | null> {
         const resolved = await this.configResolver.getResolvedConfigs(appLanguage);
         for (const config of Object.values(resolved)) {
-            const primaryPath = this.fileSystemManager.getLocalPathForFile(config, config.files[0]);
+            const primaryPath = this.artifactStorage.resolvePath(config, config.files[0]);
             if (primaryPath === localPath) {
                 return config;
             }
             for (const file of config.files) {
-                const filePath = this.fileSystemManager.getLocalPathForFile(config, file);
-                const f = this.fileSystemManager.getFileForFile(config, file);
+                const filePath = this.artifactStorage.resolvePath(config, file);
+                const f = this.artifactStorage.getFile(config, file);
                 if (filePath === localPath || f.uri === localPath) {
                     return config;
                 }
@@ -220,31 +223,115 @@ export class InferenceModelDownloader {
     }
 
     public getProgress(capability: string): number {
-        return this.sessionManager.getProgress(capability);
+        const session = this.sessionManager.get(capability);
+        return session?.getProgress() ?? 0;
     }
 
     public async getTotalSize(appLanguage?: string): Promise<number> {
         const resolved = await this.configResolver.getResolvedConfigs(appLanguage);
-        return this.fileSystemManager.getTotalSize(Object.values(resolved));
+        return this.artifactStorage.calculateTotalSize(Object.values(resolved));
+    }
+
+    /**
+     * Download all files for a model variant with fine-grained progress tracking.
+     * This method orchestrates the download of multiple files, handling progress
+     * tracking, checksum verification, and error handling.
+     */
+    private async downloadVariant(config: SelectedVariant, onProgress?: (progress: number) => void): Promise<void> {
+        this.logger.info(`Fetching model variant ${config.capability} (${config.id}) – ${config.files.length} file(s)...`);
+
+        // Ensure directories exist
+        this.artifactStorage.ensureDirectories(config);
+
+        const totalFiles = config.files.length;
+        if (totalFiles === 0) {
+            if (onProgress) {
+                onProgress(1);
+            }
+            this.logger.info(`Model variant ${config.capability} has no files to download`);
+            return;
+        }
+
+        const progressPerFile = 1 / totalFiles;
+
+        if (onProgress) {
+            onProgress(0);
+        }
+
+        try {
+            for (let i = 0; i < config.files.length; i++) {
+                const file = config.files[i];
+                const fileObj = this.artifactStorage.getFile(config, file);
+
+                // Skip if file already exists
+                if (fileObj.exists) {
+                    this.logger.debug(`File already exists: ${fileObj.uri}`);
+                    if (onProgress) {
+                        onProgress((i + 1) * progressPerFile);
+                    }
+                    continue;
+                }
+
+                // Download the file with byte-level progress tracking using modern async generator
+                for await (const fileProgress of this.fileDownloader.downloadFile(file.url, fileObj)) {
+                    if (onProgress) {
+                        // Combine file-level progress with within-file progress
+                        const baseProgress = i * progressPerFile;
+                        const fileContribution = fileProgress * progressPerFile;
+                        onProgress(baseProgress + fileContribution);
+                    }
+                }
+
+                this.logger.debug(`Downloaded: ${file.url} -> ${fileObj.uri}`);
+
+                // Verify checksum if provided
+                const hash = file.hash?.trim();
+                if (hash != null && hash !== '') {
+                    if (onProgress) {
+                        // Set verifying state (90% through this file's progress)
+                        onProgress((i + 0.9) * progressPerFile);
+                    }
+
+                    await this.checksumVerifier.verify(fileObj, hash);
+                    this.logger.debug(`Checksum verified: ${fileObj.uri}`);
+                }
+
+                if (onProgress) {
+                    onProgress((i + 1) * progressPerFile);
+                }
+            }
+
+            if (onProgress) {
+                onProgress(1);
+            }
+
+            this.logger.info(`Model variant ${config.capability} downloaded successfully`);
+        } catch (error) {
+            this.logger.error(`Failed to download model variant ${config.capability}:`, error);
+            throw new InferenceModelDownloaderException(
+                `Failed to fetch model variant ${config.capability}: ${error}`,
+                error instanceof Error ? error : new Error(String(error)),
+            );
+        }
     }
 
     private async startDownload(session: DownloadSession): Promise<void> {
         try {
             // Update session state
-            this.sessionManager.updateSessionState(session.capability, 'downloading');
+            session.setState(DownloadState.Downloading);
 
             // Download the model with progress tracking
-            await this.fileDownloader.downloadModel(session.config, (progress) => {
-                this.sessionManager.updateSessionProgress(session.capability, progress);
+            await this.downloadVariant(session.config, (progress: number) => {
+                session.setProgress(progress);
             });
 
             // Mark as completed
-            this.sessionManager.updateSessionState(session.capability, 'completed');
-            this.sessionManager.updateSessionProgress(session.capability, 1);
+            session.setState(DownloadState.Completed);
+            session.setProgress(1);
 
             this.logger.info(`Download completed for ${session.capability}`);
         } catch (error) {
-            this.sessionManager.updateSessionError(session.capability, error instanceof Error ? error : new Error(String(error)));
+            session.setError(error instanceof Error ? error : new Error(String(error)));
             throw error;
         }
     }

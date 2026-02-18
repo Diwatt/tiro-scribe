@@ -76,6 +76,9 @@ export interface ProjectedVector {
 export class Biocode {
     private speakerSession: Ort.InferenceSession | null = null;
     private projectionMatrix: number[][] | null = null;
+    private loggerInstance: LoggerInterface;
+    private modelPath: string | null = null;
+    private therapistUuid: string | null = null;
 
     constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.loggerInstance = logger;

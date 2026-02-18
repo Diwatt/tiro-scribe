@@ -25,7 +25,28 @@ export interface StatusBaseProps {
 export function Status({ title, subtitle, icon, state, iconBgOverride, children }: StatusBaseProps): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const statusColorKey = StatusState.getColorKey(state);
-    const statusColors = (theme.colors as Record<string, StatusColors>)[statusColorKey];
+
+    // Type-safe access to status colors
+    const statusColors = (() => {
+        switch (statusColorKey) {
+            case 'statusIdle':
+                return theme.colors.statusIdle;
+            case 'statusProcessing':
+                return theme.colors.statusProcessing;
+            case 'statusBatchWaiting':
+                return theme.colors.statusBatchWaiting;
+            case 'statusSetup':
+                return theme.colors.statusSetup;
+            case 'statusError':
+                return theme.colors.statusError;
+            case 'statusWarning':
+                return theme.colors.statusWarning;
+            default:
+                // Fallback to statusIdle if unknown
+                return theme.colors.statusIdle;
+        }
+    })();
+
     return (
         <Surface
             style={[

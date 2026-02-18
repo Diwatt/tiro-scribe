@@ -1,130 +1,94 @@
 /**
  * FileDownloader – Handles actual file downloading with progress tracking.
- * Single Responsibility: Download files from URLs with progress tracking.
+ * Single Responsibility: Download a single file from a URL to a File object with progress tracking.
  */
 
-import type { InferenceModelFile, SelectedVariant } from '@/Api';
 import { File } from 'expo-file-system';
+import { fetch } from 'expo/fetch';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 import { AppLogger, type LoggerInterface } from '@/Service/Logger';
-import type { ModelFileSystemManager } from './ModelFileSystemManager';
-import type { ChecksumVerifier } from './ChecksumVerifier';
 
 export class FileDownloader {
-    public constructor(
-        private readonly fileSystemManager: ModelFileSystemManager,
-        private readonly checksumVerifier: ChecksumVerifier,
-        private readonly logger: LoggerInterface = AppLogger.getInstance(),
-    ) {}
+    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
 
     /**
-     * Download all files for a model variant with progress tracking.
+     * Download a single file from a URL to a File object with progress tracking.
+     * Modern async generator approach that yields progress updates (0-1).
+     * @param url - The URL to download from
+     * @param destinationFile - The File object to write to
+     * @returns Async generator that yields progress updates (0-1) and completes when download finishes
+     * @throws {InferenceModelDownloaderException} If download fails
+     * @example
+     * ```typescript
+     * for await (const progress of downloader.downloadFile(url, file)) {
+     *   console.log(`Progress: ${progress * 100}%`);
+     * }
+     * ```
      */
-    public async downloadModel(config: SelectedVariant, onProgress?: (progress: number) => void): Promise<void> {
-        this.logger.info(`Fetching model ${config.capability} (${config.id}) – ${config.files.length} file(s)...`);
-
-        // Ensure directories exist
-        this.fileSystemManager.ensureDirectories(config);
-
-        const totalFiles = config.files.length;
-        const progressPerFile = totalFiles > 0 ? 1 / totalFiles : 1;
-
-        if (onProgress) {
-            onProgress(0);
-        }
+    public async *downloadFile(url: string, destinationFile: File): AsyncGenerator<number, void, void> {
+        this.logger.debug(`Downloading file from ${url} to ${destinationFile.uri}`);
 
         try {
-            for (let i = 0; i < config.files.length; i++) {
-                const file = config.files[i];
-                const fileObj = this.fileSystemManager.getFileForFile(config, file);
+            yield 0;
 
-                // Skip if file already exists
-                if (fileObj.exists) {
-                    this.logger.debug(`File already exists: ${fileObj.uri}`);
-                    if (onProgress) {
-                        onProgress((i + 1) * progressPerFile);
-                    }
-                    continue;
+            // Start the fetch request
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Get total size from Content-Length header if available
+            const contentLength = response.headers.get('content-length');
+            const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+            let bytesWritten = 0;
+
+            // Get a writable stream
+            const writableStream = destinationFile.writableStream();
+            const writer = writableStream.getWriter();
+
+            // Get the readable stream from response body
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('Response body is not readable');
+            }
+
+            // Read and write chunks
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    break;
                 }
 
-                // Download the file
-                await File.downloadFileAsync(file.url, fileObj, { idempotent: true });
-                this.logger.debug(`Downloaded: ${file.url} -> ${fileObj.uri}`);
+                // Write chunk
+                await writer.write(value);
 
-                // Verify checksum if provided
-                const hash = file.hash?.trim();
-                if (hash != null && hash !== '') {
-                    if (onProgress) {
-                        // Set verifying state (halfway through this file's progress)
-                        onProgress((i + 0.5) * progressPerFile);
-                    }
-
-                    await this.checksumVerifier.verify(fileObj, hash);
-                    this.logger.debug(`Checksum verified: ${fileObj.uri}`);
-                }
-
-                if (onProgress) {
-                    onProgress((i + 1) * progressPerFile);
+                // Update progress
+                bytesWritten += value.length;
+                if (totalBytes > 0) {
+                    const progress = bytesWritten / totalBytes;
+                    yield progress;
+                } else {
+                    // Unknown total size, send incremental updates (0.5 indicates ongoing)
+                    yield 0.5;
                 }
             }
 
-            if (onProgress) {
-                onProgress(1);
+            // Close the writer
+            await writer.close();
+
+            // If total size was unknown, yield 1.0 at completion
+            if (totalBytes <= 0) {
+                yield 1.0;
             }
 
-            this.logger.info(`Model ${config.capability} downloaded successfully`);
+            this.logger.debug(`Download completed: ${url} -> ${destinationFile.uri}`);
         } catch (error) {
-            this.logger.error(`Failed to download model ${config.capability}:`, error);
+            this.logger.error(`Failed to download file from ${url}:`, error);
             throw new InferenceModelDownloaderException(
-                `Failed to fetch model ${config.capability}: ${error}`,
+                `Failed to download file from ${url}: ${error}`,
                 error instanceof Error ? error : new Error(String(error)),
             );
-        }
-    }
-
-    /**
-     * Download a single file.
-     */
-    public async downloadSingleFile(config: SelectedVariant, file: InferenceModelFile, onProgress?: (progress: number) => void): Promise<File> {
-        const fileObj = this.fileSystemManager.getFileForFile(config, file);
-
-        if (fileObj.exists) {
-            this.logger.debug(`File already exists: ${fileObj.uri}`);
-            if (onProgress) {
-                onProgress(1);
-            }
-            return fileObj;
-        }
-
-        // Ensure directories exist
-        this.fileSystemManager.ensureDirectories(config);
-
-        try {
-            if (onProgress) {
-                onProgress(0);
-            }
-
-            await File.downloadFileAsync(file.url, fileObj, { idempotent: true });
-
-            if (onProgress) {
-                onProgress(0.5);
-            }
-
-            // Verify checksum if provided
-            const hash = file.hash?.trim();
-            if (hash != null && hash !== '') {
-                await this.checksumVerifier.verify(fileObj, hash);
-            }
-
-            if (onProgress) {
-                onProgress(1);
-            }
-
-            this.logger.debug(`Downloaded single file: ${file.url} -> ${fileObj.uri}`);
-            return fileObj;
-        } catch (error) {
-            this.logger.error(`Failed to download file ${file.url}:`, error);
-            throw new InferenceModelDownloaderException(`Failed to download file: ${error}`, error instanceof Error ? error : new Error(String(error)));
         }
     }
 }
