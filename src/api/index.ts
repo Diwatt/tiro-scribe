@@ -1,33 +1,32 @@
 /**
  * Api – backend API client registry and hooks.
- * Use apiRegistry.get(ClinicalAttributes) or get(ModelArtifact); clients are created lazily.
- * Generated types match the API (snake_case where the spec defines it).
+ * Use apiClientRegistry.get(ProfileAttributesClient) or get(InferenceModelClient); clients are created lazily.
+ * Generated types match the API (camelCase; spec is the single source of truth).
  */
-
-import type { ModelArtifact } from './generated/Types';
 
 /** 1. Client registry – use get(Model) to obtain the client instance (lazy). */
 export {
-    apiRegistry,
-    ApiRegistry,
-    ClinicalAttributes,
-    ModelArtifact,
-} from './ApiRegistry';
+    apiClientRegistry,
+    ApiClientRegistry,
+    InferenceModelClient,
+    ProfileAttributesClient,
+} from './ApiClientRegistry';
 
 /** 2. React Query hooks and keys. */
 export {
-    useArtifacts,
-    useClinicalAttributes,
-    ARTIFACTS_QUERY_KEY,
-    CLINICAL_ATTRIBUTES_QUERY_KEY,
+    useInferenceModels,
+    useProfileAttributes,
+    INFERENCE_MODELS_QUERY_KEY,
+    PROFILE_ATTRIBUTES_QUERY_KEY,
 } from './hooks';
+export type { InferenceModelsQueryOptions, ProfileAttributesQueryOptions } from './hooks';
 
-/** Types (from spec + model-artifact client). */
-export type { ArtifactDescriptor } from './Client/ModelArtifact';
+/** Types (from spec + inference-model client). */
+export type { SelectedVariant, InferenceModelMap } from './Client/InferenceModelClient';
 export type {
-    ClinicalAttributes as ClinicalAttributesData,
-    ModelArtifact,
-    ModelArtifactVariant,
-    SelectOption,
+    InferenceModelFile,
+    InferenceModel,
+    InferenceModelVariant,
+    LabeledOption,
+    ProfileAttributes,
 } from './generated/Types';
-export type ModelArtifactMap = Record<string, ModelArtifact>;

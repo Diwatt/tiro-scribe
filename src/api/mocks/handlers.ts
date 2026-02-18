@@ -1,22 +1,23 @@
 /**
  * MSW handlers for tests and storybook.
- * GET /clinical-attributes = qualifications, therapyMethods, languages.
- * GET /artifacts = model artifacts array (look up by use_case).
+ * GET /profile-attributes = qualifications, therapyMethods, languages.
+ * GET /inference-models = inference model array (look up by capability).
  */
 
 import { http, HttpResponse } from 'msw';
-import type { ClinicalAttributes } from '@/Api/generated/Types';
+import type { ProfileAttributes, InferenceModel } from '@/Api/generated/Types';
+import qualifications from './qualifications.json';
+import languages from './languages.json';
+import inferenceModels from './inference-models.json';
+import therapyMethods from './therapy-methods.json';
 
-const clinicalAttributes: ClinicalAttributes = {
-    qualifications: require('./qualifications.json'),
-    therapyMethods: require('./therapy-methods.json'),
-    languages: require('./languages.json'),
+const profileAttributes: ProfileAttributes = {
+    qualifications: qualifications as ProfileAttributes['qualifications'],
+    therapyMethods: therapyMethods as ProfileAttributes['therapyMethods'],
+    languages: languages as ProfileAttributes['languages'],
 };
 
-/** Artifact configs for GET /artifacts: array, look up by use_case. */
-const mockArtifacts = require('./model-artifacts.json') as unknown[];
-
-export const clinicalAttributesHandlers = [
-    http.get('*/api/clinical-attributes', () => HttpResponse.json(clinicalAttributes)),
-    http.get('*/api/artifacts', () => HttpResponse.json(mockArtifacts)),
+export const apiHandlers = [
+    http.get('*/api/profile-attributes', () => HttpResponse.json(profileAttributes)),
+    http.get('*/api/inference-models', () => HttpResponse.json(inferenceModels as InferenceModel[])),
 ];

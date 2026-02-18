@@ -3,30 +3,27 @@ info:
   title: Tiro API
   version: 1.0.0
   description: |
-    App configuration API used to bootstrap the client (onboarding, model artifacts, etc.).
-    - **Onboarding:** clinical attributes (qualifications, therapy methods, languages) for wizard steps.
-    - **Model artifacts:** Inference model artifacts (url, hash, size) for on-device download and integrity.
+    App configuration API used to bootstrap the client (onboarding, inference models, etc.).
+    - **Onboarding:** profile attributes (qualifications, therapy methods, languages) for wizard steps.
+    - **Inference models:** Model entries (url, hash, size) for on-device download and integrity.
 
 servers:
   - url: /api
     description: Base URL (mutator prepends configured base)
 
 tags:
-  - name: tiro
-    description: Tiro API – bootstrap (clinical attributes, model artifacts)
-  - name: onboarding
-    description: Clinical attributes and options for the onboarding flow
-  - name: artifacts
-    description: Model artifacts for download and integrity
+  - name: profile
+    description: Profile attributes and options for the onboarding flow
+  - name: inference-models
+    description: Inference models for download and integrity
 
 paths:
-  /clinical-attributes:
+  /profile-attributes:
     get:
       tags:
-        - tiro
-        - onboarding
-      operationId: getClinicalAttributes
-      summary: Clinical attributes (qualifications, therapy methods, languages)
+        - profile
+      operationId: getProfileAttributes
+      summary: Profile attributes (qualifications, therapy methods, languages)
       description: |
         Returns select options for the onboarding wizard (profile, methods, languages).
         Pass locale to get labels in that language (BCP-47 or tag, e.g. en, fr). Omit for server default.
@@ -40,86 +37,98 @@ paths:
             example: en
       responses:
         '200':
-          description: Clinical attributes for app bootstrap (labels in requested locale when provided)
+          description: Profile attributes for app bootstrap (labels in requested locale when provided)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClinicalAttributes'
-  /artifacts:
+                $ref: '#/components/schemas/ProfileAttributes'
+  /inference-models:
     get:
       tags:
-        - tiro
-        - artifacts
-      operationId: getArtifacts
-      summary: Model artifacts for download
+        - inference-models
+      operationId: getInferenceModels
+      summary: Inference models for on-device download
       description: |
-        Returns model artifacts for on-device download. Array of entries; each has use_case and variants. Client looks up by use_case and picks one variant by app/device language when multiple. Used for download, integrity (hash), and progress (size_bytes).
+        Returns inference model entries for on-device download. Array of entries; each has capability and variants. Client looks up by capability and picks one variant by app/device language when multiple. Used for download, integrity (hash), and progress (sizeBytes).
       responses:
         '200':
-          description: Array of model artifacts (look up by use_case)
+          description: Array of inference models (look up by capability)
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ModelArtifact'
+                  $ref: '#/components/schemas/InferenceModel'
 
 components:
   schemas:
-    ModelArtifactVariant:
+    InferenceModelFile:
       type: object
-      description: |
-        One model artifact variant for a use_case. When default is true, client must use this variant without searching by app language (language-agnostic). Otherwise (default false) client selects by app language.
+      description: One file (ONNX model, config, tokenizer, etc.) for a variant.
       required:
-        - language
-        - default
-        - id
-        - version
         - url
         - hash
-        - size_bytes
-        - min_app_version
+        - sizeBytes
+      properties:
+        url:
+          type: string
+          format: uri
+        hash:
+          type: string
+        sizeBytes:
+          type: integer
+    InferenceModelVariant:
+      type: object
+      description: |
+        One inference model variant for a capability. When isDefault is true, client must use this variant without searching by app language (language-agnostic). Otherwise (isDefault false) client selects by app language.
+        files[0] is the primary file (typically the ONNX model); additional files may be configs, tokenizers, etc.
+      required:
+        - language
+        - isDefault
+        - id
+        - version
+        - files
+        - minAppVersion
       properties:
         language:
           type: string
           description: |
             Primary language tag only (lowercase), or the literal "multilingual".
             Must match the client app locale format: expo-localization is normalized to primary tag (e.g. en, fr) via AppLanguage.
-            Use "en", "fr", etc. for language-specific variants; use "multilingual" for language-agnostic model artifacts (VAD, pitch, speaker).
+            Use "en", "fr", etc. for language-specific variants; use "multilingual" for language-agnostic inference models (VAD, pitch, speaker).
             Do not use region subtags (e.g. prefer "en" not "en-US") to avoid client mismatch.
-        default:
+        isDefault:
           type: boolean
           description: When true, use this variant as-is; do not search by app language. When false, variant is chosen only when app language matches.
         id:
           type: string
         version:
           type: string
-        url:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/InferenceModelFile'
+          minItems: 1
+          description: Files for this variant (ONNX model, config, tokenizer, etc.). First is primary.
+        minAppVersion:
           type: string
-          format: uri
-        hash:
-          type: string
-        size_bytes:
-          type: integer
-        min_app_version:
-          type: string
-    ModelArtifact:
+    InferenceModel:
       type: object
       description: |
-        One model artifact entry per use_case. Always has a variants array (one or more). Client picks one variant by app language when needed; single-variant entries (e.g. VAD) have one item in variants.
+        One inference model entry per capability. Always has a variants array (one or more). Client picks one variant by app language when needed; single-variant entries (e.g. VAD) have one item in variants.
       required:
-        - use_case
+        - capability
         - variants
       properties:
-        use_case:
+        capability:
           type: string
-          description: Model artifact use case (e.g. speaker_id, vad, asr)
+          description: Inference model capability (e.g. speaker_id, vad, asr)
         variants:
           type: array
           items:
-            $ref: '#/components/schemas/ModelArtifactVariant'
+            $ref: '#/components/schemas/InferenceModelVariant'
           minItems: 1
-    SelectOption:
+    LabeledOption:
       type: object
       required:
         - value
@@ -131,7 +140,7 @@ components:
         label:
           type: string
           description: Display label
-    ClinicalAttributes:
+    ProfileAttributes:
       type: object
       required:
         - qualifications
@@ -141,12 +150,12 @@ components:
         qualifications:
           type: array
           items:
-            $ref: '#/components/schemas/SelectOption'
+            $ref: '#/components/schemas/LabeledOption'
         therapyMethods:
           type: array
           items:
-            $ref: '#/components/schemas/SelectOption'
+            $ref: '#/components/schemas/LabeledOption'
         languages:
           type: array
           items:
-            $ref: '#/components/schemas/SelectOption'
+            $ref: '#/components/schemas/LabeledOption'

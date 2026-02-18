@@ -82,6 +82,14 @@
             }
         },
         {
+            "includes": ["src/Config/AppConfig.ts"],
+            "linter": {
+                "rules": {
+                    "style": { "useNamingConvention": "off" }
+                }
+            }
+        },
+        {
             "includes": [".rnstorybook/**"],
             "linter": {
                 "rules": {

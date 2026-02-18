@@ -4,14 +4,14 @@ import { useCallback } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, useTheme } from 'react-native-paper';
-import { useClinicalAttributes } from '@/Api';
+import { useProfileAttributes } from '@/Api';
 import { ChipGroup, MultiSelectModal, TextInput } from '@/Components/Form';
 import { useAppLanguage } from '@/Localization';
 import type { OnboardingFormData, ProfileStepData } from '@/State/Onboarding';
 import { onboardingState } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
-const CLINICAL_ATTRIBUTES_QUERY_OPTIONS = {
+const PROFILE_ATTRIBUTES_QUERY_OPTIONS = {
     staleTime: Infinity,
     gcTime: Infinity,
 } as const;
@@ -22,13 +22,13 @@ export const StepProfile = observer(function StepProfile(): React.JSX.Element {
     const { control, getValues, setError } = useFormContext<OnboardingFormData>();
     const error = onboardingState.state$.error.get();
 
-    const clinicalAttributesQuery = useClinicalAttributes({
-        ...CLINICAL_ATTRIBUTES_QUERY_OPTIONS,
+    const profileAttributesQuery = useProfileAttributes({
+        ...PROFILE_ATTRIBUTES_QUERY_OPTIONS,
         locale,
     });
-    const data = clinicalAttributesQuery.data;
+    const data = profileAttributesQuery.data;
     const { qualifications = [], therapyMethods = [], languages = [] } = data ?? {};
-    const isLoading = clinicalAttributesQuery.isLoading;
+    const isLoading = profileAttributesQuery.isLoading;
 
     const handleContinue = useCallback(() => {
         const data = getValues() as ProfileStepData;

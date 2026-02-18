@@ -1,66 +1,64 @@
 /**
- * Gate screen – runs device check and onboarding check, then redirects.
- * Shown briefly at app start; redirects to /incompatible, /onboarding, or /main.
+ * Gate screen – Single boot entry point.
+ * Initializes DB, runs StartupOrchestrator, shows spinner, then redirects.
+ * No other screen mounts until this gate completes.
  */
 
+import { observer } from '@legendapp/state/react';
 import { useRouter } from 'expo-router';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { Database } from '@/Database/Database';
-import { registry } from '@/Database/Registry';
-import { Therapist } from '@/Entity/Therapist';
-import { deviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
+import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
 
-type GateState = 'loading' | 'incompatible' | 'onboarding' | 'main';
+async function hideSplash(): Promise<void> {
+    try {
+        const SplashScreen = await import('expo-splash-screen');
+        await SplashScreen.hideAsync();
+    } catch {
+        // expo-splash-screen optional
+    }
+}
 
-export default function GateScreen(): React.JSX.Element | null {
+function GateScreen(): React.JSX.Element | null {
     const theme = useTheme();
     const router = useRouter();
-    const [gateState, setGateState] = useState<GateState>('loading');
+    const bootStarted = useRef(false);
 
     useEffect(() => {
-        let cancelled = false;
+        if (bootStarted.current) {
+            return;
+        }
+        bootStarted.current = true;
+
         (async () => {
             await Database.initialize();
-            if (cancelled) {
-                return;
-            }
-            const ok = deviceCompatibilityGate.isCompatible();
-            if (!ok) {
-                setGateState('incompatible');
-                return;
-            }
-            const repo = await registry.getRepository(Therapist);
-            const therapists = await repo.findAll();
-            if (cancelled) {
-                return;
-            }
-            setGateState(therapists.length > 0 ? 'main' : 'onboarding');
+            await startupOrchestrator.run();
         })();
-        return () => {
-            cancelled = true;
-        };
     }, []);
 
+    const state = startupOrchestrator.state$.get();
+
     useEffect(() => {
-        if (gateState === 'incompatible') {
+        if (state === StartupState.Booting) {
+            return;
+        }
+        hideSplash();
+
+        if (state === StartupState.HardwareRejected) {
             router.replace('/incompatible');
             return;
         }
-        if (gateState === 'onboarding') {
+        if (state === StartupState.Onboarding) {
             router.replace('/onboarding');
             return;
         }
-        if (gateState === 'main') {
+        if (state === StartupState.Ready) {
             router.replace('/main');
         }
-    }, [gateState, router]);
-
-    if (gateState !== 'loading') {
-        return null;
-    }
+    }, [state, router]);
 
     return (
         <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
@@ -68,6 +66,8 @@ export default function GateScreen(): React.JSX.Element | null {
         </View>
     );
 }
+
+export default observer(GateScreen);
 
 const styles = StyleSheet.create({
     centered: {

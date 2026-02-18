@@ -1,7 +1,7 @@
 /**
  * Main application component.
  * When not in Storybook, the app runs via Expo Router (see index.js: expo-router/entry).
- * Root layout and startup flow live in app/_layout.tsx (StartupOrchestrator + Slot).
+ * Root layout (providers) lives in app/_layout.tsx; boot sequence in app/index.tsx (GateScreen).
  * This component is only used when explicitly mounted; otherwise the entry is app/_layout.
  */
 

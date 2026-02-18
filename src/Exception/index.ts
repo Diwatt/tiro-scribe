@@ -4,7 +4,7 @@
  */
 
 export { ApiClientException } from './ApiClientException';
-export { ArtifactRegistryException } from './ArtifactRegistryException';
+export { InferenceModelDownloaderException } from './InferenceModelDownloaderException';
 export { DatabaseException } from './DatabaseException';
 export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
 export { FileOperationError } from './FileOperationError';

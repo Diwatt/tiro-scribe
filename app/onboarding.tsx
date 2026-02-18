@@ -1,7 +1,7 @@
 /**
  * Onboarding route – Renders OnboardingScreen (Expo Router).
  * Flow and logic live in src/Screen/Onboarding/Screen.tsx.
- * On complete, the screen calls startupOrchestrator.run(); _layout observes state and redirects to /main.
+ * On complete, the screen calls startupOrchestrator.run() which updates state$.
  */
 
 import type React from 'react';

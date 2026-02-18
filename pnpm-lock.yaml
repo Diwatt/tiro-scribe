@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@hey-api/client-axios':
-        specifier: ^0.9.1
-        version: 0.9.1(@hey-api/openapi-ts@0.92.4(typescript@5.9.3))(axios@1.13.5)
+      '@hey-api/client-fetch':
+        specifier: ^0.13.1
+        version: 0.13.1(@hey-api/openapi-ts@0.92.4(typescript@5.9.3))
       '@hookform/resolvers':
         specifier: ^5.0.0
         version: 5.2.2(react-hook-form@7.71.1(react@19.1.0))
@@ -35,9 +35,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.90.20(react@19.1.0)
-      camelcase-keys:
-        specifier: ^10.0.2
-        version: 10.0.2
       check-password-strength:
         specifier: ^2.0.10
         version: 2.0.10
@@ -222,9 +219,6 @@ importers:
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
-      axios:
-        specifier: ^1.7.9
-        version: 1.13.5
       babel-plugin-inline-import:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1540,12 +1534,11 @@ packages:
   '@hapi/topo@5.1.0':
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
 
-  '@hey-api/client-axios@0.9.1':
-    resolution: {integrity: sha512-fvpOdnEz6tu5T2+IMNZW3g9mAZwaXavqpsvtapEZNtYxyYtQ+lQs9wJn/VPhZEvdXAXu8HPTCRpmfa0t1aRATA==}
+  '@hey-api/client-fetch@0.13.1':
+    resolution: {integrity: sha512-29jBRYNdxVGlx5oewFgOrkulZckpIpBIRHth3uHFn1PrL2ucMy52FvWOY3U3dVx2go1Z3kUmMi6lr07iOpUqqA==}
     deprecated: Starting with v0.73.0, this package is bundled directly inside @hey-api/openapi-ts.
     peerDependencies:
       '@hey-api/openapi-ts': < 2
-      axios: '>= 1.0.0 < 2'
 
   '@hey-api/codegen-core@0.7.0':
     resolution: {integrity: sha512-HglL4B4QwpzocE+c8qDU6XK8zMf8W8Pcv0RpFDYxHuYALWLTnpDUuEsglC7NQ4vC1maoXsBpMbmwpco0N4QviA==}
@@ -3197,10 +3190,6 @@ packages:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
 
-  camelcase-keys@10.0.2:
-    resolution: {integrity: sha512-PVHCLVbJ7nWGal0lPAmBN5eSLjIynlMUk2EPmL9aPl6QyJ6+FoszTKwldPzkuVqg5teZbPTbb8Oenzyw9GSJRw==}
-    engines: {node: '>=20'}
-
   camelcase@5.3.1:
     resolution: {integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==}
     engines: {node: '>=6'}
@@ -3208,10 +3197,6 @@ packages:
   camelcase@6.3.0:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
-
-  camelcase@9.0.0:
-    resolution: {integrity: sha512-TO9xmyXTZ9HUHI8M1OnvExxYB0eYVS/1e5s7IDMTAoIcwUd+aNcFODs6Xk83mobk0velyHFQgA1yIrvYc6wclw==}
-    engines: {node: '>=20'}
 
   caniuse-lite@1.0.30001765:
     resolution: {integrity: sha512-LWcNtSyZrakjECqmpP4qdg0MMGdN368D7X8XvvAqOcqMv0RxnlqVKZl2V6/mBR68oYMxOZPLw/gO7DuisMHUvQ==}
@@ -5302,10 +5287,6 @@ packages:
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
 
-  map-obj@6.0.0:
-    resolution: {integrity: sha512-PwDvwt/tK70+luLw5k9ySLtzLAzwf7tZTY9GBj63Y010nHRPjwHcQTpTd5JwQqITC2ty7prtxBo71iwyYY0TAg==}
-    engines: {node: '>=20'}
-
   map-or-similar@1.5.0:
     resolution: {integrity: sha512-0aF7ZmVon1igznGI4VS30yugpduQW3y3GkcgGJOp7d8x8QrizhigUxjI/m2UojsXXto+jLAH3KSz+xOJTiORjg==}
 
@@ -5942,10 +5923,6 @@ packages:
 
   queue@6.0.2:
     resolution: {integrity: sha512-iHZWu+q3IdFZFX36ro/lKBkSvfkztY5Y7HMiPlOUjhupPcG2JMfst2KKEpu5XndviX/3UhFbRngUPNKtgvtZiA==}
-
-  quick-lru@7.3.0:
-    resolution: {integrity: sha512-k9lSsjl36EJdK7I06v7APZCbyGT2vMTsYSRX1Q2nbYmnkBqgUhRkAuzH08Ciotteu/PLJmIF2+tti7o3C/ts2g==}
-    engines: {node: '>=18'}
 
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
@@ -8810,10 +8787,9 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hey-api/client-axios@0.9.1(@hey-api/openapi-ts@0.92.4(typescript@5.9.3))(axios@1.13.5)':
+  '@hey-api/client-fetch@0.13.1(@hey-api/openapi-ts@0.92.4(typescript@5.9.3))':
     dependencies:
       '@hey-api/openapi-ts': 0.92.4(typescript@5.9.3)
-      axios: 1.13.5
 
   '@hey-api/codegen-core@0.7.0(typescript@5.9.3)':
     dependencies:
@@ -10929,18 +10905,9 @@ snapshots:
 
   callsites@3.1.0: {}
 
-  camelcase-keys@10.0.2:
-    dependencies:
-      camelcase: 9.0.0
-      map-obj: 6.0.0
-      quick-lru: 7.3.0
-      type-fest: 5.4.4
-
   camelcase@5.3.1: {}
 
   camelcase@6.3.0: {}
-
-  camelcase@9.0.0: {}
 
   caniuse-lite@1.0.30001765: {}
 
@@ -13464,8 +13431,6 @@ snapshots:
     dependencies:
       tmpl: 1.0.5
 
-  map-obj@6.0.0: {}
-
   map-or-similar@1.5.0: {}
 
   marky@1.3.0: {}
@@ -14199,8 +14164,6 @@ snapshots:
   queue@6.0.2:
     dependencies:
       inherits: 2.0.4
-
-  quick-lru@7.3.0: {}
 
   range-parser@1.2.1: {}
 

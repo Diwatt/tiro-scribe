@@ -18,6 +18,8 @@ export type {
   Options,
   RequestOptions,
   RequestResult,
+  ResolvedRequestOptions,
+  ResponseStyle,
   TDataShape,
 } from './Types';
-export { createConfig } from './Utils';
+export { createConfig, mergeHeaders } from './Utils';

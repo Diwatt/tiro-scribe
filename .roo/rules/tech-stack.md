@@ -1,9 +1,3 @@
----
-description: "Core Tech Stack, Inference & Global Patterns"
-globs: ["**/*"]
-alwaysApply: true
----
-
 # Tech Stack
 - **Framework:** React Native (Expo)
 - **UI:** React Native Paper (Material Design 3) + Lucide Icons

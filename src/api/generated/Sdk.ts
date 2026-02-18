@@ -3,7 +3,7 @@
 
 import { client } from './Client';
 import type { Client, Options as Options2, TDataShape } from './client/Index';
-import type { GetArtifactsData, GetArtifactsResponses, GetClinicalAttributesData, GetClinicalAttributesResponses } from './Types';
+import type { GetInferenceModelsData, GetInferenceModelsResponses, GetProfileAttributesData, GetProfileAttributesResponses } from './Types';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -20,26 +20,18 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * Clinical attributes (qualifications, therapy methods, languages)
+ * Profile attributes (qualifications, therapy methods, languages)
  *
  * Returns select options for the onboarding wizard (profile, methods, languages).
  * Pass locale to get labels in that language (BCP-47 or tag, e.g. en, fr). Omit for server default.
  *
  */
-export const getClinicalAttributes = <ThrowOnError extends boolean = false>(options?: Options<GetClinicalAttributesData, ThrowOnError>) => (options?.client ?? client).get<GetClinicalAttributesResponses, unknown, ThrowOnError>({
-    responseType: 'json',
-    url: '/clinical-attributes',
-    ...options
-});
+export const getProfileAttributes = <ThrowOnError extends boolean = false>(options?: Options<GetProfileAttributesData, ThrowOnError>) => (options?.client ?? client).get<GetProfileAttributesResponses, unknown, ThrowOnError>({ url: '/profile-attributes', ...options });
 
 /**
- * Model artifacts for download
+ * Inference models for on-device download
  *
- * Returns model artifacts for on-device download. Array of entries; each has use_case and variants. Client looks up by use_case and picks one variant by app/device language when multiple. Used for download, integrity (hash), and progress (size_bytes).
+ * Returns inference model entries for on-device download. Array of entries; each has capability and variants. Client looks up by capability and picks one variant by app/device language when multiple. Used for download, integrity (hash), and progress (sizeBytes).
  *
  */
-export const getArtifacts = <ThrowOnError extends boolean = false>(options?: Options<GetArtifactsData, ThrowOnError>) => (options?.client ?? client).get<GetArtifactsResponses, unknown, ThrowOnError>({
-    responseType: 'json',
-    url: '/artifacts',
-    ...options
-});
+export const getInferenceModels = <ThrowOnError extends boolean = false>(options?: Options<GetInferenceModelsData, ThrowOnError>) => (options?.client ?? client).get<GetInferenceModelsResponses, unknown, ThrowOnError>({ url: '/inference-models', ...options });

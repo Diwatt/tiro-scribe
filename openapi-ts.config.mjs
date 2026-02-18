@@ -17,5 +17,5 @@ export default {
     types: {
         name: 'PascalCase',
     },
-    plugins: ['@hey-api/client-axios'],
+    plugins: ['@hey-api/client-fetch'],
 };

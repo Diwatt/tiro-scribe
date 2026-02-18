@@ -66,9 +66,9 @@ export class VoiceCalibration {
     private async extractSpeakerVectorFromFile(audioPath: string): Promise<number[]> {
         try {
             const { Biocode } = await import('./Biocode');
-            const { ArtifactRegistry } = await import('./ArtifactRegistry');
+            const { InferenceModelDownloader } = await import('./InferenceModelDownloader');
             const biocode = new Biocode(this.log);
-            const artifactPath = await ArtifactRegistry.getInstance().ensureCachedByKey('speaker_id');
+            const artifactPath = await InferenceModelDownloader.getInstance().ensureCachedByKey('speaker_id');
             await biocode.initialize(artifactPath);
             const result = await biocode.extractSpeakerVector(audioPath);
             return result.vector;

@@ -5,7 +5,7 @@
     "version": "7.20.0",
     "generators": {
       "api": {
-        "generatorName": "typescript-axios",
+        "generatorName": "typescript-fetch",
         "inputSpec": "src/Api/spec.yaml",
         "output": "src/Api/generated",
         "additionalProperties": {

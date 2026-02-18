@@ -1,46 +1,50 @@
 /**
- * React Query hooks for Tiro API (clinical attributes, artifacts).
+ * React Query hooks for Tiro API (profile attributes, inference models).
  * Use these in screens; do not import generated API directly.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import {
-    apiRegistry,
-    ClinicalAttributes,
-    ModelArtifact,
-} from './ApiRegistry';
+    apiClientRegistry,
+    InferenceModelClient,
+    ProfileAttributesClient,
+} from './ApiClientRegistry';
 
-export const ARTIFACTS_QUERY_KEY = ['api', 'artifacts'] as const;
-export const CLINICAL_ATTRIBUTES_QUERY_KEY = [
+export const INFERENCE_MODELS_QUERY_KEY = ['api', 'inference-models'] as const;
+export const PROFILE_ATTRIBUTES_QUERY_KEY = [
     'api',
-    'clinical-attributes',
+    'profile-attributes',
 ] as const;
 
-export function useClinicalAttributes(options?: {
+export interface ProfileAttributesQueryOptions {
+    gcTime?: number;
     locale?: string;
     staleTime?: number;
+}
+
+export interface InferenceModelsQueryOptions {
+    appLanguage?: string;
     gcTime?: number;
-}) {
+    staleTime?: number;
+}
+
+export function useProfileAttributes(options?: ProfileAttributesQueryOptions) {
     const locale = options?.locale;
     return useQuery({
-        queryKey: [...CLINICAL_ATTRIBUTES_QUERY_KEY, locale] as const,
+        queryKey: [...PROFILE_ATTRIBUTES_QUERY_KEY, locale] as const,
         queryFn: () =>
-            apiRegistry.get(ClinicalAttributes).getClinicalAttributes(locale),
+            apiClientRegistry.get(ProfileAttributesClient).getProfileAttributes(locale),
         staleTime: options?.staleTime ?? Infinity,
         gcTime: options?.gcTime ?? Infinity,
     });
 }
 
-export function useArtifacts(options?: {
-    appLanguage?: string;
-    staleTime?: number;
-    gcTime?: number;
-}) {
+export function useInferenceModels(options?: InferenceModelsQueryOptions) {
     const appLanguage = options?.appLanguage;
     return useQuery({
-        queryKey: [...ARTIFACTS_QUERY_KEY, appLanguage] as const,
+        queryKey: [...INFERENCE_MODELS_QUERY_KEY, appLanguage] as const,
         queryFn: () =>
-            apiRegistry.get(ModelArtifact).getArtifacts(appLanguage),
+            apiClientRegistry.get(InferenceModelClient).getInferenceModels(appLanguage),
         staleTime: options?.staleTime ?? Infinity,
         gcTime: options?.gcTime ?? Infinity,
     });
