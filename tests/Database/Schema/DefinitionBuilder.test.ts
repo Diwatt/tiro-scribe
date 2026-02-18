@@ -9,6 +9,7 @@ import type { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import { OnDeleteAction } from '@/Database/Decorator';
 import type { ForeignKeyOptions } from '@/Database/Decorator';
+import type { EntityClassStatic } from '@/Database/AbstractEntity';
 import { DatabaseException } from '@/Exception';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
 import { describe, it, expect, vi } from 'vitest';
@@ -53,7 +54,7 @@ function metadataFromReaderLike(readerLike: {
             if (opts == null) {
                 return null;
             }
-            const target = typeof opts.target === 'function' ? opts.target() : opts.target;
+            const target = typeof opts.target === 'function' ? (opts.target as () => EntityClassStatic)() : opts.target;
             const table = (target as { entityName?: string })?.entityName;
             return table != null && String(table).trim() !== '' ? table : null;
         },

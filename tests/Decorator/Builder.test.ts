@@ -19,7 +19,8 @@ describe('Builder', () => {
             const decorate = vi.fn();
             const config: ClassDecoratorConfig<object> = { decorate };
             const decorator = Builder.buildEntity(config)();
-            const target = function TestEntity() {};
+            class TestEntity {}
+            const target = TestEntity;
             const context = {} as ClassDecoratorContext<typeof target>;
             decorator(target, context);
             expect(decorate).toHaveBeenCalledWith(target, context, {});
@@ -29,7 +30,8 @@ describe('Builder', () => {
             const decorate = vi.fn();
             const config: ClassDecoratorConfig<{ table_name: string }> = { decorate };
             const decorator = Builder.buildEntity(config)({ table_name: 'tests' });
-            const target = function TestEntity() {};
+            class TestEntity {}
+            const target = TestEntity;
             const context = {} as ClassDecoratorContext<typeof target>;
             decorator(target, context);
             expect(decorate).toHaveBeenCalledWith(target, context, { table_name: 'tests' });
@@ -38,7 +40,8 @@ describe('Builder', () => {
         it('returns target from decorator', () => {
             const config: ClassDecoratorConfig<object> = { decorate: vi.fn() };
             const decorator = Builder.buildEntity(config)();
-            const target = function T() {};
+            class T {}
+            const target = T;
             const result = decorator(target, {} as ClassDecoratorContext<typeof target>);
             expect(result).toBe(target);
         });
@@ -51,14 +54,19 @@ describe('Builder', () => {
                 decorate: vi.fn(),
             };
             expect(() => Builder.buildEntity(config)()).toThrow(DatabaseException);
-            expect(() => Builder.buildEntity(config)({ table_name: 'ok' })()).not.toThrow();
+            expect(() => {
+                const decorator = Builder.buildEntity(config)({ table_name: 'ok' });
+                class TestEntity {}
+                decorator(TestEntity, {} as never);
+            }).not.toThrow();
         });
 
         it('calls custom validate when provided', () => {
             const validate = vi.fn();
             const config: ClassDecoratorConfig<object> = { decorate: vi.fn(), validate };
             const decorator = Builder.buildEntity(config)({ x: 1 });
-            decorator(function T() {}, {} as never);
+            class T {}
+            decorator(T, {} as never);
             expect(validate).toHaveBeenCalledWith({ x: 1 });
         });
     });

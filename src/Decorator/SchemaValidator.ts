@@ -12,7 +12,7 @@ export class SchemaValidator {
      * Not invoked from validate() because it needs context.metadata and context.name,
      * which are only available when the field decorator runs, not when options are validated.
      */
-    public ensureFieldDecoratorUniqueness(meta: Record<string | symbol, unknown> | undefined, currentPropertyName: string, decoratorName: string): void {
+    public ensureFieldDecoratorUniqueness(meta: Record<string | symbol, unknown> | undefined | null, currentPropertyName: string, decoratorName: string): void {
         if (meta == null || typeof meta !== 'object') {
             return;
         }

@@ -5,7 +5,7 @@
  */
 
 import { vi } from 'vitest';
-import { ChecksumVerifier } from '@/Service/InferenceModel/ChecksumVerifier';
+import { ChecksumVerifier } from '@/Service/InferenceModelDownload/ChecksumVerifier';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 
 // Create mock instances

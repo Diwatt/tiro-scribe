@@ -7,7 +7,8 @@ describe('MetadataWriter', () => {
     });
 
     it('registerEntity stores EntityDecorator on constructor', () => {
-        const construct = function MockEntity() {};
+        class MockEntity {}
+        const construct = MockEntity;
         const options = { tableName: 'mock_entities' };
         MetadataWriter.registerEntity(construct, options);
         const stored = (construct as unknown as Record<string, unknown>)[MetadataWriter.ENTITY_METADATA_KEY];

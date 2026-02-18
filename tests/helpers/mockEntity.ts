@@ -25,7 +25,7 @@ function attachEntityMetadata(ctor: Constructor, tableName: string, fieldMeta: F
 }
 
 /** Minimal encounter-like constructor for RecordNormalizer/Registry/Repository tests. */
-export function createMockEncounterConstructor(): typeof AbstractEntity & {
+export function createMockEncounterConstructor(): (new (...args: unknown[]) => AbstractEntity) & {
     entityName: string;
     name: string;
 } {
@@ -47,16 +47,14 @@ export function createMockEncounterConstructor(): typeof AbstractEntity & {
         },
         'uuid',
     );
-    return MockEncounter as unknown as typeof AbstractEntity & { entityName: string; name: string };
+    return MockEncounter as unknown as (new (...args: unknown[]) => AbstractEntity) & { entityName: string; name: string };
 }
 
 /** Entity with PrimaryKey for AbstractEntity tests. */
-export function createTestEntityConstructor(): new (...args: unknown[]) => AbstractEntity & {
-    getField: (k: string) => unknown;
-    setField: (k: string, v: unknown) => void;
-    primaryKey: string;
-    toPlainObject: () => Record<string, unknown>;
-} & { entityName: string; name: string } {
+export function createTestEntityConstructor(): (new (...args: unknown[]) => AbstractEntity) & {
+    entityName: string;
+    name: string;
+} {
     class TestEntity extends AbstractEntity {}
     (TestEntity as unknown as { entityName: string }).entityName = 'test_entities';
     attachEntityMetadata(
@@ -73,30 +71,18 @@ export function createTestEntityConstructor(): new (...args: unknown[]) => Abstr
         },
         'id',
     );
-    return TestEntity as unknown as new (...args: unknown[]) => AbstractEntity & {
-        getField: (k: string) => unknown;
-        setField: (k: string, v: unknown) => void;
-        primaryKey: string;
-        toPlainObject: () => Record<string, unknown>;
-    } & { entityName: string; name: string };
+    return TestEntity as unknown as (new (...args: unknown[]) => AbstractEntity) & { entityName: string; name: string };
 }
 
 /** Entity without PrimaryKey for PRIMARY_KEY_NOT_DEFINED test. */
-export function createNoPkEntityConstructor(): new (...args: unknown[]) => AbstractEntity & {
-    getField: (k: string) => unknown;
-    setField: (k: string, v: unknown) => void;
-    primaryKey: string;
-    toPlainObject: () => Record<string, unknown>;
-} & { entityName: string; name: string } {
+export function createNoPkEntityConstructor(): (new (...args: unknown[]) => AbstractEntity) & {
+    entityName: string;
+    name: string;
+} {
     class NoPkEntity extends AbstractEntity {}
     (NoPkEntity as unknown as { entityName: string }).entityName = 'no_pk_entities';
     attachEntityMetadata(NoPkEntity, 'no_pk_entities', {
         x: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
     }); // no primaryKey = tests PRIMARY_KEY_NOT_DEFINED
-    return NoPkEntity as unknown as new (...args: unknown[]) => AbstractEntity & {
-        getField: (k: string) => unknown;
-        setField: (k: string, v: unknown) => void;
-        primaryKey: string;
-        toPlainObject: () => Record<string, unknown>;
-    } & { entityName: string; name: string };
+    return NoPkEntity as unknown as (new (...args: unknown[]) => AbstractEntity) & { entityName: string; name: string };
 }

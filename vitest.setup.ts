@@ -4,6 +4,12 @@ import { beforeEach, vi } from 'vitest';
 // Mock react-native-quick-crypto (native module fails to parse in Vitest/Rollup)
 vi.mock('react-native-quick-crypto', () => {
     const NodeBuffer = typeof Buffer !== 'undefined' ? Buffer : Uint8Array;
+    const alloc = (size: number) => {
+        if (typeof Buffer !== 'undefined' && NodeBuffer === Buffer) {
+            return Buffer.alloc(size);
+        }
+        return new Uint8Array(size);
+    };
     return {
         default: {
             createHash: () => ({
@@ -12,12 +18,12 @@ vi.mock('react-native-quick-crypto', () => {
                 }),
             }),
             createCipheriv: () => ({
-                update: () => NodeBuffer.alloc(0),
-                final: () => NodeBuffer.alloc(0),
+                update: () => alloc(0),
+                final: () => alloc(0),
             }),
             createDecipheriv: () => ({
-                update: () => NodeBuffer.alloc(0),
-                final: () => NodeBuffer.alloc(0),
+                update: () => alloc(0),
+                final: () => alloc(0),
             }),
             pbkdf2Sync: (password: string, salt: string) => {
                 // Deterministic mock: different (password,salt) => different hex so tests like "different salt => different key" pass
@@ -27,7 +33,7 @@ vi.mock('react-native-quick-crypto', () => {
                     h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
                 }
                 const hex = Math.abs(h).toString(16).padStart(64, '0').slice(0, 64);
-                return Object.assign(NodeBuffer.alloc(32), {
+                return Object.assign(alloc(32), {
                     toString: (enc: string) => (enc === 'hex' ? hex : ''),
                 });
             },

@@ -1,18 +1,21 @@
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
+import type { ClassConstructor, MetadataConstructor } from '@/Decorator/Type';
 
 describe('MetadataReader', () => {
     describe('getEntity', () => {
         it('returns undefined when constructor has no entity metadata', () => {
-            const construct = function NoEntity() {};
+            class NoEntity {}
+            const construct = NoEntity as unknown as MetadataConstructor;
             const reader = new MetadataReader(construct);
             expect(reader.getEntity()).toBeUndefined();
         });
 
         it('returns EntityDecorator when registered via MetadataWriter', () => {
-            const construct = function WithEntity() {};
-            MetadataWriter.registerEntity(construct, { tableName: 'with_entity' });
+            class WithEntity {}
+            const construct = WithEntity as unknown as MetadataConstructor;
+            MetadataWriter.registerEntity(construct as unknown as ClassConstructor, { tableName: 'with_entity' });
             const reader = new MetadataReader(construct);
             const entity = reader.getEntity();
             expect(entity).toBeInstanceOf(EntityDecorator);
@@ -22,13 +25,15 @@ describe('MetadataReader', () => {
 
     describe('getFields', () => {
         it('returns empty array when no Symbol.metadata', () => {
-            const construct = function NoMeta() {};
+            class NoMeta {}
+            const construct = NoMeta as unknown as MetadataConstructor;
             const reader = new MetadataReader(construct);
             expect(reader.getFields()).toEqual([]);
         });
 
         it('returns field decorators from Symbol.metadata', () => {
-            const construct = function WithFields() {};
+            class WithFields {}
+            const construct = WithFields as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'WithFields', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
@@ -46,7 +51,8 @@ describe('MetadataReader', () => {
 
     describe('getFieldByProperty', () => {
         it('filters getFields by property name', () => {
-            const construct = function Multi() {};
+            class Multi {}
+            const construct = Multi as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'Multi', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
@@ -62,7 +68,8 @@ describe('MetadataReader', () => {
 
     describe('getField (instance)', () => {
         it('returns first field with given decorator name', () => {
-            const construct = function HasPK() {};
+            class HasPK {}
+            const construct = HasPK as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'HasPK', configurable: true });
             const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
             (construct as any)[Symbol.metadata] = meta;
@@ -74,7 +81,8 @@ describe('MetadataReader', () => {
         });
 
         it('returns undefined when no field has decorator name', () => {
-            const construct = function NoPK() {};
+            class NoPK {}
+            const construct = NoPK as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'NoPK', configurable: true });
             (construct as any)[Symbol.metadata] = {};
             const reader = new MetadataReader(construct);

@@ -3,7 +3,6 @@
  * Coordinates multiple specialized components following SOLID principles.
  *
  * Components:
- * - InferenceModelConfigResolver: Fetches model configurations from API
  * - ModelArtifactStorage: Handles file system operations for model artifacts
  * - ChecksumVerifier: Validates SHA256 checksums
  * - DownloadSessionManager: Tracks download sessions and state
@@ -11,14 +10,15 @@
  */
 
 import type { InferenceModelFile, SelectedVariant } from '@/Api';
+import { apiClientRegistry, InferenceModelClient } from '@/Api';
+import { ApiClientException } from '@/Exception';
+import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 import { AppLogger, type LoggerInterface } from './Logger';
-import { InferenceModelConfigResolver } from './InferenceModelDownload/InferenceModelConfigResolver';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import { ChecksumVerifier } from './InferenceModelDownload/ChecksumVerifier';
 import { DownloadSessionManager } from './InferenceModelDownload/DownloadSessionManager';
 import { type DownloadSession, DownloadState } from './InferenceModelDownload/DownloadSession';
 import { FileDownloader } from './InferenceModelDownload/FileDownloader';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 
 export type { SelectedVariant, DownloadSession };
 export type { DownloadState } from './InferenceModelDownload/DownloadSession';
@@ -26,7 +26,6 @@ export type { DownloadState } from './InferenceModelDownload/DownloadSession';
 export class InferenceModelDownloader {
     private static instance: InferenceModelDownloader | null = null;
 
-    private readonly configResolver: InferenceModelConfigResolver;
     private readonly artifactStorage: ModelArtifactStorage;
     private readonly checksumVerifier: ChecksumVerifier;
     private readonly sessionManager: DownloadSessionManager;
@@ -34,7 +33,6 @@ export class InferenceModelDownloader {
 
     public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {
         // Initialize components with dependency injection
-        this.configResolver = new InferenceModelConfigResolver(logger);
         this.artifactStorage = new ModelArtifactStorage(logger);
         this.checksumVerifier = new ChecksumVerifier();
         this.sessionManager = new DownloadSessionManager();
@@ -59,7 +57,7 @@ export class InferenceModelDownloader {
      * Returns a session ID that can be used to track progress and control the download.
      */
     public async fetch(capability: string, appLanguage?: string): Promise<string> {
-        const config = await this.configResolver.getConfig(capability, appLanguage);
+        const config = await this.getConfig(capability, appLanguage);
 
         // Create session
         const session = this.sessionManager.create(config.capability, config);
@@ -177,7 +175,7 @@ export class InferenceModelDownloader {
     }
 
     public async ensureCachedByKey(key: string, onProgress?: (progress: number) => void, appLanguage?: string): Promise<string> {
-        const config = await this.configResolver.getConfig(key, appLanguage);
+        const config = await this.getConfig(key, appLanguage);
         return this.ensureCached(config, onProgress);
     }
 
@@ -193,13 +191,30 @@ export class InferenceModelDownloader {
         return results;
     }
 
-    /** Resolved config for one capability; delegates to config resolver. */
+    /** Resolved config for one capability; delegates to API client. */
     public async getConfig(key: string, appLanguage?: string): Promise<SelectedVariant> {
-        return this.configResolver.getConfig(key, appLanguage);
+        try {
+            const resolved = await apiClientRegistry.get(InferenceModelClient).getInferenceModels(appLanguage);
+            const one = resolved[key];
+            if (one == null) {
+                throw new ApiClientException(`Unknown capability: ${key}`, 'UNKNOWN_CAPABILITY');
+            }
+
+            return one;
+        } catch (error) {
+            this.logger.warn('[InferenceModelDownloader] getConfig failed', {
+                key,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            throw new InferenceModelDownloaderException(
+                error instanceof Error ? error.message : 'Model configs unavailable. Please check your connection and retry.',
+                error instanceof Error ? error : new Error(String(error)),
+            );
+        }
     }
 
     public async getConfigByLocalPath(localPath: string, appLanguage?: string): Promise<SelectedVariant | null> {
-        const resolved = await this.configResolver.getResolvedConfigs(appLanguage);
+        const resolved = await this.getResolvedConfigs(appLanguage);
         for (const config of Object.values(resolved)) {
             const primaryPath = this.artifactStorage.resolvePath(config, config.files[0]);
             if (primaryPath === localPath) {
@@ -217,9 +232,19 @@ export class InferenceModelDownloader {
         return null;
     }
 
-    /** All configs resolved for the given app language (one per capability); delegates to config resolver. */
+    /** All configs resolved for the given app language (one per capability); delegates to API client. */
     public async getResolvedConfigs(appLanguage?: string): Promise<Record<string, SelectedVariant>> {
-        return this.configResolver.getResolvedConfigs(appLanguage);
+        try {
+            return await apiClientRegistry.get(InferenceModelClient).getInferenceModels(appLanguage);
+        } catch (error) {
+            this.logger.warn('[InferenceModelDownloader] getInferenceModels failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            throw new InferenceModelDownloaderException(
+                error instanceof Error ? error.message : 'Model configs unavailable. Please check your connection and retry.',
+                error instanceof Error ? error : new Error(String(error)),
+            );
+        }
     }
 
     public getProgress(capability: string): number {
@@ -228,7 +253,7 @@ export class InferenceModelDownloader {
     }
 
     public async getTotalSize(appLanguage?: string): Promise<number> {
-        const resolved = await this.configResolver.getResolvedConfigs(appLanguage);
+        const resolved = await this.getResolvedConfigs(appLanguage);
         return this.artifactStorage.calculateTotalSize(Object.values(resolved));
     }
 
