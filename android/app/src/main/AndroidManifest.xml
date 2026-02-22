@@ -27,6 +27,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="exp+tiro-scribe"/>
+        <data android:scheme="tiro-scribe"/>
       </intent-filter>
     </activity>
   </application>

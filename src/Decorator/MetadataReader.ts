@@ -43,6 +43,7 @@ export class MetadataReader {
         }
 
         logger.debug('[MetadataReader] No entity metadata found for class:', this.construct.name);
+
         return undefined;
     }
 
@@ -95,6 +96,7 @@ export class MetadataReader {
         }
 
         logger.debug('[MetadataReader] Total field decorators found:', out.length);
+
         return out;
     }
 

@@ -6,7 +6,8 @@
         "useIgnoreFile": true
     },
     "files": {
-        "includes": ["**", "!!src/Api/generated", "!!tests", "!!vitest", "!**/__tests__", "!**/*.test.ts", "!**/*.test.tsx", "!**/*.spec.ts", "!**/*.spec.tsx"]
+        "ignoreUnknown": true,
+        "includes": ["**/src/**", "**/app/**", "**/modules/**", "**/tests/**", "!!src/Api/generated", "!!tests", "!!vitest", "!**/__tests__", "!**/*.test.ts", "!**/*.test.tsx", "!**/*.spec.ts", "!**/*.spec.tsx"]
     },
     "assist": {
         "enabled": true,

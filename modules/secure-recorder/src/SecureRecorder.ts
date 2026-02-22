@@ -68,7 +68,7 @@ export class SecureRecorder {
      * @param nativeModule - Native module implementation (defaults to SecureRecorderModule)
      * @param eventEmitter - Event emitter implementation (defaults to SecureRecorderEventEmitter)
      */
-    public constructor(sessionId: string, nativeModule: NativeRecorderModule = SecureRecorderModule, eventEmitter: EventEmitter = SecureRecorderModule as any) {
+    public constructor(sessionId: string, nativeModule: NativeRecorderModule = SecureRecorderModule, eventEmitter: EventEmitter = SecureRecorderModule) {
         // Initialize dependencies first
         this.errorNormalizer = new ErrorNormalizer();
         this.nativeModule = nativeModule;

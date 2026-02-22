@@ -10,5 +10,5 @@ export interface NativeRecorderModule {
     getStatus(): Promise<RecordingStatus>;
     hasPermission(): Promise<boolean>;
     stream(encryptedPath: string): Promise<void>;
-    addListener(event: string, listener: (data: any) => any): { remove: () => void };
+    addListener<TEventPayload = unknown>(event: string, listener: (data: TEventPayload) => void): { remove: () => void };
 }

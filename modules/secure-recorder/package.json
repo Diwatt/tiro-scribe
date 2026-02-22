@@ -8,7 +8,8 @@
         "build": "expo-module build",
         "build:watch": "tsc --watch",
         "clean": "expo-module clean",
-        "lint": "expo-module lint",
+        "lint": "biome lint --config-path=../../biome.json ./src",
+        "lint:fix": "biome check --write --config-path=../../biome.json ./src",
         "test": "jest --passWithNoTests",
         "test:ts": "jest --passWithNoTests",
         "prepare": "expo-module prepare",
@@ -18,8 +19,8 @@
         "typecheck": "tsc --noEmit",
         "verify": "pnpm run clean && pnpm run lint && pnpm run typecheck && pnpm run validate && pnpm run verify:android && pnpm run verify:ios",
         "refresh-ide": "bash .cursor/refresh-index.sh",
-        "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain",
-        "verify:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'generic/platform=iOS Simulator' -quiet | grep -v 'warning:' | grep -v 'note:' && echo '✅ iOS compilation OK'",
+        "verify:android": "cd ../../android && ./gradlew :secure-recorder:compileDebugKotlin :secure-recorder:assembleDebug :secure-recorder:testDebugUnitTest --console=plain --warning-mode none --quiet",
+        "verify:ios": "bash ./scripts/verify-ios.sh",
         "build:android": "cd ../../android && ./gradlew :secure-recorder:assembleDebug",
         "build:ios": "cd ../../ios && xcodebuild build -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator,name=iPhone 15'",
         "test:unit": "pnpm test:android && pnpm test:ios",
@@ -42,14 +43,14 @@
     "license": "MIT",
     "homepage": "https://github.com/Diwatt/tiro-scribe",
     "devDependencies": {
-        "expo-audio": "^1.1.1",
+        "expo-audio": "~1.1.0",
         "expo-module-scripts": "^5.0.8",
-        "expo-modules-core": "^3.0.29"
+        "expo-modules-core": "~3.0.29"
     },
     "peerDependencies": {
-        "expo": "*",
-        "expo-audio": "*",
-        "expo-modules-core": "*",
-        "react-native": "*"
+        "expo": "~54.0.33",
+        "expo-audio": "~1.1.0",
+        "expo-modules-core": "~3.0.29",
+        "react-native": "0.84.0"
     }
 }

@@ -45,33 +45,20 @@ export class MetadataWriter {
 
     /** Called by @Entity to store entity decorator data. Stores an EntityDecorator so readers get the same type directly. */
     public static registerEntity(construct: ClassConstructor, options: EntityOptions): void {
-        try {
-            const logger = AppLogger.getInstance();
-            if (logger?.debug) {
-                logger.debug('[MetadataWriter] Registering entity:', {
-                    className: construct.name,
-                    tableName: options.tableName,
-                    metadataKey: MetadataWriter.ENTITY_METADATA_KEY,
-                });
-            }
-        } catch {
-            // Logger might not be available during decorator execution
-        }
+        const logger = AppLogger.getInstance();
+        logger.debug('[MetadataWriter] Registering entity:', {
+            className: construct.name,
+            tableName: options.tableName,
+            metadataKey: MetadataWriter.ENTITY_METADATA_KEY,
+        });
 
         const c = construct as unknown as Record<string, unknown>;
         c[MetadataWriter.ENTITY_METADATA_KEY] = new EntityDecorator('Entity', options);
 
-        try {
-            const logger = AppLogger.getInstance();
-            if (logger?.debug) {
-                logger.debug('[MetadataWriter] Entity registered successfully:', {
-                    className: construct.name,
-                    hasMetadata: !!c[MetadataWriter.ENTITY_METADATA_KEY],
-                });
-            }
-        } catch {
-            // Logger might not be available during decorator execution
-        }
+        logger.debug('[MetadataWriter] Entity registered successfully:', {
+            className: construct.name,
+            hasMetadata: !!c[MetadataWriter.ENTITY_METADATA_KEY],
+        });
     }
 
     /** Called by field decorators (@Column, @PrimaryKey) to store decorator name and options. */
@@ -81,21 +68,15 @@ export class MetadataWriter {
         decoratorName: string,
         options: unknown,
     ): void {
+        const logger = AppLogger.getInstance();
         // Hermes-only implementation: assume meta is always valid
         // But for test compatibility, silently return if meta is invalid
         if (meta == null || typeof meta !== 'object') {
-            try {
-                const logger = AppLogger.getInstance();
-                if (logger?.debug) {
-                    logger.debug('[MetadataWriter] Invalid metadata object in registerField - silently ignoring', {
-                        propertyName,
-                        decoratorName,
-                        metaType: typeof meta,
-                    });
-                }
-            } catch {
-                // Ignore logger errors
-            }
+            logger.debug('[MetadataWriter] Invalid metadata object in registerField - silently ignoring', {
+                propertyName,
+                decoratorName,
+                metaType: typeof meta,
+            });
             return;
         }
 
@@ -105,35 +86,21 @@ export class MetadataWriter {
             m[propertyName] = { decorators: [] };
         }
 
-        try {
-            const logger = AppLogger.getInstance();
-            if (logger?.debug) {
-                const fieldOptions = options as Record<string, unknown>;
-                logger.debug('[MetadataWriter] Registering field:', {
-                    propertyName,
-                    decoratorName,
-                    hasDefault: 'default' in fieldOptions,
-                    defaultValue: fieldOptions.default,
-                    type: fieldOptions.type,
-                    isPrimaryKey: decoratorName === 'PrimaryKey',
-                });
-            }
-        } catch {
-            // Logger might not be available during decorator execution
-        }
+        const fieldOptions = options as Record<string, unknown>;
+        logger.debug('[MetadataWriter] Registering field:', {
+            propertyName,
+            decoratorName,
+            hasDefault: 'default' in fieldOptions,
+            defaultValue: fieldOptions.default,
+            type: fieldOptions.type,
+            isPrimaryKey: decoratorName === 'PrimaryKey',
+        });
 
         m[propertyName].decorators?.push({ decoratorName, options });
 
-        try {
-            const logger = AppLogger.getInstance();
-            if (logger?.debug) {
-                logger.debug('[MetadataWriter] Field registered successfully:', {
-                    propertyName,
-                    totalDecorators: m[propertyName].decorators?.length || 0,
-                });
-            }
-        } catch {
-            // Ignore logger errors
-        }
+        logger.debug('[MetadataWriter] Field registered successfully:', {
+            propertyName,
+            totalDecorators: m[propertyName].decorators?.length || 0,
+        });
     }
 }

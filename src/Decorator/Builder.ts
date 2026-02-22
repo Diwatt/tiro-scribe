@@ -7,7 +7,7 @@
  */
 
 import { SchemaValidator } from './SchemaValidator';
-import type { ClassConstructor, ClassDecoratorConfig, FieldDecoratorConfig } from './Type';
+import type { ClassConstructor, ClassDecoratorConfig, FieldDecoratorConfig, OptionsSchema } from './Type';
 
 declare const __DEV__: boolean;
 
@@ -27,6 +27,25 @@ export class Builder {
     private static readonly schemaValidator = new SchemaValidator();
 
     /**
+     * Validates options in development mode.
+     * - If schema and errorCode are both provided, runs schema validation
+     * - If custom validate function is provided, calls it
+     */
+    private static validateOptions(config: { schema?: OptionsSchema; errorCode?: string; validate?: (opts: object) => void }, opts: object): void {
+        if (!__DEV__) {
+            return;
+        }
+
+        // Schema validation requires both schema and errorCode
+        if (config.schema != null && config.errorCode != null) {
+            Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
+        }
+
+        // Custom validation (optional)
+        config.validate?.(opts);
+    }
+
+    /**
      * Builds an entity (class) decorator from a config implementing ClassDecoratorConfig.
      * Options default to {} when not set; validate/decorate always receive an object.
      * Returns the same constructor type so static members (e.g. entityName) are preserved.
@@ -36,12 +55,7 @@ export class Builder {
     ): (options?: object) => <T extends ClassConstructor>(target: T, context: ClassDecoratorContext<T>) => T {
         return (options?: object) => {
             const opts = options ?? {};
-            if (__DEV__ && config.schema != null && config.errorCode != null) {
-                Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
-            }
-            if (__DEV__) {
-                config.validate?.(opts);
-            }
+            Builder.validateOptions(config, opts);
             return <T extends ClassConstructor>(target: T, context: ClassDecoratorContext<T>) => {
                 config.decorate(target, context, opts);
                 return target;
@@ -58,12 +72,7 @@ export class Builder {
     ): (options?: object) => (initialValue: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => void {
         return (options?: object) => {
             const opts = options ?? {};
-            if (__DEV__ && config.schema != null && config.errorCode != null) {
-                Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
-            }
-            if (__DEV__) {
-                config.validate?.(opts);
-            }
+            Builder.validateOptions(config, opts);
             return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
                 if (__DEV__ && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;

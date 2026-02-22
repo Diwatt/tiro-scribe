@@ -17,7 +17,12 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
                 );
             }
         }
-        return this._nativeModule!;
+
+        if (!this._nativeModule) {
+            throw new Error('SecureRecorder native module initialization failed unexpectedly.');
+        }
+
+        return this._nativeModule;
     }
 
     startRecording(sessionId: string): Promise<string> {
@@ -40,15 +45,16 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         return this.nativeModule.stream(encryptedPath);
     }
 
-    addListener(event: string, listener: (data: any) => any): { remove: () => void } {
+    addListener<TEventPayload = unknown>(event: string, listener: (data: TEventPayload) => void): { remove: () => void } {
         return this.nativeModule.addListener(event, listener);
     }
 
     removeAllListeners(event?: string): void {
-        return this.nativeModule.removeAllListeners(event);
+        this.nativeModule.removeAllListeners(event);
     }
 }
 
 export const SecureRecorderModule = new NativeSecureRecorder();
 
+// biome-ignore lint/style/noDefaultExport: Required for backward compatibility with existing consumers.
 export default SecureRecorderModule;

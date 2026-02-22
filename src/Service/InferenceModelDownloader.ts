@@ -46,22 +46,18 @@ export class InferenceModelDownloader {
 
     public static getInstance(): InferenceModelDownloader {
         if (InferenceModelDownloader.instance == null) {
-            InferenceModelDownloader.instance = InferenceModelDownloader.createDefaultInstance();
+            const logger = AppLogger.getInstance();
+            const artifactStorage = new ModelArtifactStorage(logger);
+            const checksumVerifier = new ChecksumVerifier();
+            const fileDownloader = new FileDownloader(logger);
+            const configProvider = InferenceModelConfigProvider.getInstance();
+            const repository = new DownloadQueueRepository();
+            const downloadTaskManager = new DownloadTaskManager(logger, repository, fileDownloader, checksumVerifier, artifactStorage);
+
+            InferenceModelDownloader.instance = new InferenceModelDownloader(logger, artifactStorage, downloadTaskManager, configProvider);
         }
 
         return InferenceModelDownloader.instance;
-    }
-
-    private static createDefaultInstance(): InferenceModelDownloader {
-        const logger = AppLogger.getInstance();
-        const artifactStorage = new ModelArtifactStorage(logger);
-        const checksumVerifier = new ChecksumVerifier();
-        const fileDownloader = new FileDownloader(logger);
-        const configProvider = InferenceModelConfigProvider.getInstance();
-        const repository = new DownloadQueueRepository();
-        const downloadTaskManager = new DownloadTaskManager(logger, repository, fileDownloader, checksumVerifier, artifactStorage);
-
-        return new InferenceModelDownloader(logger, artifactStorage, downloadTaskManager, configProvider);
     }
 
     // ==================== Core Download Operations ====================

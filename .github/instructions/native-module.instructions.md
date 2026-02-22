@@ -1,3 +1,7 @@
+---
+applyTo: "ios/**/*.swift,android/**/*.kt,**/SecureRecorder**,**/Service/Biocode*"
+---
+
 # SecureRecorder: Zero-Trust Security Rules (CRITICAL)
 
 ## 1. Encryption Standards (AES-256-GCM)

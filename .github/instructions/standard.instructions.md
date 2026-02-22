@@ -1,3 +1,7 @@
+---
+applyTo: "src/**/*.ts,src/**/*.tsx"
+---
+
 # Standards: Architecture & OOP (MVVM / Enterprise)
 
 > Generated code under `src/Api/generated/` is exempt. All wrapper/application code must comply.
