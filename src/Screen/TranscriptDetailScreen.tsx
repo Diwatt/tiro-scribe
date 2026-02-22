@@ -29,7 +29,7 @@ export function TranscriptDetailScreen(): React.JSX.Element {
                 <IconButton icon={ArrowLeft} size={24} onPress={() => router.back()} />
                 <View style={styles.headerContent}>
                     <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
-                        {LL.transcriptTitle()}
+                        {LL.transcript.title()}
                     </Text>
                     <View style={styles.headerMeta}>
                         <Chip mode="flat" compact style={styles.chip}>

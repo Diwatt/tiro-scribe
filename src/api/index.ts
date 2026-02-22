@@ -22,7 +22,7 @@ export {
 export type { InferenceModelsQueryOptions, ProfileAttributesQueryOptions } from './hooks';
 
 /** Types (from spec + inference-model client). */
-export type { SelectedVariant, InferenceModelMap } from './Client/InferenceModelClient';
+export type { ModelConfig, InferenceModelMap } from './Client/InferenceModelClient';
 export type {
     InferenceModelFile,
     InferenceModel,

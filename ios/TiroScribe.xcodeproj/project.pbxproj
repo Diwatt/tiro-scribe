@@ -9,9 +9,9 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		60F0C83AE513E67936F589BD /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44A6AB02A0C81A404EA03C7D /* ExpoModulesProvider.swift */; };
-		7FD19AE46A1342FBD1152557 /* Pods_TiroScribe.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BEFD33175ECBBFCD68D9F11B /* Pods_TiroScribe.framework */; };
-		990B3298CCA43399DC6C5E32 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9A7BC479662BC9231BE6F43E /* PrivacyInfo.xcprivacy */; };
+		695EDAADED352FA32ADF6B1E /* Pods_TiroScribe.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6279440E6EFB4D77393399F /* Pods_TiroScribe.framework */; };
+		81C5F8C5120177CF79415A02 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668CFCCDCC5814BA239B1762 /* ExpoModulesProvider.swift */; };
+		A321DC8FE96426D61F79B1C1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9EF300CA6EAED578217891F0 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -20,16 +20,16 @@
 		13B07F961A680F5B00A75B9A /* TiroScribe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TiroScribe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TiroScribe/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TiroScribe/Info.plist; sourceTree = "<group>"; };
-		19441267E0514F9793217C5B /* Pods-TiroScribe.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TiroScribe.release.xcconfig"; path = "Target Support Files/Pods-TiroScribe/Pods-TiroScribe.release.xcconfig"; sourceTree = "<group>"; };
-		44A6AB02A0C81A404EA03C7D /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		88BF6C34605977FE85ACC9B5 /* Pods-TiroScribe.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TiroScribe.debug.xcconfig"; path = "Target Support Files/Pods-TiroScribe/Pods-TiroScribe.debug.xcconfig"; sourceTree = "<group>"; };
-		9A7BC479662BC9231BE6F43E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TiroScribe/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		57D5B8E47D4E446D7987052B /* Pods-TiroScribe.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TiroScribe.debug.xcconfig"; path = "Target Support Files/Pods-TiroScribe/Pods-TiroScribe.debug.xcconfig"; sourceTree = "<group>"; };
+		668CFCCDCC5814BA239B1762 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		8BDEFCF93902DE182B2D28E9 /* Pods-TiroScribe.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TiroScribe.release.xcconfig"; path = "Target Support Files/Pods-TiroScribe/Pods-TiroScribe.release.xcconfig"; sourceTree = "<group>"; };
+		9EF300CA6EAED578217891F0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TiroScribe/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TiroScribe/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BEFD33175ECBBFCD68D9F11B /* Pods_TiroScribe.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_TiroScribe.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TiroScribe/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* TiroScribe-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TiroScribe-Bridging-Header.h"; path = "TiroScribe/TiroScribe-Bridging-Header.h"; sourceTree = "<group>"; };
+		F6279440E6EFB4D77393399F /* Pods_TiroScribe.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_TiroScribe.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7FD19AE46A1342FBD1152557 /* Pods_TiroScribe.framework in Frameworks */,
+				695EDAADED352FA32ADF6B1E /* Pods_TiroScribe.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,36 +53,28 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				9A7BC479662BC9231BE6F43E /* PrivacyInfo.xcprivacy */,
+				9EF300CA6EAED578217891F0 /* PrivacyInfo.xcprivacy */,
 			);
 			name = TiroScribe;
+			sourceTree = "<group>";
+		};
+		1FAA62B794CD884238A17051 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				57D5B8E47D4E446D7987052B /* Pods-TiroScribe.debug.xcconfig */,
+				8BDEFCF93902DE182B2D28E9 /* Pods-TiroScribe.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				BEFD33175ECBBFCD68D9F11B /* Pods_TiroScribe.framework */,
+				F6279440E6EFB4D77393399F /* Pods_TiroScribe.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		3CF86938E662DDB89C7C8736 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				88BF6C34605977FE85ACC9B5 /* Pods-TiroScribe.debug.xcconfig */,
-				19441267E0514F9793217C5B /* Pods-TiroScribe.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		6F1BA60E90E041C043708AE1 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				98AB50B0564AEC902396586B /* TiroScribe */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -99,8 +91,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				3CF86938E662DDB89C7C8736 /* Pods */,
-				6F1BA60E90E041C043708AE1 /* ExpoModulesProviders */,
+				1FAA62B794CD884238A17051 /* Pods */,
+				BACB7F63E78940680E594BEA /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -115,12 +107,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		98AB50B0564AEC902396586B /* TiroScribe */ = {
+		A0B1E35461E66DD984B88607 /* TiroScribe */ = {
 			isa = PBXGroup;
 			children = (
-				44A6AB02A0C81A404EA03C7D /* ExpoModulesProvider.swift */,
+				668CFCCDCC5814BA239B1762 /* ExpoModulesProvider.swift */,
 			);
 			name = TiroScribe;
+			sourceTree = "<group>";
+		};
+		BACB7F63E78940680E594BEA /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				A0B1E35461E66DD984B88607 /* TiroScribe */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -140,15 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TiroScribe" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				CBA6CF37BBDCAEEBD0227C28 /* [Expo] Patch expo-configure-project for SecureRecorder */,
-				7A2B88745621689992FAFEAD /* [Expo] Configure project */,
-				3E4C4480FC2CB9CC48CA40E0 /* [Expo] Patch SecureRecorder into ExpoModulesProvider */,
+				4BA204397E7BCA5A9A3CEDFA /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				68F9F8869817927E33C2E634 /* [CP] Embed Pods Frameworks */,
+				3A623582326B118DE13659C4 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -198,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				990B3298CCA43399DC6C5E32 /* PrivacyInfo.xcprivacy in Resources */,
+				A321DC8FE96426D61F79B1C1 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,25 +242,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		3E4C4480FC2CB9CC48CA40E0 /* [Expo] Patch SecureRecorder into ExpoModulesProvider */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Patch SecureRecorder into ExpoModulesProvider";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "P=\"$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift\"\n[ ! -f \"$P\" ] && exit 0\nruby -e '\n  c = File.read(ARGV[0])\n  orig = c\n  unless c.include?(\"import SecureRecorder\")\n    c = c.sub(/import ExpoFileSystem\\r?\\n/, \"import ExpoFileSystem\\nimport SecureRecorder\\n\")\n    c = c.sub(/(import Expo\\w+\\r?\\n)/, \"\\\\1import SecureRecorder\\n\") unless c.include?(\"import SecureRecorder\")\n  end\n  c = c.sub(\"DevMenuPreferences.self\\n    ]\\n    #else\", \"DevMenuPreferences.self,\\n      SecureRecorderModule.self\\n    ]\\n    #else\")\n  c = c.sub(\"SecureStoreModule.self\\n    ]\\n    #endif\", \"SecureStoreModule.self,\\n      SecureRecorderModule.self\\n    ]\\n    #endif\")\n  File.write(ARGV[0], c) if c != orig\n' \"$P\"\n";
-		};
-		68F9F8869817927E33C2E634 /* [CP] Embed Pods Frameworks */ = {
+		3A623582326B118DE13659C4 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -272,21 +252,21 @@
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/QuickCrypto/OpenSSL.framework/OpenSSL",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermesvm.framework/hermesvm",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OpenSSL.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermesvm.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TiroScribe/Pods-TiroScribe-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		7A2B88745621689992FAFEAD /* [Expo] Configure project */ = {
+		4BA204397E7BCA5A9A3CEDFA /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -348,24 +328,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TiroScribe/Pods-TiroScribe-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		CBA6CF37BBDCAEEBD0227C28 /* [Expo] Patch expo-configure-project for SecureRecorder */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Patch expo-configure-project for SecureRecorder";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "C=\"$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/expo-configure-project.sh\"\n[ ! -f \"$C\" ] && exit 0\ngrep -q '\"secure-recorder\"' \"$C\" && exit 0\nruby -e 'c=File.read(ARGV[0]);c=c.sub(/\"expo-sqlite\"/,\"\\\"expo-sqlite\\\" \\\"secure-recorder\\\"\");File.write(ARGV[0],c)' \"$C\"\n";
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -374,7 +336,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				60F0C83AE513E67936F589BD /* ExpoModulesProvider.swift in Sources */,
+				81C5F8C5120177CF79415A02 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,7 +345,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 88BF6C34605977FE85ACC9B5 /* Pods-TiroScribe.debug.xcconfig */;
+			baseConfigurationReference = 57D5B8E47D4E446D7987052B /* Pods-TiroScribe.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -395,7 +357,7 @@
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = TiroScribe/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -419,14 +381,14 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 19441267E0514F9793217C5B /* Pods-TiroScribe.release.xcconfig */;
+			baseConfigurationReference = 8BDEFCF93902DE182B2D28E9 /* Pods-TiroScribe.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TiroScribe/TiroScribe.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = TiroScribe/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -515,7 +477,15 @@
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native";
+				OTHER_CFLAGS = (
+					"$(inherited)",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(inherited)",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
+				);
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/.pnpm/react-native@0.84.0_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._d3fc60dcbdb46920b36d5e4f9cd15f5f/node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
@@ -583,7 +553,15 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.28.6_@react-native-community+cli@20.1.0_typescript@5._5d18675ff24580ad439c02b6046a17c3/node_modules/react-native";
+				OTHER_CFLAGS = (
+					"$(inherited)",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(inherited)",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
+				);
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/.pnpm/react-native@0.84.0_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._d3fc60dcbdb46920b36d5e4f9cd15f5f/node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				USE_HERMES = true;

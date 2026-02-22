@@ -34,8 +34,8 @@ export const StepRecovery = observer(function StepRecovery(): React.JSX.Element 
     return (
         <View style={styles.stepRoot}>
             <View style={styles.stepBody}>
-                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboardingAccountReady()}</Text>
-                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboardingRecoveryDesc()}</Text>
+                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.accountReady()}</Text>
+                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.recoveryDesc()}</Text>
                 <View style={[styles.codeBox, { backgroundColor: theme.colors.surfaceVariant }]}>
                     <Text selectable style={[styles.codeText, { color: theme.colors.onSurface }]}>
                         {recoveryCode}
@@ -44,8 +44,8 @@ export const StepRecovery = observer(function StepRecovery(): React.JSX.Element 
 
                 <AsyncButton
                     statusKey={globalActivityStatus.recoveryKitStatusKey}
-                    idleLabel={LL.onboardingSaveRecoveryKit()}
-                    pendingLabel={LL.onboardingRecoveryKitPending()}
+                    idleLabel={LL.onboarding.saveRecoveryKit()}
+                    pendingLabel={LL.onboarding.recoveryKitPending()}
                     onPress={handleSaveRecoveryKit}
                     icon={({ size, color }) => <FileText size={size} color={color} />}
                     style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
@@ -60,7 +60,7 @@ export const StepRecovery = observer(function StepRecovery(): React.JSX.Element 
                     style={styles.copyButton}
                     contentStyle={styles.primaryButtonContent}
                 >
-                    {LL.onboardingCopyCode()}
+                    {LL.onboarding.copyCode()}
                 </Button>
 
                 <Snackbar
@@ -71,10 +71,10 @@ export const StepRecovery = observer(function StepRecovery(): React.JSX.Element 
                     duration={2000}
                     style={{ marginBottom: 16 }}
                 >
-                    {LL.onboardingCodeCopied()}
+                    {LL.onboarding.codeCopied()}
                 </Snackbar>
 
-                <Checkbox control={control} name="recoveryCodeSaveConfirmed" label={LL.onboardingSavedCodeChecked()} labelStyle={styles.checkboxLabel} />
+                <Checkbox control={control} name="recoveryCodeSaveConfirmed" label={LL.onboarding.savedCodeChecked()} labelStyle={styles.checkboxLabel} />
                 {error ? (
                     <HelperText type="error" visible>
                         {error}
@@ -88,7 +88,7 @@ export const StepRecovery = observer(function StepRecovery(): React.JSX.Element 
                 style={[styles.primaryButton, { backgroundColor: actions.success.background }]}
                 contentStyle={styles.primaryButtonContent}
             >
-                {LL.onboardingFinish()}
+                {LL.onboarding.finish()}
             </Button>
         </View>
     );

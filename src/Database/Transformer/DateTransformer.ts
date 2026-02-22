@@ -4,7 +4,8 @@
  * Registered as 'date' in TransformerRegistry.
  */
 
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import type { FieldTransformer } from './FieldTransformer';
 

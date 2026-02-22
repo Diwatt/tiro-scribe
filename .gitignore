@@ -96,3 +96,4 @@ recordings/
 
 # ONNX models (should be bundled, but cache can be ignored)
 .onnx_cache/
+db.json

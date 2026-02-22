@@ -39,17 +39,17 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
     return (
         <View style={styles.stepRoot}>
             <View style={styles.stepBody}>
-                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboardingSecureAccount()}</Text>
-                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboardingSecureAccountDesc()}</Text>
+                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.secureAccount()}</Text>
+                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.secureAccountDesc()}</Text>
                 <TextInput
                     control={control}
                     name="email"
-                    label={LL.onboardingEmail()}
+                    label={LL.onboarding.email()}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     style={styles.input}
                 />
-                <TextInput control={control} name="password" label={LL.onboardingPassword()} secureTextEntry style={styles.input} />
+                <TextInput control={control} name="password" label={LL.onboarding.password()} secureTextEntry style={styles.input} />
                 <View style={styles.strengthRow}>
                     <ProgressBar
                         progress={passwordStrength ? (passwordStrength.id + 1) / 4 : 0}
@@ -82,7 +82,7 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
                         </Text>
                     ) : null}
                 </View>
-                <TextInput control={control} name="confirmPassword" label={LL.onboardingConfirmPassword()} secureTextEntry style={styles.input} />
+                <TextInput control={control} name="confirmPassword" label={LL.onboarding.confirmPassword()} secureTextEntry style={styles.input} />
                 {error ? (
                     <HelperText type="error" visible>
                         {error}
@@ -99,7 +99,7 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
                     style={styles.buttonHalf}
                     contentStyle={styles.primaryButtonContent}
                 >
-                    {LL.onboardingBack()}
+                    {LL.onboarding.back()}
                 </Button>
                 <Button
                     mode="contained"
@@ -109,7 +109,7 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
                     style={styles.buttonHalf}
                     contentStyle={styles.primaryButtonContent}
                 >
-                    {isBusy ? LL.onboardingCreatingAccount() : LL.onboardingContinue()}
+                    {isBusy ? LL.onboarding.creatingAccount() : LL.onboarding.continue()}
                 </Button>
             </View>
         </View>

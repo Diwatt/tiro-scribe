@@ -27,6 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
+          <string>tiro-scribe</string>
           <string>com.tiroscribe.app</string>
         </array>
       </dict>

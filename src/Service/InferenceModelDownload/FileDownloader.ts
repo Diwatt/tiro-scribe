@@ -3,8 +3,8 @@
  * Single Responsibility: Download a single file from a URL to a File object with progress tracking.
  */
 
-import { File } from 'expo-file-system';
 import { fetch } from 'expo/fetch';
+import type { File } from 'expo-file-system';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 import { AppLogger, type LoggerInterface } from '@/Service/Logger';
 

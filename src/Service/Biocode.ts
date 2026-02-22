@@ -131,7 +131,7 @@ export class Biocode {
         const downloader = InferenceModelDownloader.getInstance();
         const config = await downloader.getConfigByLocalPath(modelPath);
         if (config != null) {
-            return await downloader.ensureCached(config);
+            return await downloader.ensureDownloaded(config.capability);
         }
 
         throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);

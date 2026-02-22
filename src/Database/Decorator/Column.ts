@@ -56,11 +56,22 @@ const COLUMN_OPTIONS_SCHEMA = {
     fullText: { required: false as const, type: 'boolean' as const },
     /** When fullText and as:'json': JSON path within each array element to index (e.g. '$.text' for transcript segments). Omit to index raw value. */
     fullTextPath: { required: false as const, type: 'string' as const },
+    /** Whether this field should have an observable property in toObservable(). */
+    observable: { required: false as const, type: 'boolean' as const },
+    /** Suffix appended to original field name to form observable property name. Default '$'. */
+    observableSuffix: { required: false as const, type: 'string' as const },
 } satisfies OptionsSchema;
 
 export type ColumnOptions<T = unknown> = OptionsFromSchema<
     typeof COLUMN_OPTIONS_SCHEMA,
-    { default: T | (() => T); type: SqliteType; length?: number; fullTextPath?: string }
+    {
+        default: T | (() => T);
+        type: SqliteType;
+        length?: number;
+        fullTextPath?: string;
+        observable?: boolean;
+        observableSuffix?: string;
+    }
 >;
 
 class ColumnDecorator implements FieldDecoratorConfig<ColumnOptions<unknown>> {

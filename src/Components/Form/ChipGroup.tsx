@@ -68,9 +68,9 @@ export function ChipGroup<T extends FieldValues>({
                     {label ? <Text style={[styles.label, labelStyle, { color: theme.colors.onSurfaceVariant }]}>{label}</Text> : null}
                     {showSearch ? <TextInput mode="outlined" placeholder="Search…" value={search} onChangeText={setSearch} style={styles.searchInput} /> : null}
                     <View style={[styles.chipRow, chipRowStyle]}>
-                        {filtered.map((option) => (
+                        {filtered.map((option, index) => (
                             <Chip
-                                key={option.value}
+                                key={`${option.value}-${index}`}
                                 style={styles.chip}
                                 selected={(value as string[])?.includes(option.value) ?? false}
                                 onPress={() => {

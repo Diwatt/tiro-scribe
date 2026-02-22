@@ -1,9 +1,9 @@
 {
-    "expo.jsEngine": "hermes",
-    "EX_DEV_CLIENT_NETWORK_INSPECTOR": "true",
-    "newArchEnabled": "true",
-    "ios.deploymentTarget": "15.1",
-    "ios.useFrameworks": "static",
-    "ios.forceStaticLinking": "[]",
-    "apple.privacyManifestAggregationEnabled": "true"
+  "expo.jsEngine": "hermes",
+  "EX_DEV_CLIENT_NETWORK_INSPECTOR": "true",
+  "ios.deploymentTarget": "16.0",
+  "newArchEnabled": "true",
+  "ios.useFrameworks": "static",
+  "ios.forceStaticLinking": "[]",
+  "apple.privacyManifestAggregationEnabled": "true"
 }

@@ -85,17 +85,18 @@ android {
     ndkVersion rootProject.ext.ndkVersion
 
     buildToolsVersion rootProject.ext.buildToolsVersion
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdk 35
 
     namespace 'com.tiroscribe.app'
     defaultConfig {
         applicationId 'com.tiroscribe.app'
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdkVersion 29
+        targetSdkVersion 35
         versionCode 1
         versionName "0.1.0"
 
-        buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+        buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"stable\""
+        buildConfigField "boolean", "HERMES_ENABLED", "true"
     }
     signingConfigs {
         debug {
@@ -174,9 +175,6 @@ dependencies {
         }
     }
 
-    if (hermesEnabled.toBoolean()) {
-        implementation("com.facebook.react:hermes-android")
-    } else {
-        implementation jscFlavor
-    }
+    // Hermes-only configuration as per tech stack requirements
+    implementation("com.facebook.react:hermes-android")
 }

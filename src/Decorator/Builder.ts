@@ -9,6 +9,8 @@
 import { SchemaValidator } from './SchemaValidator';
 import type { ClassConstructor, ClassDecoratorConfig, FieldDecoratorConfig } from './Type';
 
+declare const __DEV__: boolean;
+
 export type {
     ClassConstructor,
     ClassDecoratorConfig,
@@ -34,10 +36,12 @@ export class Builder {
     ): (options?: object) => <T extends ClassConstructor>(target: T, context: ClassDecoratorContext<T>) => T {
         return (options?: object) => {
             const opts = options ?? {};
-            if (config.schema != null && config.errorCode != null) {
+            if (__DEV__ && config.schema != null && config.errorCode != null) {
                 Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
             }
-            config.validate?.(opts);
+            if (__DEV__) {
+                config.validate?.(opts);
+            }
             return <T extends ClassConstructor>(target: T, context: ClassDecoratorContext<T>) => {
                 config.decorate(target, context, opts);
                 return target;
@@ -54,12 +58,14 @@ export class Builder {
     ): (options?: object) => (initialValue: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => void {
         return (options?: object) => {
             const opts = options ?? {};
-            if (config.schema != null && config.errorCode != null) {
+            if (__DEV__ && config.schema != null && config.errorCode != null) {
                 Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
             }
-            config.validate?.(opts);
+            if (__DEV__) {
+                config.validate?.(opts);
+            }
             return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
-                if (config.unique === true && config.decoratorName != null) {
+                if (__DEV__ && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;
                     Builder.schemaValidator.ensureFieldDecoratorUniqueness(meta, String(context.name), config.decoratorName);
                 }

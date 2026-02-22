@@ -1,107 +1,8 @@
-# Ensure Node can resolve packages from project root when pod install runs from ios/
-project_root = File.expand_path('..', __dir__)
-ENV['NODE_PATH'] = File.join(project_root, 'node_modules')
-
 require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
 require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
 
 require 'json'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
-
-# Patches ExpoModulesProvider and expo-configure-project so SecureRecorderModule is
-# included. expo-modules-autolinking does not discover the local file:./modules/secure-recorder
-# package. Applied at pod install and via a build-phase script so it persists after
-# [Expo] Configure project.
-def patch_expo_modules_provider_for_secure_recorder!(installer)
-  # 1) Add "secure-recorder" to expo-configure-project.sh --packages so [Expo] Configure
-  #    generates ExpoModulesProvider with SecureRecorderModule.self. If the generator
-  #    cannot resolve the local package, the build-phase patch below still adds it.
-  configure_script = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-TiroScribe', 'expo-configure-project.sh')
-  if File.exist?(configure_script)
-    content = File.read(configure_script)
-    unless content.include?('"secure-recorder"')
-      content = content.sub(/"expo-file-system"/, '"expo-file-system" "secure-recorder"')
-      File.write(configure_script, content)
-    end
-  end
-
-  # 2) Patch ExpoModulesProvider.swift at pod install (in case [Expo] Configure has not
-  #    run yet or the generator did not include secure-recorder).
-  provider_path = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-TiroScribe', 'ExpoModulesProvider.swift')
-  if File.exist?(provider_path)
-    content = File.read(provider_path)
-    orig = content
-    content = content.sub(/import ExpoFileSystem\r?\n/, "import ExpoFileSystem\nimport SecureRecorder\n") unless content.include?('import SecureRecorder')
-    content = content.sub(
-      "DevMenuPreferences.self\n    ]\n    #else",
-      "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else"
-    )
-    content = content.sub(
-      "SecureStoreModule.self\n    ]\n    #endif",
-      "SecureStoreModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif"
-    )
-    File.write(provider_path, content) if content != orig
-  end
-
-  # Add a build phase to re-apply the patch after [Expo] Configure project regenerates the file
-  user_project_path = File.join(__dir__, 'TiroScribe.xcodeproj')
-  return unless File.directory?(user_project_path)
-
-  user_project = Xcodeproj::Project.open(user_project_path)
-  native_target = user_project.native_targets.find { |t| t.name == 'TiroScribe' }
-  return unless native_target
-
-  configure_phase = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Configure project' }
-  return unless configure_phase
-
-  # Build phase that runs *before* [Expo] Configure: patch expo-configure-project.sh to
-  # add "secure-recorder" to --packages so generate-modules-provider includes it.
-  # (At pod install the script may not exist yet or may be regenerated after we patch.)
-  patch_configure = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Patch expo-configure-project for SecureRecorder' }
-  unless patch_configure
-    phase = native_target.new_shell_script_build_phase('[Expo] Patch expo-configure-project for SecureRecorder')
-    phase.shell_script = <<~'SH'
-      C="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/expo-configure-project.sh"
-      [ ! -f "$C" ] && exit 0
-      grep -q '"secure-recorder"' "$C" && exit 0
-      ruby -e 'c=File.read(ARGV[0]);c=c.sub(/"expo-file-system"/,"\"expo-file-system\" \"secure-recorder\"");File.write(ARGV[0],c)' "$C"
-    SH
-    idx = native_target.build_phases.find_index(configure_phase)
-    native_target.build_phases.delete(phase)
-    native_target.build_phases.insert(idx, phase)
-  end
-
-  # Build phase that runs *after* [Expo] Configure: patch ExpoModulesProvider.swift if
-  # generate-modules-provider did not include SecureRecorderModule, and always ensure
-  # import SecureRecorder is present when the module is referenced.
-  patch_script = <<~'SH'
-    P="$SRCROOT/Pods/Target Support Files/Pods-TiroScribe/ExpoModulesProvider.swift"
-    [ ! -f "$P" ] && exit 0
-    ruby -e '
-      c = File.read(ARGV[0])
-      orig = c
-      unless c.include?("import SecureRecorder")
-        c = c.sub(/import ExpoFileSystem\r?\n/, "import ExpoFileSystem\nimport SecureRecorder\n")
-        c = c.sub(/(import Expo\w+\r?\n)/, "\\1import SecureRecorder\n") unless c.include?("import SecureRecorder")
-      end
-      c = c.sub("DevMenuPreferences.self\n    ]\n    #else", "DevMenuPreferences.self,\n      SecureRecorderModule.self\n    ]\n    #else")
-      c = c.sub("SecureStoreModule.self\n    ]\n    #endif", "SecureStoreModule.self,\n      SecureRecorderModule.self\n    ]\n    #endif")
-      File.write(ARGV[0], c) if c != orig
-    ' "$P"
-  SH
-  existing = native_target.shell_script_build_phases.find { |p| p.name == '[Expo] Patch SecureRecorder into ExpoModulesProvider' }
-  if existing
-    existing.shell_script = patch_script
-  else
-    phase = native_target.new_shell_script_build_phase('[Expo] Patch SecureRecorder into ExpoModulesProvider')
-    phase.shell_script = patch_script
-    idx = native_target.build_phases.find_index(configure_phase)
-    native_target.build_phases.delete(phase)
-    native_target.build_phases.insert(idx + 1, phase)
-  end
-
-  user_project.save
-end
 
 def ccache_enabled?(podfile_properties)
   # Environment variable takes precedence
@@ -111,7 +12,6 @@ def ccache_enabled?(podfile_properties)
   podfile_properties['apple.ccacheEnabled'] == 'true'
 end
 
-ENV['RCT_NEW_ARCH_ENABLED'] = '1' if podfile_properties['newArchEnabled'] == 'true'
 ENV['RCT_NEW_ARCH_ENABLED'] ||= '0' if podfile_properties['newArchEnabled'] == 'false'
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
@@ -152,12 +52,6 @@ target 'TiroScribe' do
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
 
-  # Manually link local SecureRecorder module since autolinking misses it
-  pod 'SecureRecorder', :path => '../modules/secure-recorder', :inhibit_warnings => true
-
-  # Suppress warnings for other pods to reduce noise during verification
-  inhibit_all_warnings!
-
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -165,41 +59,5 @@ target 'TiroScribe' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-    # With use_frameworks :linkage => :static, Pods/Headers is not populated, so
-    # ReactCodegen cannot find react/renderer/components/view/ViewEventEmitter.h from
-    # React-Fabric. Add React Native's ReactCommon source path so codegen compiles.
-    rn_package = `cd "#{Pod::Config.instance.installation_root}/.." && node --print "require.resolve('react-native/package.json')"`.strip
-    react_common_path = File.join(File.dirname(rn_package), 'ReactCommon')
-    installer.pods_project.targets.each do |target|
-      if target.name == 'ReactCodegen'
-        target.build_configurations.each do |build_config|
-          current = build_config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
-          build_config.build_settings['HEADER_SEARCH_PATHS'] = "#{current} \"#{react_common_path}\""
-        end
-        break
-      end
-    end
-    # Register SecureRecorder in ExpoModulesProvider (expo-modules-autolinking does not
-    # discover the local file:./modules/secure-recorder package). Patch both the generated
-    # Swift file and the configure script so it persists across pod install and builds.
-    patch_expo_modules_provider_for_secure_recorder!(installer)
-
-    # op-sqlite: libsql_experimental.xcframework has libsql.h in both ios-arm64 and
-    # ios-arm64-simulator; both get copied to op_sqlite.framework/Headers/libsql.h,
-    # causing "Multiple commands produce" error. Keep only one Headers entry for libsql.h.
-    installer.pods_project.targets.each do |target|
-      next unless target.name == 'op-sqlite'
-
-      headers_phase = target.build_phases.find do |p|
-        p.respond_to?(:files) && p.files.any? { |bf| (bf.file_ref&.path || bf.file_ref&.name) == 'libsql.h' }
-      end
-      next unless headers_phase
-
-      libsql_build_files = headers_phase.files.select do |bf|
-        (bf.file_ref&.path || bf.file_ref&.name) == 'libsql.h'
-      end
-      libsql_build_files.drop(1).each { |bf| headers_phase.remove_build_file(bf) }
-      break
-    end
   end
 end

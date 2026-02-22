@@ -15,7 +15,7 @@ const INITIAL_DICTIONARIES: Record<Locales, Translations> = {
 
 export interface UseAppLanguageReturn {
     locale: Locales;
-    /** Translation functions; at call site use as LL (e.g. LL.onboardingAboutYou()). */
+    /** Translation functions; at call site use as LL (e.g. LL.onboarding.aboutYou()). */
     LL: TranslationFunctions;
 }
 
@@ -98,13 +98,22 @@ export class AppLanguage {
 
     private static buildTranslationFunctions(translations: Translations): TranslationFunctions {
         const result = AppLanguage.createEmptyTranslationFunctions();
-        for (const key of Object.keys(translations) as (keyof Translations)[]) {
-            const template = translations[key];
-            if (typeof template === 'string') {
-                (result as unknown as Record<string, (params?: Record<string, unknown>) => string>)[key] = (params) =>
-                    AppLanguage.interpolate(template, params);
+
+        const buildNested = (source: Record<string, unknown>, target: Record<string, unknown>): void => {
+            for (const key of Object.keys(source)) {
+                const value = source[key];
+                if (typeof value === 'string') {
+                    target[key] = (params?: Record<string, unknown>) => AppLanguage.interpolate(value, params);
+                } else if (typeof value === 'object' && value !== null) {
+                    // Create nested object
+                    target[key] = {};
+                    buildNested(value as Record<string, unknown>, target[key] as Record<string, unknown>);
+                }
+                // Note: functions in translations are not expected
             }
-        }
+        };
+
+        buildNested(translations as unknown as Record<string, unknown>, result as unknown as Record<string, unknown>);
         return result;
     }
 
@@ -120,7 +129,7 @@ export class AppLanguage {
 }
 
 /**
- * React hook: current locale and translation functions (returned as LL for usage: LL.onboardingAboutYou()).
+ * React hook: current locale and translation functions (returned as LL for usage: LL.onboarding.aboutYou()).
  */
 export function useAppLanguage(): UseAppLanguageReturn {
     const instance = AppLanguage.getInstance();

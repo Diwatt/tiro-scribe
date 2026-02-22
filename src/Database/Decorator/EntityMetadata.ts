@@ -29,7 +29,9 @@ type CacheKey =
     | 'primaryKeyColumnField'
     | 'primaryKeyField'
     | 'repositoryClassKey'
-    | 'tableName';
+    | 'tableName'
+    | 'observableFields'
+    | 'dataObjectMapping';
 
 export class EntityMetadata {
     private static readonly DECORATOR_COLUMN = 'Column';
@@ -112,7 +114,30 @@ export class EntityMetadata {
         if (options == null) {
             return null;
         }
-        const targetClass = typeof options.target === 'function' ? (options.target as () => EntityClassStatic)() : (options.target as EntityClassStatic);
+
+        let targetClass: EntityClassStatic | undefined;
+        if (typeof options.target === 'function') {
+            // Check if it's a factory function (returns a class) or a class constructor
+            try {
+                // Try calling it as a factory function first
+                const result = (options.target as () => EntityClassStatic)();
+                if (result && typeof result === 'function' && result.prototype && result.entityName) {
+                    // It's a factory function that returns a class
+                    targetClass = result;
+                } else if (options.target.prototype && (options.target as EntityClassStatic).entityName) {
+                    // It's already a class constructor
+                    targetClass = options.target as EntityClassStatic;
+                }
+            } catch {
+                // If calling fails, it might be a class constructor
+                if (options.target.prototype && (options.target as EntityClassStatic).entityName) {
+                    targetClass = options.target as EntityClassStatic;
+                }
+            }
+        } else {
+            targetClass = options.target as EntityClassStatic;
+        }
+
         const tableName = targetClass?.entityName;
         if (tableName == null || typeof tableName !== 'string' || tableName.trim() === '') {
             return null;
@@ -132,7 +157,7 @@ export class EntityMetadata {
         });
     }
 
-    /** @Column decorator for the primary key property (for DDL type/length). Uses Hermes fallback when Symbol.metadata is unreadable. */
+    /** @Column decorator for the primary key property (for DDL type/length). */
     public getPrimaryKeyColumnField(): FieldDecorator | undefined {
         const value = this.getOrSet('primaryKeyColumnField', () => {
             const fromReader = this.reader.getFieldByProperty(this.getPrimaryKeyField()).find((f) => f.getDecoratorName() === EntityMetadata.DECORATOR_COLUMN);
@@ -154,7 +179,7 @@ export class EntityMetadata {
         return (value as FieldDecorator | null) ?? undefined;
     }
 
-    /** Primary key property name. @Entity validates at definition time that exactly one @PrimaryKey exists. Uses Hermes fallback when Symbol.metadata is unreadable. */
+    /** Primary key property name. @Entity validates at definition time that exactly one @PrimaryKey exists. */
     public getPrimaryKeyField(): string {
         return this.getOrSet('primaryKeyField', () => {
             const fromReader = this.reader.getField(EntityMetadata.DECORATOR_PRIMARY_KEY);
@@ -211,6 +236,16 @@ export class EntityMetadata {
             const entity = this.reader.getEntity() as EntityDecorator;
 
             return entity.getOption(EntityMetadata.OPTION_TABLE_NAME);
+        });
+    }
+
+    /** All @Column fields where observable === true. */
+    public getObservableFields(): FieldDecorator[] {
+        return this.getOrSet('observableFields', () => {
+            return this.getColumnFields().filter((field) => {
+                const opts = field.getOptions<ColumnOptions>();
+                return opts.observable === true;
+            });
         });
     }
 

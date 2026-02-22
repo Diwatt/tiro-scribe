@@ -1,16 +1,16 @@
 /**
- * Kysely query builder (compile-only). Uses DummyDriver + SqliteAdapter; execution is done via op-sqlite.
+ * Kysely query builder with ExpoSQLite driver.
+ * Uses ExpoDialect from kysely-expo for direct execution.
  */
 
-import { DummyDriver, Kysely, SqliteAdapter, SqliteIntrospector, SqliteQueryCompiler } from 'kysely';
+import { Kysely } from 'kysely';
+import { ExpoDialect } from 'kysely-expo';
+import { appConfig } from '@/Config/AppConfig';
 import type { DatabaseSchema } from '@/Database/Type';
 
-/** Cold Kysely instance: builds SQL only. Use .compile() then execute with Database.getConnection().execute(compiled.sql, compiled.parameters). */
+/** Warm Kysely instance: builds and executes SQL directly via expo-sqlite. */
 export const qb = new Kysely<DatabaseSchema>({
-    dialect: {
-        createAdapter: () => new SqliteAdapter(),
-        createDriver: () => new DummyDriver(),
-        createIntrospector: (db) => new SqliteIntrospector(db),
-        createQueryCompiler: () => new SqliteQueryCompiler(),
-    },
+    dialect: new ExpoDialect({
+        database: appConfig.databaseName,
+    }),
 });

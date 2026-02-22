@@ -21,6 +21,18 @@ export enum QueueItemStatus {
     Completed = 'completed',
     Failed = 'failed',
 }
+export enum DownloadQueueStatus {
+    Pending = 'pending',
+    Downloading = 'downloading',
+    Paused = 'paused',
+    Completed = 'completed',
+    Failed = 'failed',
+    Cancelled = 'cancelled',
+}
+export enum QueueItemType {
+    Download = 'download',
+    Processing = 'processing',
+}
 export enum PipelineStage {
     Waiting = 'waiting',
     Transcribing = 'transcribing',

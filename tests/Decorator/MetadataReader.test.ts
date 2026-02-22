@@ -1,3 +1,13 @@
+// Set global __DEV__ variable for tests
+// @ts-expect-error allow setting global for test
+global.__DEV__ = true;
+
+// Define Symbol.metadata for Stage 3 decorator tests
+if (typeof Symbol !== 'undefined' && !Symbol.metadata) {
+    // @ts-expect-error polyfill for test environment
+    Symbol.metadata = Symbol('metadata');
+}
+
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';

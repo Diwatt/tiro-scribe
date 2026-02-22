@@ -16,8 +16,8 @@ export const StepVoice = observer(function StepVoice(): React.JSX.Element {
     return (
         <View style={styles.stepRoot}>
             <View style={styles.stepBody}>
-                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboardingVoiceCalibration()}</Text>
-                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboardingVoiceCalibrationDesc()}</Text>
+                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.voiceCalibration()}</Text>
+                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.voiceCalibrationDesc()}</Text>
                 {error ? (
                     <HelperText type="error" visible>
                         {error}
@@ -34,10 +34,10 @@ export const StepVoice = observer(function StepVoice(): React.JSX.Element {
                         style={[styles.primaryButton, { backgroundColor: actions.primary.background }]}
                         contentStyle={styles.primaryButtonContent}
                     >
-                        {LL.onboardingStartCalibration()}
+                        {LL.onboarding.startCalibration()}
                     </Button>
                     <Button mode="text" onPress={() => onboardingState.reset()} style={styles.backButton} contentStyle={styles.primaryButtonContent}>
-                        {LL.onboardingBack()}
+                        {LL.onboarding.back()}
                     </Button>
                 </>
             ) : null}

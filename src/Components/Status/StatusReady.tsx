@@ -12,8 +12,8 @@ export function StatusReady(): React.JSX.Element {
     const statusColors = theme.colors.statusIdle;
     return (
         <Status
-            title={LL.statusReadyTitle()}
-            subtitle={LL.statusReadySubtitle()}
+            title={LL.status.readyTitle()}
+            subtitle={LL.status.readySubtitle()}
             icon={<Sparkles size={24} color={statusColors.text} />}
             state={StatusState.Ready}
         />

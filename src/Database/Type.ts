@@ -2,7 +2,7 @@
  * Database types and constants. Single place for type definitions (entity, repository, schema row).
  */
 
-import type { ENTITY_TABLES } from '@/Entity';
+import type { DownloadQueue, Encounter, Patient, ProsodyMetrics, QueueItem, Therapist, Transcription } from '@/Entity';
 import type { AbstractEntity, EntityClassStatic } from './AbstractEntity';
 
 /** Inserts an underscore before each capital letter (for camelCase → snake_case). */
@@ -32,8 +32,23 @@ type SchemaFromTables<T extends readonly (readonly [string, new (...args: unknow
     [E in T[number] as E[0]]: ToSqlRow<InstanceType<E[1]>>;
 };
 
-/** Database schema for Kysely (table names → row types). Single source of truth: ENTITY_TABLES in @/Entity. */
-export type DatabaseSchema = SchemaFromTables<typeof ENTITY_TABLES>;
+/**
+ * Manual type definition for entity tables.
+ * This provides compile-time type safety while the runtime array is built dynamically.
+ * Must be kept in sync with the actual entity classes in src/Entity/index.ts.
+ */
+type EntityTablesType = readonly [
+    readonly ['therapists', typeof Therapist],
+    readonly ['encounters', typeof Encounter],
+    readonly ['patients', typeof Patient],
+    readonly ['queue_items', typeof QueueItem],
+    readonly ['download_queue', typeof DownloadQueue],
+    readonly ['transcriptions', typeof Transcription],
+    readonly ['prosody_metrics', typeof ProsodyMetrics],
+];
+
+/** Database schema for Kysely (table names → row types). Uses manual type definition for compile-time safety. */
+export type DatabaseSchema = SchemaFromTables<EntityTablesType>;
 
 /** What getRepository() accepts: entity class (EntityClassStatic). Custom repos are registered in Registry. */
 export type EntityClass<TEntity extends AbstractEntity = AbstractEntity> = EntityClassStatic<TEntity>;

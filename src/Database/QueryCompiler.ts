@@ -6,7 +6,6 @@
 import { sql } from 'kysely';
 import { Criteria } from './Criteria';
 import type { EntityMetadata } from './Decorator';
-import type { CompiledStatement } from './EntityGateway';
 import { qb } from './Kysely';
 import type { DatabaseSchema } from './Type';
 
@@ -25,6 +24,12 @@ export interface QueryOptions {
     offset?: number;
     orderBy?: OrderBy[];
     defaultOrderColumn?: string;
+}
+
+/** Compiled SQL statement ready for execution. */
+export interface CompiledStatement {
+    sql: string;
+    parameters: unknown[];
 }
 
 export class QueryCompiler {

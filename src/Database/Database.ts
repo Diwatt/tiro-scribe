@@ -1,25 +1,21 @@
 /**
  * Database: SQLite connection and schema sync (singleton).
- * Use Database.initialize() (or initialize(entityClasses) for DI) then Database.getConnection().
+ * Use Database.initialize() (or initialize(entityClasses) for DI) to create tables.
  * Schema sync on initialize is additive only (create missing tables/columns); see DefinitionLanguageWriter.
  */
 
-import { open } from '@op-engineering/op-sqlite';
-import { AppConfig } from '@/Config';
 import { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
-import type { TransactionLike } from '@/Database/Schema/DefinitionLanguageWriter';
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import type { EntityClass } from '@/Database/Type';
 import { ENTITY_CLASSES } from '@/Entity';
+import { qb } from './Kysely';
 
 /**
  * Singleton: one SQLite connection and schema sync. Uses ENTITY_CLASSES from @/Entity by default; override via initialize(entityClasses).
  */
 export class Database {
     private static instance: Database | null = null;
-
-    private connection: ReturnType<typeof open> | null = null;
 
     private constructor() {}
 
@@ -40,31 +36,20 @@ export class Database {
     }
 
     /**
-     * Returns the SQLite connection. Throws if initialize() has not been called.
+     * Returns the Kysely instance for direct database operations.
+     * Throws if initialize() has not been called.
      */
-    public static getConnection(): ReturnType<typeof open> {
+    public static getConnection() {
         if (Database.instance == null) {
             throw new Error(Database.NOT_INITIALIZED_MESSAGE);
         }
-        return Database.instance.getConnection();
-    }
-
-    /**
-     * Returns the SQLite connection held by this instance.
-     */
-    public getConnection(): ReturnType<typeof open> {
-        if (this.connection == null) {
-            throw new Error(Database.NOT_INITIALIZED_MESSAGE);
-        }
-        return this.connection;
+        return qb;
     }
 
     private async openAndSync(entityClasses: EntityClass[]): Promise<void> {
-        this.connection = open({
-            name: AppConfig.databaseName,
-        });
-        await this.connection.transaction(async (tx) => {
-            const writer = new DefinitionLanguageWriter(tx as TransactionLike);
+        // Use Kysely transaction for schema creation
+        await qb.transaction().execute(async (trx) => {
+            const writer = new DefinitionLanguageWriter(trx);
             for (const EntityCls of entityClasses) {
                 const definition = new DefinitionBuilder(EntityMetadata.for(EntityCls)).build();
                 await writer.write(definition);

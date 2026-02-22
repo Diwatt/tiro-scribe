@@ -4,12 +4,13 @@
  * Returns TableDefinition so the DDL writer stays decoupled from entity classes (see TableDefinition JSDoc).
  */
 
+import { sql } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
 import type { FieldDecorator } from '@/Decorator/FieldDecorator';
 import { DatabaseException } from '@/Exception';
-import type { ColumnOptions } from '../Decorator';
-import { EntityMetadata } from '../Decorator';
+import type { ColumnOptions, EntityMetadata } from '../Decorator';
 import { OnDeleteAction } from '../Decorator';
+import { qb } from '../Kysely';
 import type { FullTextSearchFieldSpec } from './TableDefinition';
 import { TableDefinition } from './TableDefinition';
 
@@ -109,7 +110,11 @@ export class DefinitionBuilder {
         const columns: string[] = [];
         const primaryKeySqlType = this.formatSqlType(this.primaryKeyColumn.type, this.primaryKeyColumn.length);
         const primaryKeyFk = this.foreignKeyClauseByPropertyName.get(this.primaryKeyPropertyName) ?? '';
-        columns.push(`${this.primaryKeyColumn.columnName} ${primaryKeySqlType}${primaryKeyFk} PRIMARY KEY`);
+
+        // Use Kysely's sql template for primary key column
+        const primaryKeyColumn = sql`${sql.raw(this.primaryKeyColumn.columnName)} ${sql.raw(primaryKeySqlType)}${sql.raw(primaryKeyFk)} PRIMARY KEY`;
+        columns.push(primaryKeyColumn.compile(qb).sql);
+
         columns.push('data TEXT NOT NULL');
 
         for (const field of this.columnFields) {
@@ -121,7 +126,9 @@ export class DefinitionBuilder {
                 const sqlType = this.formatSqlType(String(options.type).toUpperCase(), options.length);
                 const foreignKeyClause = this.foreignKeyClauseByPropertyName.get(propertyName) ?? '';
                 const columnName = snakeCase(propertyName);
-                columns.push(`${columnName} ${sqlType}${foreignKeyClause}`);
+                // Use Kysely's sql template for foreign key columns
+                const column = sql`${sql.raw(columnName)} ${sql.raw(sqlType)}${sql.raw(foreignKeyClause)}`;
+                columns.push(column.compile(qb).sql);
                 continue;
             }
 
@@ -145,7 +152,9 @@ export class DefinitionBuilder {
 
             if (hasForeignKey) {
                 const columnName = snakeCase(propertyName);
-                indexes.push(`CREATE INDEX IF NOT EXISTS idx_${this.tableName}_${columnName} ON ${this.tableName}(${columnName});`);
+                // Use Kysely's CreateIndexBuilder for foreign key indexes
+                const indexBuilder = qb.schema.createIndex(`idx_${this.tableName}_${columnName}`).on(this.tableName).column(columnName).ifNotExists();
+                indexes.push(`${indexBuilder.compile().sql};`);
                 continue;
             }
 
@@ -179,7 +188,9 @@ export class DefinitionBuilder {
     private buildVirtualColumn(propertyName: string, sqlType: string): { column: string; index: string } {
         const columnName = snakeCase(propertyName);
         const column = `${columnName} ${sqlType} GENERATED ALWAYS AS (json_extract(data, '$.${propertyName}')) VIRTUAL`;
-        const index = `CREATE INDEX IF NOT EXISTS idx_${this.tableName}_${columnName} ON ${this.tableName}(${columnName});`;
+        // Use Kysely's CreateIndexBuilder for virtual column indexes
+        const indexBuilder = qb.schema.createIndex(`idx_${this.tableName}_${columnName}`).on(this.tableName).column(columnName).ifNotExists();
+        const index = `${indexBuilder.compile().sql};`;
         return { column, index };
     }
 }

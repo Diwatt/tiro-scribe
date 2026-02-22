@@ -17,7 +17,7 @@ export class TiroScribeException extends Error {
         this.originalError = originalError;
         this.context = context;
 
-        // Maintains proper stack trace for where our error was thrown (only available on V8)
+        // Maintains proper stack trace for where our error was thrown (Hermes-only)
         if (Error.captureStackTrace) {
             Error.captureStackTrace(this, TiroScribeException);
         }

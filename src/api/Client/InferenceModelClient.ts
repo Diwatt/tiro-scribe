@@ -7,8 +7,8 @@ import { getInferenceModels } from '../generated/Sdk';
 import type { InferenceModel, InferenceModelVariant } from '../generated/Types';
 import { AbstractClient } from './AbstractClient';
 
-/** One inference model variant chosen for a capability (files, version). Derived from generated InferenceModelVariant. */
-export type SelectedVariant = Pick<InferenceModelVariant, 'id' | 'version' | 'files' | 'minAppVersion'> & {
+/** Configuration for a model including files, version, and capability. Derived from generated InferenceModelVariant. */
+export type ModelConfig = Pick<InferenceModelVariant, 'id' | 'version' | 'files' | 'minAppVersion'> & {
     capability: string;
 };
 
@@ -19,14 +19,14 @@ export class InferenceModelClient extends AbstractClient {
     private static readonly CACHE_KEY_INFERENCE_MODELS = 'inference-models';
 
     /**
-     * Resolves one variant per capability. Pass app locale from AppLanguage.getLocale() (primary tag: en, fr) to match API variant.language (same format).
+     * Resolves one model configuration per capability. Pass app locale from AppLanguage.getLocale() (primary tag: en, fr) to match API variant.language (same format).
      */
-    public async getInferenceModels(appLanguage?: string): Promise<Record<string, SelectedVariant>> {
+    public async getInferenceModels(appLanguage?: string): Promise<Record<string, ModelConfig>> {
         const list = await this.fetchOrThrow<InferenceModel[]>(
             () => getInferenceModels({ client: this.client, throwOnError: true }),
             InferenceModelClient.CACHE_KEY_INFERENCE_MODELS,
         );
-        const result: Record<string, SelectedVariant> = {};
+        const result: Record<string, ModelConfig> = {};
 
         for (const model of list) {
             const variant = this.resolveVariant(model.variants, appLanguage);
@@ -45,10 +45,7 @@ export class InferenceModelClient extends AbstractClient {
         return result;
     }
 
-    private resolveVariant(
-        variants: InferenceModelVariant[],
-        appLanguage?: string,
-    ): InferenceModelVariant | undefined {
+    private resolveVariant(variants: InferenceModelVariant[], appLanguage?: string): InferenceModelVariant | undefined {
         if (appLanguage != null) {
             const byLanguage = variants.find((v) => v.language === appLanguage);
             if (byLanguage != null) {

@@ -24,7 +24,8 @@ const stepViews = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useAppLanguage();
-    const step = onboardingState.state$.step.get();
+    const rawStep = onboardingState?.state$?.step?.get() ?? 1;
+    const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
     const progress = step / ONBOARDING_STEPS;
 
     const methods = useForm<OnboardingFormData>({
@@ -48,7 +49,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
                             <ProgressBar progress={progress} color={theme.colors.tertiary} style={styles.progress} />
                             <View style={styles.headerRow}>
                                 <Text style={[styles.stepLabel, { color: theme.colors.onSurfaceVariant }]}>
-                                    {LL.onboardingStep({ current: step, total: ONBOARDING_STEPS })}
+                                    {LL.onboarding.step({ current: step, total: ONBOARDING_STEPS })}
                                 </Text>
                             </View>
                             <ScrollView

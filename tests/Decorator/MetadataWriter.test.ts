@@ -1,3 +1,7 @@
+// Set global __DEV__ variable for tests
+// @ts-expect-error allow setting global for test
+global.__DEV__ = true;
+
 import { EntityDecorator } from '@/Decorator/EntityDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 

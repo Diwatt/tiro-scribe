@@ -40,13 +40,13 @@ function getStatusColors(theme: ExtendedTheme, status: ActivityStatus): StatusCo
 function getDefaultMessage(translations: TranslationFunctions, status: ActivityStatus): string {
     switch (status) {
         case ActivityStatus.Pending:
-            return translations.activityLoading();
+            return translations.activity.loading();
         case ActivityStatus.Success:
-            return translations.activityDone();
+            return translations.activity.done();
         case ActivityStatus.Warning:
-            return translations.activityWarning();
+            return translations.activity.warning();
         case ActivityStatus.Error:
-            return translations.activityError();
+            return translations.activity.error();
         default:
             return '';
     }

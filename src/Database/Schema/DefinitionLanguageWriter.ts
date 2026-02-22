@@ -6,23 +6,27 @@
  * columns, change types, or run versioned migration scripts. For removals or renames, use manual DDL or a migration framework.
  */
 
+import { CompiledQuery, type Kysely } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
+import type { DatabaseSchema } from '@/Database/Type';
 import { AppLogger } from '@/Service/Logger';
 import type { TableDefinition } from './TableDefinition';
-
-export interface TransactionLike {
-    execute(sql: string, params?: unknown[]): Promise<unknown>;
-}
 
 /** Row shape returned by PRAGMA table_info(table). Keys match SQLite (e.g. "name"). */
 type TableInfoRow = Record<string, unknown> & { name?: string };
 
+/** Transaction-like interface for testing compatibility */
+export interface TransactionLike {
+    execute(sql: string, params?: readonly unknown[]): Promise<{ rows?: unknown[] } | undefined>;
+    transaction?<T>(fn: (tx: TransactionLike) => Promise<T>): Promise<T>;
+}
+
 /** Executes schema SQL (Data Definition Language: CREATE TABLE, ADD COLUMN for missing columns, CREATE INDEX, full-text search table, triggers). */
 export class DefinitionLanguageWriter {
-    private readonly tx: TransactionLike;
+    private readonly db: Kysely<DatabaseSchema> | TransactionLike;
 
-    public constructor(tx: TransactionLike) {
-        this.tx = tx;
+    public constructor(db: Kysely<DatabaseSchema> | TransactionLike) {
+        this.db = db;
     }
 
     /**
@@ -31,12 +35,12 @@ export class DefinitionLanguageWriter {
      */
     public async write(definition: TableDefinition): Promise<void> {
         const createTableSql = `CREATE TABLE IF NOT EXISTS ${definition.tableName} (\n  ${definition.columns.join(',\n  ')}\n);`;
-        await this.tx.execute(createTableSql);
+        await this.executeRaw(createTableSql);
 
         await this.migrateMissingColumns(definition);
 
         for (const idx of definition.indexes) {
-            await this.tx.execute(idx);
+            await this.executeRaw(idx);
         }
 
         if (definition.fullTextSearchFields.length > 0) {
@@ -50,7 +54,7 @@ export class DefinitionLanguageWriter {
      * For virtual columns, ADD COLUMN may fail on older SQLite; errors are logged and skipped.
      */
     private async migrateMissingColumns(definition: TableDefinition): Promise<void> {
-        const result = (await this.tx.execute(`PRAGMA table_info(${definition.tableName})`)) as { rows?: TableInfoRow[] };
+        const result = await this.executeRaw<TableInfoRow>(`PRAGMA table_info(${definition.tableName})`);
         const rows = result?.rows ?? [];
         const existingNames = new Set(rows.map((r) => String((r as { name?: string }).name ?? '')));
 
@@ -75,7 +79,7 @@ export class DefinitionLanguageWriter {
     private async addColumnOrWarn(tableName: string, columnName: string, columnDdl: string): Promise<boolean> {
         const isVirtualOrGenerated = columnDdl.includes('GENERATED ALWAYS') || columnDdl.includes('VIRTUAL');
         try {
-            await this.tx.execute(`ALTER TABLE ${tableName} ADD COLUMN ${columnDdl}`);
+            await this.executeRaw(`ALTER TABLE ${tableName} ADD COLUMN ${columnDdl}`);
             return true;
         } catch (err) {
             if (isVirtualOrGenerated) {
@@ -92,6 +96,18 @@ export class DefinitionLanguageWriter {
         }
     }
 
+    private async executeRaw<T = Record<string, unknown>>(sqlText: string): Promise<{ rows?: T[] }> {
+        if ('executeQuery' in this.db && typeof this.db.executeQuery === 'function') {
+            const result = await (this.db as Kysely<DatabaseSchema>).executeQuery(CompiledQuery.raw(sqlText, []));
+
+            return { rows: (result?.rows ?? []) as T[] };
+        }
+
+        const result = await (this.db as TransactionLike).execute(sqlText, []);
+
+        return { rows: result?.rows as T[] | undefined };
+    }
+
     /** Builds the SQL expression that extracts content from a JSON field for full-text indexing. */
     private buildFullTextSearchExtractorExpression(fieldName: string, jsonPath?: string): string {
         if (jsonPath != null && jsonPath !== '') {
@@ -104,29 +120,29 @@ export class DefinitionLanguageWriter {
         const { tableName, primaryKeyColumnName, fullTextSearchFields } = definition;
         const fullTextSearchTable = `${tableName}_fts`;
         const fullTextSearchColumns = fullTextSearchFields.map((f) => `content_${snakeCase(f.name)}`).join(', ');
-        await this.tx.execute(
+        await this.executeRaw(
             `CREATE VIRTUAL TABLE IF NOT EXISTS ${fullTextSearchTable} USING fts5(${primaryKeyColumnName} UNINDEXED, ${fullTextSearchColumns});`,
         );
 
         const extractors = fullTextSearchFields.map((f) => this.buildFullTextSearchExtractorExpression(f.name, f.jsonPath)).join(', ');
         const targetCols = [primaryKeyColumnName, ...fullTextSearchFields.map((f) => `content_${snakeCase(f.name)}`)].join(', ');
 
-        await this.tx.execute(`DROP TRIGGER IF EXISTS ${tableName}_ai`);
-        await this.tx.execute(`DROP TRIGGER IF EXISTS ${tableName}_au`);
-        await this.tx.execute(`DROP TRIGGER IF EXISTS ${tableName}_ad`);
+        await this.executeRaw(`DROP TRIGGER IF EXISTS ${tableName}_ai`);
+        await this.executeRaw(`DROP TRIGGER IF EXISTS ${tableName}_au`);
+        await this.executeRaw(`DROP TRIGGER IF EXISTS ${tableName}_ad`);
 
-        await this.tx.execute(`
+        await this.executeRaw(`
             CREATE TRIGGER ${tableName}_ai AFTER INSERT ON ${tableName} BEGIN
                 INSERT INTO ${fullTextSearchTable}(${targetCols}) VALUES (new.${primaryKeyColumnName}, ${extractors});
             END;
         `);
-        await this.tx.execute(`
+        await this.executeRaw(`
             CREATE TRIGGER ${tableName}_au AFTER UPDATE ON ${tableName} BEGIN
                 DELETE FROM ${fullTextSearchTable} WHERE ${primaryKeyColumnName} = old.${primaryKeyColumnName};
                 INSERT INTO ${fullTextSearchTable}(${targetCols}) VALUES (new.${primaryKeyColumnName}, ${extractors});
             END;
         `);
-        await this.tx.execute(`
+        await this.executeRaw(`
             CREATE TRIGGER ${tableName}_ad AFTER DELETE ON ${tableName} BEGIN
                 DELETE FROM ${fullTextSearchTable} WHERE ${primaryKeyColumnName} = old.${primaryKeyColumnName};
             END;

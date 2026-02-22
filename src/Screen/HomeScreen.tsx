@@ -25,7 +25,7 @@ export const Home = observer((): React.JSX.Element => {
             if (cancelled) {
                 return;
             }
-            const current = therapists[0] ?? null;
+            const current = therapists.first() ?? null;
             inferenceManager.downloadMissingArtifacts(current);
         })();
         return () => {
@@ -42,7 +42,7 @@ export const Home = observer((): React.JSX.Element => {
                 {isDownloading && (
                     <Card style={[styles.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
                         <Card.Content>
-                            <Text style={[styles.bannerTitle, { color: theme.colors.onSurface }]}>{LL.homeInitializingAi()}</Text>
+                            <Text style={[styles.bannerTitle, { color: theme.colors.onSurface }]}>{LL.home.initializingAi()}</Text>
                             <ProgressBar progress={progress} color={theme.colors.primary} style={styles.bannerProgress} />
                             <Text style={[styles.bannerPercent, { color: theme.colors.onSurfaceVariant }]}>{Math.round(progress * 100)}%</Text>
                         </Card.Content>
@@ -54,7 +54,7 @@ export const Home = observer((): React.JSX.Element => {
 
             <View style={styles.buttonContainer}>
                 <SecureSessionButton onPress={handlePress} isRecording={false} disabled={isDownloading} />
-                {isDownloading && <Text style={[styles.warning, { color: theme.colors.statusWarning.text }]}>{LL.homeProcessingDelayed()}</Text>}
+                {isDownloading && <Text style={[styles.warning, { color: theme.colors.statusWarning.text }]}>{LL.home.processingDelayed()}</Text>}
             </View>
         </View>
     );

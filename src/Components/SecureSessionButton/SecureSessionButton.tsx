@@ -106,7 +106,7 @@ export const SecureSessionButton = observer(
                         onPress={disabled ? undefined : handlePress}
                         disabled={disabled}
                     >
-                        <Text style={[styles.text, { color: textColor }]}>{isRecording ? LL.recordButtonStop() : LL.recordButtonRecord()}</Text>
+                        <Text style={[styles.text, { color: textColor }]}>{isRecording ? LL.recordButton.stop() : LL.recordButton.record()}</Text>
                     </Pressable>
                 </View>
             </View>

@@ -9,9 +9,9 @@ export function DeviceIncompatibleScreen(): React.JSX.Element {
     const { LL } = useAppLanguage();
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Text style={[styles.title, { color: theme.colors.onBackground }]}>{LL.deviceNotSupported()}</Text>
-            <Text style={[styles.message, { color: theme.colors.onSurfaceVariant }]}>{LL.deviceNotSupportedMessage()}</Text>
-            <Text style={[styles.hint, { color: theme.colors.outline }]}>{LL.deviceNotSupportedHint()}</Text>
+            <Text style={[styles.title, { color: theme.colors.onBackground }]}>{LL.device.notSupported()}</Text>
+            <Text style={[styles.message, { color: theme.colors.onSurfaceVariant }]}>{LL.device.notSupportedMessage()}</Text>
+            <Text style={[styles.hint, { color: theme.colors.outline }]}>{LL.device.notSupportedHint()}</Text>
         </View>
     );
 }

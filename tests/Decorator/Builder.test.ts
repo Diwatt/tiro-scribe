@@ -1,3 +1,7 @@
+// Set global __DEV__ variable for tests
+// @ts-expect-error allow setting global for test
+global.__DEV__ = true;
+
 import { vi } from 'vitest';
 import { Builder } from '@/Decorator/Builder';
 import type { ClassDecoratorConfig, FieldDecoratorConfig, OptionsSchema } from '@/Decorator/Type';

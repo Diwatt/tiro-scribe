@@ -1,25 +1,34 @@
 /**
  * Repository tests — ZOMBIES: Zero, One, Many, Boundary, Interface, Exceptions.
- * SUT: Repository (generic CRUD over SQLite). Uses real DB via createMockEncounterConstructor.
+ * SUT: Repository (generic CRUD over SQLite).
+ * Uses a real in-memory SQLite database via Kysely — no Kysely mocking.
  */
 
 import type { AbstractEntity } from '@/Database/AbstractEntity';
+import { Collection } from '@/Database/Collection';
 import { Criteria } from '@/Database/Criteria';
 import { DatabaseException } from '@/Exception';
 import { Repository } from '@/Database/Repository';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
+import { ensureTestTable, clearTestTable } from '../../vitest/mocks/kysely';
 
 describe('Repository', () => {
     const MockEncounter = createMockEncounterConstructor();
     let repo: Repository<AbstractEntity>;
 
+    beforeAll(() => {
+        ensureTestTable('encounters', ['therapist_id']);
+    });
+
     beforeEach(() => {
+        clearTestTable('encounters');
         repo = Repository.create(MockEncounter.entityName, MockEncounter as never);
     });
 
     describe('Z — Zero (empty / no data)', () => {
         it('findAll returns empty array when no data', async () => {
-            expect(await repo.findAll()).toEqual([]);
+            const result = await repo.findAll();
+            expect(result.toArray()).toEqual([]);
         });
 
         it('exists returns false for unknown key', async () => {
@@ -50,7 +59,7 @@ describe('Repository', () => {
 
         it('search returns empty array when FTS table or matches are absent', async () => {
             const results = await repo.search('anything');
-            expect(results).toEqual([]);
+            expect(results.toArray()).toEqual([]);
         });
     });
 
@@ -82,7 +91,6 @@ describe('Repository', () => {
 
         it('refresh returns entity when it exists', async () => {
             const created = await repo.persist(new MockEncounter({ therapistId: 't1' }));
-            const primaryKey = created.primaryKey;
             const refreshed = await repo.refresh(created);
             expect(refreshed).toBeInstanceOf(MockEncounter);
             expect(refreshed.getField('therapistId')).toBe('t1');
@@ -116,15 +124,14 @@ describe('Repository', () => {
             for (let i = 0; i < 5; i++) {
                 await repo.persist(new MockEncounter({ therapistId: `p${i}` }));
             }
-            const firstTwo = await repo.findAll(2, 0);
-            const nextTwo = await repo.findAll(2, 2);
+            const firstTwo = await repo.findAll({ limit: 2, offset: 0 });
+            const nextTwo = await repo.findAll({ limit: 2, offset: 2 });
             expect(firstTwo).toHaveLength(2);
             expect(nextTwo).toHaveLength(2);
-            const firstPrimaryKeys = firstTwo.map((e) => e.primaryKey);
-            const nextPrimaryKeys = nextTwo.map((e) => e.primaryKey);
+            const firstPrimaryKeys = firstTwo.map((e) => e.primaryKey).toArray();
+            const nextPrimaryKeys = nextTwo.map((e) => e.primaryKey).toArray();
             expect(firstPrimaryKeys.some((primaryKey) => nextPrimaryKeys.includes(primaryKey))).toBe(false);
         });
-
     });
 
     describe('B — Boundary', () => {
@@ -138,14 +145,14 @@ describe('Repository', () => {
 
         it('findAll with limit 0 returns empty array', async () => {
             await repo.persist(new MockEncounter({ therapistId: 'x' }));
-            const list = await repo.findAll(0, 0);
-            expect(list).toEqual([]);
+            const list = await repo.findAll({ limit: 0, offset: 0 });
+            expect(list.toArray()).toEqual([]);
         });
 
         it('findAll with offset beyond size returns empty array', async () => {
             await repo.persist(new MockEncounter({ therapistId: 'x' }));
-            const list = await repo.findAll(10, 100);
-            expect(list).toEqual([]);
+            const list = await repo.findAll({ limit: 10, offset: 100 });
+            expect(list.toArray()).toEqual([]);
         });
 
         it('orders by primary key when no createdAt index (MockEncounter)', async () => {
@@ -153,7 +160,7 @@ describe('Repository', () => {
             await repo.persist(new MockEncounter({ therapistId: 'o2' }));
             const list = await repo.findAll();
             expect(list.length).toBeGreaterThanOrEqual(2);
-            expect(Array.isArray(list)).toBe(true);
+            expect(list).toBeInstanceOf(Collection);
         });
     });
 

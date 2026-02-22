@@ -13,23 +13,27 @@
                 "NSMicrophoneUsageDescription": "Tiro Scribe needs access to your microphone to record clinical sessions for research purposes.",
                 "NSPhotoLibraryUsageDescription": "Tiro Scribe needs access to your photo library to save processed audio files.",
                 "NSDocumentsFolderUsageDescription": "Tiro Scribe needs access to your documents folder to store encrypted research data."
-            }
+            },
+            "jsEngine": "hermes"
         },
         "android": {
             "package": "com.tiroscribe.app",
-            "permissions": ["android.permission.RECORD_AUDIO", "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"]
+            "permissions": ["android.permission.RECORD_AUDIO"],
+            "jsEngine": "hermes"
         },
         "plugins": [
             [
                 "expo-build-properties",
                 {
                     "newArchEnabled": true,
+                    "hermesEnabled": true,
                     "android": {
                         "newArchEnabled": true,
+                        "hermesEnabled": true,
                         "packagingOptions": {
                             "pickFirst": ["**/libc++_shared.so", "**/libfbjni.so", "**/libonnxruntime.so"]
                         },
-                        "minSdkVersion": 28,
+                        "minSdkVersion": 29,
                         "compileSdkVersion": 35,
                         "targetSdkVersion": 35,
                         "buildToolsVersion": "35.0.0",
@@ -37,7 +41,7 @@
                         "jvmArgs": ["-Xmx4096m", "-XX:MaxMetaspaceSize=1024m"]
                     },
                     "ios": {
-                        "deploymentTarget": "15.1",
+                        "deploymentTarget": "16.0",
                         "useFrameworks": "static",
                         "newArchEnabled": true
                     }

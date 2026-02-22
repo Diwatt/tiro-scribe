@@ -11,6 +11,12 @@ import { Builder, type ClassConstructor, type ClassDecoratorConfig, type Options
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
 import { DatabaseException } from '../../Exception';
 
+declare const __DEV__: boolean;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 export interface EntityOptions {
     /** Table name used for persistence (Registry / Repository). */
     tableName: string;
@@ -34,43 +40,17 @@ interface PrimaryKeyColumnDef {
     length?: number;
 }
 
-class EntityDecorator implements ClassDecoratorConfig<EntityOptions>
-{
+class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
     public readonly schema = ENTITY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_ENTITY_OPTIONS';
 
     public decorate(target: ClassConstructor, context: ClassDecoratorContext<ClassConstructor>, options: EntityOptions): void {
-        (target as typeof target & { entityName: string }).entityName = options.tableName;
-        MetadataWriter.registerEntity(target, options);
+        this.setEntityNameAndRegister(target, options);
 
         const meta = (context as { metadata?: Record<string, FieldMetadata> }).metadata;
-        if (meta == null || typeof meta !== 'object') {
-            throw new DatabaseException(`Entity "${options.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
-                tableName: options.tableName,
-            });
-        }
+        const primaryKeyProp = this.processMetadata(target, meta, options.tableName);
 
-        let primaryKeyProp: string | null = null;
-        for (const [propName, fieldMeta] of Object.entries(meta)) {
-            const decorators = fieldMeta?.decorators;
-            if (Array.isArray(decorators) && decorators.some((d) => d.decoratorName === 'PrimaryKey')) {
-                primaryKeyProp = propName;
-                const columnDecorator = decorators.find((d) => d.decoratorName === 'Column');
-                if (columnDecorator == null) {
-                    throw new DatabaseException(
-                        `Primary key property "${propName}" must have a @Column() decorator.`,
-                        'PRIMARY_KEY_COLUMN_REQUIRED',
-                        undefined,
-                        { propertyName: propName },
-                    );
-                }
-                const c = target as unknown as Record<string, unknown>;
-                c[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = propName;
-                c[MetadataWriter.PRIMARY_KEY_COLUMN_DEF_KEY] = this.buildPrimaryKeyColumnDef(propName, columnDecorator.options);
-            }
-        }
-
-        if (primaryKeyProp == null) {
+        if (primaryKeyProp === null) {
             throw new DatabaseException(`Entity "${options.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
                 tableName: options.tableName,
             });
@@ -79,7 +59,10 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions>
 
     public validate(options: EntityOptions): void {
         const name = options.repositoryClass;
-        if (name != null && name.length > 0 && !REPOSITORY_CLASS_NAME_REGEX.test(name)) {
+        if (name == null || name.length === 0) {
+            return;
+        }
+        if (!REPOSITORY_CLASS_NAME_REGEX.test(name)) {
             throw new DatabaseException(
                 `Entity repositoryClass must be an export name from @/Repository (e.g. 'TherapistRepository'), not a path. Got: ${name}`,
                 'INVALID_ENTITY_OPTIONS',
@@ -89,12 +72,83 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions>
         }
     }
 
+    private setEntityNameAndRegister(target: ClassConstructor, options: EntityOptions): void {
+        (target as typeof target & { entityName: string }).entityName = options.tableName;
+        MetadataWriter.registerEntity(target, options);
+    }
+
+    private processMetadata(target: ClassConstructor, meta: Record<string, FieldMetadata> | undefined, tableName: string): string | null {
+        // Hermes-only: Symbol.metadata is always available
+        if (!isObject(meta)) {
+            if (__DEV__) {
+                throw new DatabaseException(
+                    `Entity "${tableName}" has no metadata available. This should not happen in Hermes with Stage 3 decorators.`,
+                    'METADATA_UNAVAILABLE',
+                    undefined,
+                    { tableName },
+                );
+            }
+            // In production, we cannot recover from missing metadata
+            return null;
+        }
+
+        // Standard path: metadata is available via Symbol.metadata
+        return this.findAndSetPrimaryKey(target, meta);
+    }
+
+    private findAndSetPrimaryKey(
+        target: ClassConstructor,
+        metadata: Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }>,
+    ): string | null {
+        let primaryKeyProp: string | null = null;
+
+        for (const [propName, fieldMeta] of Object.entries(metadata)) {
+            const decorators = fieldMeta?.decorators;
+            if (Array.isArray(decorators) && this.hasDecorator(decorators, 'PrimaryKey')) {
+                primaryKeyProp = propName;
+                this.validateAndSetPrimaryKeyMetadata(target, propName, decorators);
+                // Continue to check for multiple primary keys (last one wins, but at least one exists)
+            }
+        }
+
+        return primaryKeyProp;
+    }
+
+    private validateAndSetPrimaryKeyMetadata(target: ClassConstructor, propName: string, decorators: Array<{ decoratorName: string; options: unknown }>): void {
+        const columnDecorator = this.findDecorator(decorators, 'Column');
+        if (columnDecorator == null) {
+            throw new DatabaseException(`Primary key property "${propName}" must have a @Column() decorator.`, 'PRIMARY_KEY_COLUMN_REQUIRED', undefined, {
+                propertyName: propName,
+            });
+        }
+
+        const constructorMetadata = this.getConstructorMetadata(target);
+        constructorMetadata[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = propName;
+        constructorMetadata[MetadataWriter.PRIMARY_KEY_COLUMN_DEF_KEY] = this.buildPrimaryKeyColumnDef(propName, columnDecorator.options);
+    }
+
+    private hasDecorator(decorators: Array<{ decoratorName: string; options: unknown }>, name: string): boolean {
+        return Array.isArray(decorators) && decorators.some((d) => d.decoratorName === name);
+    }
+
+    private findDecorator(
+        decorators: Array<{ decoratorName: string; options: unknown }>,
+        name: string,
+    ): { decoratorName: string; options: unknown } | undefined {
+        return Array.isArray(decorators) ? decorators.find((d) => d.decoratorName === name) : undefined;
+    }
+
     private buildPrimaryKeyColumnDef(propertyName: string, options: unknown): PrimaryKeyColumnDef {
-        const columnOptions = (options as Record<string, unknown>) ?? {};
-        const type = (columnOptions.type != null ? String(columnOptions.type) : 'text') as string;
+        // Safely cast options to a record-like structure
+        const columnOptions = isObject(options) ? (options as Record<string, unknown>) : {};
+        const type = columnOptions.type != null ? String(columnOptions.type) : 'text';
         const length = typeof columnOptions.length === 'number' ? columnOptions.length : undefined;
 
         return { propertyName, type, length };
+    }
+
+    private getConstructorMetadata(target: ClassConstructor): Record<string, unknown> {
+        return target as unknown as Record<string, unknown>;
     }
 }
 

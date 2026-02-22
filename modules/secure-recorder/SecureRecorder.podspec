@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description    = 'A secure audio recording module for Expo/React Native with on-the-fly AES-256-GCM encryption'
   s.author         = 'Tiro Scribe'
   s.homepage       = 'https://github.com/Diwatt/tiro-scribe'
-  s.platforms      = { :ios => '13.0' }
+  s.platforms      = { :ios => '16.0' }
   s.source         = { git: '' }
   s.static_framework = true
 

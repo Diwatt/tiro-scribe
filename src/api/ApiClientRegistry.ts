@@ -6,19 +6,17 @@
 
 import { AppConfig } from '@/Config';
 import { ApiClientException } from '@/Exception';
+import { AppLogger } from '@/Service/Logger';
 import isEmpty from 'lodash/isEmpty';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';
 import { client } from './generated/Client';
-import type { Client } from './generated/client/Index';
+import type { Client, ResolvedRequestOptions } from './generated/client/Index';
 
 type ModelClass = typeof ProfileAttributesClient | typeof InferenceModelClient;
 
 export class ApiClientRegistry {
-    private readonly clientsByModel = new Map<
-        ModelClass,
-        ProfileAttributesClient | InferenceModelClient
-    >();
+    private readonly clientsByModel = new Map<ModelClass, ProfileAttributesClient | InferenceModelClient>();
     private isConfigured = false;
 
     public get(model: typeof ProfileAttributesClient): ProfileAttributesClient;
@@ -36,6 +34,18 @@ export class ApiClientRegistry {
     private ensureClientConfigured(): Client {
         if (!this.isConfigured) {
             const base = AppConfig.apiHost;
+            const logger = AppLogger.getInstance();
+
+            // Add request interceptor to log URLs
+            client.interceptors.request.use((request: Request, options: ResolvedRequestOptions) => {
+                logger.debug('[ApiClient] Request URL:', {
+                    url: request.url,
+                    method: request.method,
+                    path: options?.path,
+                });
+                return request;
+            });
+
             client.interceptors.response.use(this.validateResponse.bind(this));
             client.interceptors.error.use((error: unknown) => ApiClientException.from(error));
             client.setConfig({ baseUrl: base });
@@ -63,12 +73,12 @@ export class ApiClientRegistry {
     }
 
     private createClient(model: ModelClass): ProfileAttributesClient | InferenceModelClient {
-        const underlyingClient = this.ensureClientConfigured();
+        const httpClient = this.ensureClientConfigured();
         if (model === ProfileAttributesClient) {
-            return new ProfileAttributesClient(underlyingClient);
+            return new ProfileAttributesClient(httpClient);
         }
         if (model === InferenceModelClient) {
-            return new InferenceModelClient(underlyingClient);
+            return new InferenceModelClient(httpClient);
         }
         throw new Error(`Unknown model: ${(model as ModelClass).name}`);
     }

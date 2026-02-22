@@ -89,7 +89,7 @@ export class OnboardingState {
             },
             () => {
                 const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
-                return Ll.onboardingErrorAccountCreation();
+                return Ll.onboarding.errorAccountCreation();
             },
         );
     }
@@ -107,7 +107,7 @@ export class OnboardingState {
             },
             () => {
                 const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
-                return Ll.onboardingErrorVoiceCalibration();
+                return Ll.onboarding.errorVoiceCalibration();
             },
         );
     }
@@ -120,13 +120,13 @@ export class OnboardingState {
         const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
         this.state$.error.set(undefined);
         if (!recoveryCodeSaveConfirmed) {
-            this.state$.error.set(Ll.onboardingErrorConfirmSaveCode());
+            this.state$.error.set(Ll.onboarding.errorConfirmSaveCode());
             logger.debug('[OnboardingState] finalize aborted', { reason: 'recoveryCodeSaveConfirmed false' });
             return;
         }
         const therapist = this.pendingTherapist;
         if (!therapist) {
-            this.state$.error.set(Ll.onboardingErrorSessionLost());
+            this.state$.error.set(Ll.onboarding.errorSessionLost());
             logger.debug('[OnboardingState] finalize aborted', { reason: 'no pendingTherapist' });
             return;
         }
@@ -139,7 +139,7 @@ export class OnboardingState {
             logger.debug('[OnboardingState] finalize persist failed', {
                 error: error instanceof Error ? error.message : String(error),
             });
-            this.state$.error.set(error instanceof Error ? error.message : Ll.onboardingErrorSaveAccount());
+            this.state$.error.set(error instanceof Error ? error.message : Ll.onboarding.errorSaveAccount());
         }
     }
 
@@ -198,20 +198,20 @@ export class OnboardingState {
         logger.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
         const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
         this.state$.error.set(undefined);
-        globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Pending, Ll.recoveryKitGeneratingPdf());
+        globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Pending, Ll.recoveryKit.generatingPdf());
         if (!code) {
-            this.state$.error.set(Ll.onboardingErrorNoRecoveryCode());
+            this.state$.error.set(Ll.onboarding.errorNoRecoveryCode());
             globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
             return;
         }
         try {
             const uri = await this.recoveryKit.generatePdf(code);
             await this.recoveryKit.share(uri);
-            globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Success, Ll.recoveryKitSaved());
+            globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Success, Ll.recoveryKit.saved());
             logger.debug('[OnboardingState] generateAndShareRecoveryKit success');
             globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : Ll.recoveryKitErrorGeneric();
+            const message = error instanceof Error ? error.message : Ll.recoveryKit.errorGeneric();
             logger.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
             this.state$.error.set(message);
             globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Error, message);

@@ -8,6 +8,8 @@
  * Decorators use MetadataWriter to write; MetadataReader reads.
  */
 
+import { AppLogger } from '@/Service/Logger';
+import { DecoratorException } from '../Exception/DecoratorException';
 import { EntityDecorator } from './EntityDecorator';
 import { FieldDecorator } from './FieldDecorator';
 import { MetadataWriter } from './MetadataWriter';
@@ -20,9 +22,28 @@ export class MetadataReader {
      * Entity decorator data (stored by MetadataWriter as EntityDecorator; returned as-is).
      */
     public getEntity(): EntityDecorator | undefined {
+        const logger = AppLogger.getInstance();
         const c = this.construct as unknown as Record<string, unknown>;
         const entry = c[MetadataWriter.ENTITY_METADATA_KEY];
-        return entry instanceof EntityDecorator ? entry : undefined;
+
+        logger.debug('[MetadataReader] Getting entity metadata:', {
+            className: this.construct.name,
+            hasMetadataKey: MetadataWriter.ENTITY_METADATA_KEY in c,
+            entryType: typeof entry,
+            isEntityDecorator: entry instanceof EntityDecorator,
+        });
+
+        if (entry instanceof EntityDecorator) {
+            logger.debug('[MetadataReader] Entity metadata found:', {
+                className: this.construct.name,
+                tableName: entry.getEntityName(),
+                decoratorName: entry.getDecoratorName(),
+            });
+            return entry;
+        }
+
+        logger.debug('[MetadataReader] No entity metadata found for class:', this.construct.name);
+        return undefined;
     }
 
     /**
@@ -31,20 +52,49 @@ export class MetadataReader {
      * when we have the constructor; field decorators run with only (propertyName, decoratorName, options).
      */
     public getFields(): FieldDecorator[] {
+        const logger = AppLogger.getInstance();
         const meta = this.getSymbolMetadata();
+
+        logger.debug('[MetadataReader] Getting fields metadata:', {
+            className: this.construct.name,
+            hasSymbolMetadata: !!meta,
+            metaType: typeof meta,
+        });
+
         if (meta == null || typeof meta !== 'object') {
+            logger.debug('[MetadataReader] No symbol metadata found or not an object');
             return [];
         }
+
         const entityName = this.construct.name ?? '';
         const out: FieldDecorator[] = [];
+        const propertyNames = Object.keys(meta);
+
+        logger.debug('[MetadataReader] Found properties with metadata:', propertyNames);
+
         for (const [propertyName, fieldMeta] of Object.entries(meta)) {
             const decorators = fieldMeta?.decorators;
             if (Array.isArray(decorators)) {
+                logger.debug('[MetadataReader] Processing property:', {
+                    propertyName,
+                    decoratorCount: decorators.length,
+                });
+
                 for (const d of decorators) {
-                    out.push(new FieldDecorator(d.decoratorName, entityName, propertyName, d.options));
+                    const fieldDecorator = new FieldDecorator(d.decoratorName, entityName, propertyName, d.options);
+                    out.push(fieldDecorator);
+
+                    logger.debug('[MetadataReader] Created field decorator:', {
+                        propertyName,
+                        decoratorName: d.decoratorName,
+                        hasDefault: 'default' in (d.options as Record<string, unknown>),
+                        isPrimaryKey: d.decoratorName === 'PrimaryKey',
+                    });
                 }
             }
         }
+
+        logger.debug('[MetadataReader] Total field decorators found:', out.length);
         return out;
     }
 
@@ -57,7 +107,21 @@ export class MetadataReader {
 
     private getSymbolMetadata(): Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }> | undefined {
         const c = this.construct as unknown as Record<symbol | string, unknown>;
-        return c[Symbol.metadata as symbol] as Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }> | undefined;
+
+        // Hermes-only: Symbol.metadata is always available
+        if (!Symbol.metadata) {
+            throw new DecoratorException(
+                'Symbol.metadata is not available. This should never happen in Hermes with Stage 3 decorators.',
+                'METADATA_UNAVAILABLE',
+            );
+        }
+
+        const metadata = c[Symbol.metadata as symbol];
+        if (metadata != null && typeof metadata === 'object') {
+            return metadata as Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }>;
+        }
+
+        return undefined;
     }
 
     /**
@@ -81,9 +145,27 @@ export class MetadataReader {
      * target: constructor or instance (uses target.constructor when instance).
      */
     public static getField(target: object | MetadataConstructor, decoratorName: string): FieldDecorator | undefined {
+        const logger = AppLogger.getInstance();
         const construct: MetadataConstructor = typeof target === 'function' ? target : ((target as object).constructor as MetadataConstructor);
+
+        logger.debug('[MetadataReader] Static getField called:', {
+            targetType: typeof target,
+            className: construct.name,
+            decoratorName,
+        });
+
         const reader = new MetadataReader(construct);
-        return reader.getFields().find((f) => f.getDecoratorName() === decoratorName);
+        const fields = reader.getFields();
+        const field = fields.find((f) => f.getDecoratorName() === decoratorName);
+
+        logger.debug('[MetadataReader] Static getField result:', {
+            className: construct.name,
+            totalFields: fields.length,
+            foundField: !!field,
+            fieldName: field?.getFieldName(),
+        });
+
+        return field;
     }
 
     /**
@@ -99,5 +181,4 @@ export class MetadataReader {
     public getFieldsByDecorator(decoratorName: string): FieldDecorator[] {
         return this.getFields().filter((f) => f.getDecoratorName() === decoratorName);
     }
-
 }

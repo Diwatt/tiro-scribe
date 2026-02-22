@@ -11,10 +11,17 @@ import { TableDefinition } from '@/Database/Schema/TableDefinition';
 import { AppLogger } from '@/Service/Logger';
 import { describe, it, expect, vi } from 'vitest';
 
-function createMockTx(execute?: (sql: string, params?: unknown[]) => Promise<unknown>): TransactionLike {
-    return {
-        execute: execute ?? vi.fn(() => Promise.resolve()),
+function createMockTx(execute?: (sql: string, params?: readonly unknown[]) => Promise<{ rows?: unknown[] } | undefined>): TransactionLike {
+    // Use type assertion to accept more flexible execute functions
+    const wrappedExecute = execute as any;
+    
+    const mockTx = {
+        execute: wrappedExecute ?? vi.fn(() => Promise.resolve({ rows: [] })),
+        transaction: async function<T>(fn: (tx: TransactionLike) => Promise<T>): Promise<T> {
+            return fn(mockTx);
+        },
     };
+    return mockTx;
 }
 
 function createMinimalDefinition(overrides: Partial<{
@@ -48,7 +55,7 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: pragmaRowsForDefinition(definition) };
                 }
-                return Promise.resolve();
+                return Promise.resolve({ rows: [] });
             });
             const writer = new DefinitionLanguageWriter(tx);
             await writer.write(definition);
@@ -329,10 +336,10 @@ describe('DefinitionLanguageWriter', () => {
             const writer = new DefinitionLanguageWriter(tx);
             await writer.write(definition);
             expect(execute).toHaveBeenCalledTimes(4);
-            expect(execute).toHaveBeenNthCalledWith(1, expect.stringContaining('CREATE TABLE'));
-            expect(execute).toHaveBeenNthCalledWith(2, expect.stringContaining('PRAGMA table_info'));
-            expect(execute).toHaveBeenNthCalledWith(3, 'CREATE INDEX a ON t(a);');
-            expect(execute).toHaveBeenNthCalledWith(4, 'CREATE INDEX b ON t(b);');
+            expect(execute).toHaveBeenNthCalledWith(1, expect.stringContaining('CREATE TABLE'), []);
+            expect(execute).toHaveBeenNthCalledWith(2, expect.stringContaining('PRAGMA table_info'), []);
+            expect(execute).toHaveBeenNthCalledWith(3, 'CREATE INDEX a ON t(a);', []);
+            expect(execute).toHaveBeenNthCalledWith(4, 'CREATE INDEX b ON t(b);', []);
         });
 
         it('constructor stores tx and write uses it', async () => {

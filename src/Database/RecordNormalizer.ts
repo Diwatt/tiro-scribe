@@ -1,40 +1,64 @@
 /**
- * RecordNormalizer: normalizes plain records for persistence (column subset + defaults).
- * Used when writing (forWrite), when reading (fromStorage). No SQL or row layout — only record shape.
+ * RecordNormalizer - Normalizes records between application format and database storage.
+ * Uses EntityMetadata to determine which fields are columns and their defaults.
  */
 
 import type { EntityMetadata } from './Decorator';
 
 export class RecordNormalizer {
-    public constructor(private readonly metadata: EntityMetadata) {}
+    private readonly metadata: EntityMetadata;
+
+    public constructor(metadata: EntityMetadata) {
+        this.metadata = metadata;
+    }
 
     /**
-     * Keeps only @Column properties. Used when writing to storage (e.g. before JSON in row).
+     * Normalizes a record for writing to the database.
+     * Only includes fields that are database columns.
      */
     public forWrite(record: Record<string, unknown>): Record<string, unknown> {
-        const keys = this.metadata.getColumnNames();
+        const columnNames = this.metadata.getColumnNames();
+        const result: Record<string, unknown> = {};
 
-        return Object.fromEntries(
-            keys.filter((key) => key in record).map((key) => [key, record[key]]),
-        ) as Record<string, unknown>;
+        for (const fieldName of columnNames) {
+            if (Object.hasOwn(record, fieldName)) {
+                result[fieldName] = record[fieldName];
+            }
+        }
+
+        return result;
     }
 
     /**
-     * Merges entity defaults with stored record. Used when reading from storage (e.g. after JSON parse).
-     * New columns (migration) get their default.
+     * Normalizes a record read from database storage.
+     * Applies defaults for missing columns.
      */
-    public fromStorage(storedRecord: Record<string, unknown>): Record<string, unknown> {
-        const defaults = this.metadata.getColumnDefaults();
+    public fromStorage(stored: Record<string, unknown>): Record<string, unknown> {
+        const columnNames = this.metadata.getColumnNames();
+        const columnDefaults = this.metadata.getColumnDefaults();
+        const result: Record<string, unknown> = {};
 
-        return { ...defaults, ...storedRecord };
+        for (const fieldName of columnNames) {
+            if (Object.hasOwn(stored, fieldName)) {
+                result[fieldName] = stored[fieldName];
+            } else if (Object.hasOwn(columnDefaults, fieldName)) {
+                result[fieldName] = columnDefaults[fieldName];
+            }
+        }
+
+        return result;
     }
 
     /**
-     * Applies fromStorage to each value in the map.
+     * Normalizes a map of stored records keyed by primary key.
      */
-    public fromStorageMap(map: Record<string, Record<string, unknown>>): Record<string, Record<string, unknown>> {
-        return Object.fromEntries(
-            Object.entries(map).map(([k, v]) => [k, this.fromStorage(v) as Record<string, unknown>]),
-        );
+    public fromStorageMap(storedMap: Record<string, Record<string, unknown>>): Record<string, Record<string, unknown>> {
+        const result: Record<string, Record<string, unknown>> = {};
+
+        for (const [key, stored] of Object.entries(storedMap)) {
+            result[key] = this.fromStorage(stored);
+        }
+
+        return result;
     }
 }

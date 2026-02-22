@@ -14,10 +14,10 @@ export function SettingsScreen(): React.JSX.Element {
         <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
-                    <List.Subheader>{LL.settingsProfile()}</List.Subheader>
+                    <List.Subheader>{LL.settings.profile()}</List.Subheader>
                     <List.Item
-                        title={LL.settingsTherapistProfile()}
-                        description={LL.settingsTherapistProfileDesc()}
+                        title={LL.settings.therapistProfile()}
+                        description={LL.settings.therapistProfileDesc()}
                         left={(p) => <List.Icon {...p} icon={User} />}
                         right={(p) => <List.Icon {...p} icon="chevron-right" />}
                     />
@@ -26,10 +26,10 @@ export function SettingsScreen(): React.JSX.Element {
 
             <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
-                    <List.Subheader>{LL.settingsPrivacySecurity()}</List.Subheader>
+                    <List.Subheader>{LL.settings.privacySecurity()}</List.Subheader>
                     <List.Item
-                        title={LL.settingsPrivacySettings()}
-                        description={LL.settingsPrivacySettingsDesc()}
+                        title={LL.settings.privacySettings()}
+                        description={LL.settings.privacySettingsDesc()}
                         left={(p) => <List.Icon {...p} icon={Shield} />}
                         right={(p) => <List.Icon {...p} icon="chevron-right" />}
                     />
@@ -38,17 +38,17 @@ export function SettingsScreen(): React.JSX.Element {
 
             <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
-                    <List.Subheader>{LL.settingsPreferences()}</List.Subheader>
+                    <List.Subheader>{LL.settings.preferences()}</List.Subheader>
                     <List.Item
-                        title={LL.settingsNotifications()}
-                        description={LL.settingsNotificationsDesc()}
+                        title={LL.settings.notifications()}
+                        description={LL.settings.notificationsDesc()}
                         left={(p) => <List.Icon {...p} icon={Bell} />}
                         right={() => <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />}
                     />
                     <Divider />
                     <List.Item
-                        title={LL.settingsDarkMode()}
-                        description={LL.settingsDarkModeDesc()}
+                        title={LL.settings.darkMode()}
+                        description={LL.settings.darkModeDesc()}
                         left={(p) => <List.Icon {...p} icon={Moon} />}
                         right={() => <Switch value={darkModeEnabled} onValueChange={setDarkModeEnabled} />}
                     />
@@ -57,8 +57,8 @@ export function SettingsScreen(): React.JSX.Element {
 
             <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
-                    <List.Subheader>{LL.settingsAbout()}</List.Subheader>
-                    <List.Item title={LL.settingsVersion()} description="1.0.0" left={(p) => <List.Icon {...p} icon={Settings} />} />
+                    <List.Subheader>{LL.settings.about()}</List.Subheader>
+                    <List.Item title={LL.settings.version()} description="1.0.0" left={(p) => <List.Icon {...p} icon={Settings} />} />
                 </List.Section>
             </Surface>
         </ScrollView>

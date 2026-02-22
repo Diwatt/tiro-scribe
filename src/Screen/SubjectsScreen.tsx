@@ -19,7 +19,7 @@ export function SubjectsScreen(): React.JSX.Element {
     const [searchQuery, setSearchQuery] = React.useState('');
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Searchbar placeholder={LL.subjectsSearchPlaceholder()} onChangeText={setSearchQuery} value={searchQuery} style={styles.searchbar} />
+            <Searchbar placeholder={LL.subjects.searchPlaceholder()} onChangeText={setSearchQuery} value={searchQuery} style={styles.searchbar} />
             <FlatList
                 data={mockSubjects}
                 keyExtractor={(item) => ('primaryKey' in item ? (item as { primaryKey: string }).primaryKey : (item as { uuid: string }).uuid)}
@@ -33,7 +33,7 @@ export function SubjectsScreen(): React.JSX.Element {
                                     {item.biocode}
                                 </Text>
                                 <Text variant="bodySmall" style={[styles.lastEncounter, { color: theme.colors.onSurfaceVariant }]}>
-                                    {LL.subjectsLastEncounter()} {item.lastEncounter}
+                                    {LL.subjects.lastEncounter()} {item.lastEncounter}
                                 </Text>
                             </View>
                         </Card.Content>

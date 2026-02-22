@@ -41,11 +41,10 @@
     "author": "Tiro Scribe",
     "license": "MIT",
     "homepage": "https://github.com/Diwatt/tiro-scribe",
-    "dependencies": {},
     "devDependencies": {
+        "expo-audio": "^1.1.1",
         "expo-module-scripts": "^5.0.8",
-        "expo-modules-core": "*",
-        "expo-audio": "*"
+        "expo-modules-core": "^3.0.29"
     },
     "peerDependencies": {
         "expo": "*",

@@ -5,7 +5,7 @@ export default defineConfig({
     test: {
         environment: 'node',
         globals: true,
-        setupFiles: [path.resolve(__dirname, 'vitest.setup.ts')],
+        setupFiles: [path.resolve(__dirname, 'vitest/setup.ts')],
         include: ['./tests/**/*.test.{ts,tsx}'],
         exclude: ['**/node_modules/**', '**/modules/**'],
         coverage: {
@@ -16,11 +16,13 @@ export default defineConfig({
         },
     },
     resolve: {
-        alias: {
-            '@': path.resolve(__dirname, './src'),
-            '@Service': path.resolve(__dirname, './src/Service'),
-            expo: path.resolve(__dirname, './vitest/mocks/expo.js'),
-            'expo/src/winter': path.resolve(__dirname, './vitest/mocks/expo-winter.js'),
-        },
+        alias: [
+            { find: '@', replacement: path.resolve(__dirname, './src') },
+            { find: '@Service', replacement: path.resolve(__dirname, './src/Service') },
+            { find: 'expo/fetch', replacement: path.resolve(__dirname, './vitest/mocks/expo-fetch.ts') },
+            { find: 'expo/src/winter', replacement: path.resolve(__dirname, './vitest/mocks/expo-winter.js') },
+            { find: /^expo$/, replacement: path.resolve(__dirname, './vitest/mocks/expo.js') },
+            { find: 'react-native', replacement: path.resolve(__dirname, './vitest/mocks/react-native.js') },
+        ],
     },
 });

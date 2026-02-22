@@ -4,8 +4,10 @@
  * reading/writing this.fieldName goes through getField/setField (fieldValues).
  */
 
+import { observable } from '@legendapp/state';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { EntityMetadata } from './Decorator';
+import type { ColumnOptions } from './Decorator/Column';
 
 /** Constructor input: plain data for create/hydration. */
 export type EntityConstructorInput = Partial<Record<string, unknown>>;
@@ -70,15 +72,74 @@ export abstract class AbstractEntity {
     /**
      * Current entity as a plain object (field name → value) for persistence.
      * Repository.persist(entity) calls this internally; prefer repo.persist(entity).
+     * Returns raw field values as stored in fieldValues (not transformed by 'as').
      */
     public toPlainObject(): Record<string, unknown> {
         const columnNames = this.entityMetadata.getColumnNames();
         const out: Record<string, unknown> = {};
-        for (const key of columnNames) {
-            out[key] = this.getField(key);
+
+        // If column metadata is missing, fall back to all field values
+        if (columnNames.length === 0) {
+            for (const [key, value] of this.fieldValues) {
+                out[key] = value;
+            }
+        } else {
+            for (const key of columnNames) {
+                out[key] = this.getField(key);
+            }
         }
 
         return out;
     }
-}
 
+    /**
+     * Convert entity to a data object.
+     * Returns a plain object suitable for DTOs, with values transformed by 'as' transformers.
+     * Differs from toPlainObject in that values are retrieved via property getters (applies 'as' transformers).
+     */
+    public toDataObject(): Record<string, unknown> {
+        const columnNames = this.entityMetadata.getColumnNames();
+        const out: Record<string, unknown> = {};
+        for (const key of columnNames) {
+            // Use property getter to get transformed value (e.g., after 'as' transformer)
+            const value = (this as Record<string, unknown>)[key];
+            out[key] = value;
+        }
+        return out;
+    }
+
+    /**
+     * Convert entity to an observable object with Legend State observables for fields marked observable.
+     * Returns an object containing:
+     * 1. Plain properties
+     * 2. Observable properties (original field name + suffix, default '$')
+     * 3. An 'entity' property referencing the original entity instance
+     * The return type is T & { entity: AbstractEntity } where T is Record<string, unknown> by default.
+     */
+    public toObservable<T extends Record<string, unknown> = Record<string, unknown>>(): T & { entity: AbstractEntity } {
+        const columnNames = this.entityMetadata.getColumnNames();
+        const observableFields = this.entityMetadata.getObservableFields();
+        const out: Record<string, unknown> = {};
+
+        // Add plain properties
+        for (const key of columnNames) {
+            out[key] = (this as Record<string, unknown>)[key];
+        }
+
+        // Add observable properties
+        for (const field of observableFields) {
+            const fieldName = field.getFieldName();
+            const opts = field.getOptions<ColumnOptions>();
+            const suffix = opts.observableSuffix ?? '$';
+            const observableKey = fieldName + suffix;
+            // Use property getter to get transformed value
+            const value = (this as Record<string, unknown>)[fieldName];
+            out[observableKey] = observable(value);
+        }
+
+        // Add entity reference
+        (out as Record<string, unknown>).entity = this;
+
+        return out as T & { entity: AbstractEntity };
+    }
+}
