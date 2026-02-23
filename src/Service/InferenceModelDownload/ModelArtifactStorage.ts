@@ -167,16 +167,18 @@ export class ModelArtifactStorage {
      *
      * @param config - The model configuration
      */
-    public ensureDirectories(config: ModelConfig): void {
+    public async ensureDirectories(config: ModelConfig): Promise<void> {
         const subdir = AppConfig.artifactStorageDirName;
         const modelsDir = new Directory(Paths.document, subdir);
         if (!modelsDir.exists) {
-            modelsDir.create({ intermediates: true, idempotent: true });
+            await modelsDir.create({ intermediates: true, idempotent: true });
+            this.logger.debug(`Created artifact storage directory: ${modelsDir.uri}`);
         }
 
         const configDir = new Directory(Paths.document, subdir, config.id);
         if (!configDir.exists) {
-            configDir.create({ intermediates: true, idempotent: true });
+            await configDir.create({ intermediates: true, idempotent: true });
+            this.logger.debug(`Created model config directory: ${configDir.uri}`);
         }
     }
 }

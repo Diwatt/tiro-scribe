@@ -1,29 +1,33 @@
 /**
- * DownloadSession – Represents a single download session with its state and progress.
- * Wraps an ObservableDownloadTask from DownloadQueue and adds runtime‑specific behavior.
+ * DownloadTaskExecutor – Executes a single download task with state and progress tracking.
+ * Takes a plain DownloadQueue entity and owns all runtime observables.
  * Single Responsibility: Execute the download process for a queued item.
  */
 
-import { computed, observable } from '@legendapp/state';
+import type { Observable } from '@legendapp/state';
+import { observable } from '@legendapp/state';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import type { ModelConfig } from '@/Api';
+import type { DownloadQueue } from '@/Entity/DownloadQueue';
 import type { LoggerInterface } from '@/Service/Logger';
-import type { ObservableDownloadTask } from './DownloadTaskManager';
 import type { ChecksumVerifier } from './ChecksumVerifier';
-import type { FileDownloader } from './FileDownloader';
+import { FileDownloader } from './FileDownloader';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
 import { DownloadState } from './Type';
 
-export class DownloadSession {
+export class DownloadTaskExecutor {
+    private readonly queueEntity: DownloadQueue;
     private readonly _startedAt: Dayjs;
+    private readonly _state$: Observable<DownloadState>;
+    private readonly _progress$: Observable<number>;
+    private readonly _error$: Observable<string | undefined>;
     private readonly _completedAt$ = observable<Dayjs | undefined>(undefined);
 
     public constructor(
         private readonly logger: LoggerInterface,
-        private readonly downloadTask: ObservableDownloadTask,
+        queueEntity: DownloadQueue,
         private readonly modelConfig: ModelConfig,
-        private readonly fileDownloader: FileDownloader,
         private readonly checksumVerifier: ChecksumVerifier,
         private readonly artifactStorage: ModelArtifactStorage,
         private readonly onProgress?: (progress: number) => void,
@@ -31,45 +35,37 @@ export class DownloadSession {
         private readonly onComplete?: () => Promise<void>,
         startedAt: Dayjs = dayjs(),
     ) {
+        this.queueEntity = queueEntity;
         this._startedAt = startedAt;
+
+        // Create observables from entity's current state
+        this._state$ = observable<DownloadState>(queueEntity.status as unknown as DownloadState);
+        this._progress$ = observable<number>(queueEntity.progressPercent);
+        this._error$ = observable<string | undefined>(queueEntity.errorMessage || undefined);
     }
 
     /** Error message used to identify user‑cancelled downloads */
     private static readonly CANCELLATION_ERROR_MESSAGE = 'Download cancelled by user';
 
     /**
-     * Computed observable for download state.
-     * Returns the current DownloadState, handling special cases like cancelled downloads.
+     * Observable for download state.
      */
-    public get state$() {
-        return computed(() => {
-            const queueStatus = this.downloadTask.state$.get();
-            const errorMessage = this.downloadTask.error$.get();
-
-            // Check for cancelled downloads (Cancelled status or Failed with cancellation error)
-            if (queueStatus === DownloadState.Cancelled) {
-                return DownloadState.Cancelled;
-            }
-            if (queueStatus === DownloadState.Failed && errorMessage === DownloadSession.CANCELLATION_ERROR_MESSAGE) {
-                return DownloadState.Cancelled;
-            }
-
-            return queueStatus;
-        });
+    public get state$(): Observable<DownloadState> {
+        return this._state$;
     }
 
     /**
-     * Computed observable for progress (0‑1).
+     * Observable for progress (0-100).
      */
-    public get progress$() {
-        return computed(() => this.downloadTask.progress$.get() / 100);
+    public get progress$(): Observable<number> {
+        return this._progress$;
     }
 
     /**
-     * Computed observable for error.
+     * Observable for error message.
      */
-    public get error$() {
-        return computed(() => this.downloadTask.error$.get());
+    public get error$(): Observable<string | undefined> {
+        return this._error$;
     }
 
     public get completedAt$() {
@@ -77,7 +73,7 @@ export class DownloadSession {
     }
 
     public get capability(): string {
-        return this.downloadTask.capability;
+        return this.queueEntity.capability;
     }
 
     public get config(): ModelConfig {
@@ -89,23 +85,27 @@ export class DownloadSession {
     }
 
     public getState(): DownloadState {
-        return this.state$.get();
+        return this._state$.get();
     }
 
     public getProgress(): number {
-        return this.progress$.get();
+        return this._progress$.get();
     }
 
     public getError(): string | undefined {
-        return this.error$.get();
+        return this._error$.get();
     }
 
     public getCompletedAt(): Dayjs | undefined {
         return this._completedAt$.get();
     }
 
+    public getQueueEntity(): DownloadQueue {
+        return this.queueEntity;
+    }
+
     /**
-     * Check if session is in downloading or verifying state.
+     * Check if executor is in downloading state.
      */
     public isDownloading(): boolean {
         const currentState = this.getState();
@@ -113,14 +113,13 @@ export class DownloadSession {
     }
 
     /**
-     * Cancel the session if it's currently downloading or verifying.
+     * Cancel the download if it's currently downloading.
      * @returns true if cancelled, false if not in a cancellable state
      */
     public cancel(): boolean {
         if (this.isDownloading()) {
-            // Mark as cancelled in queue
-            this.downloadTask.state$.set(DownloadState.Cancelled);
-            this.downloadTask.error$.set(DownloadSession.CANCELLATION_ERROR_MESSAGE);
+            this._state$.set(DownloadState.Cancelled);
+            this._error$.set(DownloadTaskExecutor.CANCELLATION_ERROR_MESSAGE);
             this._completedAt$.set(dayjs());
             return true;
         }
@@ -129,33 +128,34 @@ export class DownloadSession {
 
     /**
      * Start the download process.
-     * Updates the queue item's state and progress as the download proceeds.
+     * Updates observables and the queue entity as the download proceeds.
      */
     public async start(): Promise<void> {
-        // Ensure directories exist
-        this.artifactStorage.ensureDirectories(this.modelConfig);
+        // Ensure directories exist and wait for completion
+        await this.artifactStorage.ensureDirectories(this.modelConfig);
 
         let totalDownloaded = 0;
         const totalFiles = this.modelConfig.files.length;
 
         try {
-            // Update queue status to Downloading
-            this.downloadTask.state$.set(DownloadState.Downloading);
-            this.logger.debug('[DownloadSession] Starting download session');
+            // Update state to Downloading
+            this._state$.set(DownloadState.Downloading);
+            this.logger.debug('[DownloadTaskExecutor] Starting download task execution');
 
             for (let i = 0; i < this.modelConfig.files.length; i++) {
                 const file = this.modelConfig.files[i];
                 const destination = this.artifactStorage.getFile(this.modelConfig, file);
 
-                // Download file with progress tracking
-                for await (const chunkProgress of this.fileDownloader.downloadFile(file.url, destination)) {
+                // Create downloader for this file and download with progress tracking
+                const downloader = new FileDownloader(destination, this.logger);
+                for await (const chunkProgress of downloader.download(file.url)) {
                     // chunkProgress is 0‑1, convert to overall progress
                     const fileProgress = chunkProgress;
                     const overallProgress = (totalDownloaded + fileProgress) / totalFiles;
                     const progressPercent = overallProgress * 100;
 
-                    // Update queue progress (0‑100)
-                    this.downloadTask.progress$.set(progressPercent);
+                    // Update progress observable (0‑100)
+                    this._progress$.set(progressPercent);
 
                     // Call progress callback if provided
                     if (this.onProgress) {
@@ -171,7 +171,7 @@ export class DownloadSession {
                 totalDownloaded += 1;
                 const progressAfterFile = (totalDownloaded / totalFiles) * 100;
                 // Update progress after each file
-                this.downloadTask.progress$.set(progressAfterFile);
+                this._progress$.set(progressAfterFile);
 
                 // Call progress callback if provided
                 if (this.onProgress) {
@@ -180,11 +180,11 @@ export class DownloadSession {
             }
 
             // Mark as completed
-            this.downloadTask.state$.set(DownloadState.Completed);
-            this.downloadTask.progress$.set(100);
+            this._state$.set(DownloadState.Completed);
+            this._progress$.set(100);
             this._completedAt$.set(dayjs());
 
-            this.logger.debug('[DownloadSession] Download completed successfully');
+            this.logger.debug('[DownloadTaskExecutor] Download completed successfully');
 
             // Call completion callback if provided
             if (this.onComplete) {
@@ -192,12 +192,12 @@ export class DownloadSession {
             }
         } catch (error) {
             // Mark as failed
-            this.downloadTask.state$.set(DownloadState.Failed);
+            this._state$.set(DownloadState.Failed);
             const errorMessage = error instanceof Error ? error.message : String(error);
-            this.downloadTask.error$.set(errorMessage);
+            this._error$.set(errorMessage);
             this._completedAt$.set(dayjs());
 
-            this.logger.error('[DownloadSession] Download failed', error);
+            this.logger.error('[DownloadTaskExecutor] Download failed', error);
 
             // Call error callback if provided
             if (this.onError) {

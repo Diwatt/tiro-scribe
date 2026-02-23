@@ -7,26 +7,32 @@ import { fetch } from 'expo/fetch';
 import type { File } from 'expo-file-system';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 import { AppLogger, type LoggerInterface } from '@/Service/Logger';
+import { StreamWriter } from './StreamWriter';
 
 export class FileDownloader {
-    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
+    public constructor(
+        private readonly destinationFile: File,
+        private readonly logger: LoggerInterface = AppLogger.getInstance(),
+    ) {}
 
     /**
-     * Download a single file from a URL to a File object with progress tracking.
+     * Download a file from a URL with progress tracking.
      * Modern async generator approach that yields progress updates (0-1).
      * @param url - The URL to download from
-     * @param destinationFile - The File object to write to
      * @returns Async generator that yields progress updates (0-1) and completes when download finishes
      * @throws {InferenceModelDownloaderException} If download fails
      * @example
      * ```typescript
-     * for await (const progress of downloader.downloadFile(url, file)) {
+     * const downloader = new FileDownloader(destinationFile);
+     * for await (const progress of downloader.download(url)) {
      *   console.log(`Progress: ${progress * 100}%`);
      * }
      * ```
      */
-    public async *downloadFile(url: string, destinationFile: File): AsyncGenerator<number, void, void> {
-        this.logger.debug(`Downloading file from ${url} to ${destinationFile.uri}`);
+    public async *download(url: string): AsyncGenerator<number, void, void> {
+        this.logger.debug(`Downloading file from ${url} to ${this.destinationFile.uri}`);
+
+        const streamWriter = new StreamWriter(this.destinationFile);
 
         try {
             yield 0;
@@ -35,60 +41,56 @@ export class FileDownloader {
             const response = await fetch(url);
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new InferenceModelDownloaderException(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            // Get total size from Content-Length header if available
-            const contentLength = response.headers.get('content-length');
-            const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
-            let bytesWritten = 0;
+            const totalBytes = Math.max(0, parseInt(response.headers.get('content-length') || '0', 10));
 
-            // Get a writable stream
-            const writableStream = destinationFile.writableStream();
-            const writer = writableStream.getWriter();
+            // Initialize stream writer
+            await streamWriter.initialize();
 
             // Get the readable stream from response body
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error('Response body is not readable');
+            if (!response.body) {
+                throw new InferenceModelDownloaderException('Response body is not readable');
             }
+            const reader = response.body.getReader();
 
-            // Read and write chunks
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) {
+            // Stream and write chunks with progress tracking
+            let writtenBytes = 0;
+            let result: ReadableStreamReadResult<Uint8Array>;
+
+            do {
+                result = await reader.read();
+
+                if (result.done || !result.value || result.value.length === 0) {
                     break;
                 }
 
-                // Write chunk
-                await writer.write(value);
+                await streamWriter.write(result.value);
 
-                // Update progress
-                bytesWritten += value.length;
+                writtenBytes += result.value.length;
                 if (totalBytes > 0) {
-                    const progress = bytesWritten / totalBytes;
+                    const progress = Math.min(writtenBytes / totalBytes, 1);
                     yield progress;
-                } else {
-                    // Unknown total size, send incremental updates (0.5 indicates ongoing)
-                    yield 0.5;
                 }
-            }
+            } while (!result.done);
 
-            // Close the writer
-            await writer.close();
+            await streamWriter.close();
 
-            // If total size was unknown, yield 1.0 at completion
             if (totalBytes <= 0) {
                 yield 1.0;
             }
 
-            this.logger.debug(`Download completed: ${url} -> ${destinationFile.uri}`);
+            this.logger.debug(`Download completed: ${url} -> ${this.destinationFile.uri}`);
         } catch (error) {
             this.logger.error(`Failed to download file from ${url}:`, error);
             throw new InferenceModelDownloaderException(
                 `Failed to download file from ${url}: ${error}`,
                 error instanceof Error ? error : new Error(String(error)),
             );
+        } finally {
+            // Release writer lock
+            await streamWriter.release();
         }
     }
 }

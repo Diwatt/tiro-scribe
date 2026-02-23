@@ -24,7 +24,7 @@
         "pods:clean": "cd ios && pod deintegrate && pod install",
         "generate:api": "node scripts/generate-api.js",
         "mock:server": "node scripts/start-mock-server.js",
-        "module:build": "cd modules/secure-recorder && pnpm build",
+        "module:build": "cd modules/secure-recorder && pnpm exec expo-module clean && pnpm exec expo-module tsc -p tsconfig.json",
         "test": "vitest run --passWithNoTests",
         "test:watch": "vitest",
         "test:kotlin": "if [ -d 'android' ] && [ -f 'android/gradlew' ]; then cd android && ./gradlew :secure-recorder:testDebugUnitTest; else echo 'Error: Android project not found'; exit 1; fi",
@@ -75,9 +75,9 @@
         "lodash": "^4.17.23",
         "lucide-react-native": "^0.575.0",
         "onnxruntime-react-native": "^1.24.2",
-        "react": "^19.2.4",
+        "react": "19.1.0",
         "react-hook-form": "^7.71.2",
-        "react-native": "0.84.0",
+        "react-native": "0.81.5",
         "react-native-gesture-handler": "~2.30.0",
         "react-native-get-random-values": "^2.0.0",
         "react-native-logs": "^5.5.0",
@@ -122,20 +122,32 @@
         "babel-plugin-inline-import": "^3.0.0",
         "babel-plugin-module-resolver": "^5.0.2",
         "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+        "better-sqlite3": "^12.6.2",
         "esbuild": "^0.27.3",
         "js-yaml": "^4.1.1",
         "json-server": "1.0.0-beta.9",
         "msw": "^2.12.10",
-        "react-dom": "^19.2.4",
-        "react-test-renderer": "19.2.4",
+        "react-dom": "19.1.0",
+        "react-test-renderer": "19.1.0",
         "storybook": "^10.2.10",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18"
     },
     "pnpm": {
+        "overrides": {
+            "react": "19.1.0",
+            "react-dom": "19.1.0",
+            "react-test-renderer": "19.1.0"
+        },
         "patchedDependencies": {},
         "onlyBuiltDependencies": [
-            "esbuild"
+            "esbuild",
+            "better-sqlite3"
+        ],
+        "ignoredBuiltDependencies": [
+            "@nestjs/core",
+            "@openapitools/openapi-generator-cli",
+            "msw"
         ]
     },
     "packageManager": "pnpm@10.28.1",

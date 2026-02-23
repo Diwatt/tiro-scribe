@@ -4,10 +4,10 @@
  * reading/writing this.fieldName goes through getField/setField (fieldValues).
  */
 
-import { observable } from '@legendapp/state';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { EntityMetadata } from './Decorator';
 import type { ColumnOptions } from './Decorator/Column';
+import { TransformerRegistry } from './Transformer';
 
 /** Constructor input: plain data for create/hydration. */
 export type EntityConstructorInput = Partial<Record<string, unknown>>;
@@ -47,6 +47,8 @@ export abstract class AbstractEntity {
         const input = data != null && typeof data === 'object' ? data : {};
         const merged = { ...defaults, ...input };
         this.fieldValues = new Map(Object.entries(merged));
+
+        this.initializeColumnAccessors();
     }
 
     // --- Methods: public → private ---
@@ -108,38 +110,28 @@ export abstract class AbstractEntity {
         return out;
     }
 
-    /**
-     * Convert entity to an observable object with Legend State observables for fields marked observable.
-     * Returns an object containing:
-     * 1. Plain properties
-     * 2. Observable properties (original field name + suffix, default '$')
-     * 3. An 'entity' property referencing the original entity instance
-     * The return type is T & { entity: AbstractEntity } where T is Record<string, unknown> by default.
-     */
-    public toObservable<T extends Record<string, unknown> = Record<string, unknown>>(): T & { entity: AbstractEntity } {
-        const columnNames = this.entityMetadata.getColumnNames();
-        const observableFields = this.entityMetadata.getObservableFields();
-        const out: Record<string, unknown> = {};
-
-        // Add plain properties
-        for (const key of columnNames) {
-            out[key] = (this as Record<string, unknown>)[key];
-        }
-
-        // Add observable properties
-        for (const field of observableFields) {
+    private initializeColumnAccessors(): void {
+        for (const field of this.entityMetadata.getColumnFields()) {
             const fieldName = field.getFieldName();
-            const opts = field.getOptions<ColumnOptions>();
-            const suffix = opts.observableSuffix ?? '$';
-            const observableKey = fieldName + suffix;
-            // Use property getter to get transformed value
-            const value = (this as Record<string, unknown>)[fieldName];
-            out[observableKey] = observable(value);
+            const options = field.getOptions<ColumnOptions>();
+            const transformer = options.as != null ? TransformerRegistry.get(options.as) : undefined;
+
+            Object.defineProperty(this, fieldName, {
+                configurable: true,
+                enumerable: true,
+                get: () => {
+                    const raw = this.getField(fieldName);
+                    return transformer != null ? transformer.fromStorage(raw) : raw;
+                },
+                set: (value: unknown) => {
+                    if (value === undefined && this.fieldValues.has(fieldName)) {
+                        return;
+                    }
+
+                    const stored = transformer != null ? transformer.toStorage(value) : value;
+                    this.setField(fieldName, stored);
+                },
+            });
         }
-
-        // Add entity reference
-        (out as Record<string, unknown>).entity = this;
-
-        return out as T & { entity: AbstractEntity };
     }
 }

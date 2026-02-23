@@ -101,7 +101,7 @@ export class DownloadQueueRepository extends Repository<DownloadQueue> {
         return items.toArray().reduce((oldest, current) => (current.getCreatedAt().isBefore(oldest.getCreatedAt()) ? current : oldest));
     }
 
-    // Note: Observable and DataObject conversion methods have been removed.
+    // Note: These methods return Collection instances.
     // Use findByStatus(), findByCapability() etc. which return Collection,
-    // then call .toObservable() or .toDataObject() on the Collection as needed.
+    // then call .toDataObject() or .toDataObjects() on the Collection as needed.
 }

@@ -1,122 +1,51 @@
 /**
  * DownloadTaskManager – Unified queue management for download tasks.
- * Uses DownloadQueueRepository for persistence and observable state for UI.
- * Provides observable state for UI.
+ * Uses DownloadQueueRepository for persistence.
+ * Executors provide observable state for active downloads.
  */
 
-import { type Observable } from '@legendapp/state';
 import dayjs from 'dayjs';
 import type { ModelConfig } from '@/Api';
+import { Criteria } from '@/Database/Criteria';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
 import { DownloadQueueStatus } from '@/Entity/Type';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { Criteria } from '@/Database/Criteria';
 import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
 import type { LoggerInterface } from '@/Service/Logger';
 import { AppLogger } from '@/Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
-import { DownloadSession } from './DownloadSession';
-import type { FileDownloader } from './FileDownloader';
+import { DownloadTaskExecutor } from './DownloadTaskExecutor';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
 import type { QueueStats } from './Type';
-import { DownloadState } from './Type';
-
-/**
- * Observable download task state for real‑time updates.
- * Combines plain properties with Legend State observables.
- * This type is exported for use by DownloadSession.
- */
-export type ObservableDownloadTask = {
-    readonly id: string;
-    readonly capability: string;
-    readonly language?: string;
-    readonly nbRetries: number;
-    readonly maxRetries: number;
-    readonly status: DownloadState;
-    readonly progress: number;
-    readonly createdAt: Date;
-    readonly updatedAt: Date;
-
-    // Observable properties
-    readonly state$: Observable<DownloadState>;
-    readonly progress$: Observable<number>;
-    readonly error$: Observable<string | undefined>;
-};
 
 export class DownloadTaskManager {
     // Private properties
     private readonly logger: LoggerInterface;
     private readonly repository: DownloadQueueRepository;
-    private readonly fileDownloader: FileDownloader;
     private readonly checksumVerifier: ChecksumVerifier;
     private readonly artifactStorage: ModelArtifactStorage;
-    private readonly observableItems: Map<string, ObservableDownloadTask> = new Map();
-    private readonly activeSessions: Map<string, DownloadSession> = new Map();
+    private readonly activeSessions: Map<string, DownloadTaskExecutor> = new Map();
     private maxConcurrentDownloads: number = 2;
     private isPaused: boolean = false;
 
     public constructor(
         logger: LoggerInterface = AppLogger.getInstance(),
         repository: DownloadQueueRepository = new DownloadQueueRepository(),
-        fileDownloader: FileDownloader,
         checksumVerifier: ChecksumVerifier,
         artifactStorage: ModelArtifactStorage,
         maxConcurrentDownloads: number = 2,
     ) {
         this.logger = logger;
         this.repository = repository;
-        this.fileDownloader = fileDownloader;
         this.checksumVerifier = checksumVerifier;
         this.artifactStorage = artifactStorage;
         this.maxConcurrentDownloads = maxConcurrentDownloads;
     }
 
     /**
-     * Get or create an observable task from an entity with caching support.
-     * Uses the manager's internal cache (this.observableItems).
-     */
-    private getOrCreateObservableTask(entity: DownloadQueue, maxRetries?: number): ObservableDownloadTask {
-        const existing = this.observableItems.get(entity.getUuid());
-        if (existing) {
-            return existing;
-        }
-
-        // Create observable object using entity's toObservable method
-        const observableObj = entity.toObservable<Record<string, unknown>>();
-
-        // Dates should be set by ORM defaults - throw if they're not
-        if (!entity.createdAt) {
-            throw new InferenceModelDownloaderException(`DownloadQueue entity ${entity.getUuid()} has no createdAt date - ORM defaults not applied`);
-        }
-        if (!entity.updatedAt) {
-            throw new InferenceModelDownloaderException(`DownloadQueue entity ${entity.getUuid()} has no updatedAt date - ORM defaults not applied`);
-        }
-
-        // Build ObservableDownloadTask shape
-        const observableTask: ObservableDownloadTask = {
-            id: entity.uuid,
-            capability: entity.capability,
-            language: entity.language || undefined,
-            nbRetries: entity.nbRetries,
-            maxRetries: maxRetries ?? entity.maxRetries,
-            status: entity.status as unknown as DownloadState,
-            progress: entity.progressPercent,
-            createdAt: entity.createdAt.toDate(),
-            updatedAt: entity.updatedAt.toDate(),
-            state$: observableObj.status$ as Observable<DownloadState>,
-            progress$: observableObj.progressPercent$ as Observable<number>,
-            // Convert string error message to Error object for compatibility
-            error$: observableObj.errorMessage$ as Observable<string | undefined>,
-        };
-
-        this.observableItems.set(entity.getUuid(), observableTask);
-        return observableTask;
-    }
-
-    /**
      * Add a new download task to the queue.
      */
-    public async add(capability: string, language?: string, maxRetries: number = 3): Promise<ObservableDownloadTask> {
+    public async add(capability: string, language?: string, maxRetries: number = 3): Promise<DownloadQueue> {
         try {
             // Validate inputs
             if (!capability || capability.trim() === '') {
@@ -128,7 +57,6 @@ export class DownloadTaskManager {
             }
 
             // Create DownloadQueue entity with minimal required properties
-            // Let the ORM/decorator system handle defaults (UUID, createdAt, updatedAt, etc.)
             const downloadEntity = new DownloadQueue({
                 capability,
                 language: language || '',
@@ -141,21 +69,11 @@ export class DownloadTaskManager {
                 metadata: {},
             });
 
-            // Save to database - the ORM should apply default values
+            // Save to database
             await this.repository.persist(downloadEntity);
 
-            // Verify UUID was generated by the ORM
-            const entityUuid = downloadEntity.getUuid();
-            if (!entityUuid || entityUuid.trim() === '') {
-                this.logger.warn(`UUID not generated by ORM for capability: ${capability}`);
-                // Don't call setUuid() - this indicates a deeper ORM issue
-            }
-
-            // Create observable item using manager's method
-            const observableItem = this.getOrCreateObservableTask(downloadEntity, maxRetries);
-
-            this.logger.debug(`Added download task to queue: ${entityUuid} for ${capability}`);
-            return observableItem;
+            this.logger.debug(`Added download task to queue: ${downloadEntity.getUuid()} for ${capability}`);
+            return downloadEntity;
         } catch (error) {
             this.logger.error(`Failed to add download task to queue: ${capability}`, error);
             throw new InferenceModelDownloaderException(
@@ -168,10 +86,10 @@ export class DownloadTaskManager {
     /**
      * Find download tasks by status.
      */
-    public async findByStatus(status: DownloadQueueStatus): Promise<ObservableDownloadTask[]> {
+    public async findByStatus(status: DownloadQueueStatus): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findByStatus(status);
-            return entities.toArray().map((entity) => this.getOrCreateObservableTask(entity));
+            return entities.toArray();
         } catch (error) {
             this.logger.error(`Failed to get download tasks with status ${status}`, error);
             throw new InferenceModelDownloaderException(`Failed to get download tasks with status ${status}`, error instanceof Error ? error : undefined);
@@ -181,23 +99,12 @@ export class DownloadTaskManager {
     /**
      * Get download task by UUID.
      */
-    public async getById(uuid: string): Promise<ObservableDownloadTask | null> {
+    public async getById(uuid: string): Promise<DownloadQueue | null> {
         try {
-            // Check cache first
-            const cached = this.observableItems.get(uuid);
-            if (cached) {
-                return cached;
-            }
-
-            // Fetch from database - use Criteria.of to create proper criteria
             const criteria = Criteria.of({ uuid });
             const entityCollection = await this.repository.findBy(criteria);
             const entity = entityCollection.first();
-            if (entity == null) {
-                return null;
-            }
-
-            return this.getOrCreateObservableTask(entity);
+            return entity ?? null;
         } catch (error) {
             this.logger.error(`Failed to get download task by UUID ${uuid}`, error);
             throw new InferenceModelDownloaderException(`Failed to get download task by UUID ${uuid}`, error instanceof Error ? error : undefined);
@@ -205,12 +112,12 @@ export class DownloadTaskManager {
     }
 
     /**
-     * Get all download tasks (observable).
+     * Get all download tasks.
      */
-    public async getAll(): Promise<ObservableDownloadTask[]> {
+    public async getAll(): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findAll();
-            return entities.toArray().map((entity) => this.getOrCreateObservableTask(entity));
+            return entities.toArray();
         } catch (error) {
             this.logger.error('Failed to get all download tasks', error);
             throw new InferenceModelDownloaderException('Failed to get all download tasks', error instanceof Error ? error : undefined);
@@ -220,10 +127,10 @@ export class DownloadTaskManager {
     /**
      * Get download tasks by capability.
      */
-    public async getByCapability(capability: string): Promise<ObservableDownloadTask[]> {
+    public async getByCapability(capability: string): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findByCapability(capability);
-            return entities.toArray().map((entity) => this.getOrCreateObservableTask(entity));
+            return entities.toArray();
         } catch (error) {
             this.logger.error(`Failed to get download tasks for capability ${capability}`, error);
             throw new InferenceModelDownloaderException(
@@ -236,10 +143,10 @@ export class DownloadTaskManager {
     /**
      * Get download tasks by capability and language.
      */
-    public async getByCapabilityAndLanguage(capability: string, language: string): Promise<ObservableDownloadTask[]> {
+    public async getByCapabilityAndLanguage(capability: string, language: string): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findByCapabilityAndLanguage(capability, language);
-            return entities.toArray().map((entity) => this.getOrCreateObservableTask(entity));
+            return entities.toArray();
         } catch (error) {
             this.logger.error(`Failed to get download tasks for ${capability}/${language}`, error);
             throw new InferenceModelDownloaderException(
@@ -415,7 +322,7 @@ export class DownloadTaskManager {
     /**
      * Get active download session for a capability.
      */
-    public getActiveSession(capability: string): DownloadSession | undefined {
+    public getActiveSession(capability: string): DownloadTaskExecutor | undefined {
         return this.activeSessions.get(capability);
     }
 
@@ -461,14 +368,12 @@ export class DownloadTaskManager {
                 // Update status to downloading
                 await this.updateStatus(task.getUuid(), DownloadQueueStatus.Downloading);
 
-                // Create download session - convert DownloadQueue to ObservableDownloadTask first
-                const observableTask = this.getOrCreateObservableTask(task);
+                // Create download session with plain entity
                 const config = await getConfig(capability, language);
-                const session = new DownloadSession(
+                const session = new DownloadTaskExecutor(
                     this.logger,
-                    observableTask,
+                    task,
                     config,
-                    this.fileDownloader,
                     this.checksumVerifier,
                     this.artifactStorage,
                     (progress: number) => this.updateProgress(task.getUuid(), progress),
@@ -534,29 +439,29 @@ export class DownloadTaskManager {
     /**
      * Get all active download sessions.
      */
-    public getActiveSessions(): DownloadSession[] {
+    public getActiveSessions(): DownloadTaskExecutor[] {
         return Array.from(this.activeSessions.values());
     }
 
     /**
      * Create a download session for a queued task.
-     * @param queueItem - The observable download task from the queue
+     * @param queueEntity - The DownloadQueue entity from the database
      * @param config - Model configuration for the download
      */
-    public createSession(queueItem: ObservableDownloadTask, config: ModelConfig): DownloadSession {
+    public createSession(queueEntity: DownloadQueue, config: ModelConfig): DownloadTaskExecutor {
         // Check if a session already exists for this capability
-        const existingSession = this.activeSessions.get(queueItem.capability);
+        const existingSession = this.activeSessions.get(queueEntity.capability);
         if (existingSession) {
-            this.logger.debug(`Session already exists for capability ${queueItem.capability}`);
+            this.logger.debug(`Session already exists for capability ${queueEntity.capability}`);
             return existingSession;
         }
 
         // Create new session
-        const session = new DownloadSession(this.logger, queueItem, config, this.fileDownloader, this.checksumVerifier, this.artifactStorage);
+        const session = new DownloadTaskExecutor(this.logger, queueEntity, config, this.checksumVerifier, this.artifactStorage);
 
         // Store in active sessions map
-        this.activeSessions.set(queueItem.capability, session);
-        this.logger.debug(`Created download session for capability ${queueItem.capability}`);
+        this.activeSessions.set(queueEntity.capability, session);
+        this.logger.debug(`Created download session for capability ${queueEntity.capability}`);
 
         return session;
     }
@@ -570,7 +475,6 @@ export class DownloadTaskManager {
             for (const item of all.toArray()) {
                 await this.repository.remove(item);
             }
-            this.observableItems.clear();
             this.activeSessions.clear();
             this.logger.debug('Cleared all download tasks');
         } catch (error) {

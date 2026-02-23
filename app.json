@@ -4,6 +4,8 @@
         "scheme": "tiro-scribe",
         "slug": "tiro-scribe",
         "version": "0.1.0",
+        "newArchEnabled": true,
+        "icon": "./assets/icon.png",
         "orientation": "portrait",
         "assetBundlePatterns": ["**/*"],
         "ios": {
@@ -25,10 +27,8 @@
             [
                 "expo-build-properties",
                 {
-                    "newArchEnabled": true,
                     "hermesEnabled": true,
                     "android": {
-                        "newArchEnabled": true,
                         "hermesEnabled": true,
                         "packagingOptions": {
                             "pickFirst": ["**/libc++_shared.so", "**/libfbjni.so", "**/libonnxruntime.so"]
@@ -42,8 +42,7 @@
                     },
                     "ios": {
                         "deploymentTarget": "16.0",
-                        "useFrameworks": "static",
-                        "newArchEnabled": true
+                        "useFrameworks": "static"
                     }
                 }
             ],

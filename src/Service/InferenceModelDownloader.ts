@@ -18,6 +18,7 @@
  */
 
 import type { InferenceModelFile, ModelConfig } from '@/Api';
+import { DownloadQueueStatus } from '@/Entity/Type';
 import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
 import { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ChecksumVerifier } from './InferenceModelDownload/ChecksumVerifier';
@@ -91,8 +92,8 @@ export class InferenceModelDownloader {
         // Remove from database queue if pending
         const queueItems = await this.downloadTaskManager.getByCapability(capability);
         for (const item of queueItems) {
-            if (item.status === DownloadState.Pending || item.status === DownloadState.Downloading) {
-                await this.downloadTaskManager.remove(item.id);
+            if (item.getStatus() === DownloadQueueStatus.Pending || item.getStatus() === DownloadQueueStatus.Downloading) {
+                await this.downloadTaskManager.remove(item.getUuid());
             }
         }
     }

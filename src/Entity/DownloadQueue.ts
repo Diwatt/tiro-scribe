@@ -28,10 +28,10 @@ export class DownloadQueue extends AbstractEntity {
     @Column({ default: '', type: 'varchar', length: 8, index: true })
     public language!: string;
 
-    @Column({ default: DownloadQueueStatus.Pending, type: 'varchar', length: 16, index: true, observable: true })
+    @Column({ default: DownloadQueueStatus.Pending, type: 'varchar', length: 16, index: true })
     public status!: DownloadQueueStatus;
 
-    @Column({ default: 0, type: 'integer', observable: true })
+    @Column({ default: 0, type: 'integer' })
     public progressPercent!: number;
 
     @Column({ default: 0, type: 'integer' })
@@ -40,7 +40,7 @@ export class DownloadQueue extends AbstractEntity {
     @Column({ default: 3, type: 'integer' })
     public maxRetries!: number;
 
-    @Column({ default: '', type: 'text', observable: true })
+    @Column({ default: '', type: 'text' })
     public errorMessage!: string;
 
     @Column({ default: '{}', type: 'text', as: 'json' })

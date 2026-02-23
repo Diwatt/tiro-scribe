@@ -30,7 +30,6 @@ type CacheKey =
     | 'primaryKeyField'
     | 'repositoryClassKey'
     | 'tableName'
-    | 'observableFields'
     | 'dataObjectMapping';
 
 export class EntityMetadata {
@@ -115,35 +114,12 @@ export class EntityMetadata {
             return null;
         }
 
-        let targetClass: EntityClassStatic | undefined;
-        if (typeof options.target === 'function') {
-            // Check if it's a factory function (returns a class) or a class constructor
-            try {
-                // Try calling it as a factory function first
-                const result = (options.target as () => EntityClassStatic)();
-                if (result && typeof result === 'function' && result.prototype && result.entityName) {
-                    // It's a factory function that returns a class
-                    targetClass = result;
-                } else if (options.target.prototype && (options.target as EntityClassStatic).entityName) {
-                    // It's already a class constructor
-                    targetClass = options.target as EntityClassStatic;
-                }
-            } catch {
-                // If calling fails, it might be a class constructor
-                if (options.target.prototype && (options.target as EntityClassStatic).entityName) {
-                    targetClass = options.target as EntityClassStatic;
-                }
-            }
-        } else {
-            targetClass = options.target as EntityClassStatic;
-        }
-
-        const tableName = targetClass?.entityName;
-        if (tableName == null || typeof tableName !== 'string' || tableName.trim() === '') {
+        const targetClass = this.resolveTargetClass(options.target);
+        if (targetClass == null) {
             return null;
         }
 
-        return tableName;
+        return this.normalizeTableName(targetClass.entityName);
     }
 
     /** Default ORDER BY column: created_at if @Column index on createdAt, else primary key column (snake_case). */
@@ -239,21 +215,45 @@ export class EntityMetadata {
         });
     }
 
-    /** All @Column fields where observable === true. */
-    public getObservableFields(): FieldDecorator[] {
-        return this.getOrSet('observableFields', () => {
-            return this.getColumnFields().filter((field) => {
-                const opts = field.getOptions<ColumnOptions>();
-                return opts.observable === true;
-            });
-        });
-    }
-
     private getOrSet<T>(key: CacheKey, factory: () => T): T {
         if (!this.cache.has(key)) {
             this.cache.set(key, factory());
         }
 
         return this.cache.get(key) as T;
+    }
+
+    private isEntityClassStatic(value: unknown): value is EntityClassStatic {
+        return typeof value === 'function' && (value as EntityClassStatic).prototype != null && (value as EntityClassStatic).entityName != null;
+    }
+
+    private normalizeTableName(value: unknown): string | null {
+        if (typeof value !== 'string') {
+            return null;
+        }
+
+        const trimmed = value.trim();
+        if (trimmed === '') {
+            return null;
+        }
+
+        return trimmed;
+    }
+
+    private resolveTargetClass(target: ForeignKeyOptions['target']): EntityClassStatic | null {
+        if (typeof target !== 'function') {
+            return this.isEntityClassStatic(target) ? target : null;
+        }
+
+        try {
+            const result = (target as () => EntityClassStatic)();
+            if (this.isEntityClassStatic(result)) {
+                return result;
+            }
+        } catch {
+            // Ignore factory invocation failure and fall back to class-constructor validation.
+        }
+
+        return this.isEntityClassStatic(target) ? target : null;
     }
 }

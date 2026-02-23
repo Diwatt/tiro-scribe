@@ -9,13 +9,14 @@
  */
 
 import { AppLogger } from '@/Service/Logger';
-import { DecoratorException } from '../Exception/DecoratorException';
 import { EntityDecorator } from './EntityDecorator';
 import { FieldDecorator } from './FieldDecorator';
 import { MetadataWriter } from './MetadataWriter';
 import type { MetadataConstructor } from './Type';
 
 export class MetadataReader {
+    private cachedFields?: FieldDecorator[];
+
     constructor(private readonly construct: MetadataConstructor) {}
 
     /**
@@ -53,6 +54,10 @@ export class MetadataReader {
      * when we have the constructor; field decorators run with only (propertyName, decoratorName, options).
      */
     public getFields(): FieldDecorator[] {
+        if (this.cachedFields != null) {
+            return this.cachedFields;
+        }
+
         const logger = AppLogger.getInstance();
         const meta = this.getSymbolMetadata();
 
@@ -97,6 +102,8 @@ export class MetadataReader {
 
         logger.debug('[MetadataReader] Total field decorators found:', out.length);
 
+        this.cachedFields = out;
+
         return out;
     }
 
@@ -110,15 +117,8 @@ export class MetadataReader {
     private getSymbolMetadata(): Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }> | undefined {
         const c = this.construct as unknown as Record<symbol | string, unknown>;
 
-        // Hermes-only: Symbol.metadata is always available
-        if (!Symbol.metadata) {
-            throw new DecoratorException(
-                'Symbol.metadata is not available. This should never happen in Hermes with Stage 3 decorators.',
-                'METADATA_UNAVAILABLE',
-            );
-        }
-
-        const metadata = c[Symbol.metadata as symbol];
+        const metadataSymbol = Symbol.metadata ?? Symbol.for('Symbol.metadata');
+        const metadata = c[metadataSymbol as symbol];
         if (metadata != null && typeof metadata === 'object') {
             return metadata as Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }>;
         }

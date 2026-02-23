@@ -53,7 +53,7 @@ export class Collection<T> implements Iterable<T> {
     /**
      * Map each item in the collection using a mapper function.
      */
-    public map<U>(mapper: (item: T, index: number) => U): Collection <U> {
+    public map<U>(mapper: (item: T, index: number) => U): Collection<U> {
         return new Collection(this.items.map(mapper));
     }
 
@@ -72,13 +72,6 @@ export class Collection<T> implements Iterable<T> {
     }
 
     /**
-     * Convert collection items to Observables using a converter function.
-     */
-    public toObservable<O>(converter: (item: T) => O): O[] {
-        return this.items.map(converter);
-    }
-
-    /**
      * Convert collection items to DataObjects using each entity's toDataObject method.
      * This is a convenience method for collections of AbstractEntity.
      */
@@ -92,24 +85,6 @@ export class Collection<T> implements Iterable<T> {
             throw new Error('Collection items must have toDataObject method');
         }
         return this.items.map((item) => (item as unknown as AbstractEntity).toDataObject()) as T extends AbstractEntity ? Record<string, unknown>[] : never;
-    }
-
-    /**
-     * Convert collection items to Observables using each entity's toObservable method.
-     * This is a convenience method for collections of AbstractEntity.
-     * Returns an array of observable objects, each containing an 'entity' property.
-     */
-    public toObservables(): T extends AbstractEntity ? (Record<string, unknown> & { entity: AbstractEntity })[] : never {
-        if (this.items.length === 0) {
-            return [] as unknown as T extends AbstractEntity ? (Record<string, unknown> & { entity: AbstractEntity })[] : never;
-        }
-        const first = this.items[0] as unknown;
-        if (typeof (first as Record<string, unknown>).toObservable !== 'function') {
-            throw new Error('Collection items must have toObservable method');
-        }
-        return this.items.map((item) => (item as unknown as AbstractEntity).toObservable()) as T extends AbstractEntity
-            ? (Record<string, unknown> & { entity: AbstractEntity })[]
-            : never;
     }
 
     /**
