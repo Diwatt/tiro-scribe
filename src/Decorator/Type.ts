@@ -95,8 +95,8 @@ export interface ClassDecoratorConfig<TOptions = object> {
     validate?(options: TOptions): void;
 }
 
-/** Interface for field decorators (e.g. Column, PrimaryKey). Implement and pass an instance to Builder.buildField. */
-export interface FieldDecoratorConfig<TOptions = object> {
+/** Interface for property decorators (e.g. Column, PrimaryKey). Implement and pass an instance to Builder.buildField. */
+export interface PropertyDecoratorConfig<TOptions = object> {
     /** Optional schema; when set, builder runs schemaValidator.validate before before/initializer. errorCode used for exceptions. */
     schema?: OptionsSchema;
     errorCode?: string;

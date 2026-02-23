@@ -1,12 +1,12 @@
 /**
- * Standardized field decorator data (DTO returned by MetadataReader.getFields / getField / getFieldByProperty).
+ * Standardized property decorator data (DTO returned by MetadataReader.getFields / getField / getFieldByProperty).
  * Option values may be literals or factories (() => value); getOption and getOptions return resolved values.
  */
-export class FieldDecorator {
+export class PropertyDecorator {
     constructor(
         private readonly _decoratorName: string,
-        private readonly _entityName: string,
-        private readonly _fieldName: string,
+        private readonly _className: string,
+        private readonly _propertyName: string,
         private readonly _options: unknown,
     ) {}
 
@@ -14,13 +14,13 @@ export class FieldDecorator {
         return this._decoratorName;
     }
 
-    /** Name of the entity (class) this field belongs to. */
-    public getEntityName(): string {
-        return this._entityName;
+    /** Name of the class this property belongs to. */
+    public getClassName(): string {
+        return this._className;
     }
 
-    public getFieldName(): string {
-        return this._fieldName;
+    public getPropertyName(): string {
+        return this._propertyName;
     }
 
     /** All options with values resolved (factory → called, value → as-is). Specify TOptions when the decorator type is known (e.g. getOptions<ColumnOptions>()). */

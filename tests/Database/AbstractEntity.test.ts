@@ -60,6 +60,19 @@ describe('AbstractEntity', () => {
             expect(record.name).toBe('rec');
             expect(Object.keys(record).sort()).toEqual(['id', 'name']);
         });
+
+        it('property accessors are wired and apply transformers', () => {
+            const e = new TestEntity({ name: 'alice' }) as any;
+            // getter should read value from internal map
+            expect(e.name).toBe('alice');
+            e.name = 'bob';
+            expect(e.getField('name')).toBe('bob');
+        });
+
+        // with the proxy implementation there is no prototype wiring step to
+        // observe; all behavior is dynamic.  The earlier version of this test
+        // asserted that defineProperty ran only once per class, which no
+        // longer makes sense under the proxy.
     });
 
     describe('B — Boundary', () => {

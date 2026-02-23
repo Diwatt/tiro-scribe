@@ -5,10 +5,10 @@
  */
 
 import snakeCase from 'lodash/snakeCase';
-import type { EntityDecorator } from '../../Decorator/EntityDecorator';
-import { FieldDecorator } from '../../Decorator/FieldDecorator';
+import type { ClassDecorator as EntityDecorator } from '../../Decorator/ClassDecorator';
 import { MetadataReader } from '../../Decorator/MetadataReader';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
+import { PropertyDecorator } from '../../Decorator/PropertyDecorator';
 import type { MetadataConstructor } from '../../Decorator/Type';
 import { DatabaseException } from '../../Exception';
 import type { EntityClassStatic } from '../AbstractEntity';
@@ -69,14 +69,14 @@ export class EntityMetadata {
         return values != null && typeof values === 'object' ? values : {};
     }
 
-    /** All @Column FieldDecorator instances. Cached. Single source for column data. */
-    public getColumnFields(): FieldDecorator[] {
+    /** All @Column PropertyDecorator instances. Cached. Single source for column data. */
+    public getColumnFields(): PropertyDecorator[] {
         return this.getOrSet('columnFields', () => this.reader.getFieldsByDecorator(EntityMetadata.DECORATOR_COLUMN));
     }
 
     /** All @Column field names. Cached. Derived from getColumnFields(). */
     public getColumnNames(): string[] {
-        return this.getOrSet('columnNames', () => this.getColumnFields().map((f) => f.getFieldName()));
+        return this.getOrSet('columnNames', () => this.getColumnFields().map((f) => f.getPropertyName()));
     }
 
     /** Columns that have @ForeignKey: property name + snake_case column name. Cached. */
@@ -84,7 +84,7 @@ export class EntityMetadata {
         return this.getOrSet('foreignKeyColumns', () => {
             const result: ForeignKeyColumnRef[] = [];
             for (const field of this.getColumnFields()) {
-                const propertyName = field.getFieldName();
+                const propertyName = field.getPropertyName();
                 const decorators = this.reader.getFieldByProperty(propertyName);
                 const hasForeignKey = decorators.some((d) => d.getDecoratorName() === EntityMetadata.DECORATOR_FOREIGN_KEY);
                 if (hasForeignKey) {
@@ -126,7 +126,7 @@ export class EntityMetadata {
     public getOrderByColumnName(): string {
         return this.getOrSet('orderByColumnName', () => {
             const hasCreatedAtIndex = this.getColumnFields().some(
-                (f) => f.getFieldName() === EntityMetadata.FIELD_CREATED_AT && f.getOptions<ColumnOptions>().index === true,
+                (f) => f.getPropertyName() === EntityMetadata.FIELD_CREATED_AT && f.getOptions<ColumnOptions>().index === true,
             );
 
             return hasCreatedAtIndex ? 'created_at' : snakeCase(this.getPrimaryKeyField());
@@ -134,7 +134,7 @@ export class EntityMetadata {
     }
 
     /** @Column decorator for the primary key property (for DDL type/length). */
-    public getPrimaryKeyColumnField(): FieldDecorator | undefined {
+    public getPrimaryKeyColumnField(): PropertyDecorator | undefined {
         const value = this.getOrSet('primaryKeyColumnField', () => {
             const fromReader = this.reader.getFieldByProperty(this.getPrimaryKeyField()).find((f) => f.getDecoratorName() === EntityMetadata.DECORATOR_COLUMN);
             if (fromReader != null) {
@@ -144,7 +144,7 @@ export class EntityMetadata {
                 | { propertyName: string; type: string; length?: number }
                 | undefined;
             if (fromFallback != null && typeof fromFallback.propertyName === 'string' && typeof fromFallback.type === 'string') {
-                return new FieldDecorator(EntityMetadata.DECORATOR_COLUMN, this.construct.name ?? '', fromFallback.propertyName, {
+                return new PropertyDecorator(EntityMetadata.DECORATOR_COLUMN, this.construct.name ?? '', fromFallback.propertyName, {
                     type: fromFallback.type,
                     length: fromFallback.length,
                 });
@@ -152,7 +152,7 @@ export class EntityMetadata {
             return null;
         });
 
-        return (value as FieldDecorator | null) ?? undefined;
+        return (value as PropertyDecorator | null) ?? undefined;
     }
 
     /** Primary key property name. @Entity validates at definition time that exactly one @PrimaryKey exists. */
@@ -160,7 +160,7 @@ export class EntityMetadata {
         return this.getOrSet('primaryKeyField', () => {
             const fromReader = this.reader.getField(EntityMetadata.DECORATOR_PRIMARY_KEY);
             if (fromReader != null) {
-                return fromReader.getFieldName();
+                return fromReader.getPropertyName();
             }
             const fromFallback = (this.construct as unknown as Record<string, unknown>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY];
             if (typeof fromFallback === 'string') {

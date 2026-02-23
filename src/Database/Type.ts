@@ -3,7 +3,7 @@
  */
 
 import type { DownloadQueue, Encounter, Patient, ProsodyMetrics, QueueItem, Therapist, Transcription } from '@/Entity';
-import type { AbstractEntity, EntityClassStatic } from './AbstractEntity';
+import type { AbstractEntity } from './AbstractEntity';
 
 /** Inserts an underscore before each capital letter (for camelCase → snake_case). */
 type InsertUnderscoreBeforeCap<S extends string> = S extends `${infer A}${infer B}`
@@ -50,5 +50,13 @@ type EntityTablesType = readonly [
 /** Database schema for Kysely (table names → row types). Uses manual type definition for compile-time safety. */
 export type DatabaseSchema = SchemaFromTables<EntityTablesType>;
 
-/** What getRepository() accepts: entity class (EntityClassStatic). Custom repos are registered in Registry. */
-export type EntityClass<TEntity extends AbstractEntity = AbstractEntity> = EntityClassStatic<TEntity>;
+/** Constructor type for an entity class. The constructor must extend
+ * `AbstractEntity` and declare a static `entityName` property –
+ * `typeof AbstractEntity` satisfies this contract.
+ *
+ * Generic parameter remains only for inference convenience; most callers
+ * can omit it and let TypeScript infer from the argument.
+ */
+/** Constructor type accepted by registry and repositories: any class extending
+ * AbstractEntity with a static `entityName` string. */
+export type EntityClass = (new (...args: unknown[]) => AbstractEntity) & { entityName: string };

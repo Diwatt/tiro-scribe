@@ -22,9 +22,7 @@ const ERROR_CODES = {
 export class Registry {
     private readonly repositories = new Map<string, Repository<AbstractEntity>>();
 
-    public async getRepository<TEntity extends AbstractEntity, TRepository extends Repository<AbstractEntity> = Repository<TEntity>>(
-        EntityClass: EntityClass<TEntity>,
-    ): Promise<TRepository> {
+    public async getRepository(EntityClass: EntityClass): Promise<Repository> {
         const entityName = EntityClass.entityName;
         if (!entityName) {
             throw new DatabaseException(`Entity class ${EntityClass.name} must define static entityName`, ERROR_CODES.entityNameRequired, undefined, {
@@ -34,7 +32,7 @@ export class Registry {
 
         const existing = this.repositories.get(entityName);
         if (existing) {
-            return existing as TRepository;
+            return existing as Repository;
         }
 
         const meta = EntityMetadata.for(EntityClass as unknown as MetadataConstructor);
@@ -53,9 +51,9 @@ export class Registry {
             customClass = RepoClass;
         }
 
-        const repository = Repository.create<TEntity>(entityName, EntityClass, customClass);
+        const repository = Repository.create(entityName, EntityClass, customClass);
         this.repositories.set(entityName, repository);
-        return repository as TRepository;
+        return repository;
     }
 }
 

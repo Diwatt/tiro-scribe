@@ -8,7 +8,7 @@ import { CompiledQuery, type Kysely, type Transaction } from 'kysely';
 import { AppLogger } from '@/Service/Logger';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
-import type { AbstractEntity, EntityConstructorInput } from './AbstractEntity';
+import type { AbstractEntity } from './AbstractEntity';
 import { Collection } from './Collection';
 import { Criteria } from './Criteria';
 import { EntityMetadata } from './Decorator';
@@ -17,12 +17,13 @@ import { QueryCompiler, type QueryOptions } from './QueryCompiler';
 import type { DatabaseSchema } from './Type';
 
 /** Entity constructor signature (plain data in, entity out). */
-type EntityConstructor<TEntity extends AbstractEntity> = new (data?: EntityConstructorInput) => TEntity;
+// We no longer parameterize by specific entity type; everything is treated as
+// AbstractEntity at runtime.  Callers can still pass in concrete subclasses
+// but the repository API returns/accepts the base type.
+type EntityConstructor = new (data?: Partial<Record<string, unknown>>) => AbstractEntity;
 
 /** Entity class shape accepted by Repository.create (constructor + entityName). */
-type EntityClassForCreate<TEntity extends AbstractEntity> = EntityConstructor<TEntity> & {
-    entityName: string;
-};
+type EntityClassForCreate = EntityConstructor & { entityName: string };
 
 /** Foreign key column reference (property name → column name). */
 interface RealForeignKeyColumn {
@@ -30,8 +31,8 @@ interface RealForeignKeyColumn {
     columnName: string;
 }
 
-export class Repository<TEntity extends AbstractEntity> {
-    private readonly entityClass: EntityConstructor<TEntity>;
+export class Repository {
+    private readonly entityClass: EntityConstructor;
     private readonly tableName: string;
     private readonly metadata: EntityMetadata;
     private readonly primaryKeyField: string;
@@ -43,19 +44,15 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Creates the appropriate repository: custom repo class when provided (e.g. by Registry), else generic Repository.
      */
-    public static create<TEntity extends AbstractEntity>(
-        entityName: string,
-        EntityClass: EntityClassForCreate<TEntity>,
-        customRepositoryClass?: new () => Repository<AbstractEntity>,
-    ): Repository<AbstractEntity> {
+    public static create(entityName: string, EntityClass: EntityClassForCreate, customRepositoryClass?: new () => Repository): Repository {
         if (customRepositoryClass) {
             return new customRepositoryClass();
         }
 
-        return new Repository<TEntity>(EntityClass, entityName);
+        return new Repository(EntityClass, entityName);
     }
 
-    protected constructor(entityClass: EntityConstructor<TEntity>, tableName: string, db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>) {
+    protected constructor(entityClass: EntityConstructor, tableName: string, db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>) {
         this.entityClass = entityClass;
         this.tableName = tableName;
         this.db = db ?? qb;
@@ -145,7 +142,7 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Convert database row to entity instance.
      */
-    private toEntity(row: Record<string, unknown>): TEntity {
+    private toEntity(row: Record<string, unknown>): AbstractEntity {
         // Parse JSON data
         const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
 
@@ -170,7 +167,7 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Convert multiple database rows to entities.
      */
-    private toEntities(rows: Record<string, unknown>[]): TEntity[] {
+    private toEntities(rows: Record<string, unknown>[]): AbstractEntity[] {
         return rows.map((row) => this.toEntity(row));
     }
 
@@ -195,7 +192,7 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Find entities matching criteria.
      */
-    public async findBy(criteria: Criteria, options?: QueryOptions): Promise<Collection<TEntity>> {
+    public async findBy(criteria: Criteria, options?: QueryOptions): Promise<Collection<AbstractEntity>> {
         // Validate criteria keys against allowed entity properties
         criteria.validate(this.allowedKeys);
 
@@ -208,7 +205,7 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Find a single entity matching criteria, or null if none.
      */
-    public async findOneBy(criteria: Criteria, options?: QueryOptions): Promise<TEntity | null> {
+    public async findOneBy(criteria: Criteria, options?: QueryOptions): Promise<AbstractEntity | null> {
         const compiled = this.queryCompiler.build(criteria.value(), { ...options, limit: 1 });
         const rows = await this.executeQuery(compiled);
         return rows.length > 0 ? this.toEntity(rows[0]) : null;
@@ -217,14 +214,14 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Find entity by primary key.
      */
-    public async find(primaryKey: string): Promise<TEntity | null> {
+    public async find(primaryKey: string): Promise<AbstractEntity | null> {
         return this.findOneBy(Criteria.of({ [this.primaryKeyField]: primaryKey }));
     }
 
     /**
      * Find all entities (no criteria).
      */
-    public async findAll(options?: QueryOptions): Promise<Collection<TEntity>> {
+    public async findAll(options?: QueryOptions): Promise<Collection<AbstractEntity>> {
         return this.findBy(Criteria.of({}), options);
     }
 
@@ -233,7 +230,7 @@ export class Repository<TEntity extends AbstractEntity> {
      * Uses Kysely's onConflict for upsert operation.
      * Real foreign key columns are written so REFERENCES constraints are satisfied.
      */
-    public async persist(entity: TEntity): Promise<TEntity> {
+    public async persist(entity: AbstractEntity): Promise<AbstractEntity> {
         const logger = AppLogger.getInstance();
         const primaryKey = entity.primaryKey;
 
@@ -290,7 +287,7 @@ export class Repository<TEntity extends AbstractEntity> {
      * The repo passed to the callback is a base Repository (same entity/table);
      * subclass methods (e.g. TherapistRepository) are not available on it.
      */
-    public async transaction<T>(fn: (repo: Repository<TEntity>) => Promise<T>): Promise<T> {
+    public async transaction<T>(fn: (repo: Repository) => Promise<T>): Promise<T> {
         // If we're already in a transaction, we can't start a new one
         // For simplicity, we'll just execute the callback with the current repository
         if ('isTransaction' in this.db) {
@@ -306,7 +303,7 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Reloads an entity from the database by its primary key. Throws if not found.
      */
-    public async refresh(entity: TEntity): Promise<TEntity> {
+    public async refresh(entity: AbstractEntity): Promise<AbstractEntity> {
         const primaryKey = entity.primaryKey;
         const loaded = await this.find(primaryKey);
         if (loaded == null) {
@@ -321,7 +318,7 @@ export class Repository<TEntity extends AbstractEntity> {
         return loaded;
     }
 
-    public async remove(entity: TEntity): Promise<void> {
+    public async remove(entity: AbstractEntity): Promise<void> {
         await this.db
             .deleteFrom(this.tableName as keyof DatabaseSchema)
             .where('uuid', '=', entity.primaryKey)
@@ -331,7 +328,7 @@ export class Repository<TEntity extends AbstractEntity> {
     /**
      * Full-text search (requires FTS table: {tableName}_fts).
      */
-    public async search(query: string, options?: QueryOptions): Promise<Collection<TEntity>> {
+    public async search(query: string, options?: QueryOptions): Promise<Collection<AbstractEntity>> {
         const ftsTableName = `${this.tableName}_fts`;
         const compiled = this.queryCompiler.build({}, options);
         // Replace FROM clause to use FTS table instead of main table
@@ -357,7 +354,7 @@ export class Repository<TEntity extends AbstractEntity> {
 
             return new Collection(entities);
         } catch {
-            return new Collection<TEntity>([]);
+            return new Collection<AbstractEntity>([]);
         }
     }
 }

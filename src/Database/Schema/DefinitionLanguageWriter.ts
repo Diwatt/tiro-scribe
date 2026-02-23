@@ -9,24 +9,20 @@
 import { CompiledQuery, type Kysely } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
 import type { DatabaseSchema } from '@/Database/Type';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger, type LoggerInterface } from '@/Service/Logger';
 import type { TableDefinition } from './TableDefinition';
 
 /** Row shape returned by PRAGMA table_info(table). Keys match SQLite (e.g. "name"). */
 type TableInfoRow = Record<string, unknown> & { name?: string };
 
-/** Transaction-like interface for testing compatibility */
-export interface TransactionLike {
-    execute(sql: string, params?: readonly unknown[]): Promise<{ rows?: unknown[] } | undefined>;
-    transaction?<T>(fn: (tx: TransactionLike) => Promise<T>): Promise<T>;
-}
-
 /** Executes schema SQL (Data Definition Language: CREATE TABLE, ADD COLUMN for missing columns, CREATE INDEX, full-text search table, triggers). */
 export class DefinitionLanguageWriter {
-    private readonly db: Kysely<DatabaseSchema> | TransactionLike;
+    private readonly db: Kysely<DatabaseSchema>;
+    private readonly logger: LoggerInterface;
 
-    public constructor(db: Kysely<DatabaseSchema> | TransactionLike) {
+    public constructor(db: Kysely<DatabaseSchema>, logger: LoggerInterface = AppLogger.getInstance()) {
         this.db = db;
+        this.logger = logger;
     }
 
     /**
@@ -53,6 +49,7 @@ export class DefinitionLanguageWriter {
      * Column names are parsed as the first token of each DDL line (definition is from entity metadata; format is simple "name TYPE ...").
      * For virtual columns, ADD COLUMN may fail on older SQLite; errors are logged and skipped.
      */
+
     private async migrateMissingColumns(definition: TableDefinition): Promise<void> {
         const result = await this.executeRaw<TableInfoRow>(`PRAGMA table_info(${definition.tableName})`);
         const rows = result?.rows ?? [];
@@ -83,7 +80,7 @@ export class DefinitionLanguageWriter {
             return true;
         } catch (err) {
             if (isVirtualOrGenerated) {
-                AppLogger.getInstance().warn('[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)', {
+                this.logger.warn('[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)', {
                     tableName,
                     columnName,
                     columnDdl,
@@ -97,15 +94,8 @@ export class DefinitionLanguageWriter {
     }
 
     private async executeRaw<T = Record<string, unknown>>(sqlText: string): Promise<{ rows?: T[] }> {
-        if ('executeQuery' in this.db && typeof this.db.executeQuery === 'function') {
-            const result = await (this.db as Kysely<DatabaseSchema>).executeQuery(CompiledQuery.raw(sqlText, []));
-
-            return { rows: (result?.rows ?? []) as T[] };
-        }
-
-        const result = await (this.db as TransactionLike).execute(sqlText, []);
-
-        return { rows: result?.rows as T[] | undefined };
+        const result = await this.db.executeQuery(CompiledQuery.raw(sqlText, []));
+        return { rows: (result?.rows ?? []) as T[] };
     }
 
     /** Builds the SQL expression that extracts content from a JSON field for full-text indexing. */

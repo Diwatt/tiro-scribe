@@ -6,7 +6,7 @@
 
 import { sql } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
-import type { FieldDecorator } from '@/Decorator/FieldDecorator';
+import type { PropertyDecorator } from '@/Decorator/PropertyDecorator';
 import { DatabaseException } from '@/Exception';
 import type { ColumnOptions, EntityMetadata } from '../Decorator';
 import { OnDeleteAction } from '../Decorator';
@@ -22,14 +22,24 @@ interface PrimaryKeyColumnDef {
 }
 
 export class DefinitionBuilder {
-    /** SQLite types that accept a length in DDL (e.g. VARCHAR(36)). */
-    private static readonly SQLITE_TYPES_WITH_LENGTH = new Set<string>(['VARCHAR', 'CHAR', 'CHARACTER']);
+    /**
+     * Format SQL type string; uppercase and optionally include a length.
+     * SQLite ignores length, but keeping it matches our schema tests and
+     * doesn't hurt readability.
+     */
+    private formatSqlType(type: string, length?: number): string {
+        const upper = type.toUpperCase();
+        if (length != null && length > 0) {
+            return `${upper}(${length})`;
+        }
+        return upper;
+    }
 
     private readonly tableName: string;
     private readonly primaryKeyPropertyName: string;
     private readonly primaryKeyColumnName: string;
     private readonly primaryKeyColumn: PrimaryKeyColumnDef;
-    private readonly columnFields: FieldDecorator[];
+    private readonly columnFields: PropertyDecorator[];
     /** Property name → " REFERENCES table(column) ON DELETE action" for columns with @ForeignKey. */
     private readonly foreignKeyClauseByPropertyName: Map<string, string>;
 
@@ -39,7 +49,7 @@ export class DefinitionBuilder {
         if (primaryKeyColumnField == null) {
             throw new DatabaseException('Entity must have @Entity and @PrimaryKey.', 'ENTITY_METADATA_REQUIRED', undefined);
         }
-        this.primaryKeyPropertyName = primaryKeyColumnField.getFieldName();
+        this.primaryKeyPropertyName = primaryKeyColumnField.getPropertyName();
         this.primaryKeyColumnName = snakeCase(this.primaryKeyPropertyName);
         const primaryKeyOptions = primaryKeyColumnField.getOptions<ColumnOptions>();
         const primaryKeyType = String(primaryKeyOptions.type).toUpperCase();
@@ -49,7 +59,7 @@ export class DefinitionBuilder {
             type: primaryKeyType,
             length: primaryKeyLength,
         };
-        this.columnFields = metadata.getColumnFields().filter((f) => f.getFieldName() !== this.primaryKeyPropertyName);
+        this.columnFields = metadata.getColumnFields().filter((f) => f.getPropertyName() !== this.primaryKeyPropertyName);
         this.foreignKeyClauseByPropertyName = this.buildForeignKeyClauses(metadata);
     }
 
@@ -63,7 +73,7 @@ export class DefinitionBuilder {
         };
         addIfPresent(this.primaryKeyPropertyName);
         for (const field of this.columnFields) {
-            addIfPresent(field.getFieldName());
+            addIfPresent(field.getPropertyName());
         }
 
         return map;
@@ -94,14 +104,6 @@ export class DefinitionBuilder {
         return new TableDefinition(this.tableName, this.primaryKeyColumnName, columns, indexes, fullTextSearchFields);
     }
 
-    private formatSqlType(type: string, length?: number): string {
-        if (length != null && length > 0 && DefinitionBuilder.SQLITE_TYPES_WITH_LENGTH.has(type)) {
-            return `${type}(${length})`;
-        }
-
-        return type;
-    }
-
     /**
      * Builds column DDL: primary key, data, then real columns for @ForeignKey fields, then virtual columns for index-only fields.
      * SQLite forbids REFERENCES on virtual columns, so foreign key fields must be real columns.
@@ -118,7 +120,7 @@ export class DefinitionBuilder {
         columns.push('data TEXT NOT NULL');
 
         for (const field of this.columnFields) {
-            const propertyName = field.getFieldName();
+            const propertyName = field.getPropertyName();
             const hasForeignKey = this.foreignKeyClauseByPropertyName.has(propertyName);
             const options = field.getOptions<ColumnOptions>();
 
@@ -146,7 +148,7 @@ export class DefinitionBuilder {
         const indexes: string[] = [];
 
         for (const field of this.columnFields) {
-            const propertyName = field.getFieldName();
+            const propertyName = field.getPropertyName();
             const hasForeignKey = this.foreignKeyClauseByPropertyName.has(propertyName);
             const options = field.getOptions<ColumnOptions>();
 
@@ -177,7 +179,7 @@ export class DefinitionBuilder {
                 continue;
             }
             fullTextSearchFields.push({
-                name: field.getFieldName(),
+                name: field.getPropertyName(),
                 jsonPath: options.fullTextPath,
             });
         }

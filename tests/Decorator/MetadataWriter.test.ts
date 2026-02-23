@@ -2,7 +2,7 @@
 // @ts-expect-error allow setting global for test
 global.__DEV__ = true;
 
-import { EntityDecorator } from '@/Decorator/EntityDecorator';
+import { ClassDecorator as EntityDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 
 describe('MetadataWriter', () => {
@@ -17,7 +17,7 @@ describe('MetadataWriter', () => {
         MetadataWriter.registerEntity(construct, options);
         const stored = (construct as unknown as Record<string, unknown>)[MetadataWriter.ENTITY_METADATA_KEY];
         expect(stored).toBeInstanceOf(EntityDecorator);
-        expect((stored as EntityDecorator).getEntityName()).toBe('mock_entities');
+        expect((stored as EntityDecorator).getOption('tableName')).toBe('mock_entities');
     });
 
     it('registerField appends to metadata.decorators for property', () => {

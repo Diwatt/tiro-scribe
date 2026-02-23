@@ -14,7 +14,7 @@ import { ensureTestTable, clearTestTable } from '../../vitest/mocks/kysely';
 
 describe('Repository', () => {
     const MockEncounter = createMockEncounterConstructor();
-    let repo: Repository<AbstractEntity>;
+    let repo: Repository;
 
     beforeAll(() => {
         ensureTestTable('encounters', ['therapist_id']);

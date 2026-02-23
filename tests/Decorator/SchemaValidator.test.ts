@@ -51,17 +51,17 @@ describe('SchemaValidator', () => {
         });
     });
 
-    describe('ensureFieldDecoratorUniqueness', () => {
+    describe('ensurePropertyDecoratorUniqueness', () => {
         it('does nothing when meta is null or not object', () => {
-            expect(() => validator.ensureFieldDecoratorUniqueness(null, 'id', 'PrimaryKey')).not.toThrow();
-            expect(() => validator.ensureFieldDecoratorUniqueness(undefined, 'id', 'PrimaryKey')).not.toThrow();
+            expect(() => validator.ensurePropertyDecoratorUniqueness(null, 'id', 'PrimaryKey')).not.toThrow();
+            expect(() => validator.ensurePropertyDecoratorUniqueness(undefined, 'id', 'PrimaryKey')).not.toThrow();
         });
 
         it('does not throw when no other property has same decorator', () => {
             const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
                 uuid: { decorators: [{ decoratorName: 'Column' }] },
             };
-            expect(() => validator.ensureFieldDecoratorUniqueness(meta, 'id', 'PrimaryKey')).not.toThrow();
+            expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'id', 'PrimaryKey')).not.toThrow();
         });
 
         it('throws DecoratorException when another property has same decorator', () => {
@@ -69,10 +69,10 @@ describe('SchemaValidator', () => {
                 id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
                 uuid: { decorators: [{ decoratorName: 'Column' }] },
             };
-            expect(() => validator.ensureFieldDecoratorUniqueness(meta, 'uuid', 'PrimaryKey')).toThrow(DecoratorException);
-            expect(() => validator.ensureFieldDecoratorUniqueness(meta, 'uuid', 'PrimaryKey')).toThrow(/already on "id"/);
+            expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'uuid', 'PrimaryKey')).toThrow(DecoratorException);
+            expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'uuid', 'PrimaryKey')).toThrow(/already on \"id\"/);
             try {
-                validator.ensureFieldDecoratorUniqueness(meta, 'uuid', 'PrimaryKey');
+                validator.ensurePropertyDecoratorUniqueness(meta, 'uuid', 'PrimaryKey');
             } catch (e) {
                 expect((e as DecoratorException).code).toBe(MULTIPLE_DECORATORS_NOT_SUPPORTED);
             }
@@ -82,7 +82,7 @@ describe('SchemaValidator', () => {
             const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
                 id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
             };
-            expect(() => validator.ensureFieldDecoratorUniqueness(meta, 'id', 'PrimaryKey')).not.toThrow();
+            expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'id', 'PrimaryKey')).not.toThrow();
         });
     });
 });

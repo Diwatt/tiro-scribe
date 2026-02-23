@@ -26,8 +26,10 @@
  */
 
 import { AppLogger } from '@/Service/Logger';
-import type { EntityOptions } from './EntityDecorator';
-import { EntityDecorator } from './EntityDecorator';
+// options are generic and database-specific; MetadataWriter treats them as
+// an opaque record. Importing a shared type here would unnecessarily couple
+// the generic decorator package to database semantics.
+import { ClassDecorator as EntityDecorator } from './ClassDecorator';
 import type { ClassConstructor } from './Type';
 
 declare const __DEV__: boolean;
@@ -44,11 +46,11 @@ export class MetadataWriter {
     public static readonly PRIMARY_KEY_COLUMN_DEF_KEY = '__primaryKeyColumnDef';
 
     /** Called by @Entity to store entity decorator data. Stores an EntityDecorator so readers get the same type directly. */
-    public static registerEntity(construct: ClassConstructor, options: EntityOptions): void {
+    public static registerEntity(construct: ClassConstructor, options: Record<string, unknown>): void {
         const logger = AppLogger.getInstance();
         logger.debug('[MetadataWriter] Registering entity:', {
             className: construct.name,
-            tableName: options.tableName,
+            options,
             metadataKey: MetadataWriter.ENTITY_METADATA_KEY,
         });
 

@@ -8,7 +8,7 @@
  * private therapistId!: string;
  */
 
-import { Builder, type FieldDecoratorConfig, type OptionsSchema } from '../../Decorator/Builder';
+import { Builder, type OptionsSchema, type PropertyDecoratorConfig } from '../../Decorator/Builder';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
 import type { EntityClassStatic } from '../AbstractEntity';
 
@@ -38,7 +38,7 @@ const FOREIGN_KEY_OPTIONS_SCHEMA = {
     },
 } satisfies OptionsSchema;
 
-class ForeignKeyDecorator implements FieldDecoratorConfig<ForeignKeyOptions> {
+class ForeignKeyDecorator implements PropertyDecoratorConfig<ForeignKeyOptions> {
     public readonly decoratorName = 'ForeignKey';
     public readonly schema = FOREIGN_KEY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_FOREIGN_KEY_OPTIONS';

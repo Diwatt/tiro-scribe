@@ -9,13 +9,13 @@
  */
 
 import { AppLogger } from '@/Service/Logger';
-import { EntityDecorator } from './EntityDecorator';
-import { FieldDecorator } from './FieldDecorator';
+import { ClassDecorator as EntityDecorator } from './ClassDecorator';
 import { MetadataWriter } from './MetadataWriter';
+import { PropertyDecorator } from './PropertyDecorator';
 import type { MetadataConstructor } from './Type';
 
 export class MetadataReader {
-    private cachedFields?: FieldDecorator[];
+    private cachedFields?: PropertyDecorator[];
 
     constructor(private readonly construct: MetadataConstructor) {}
 
@@ -37,8 +37,8 @@ export class MetadataReader {
         if (entry instanceof EntityDecorator) {
             logger.debug('[MetadataReader] Entity metadata found:', {
                 className: this.construct.name,
-                tableName: entry.getEntityName(),
-                decoratorName: entry.getDecoratorName(),
+                tableName: entry.getOption('tableName'),
+                decoratorName: entry.getName(),
             });
             return entry;
         }
@@ -50,10 +50,10 @@ export class MetadataReader {
 
     /**
      * All field decorator data: one per decorator per property (e.g. Column + PrimaryKey on same property = 2 entries).
-     * We build FieldDecorator here (not in MetadataWriter) because entityName (class name) is only available
+     * We build PropertyDecorator here (not in MetadataWriter) because entityName (class name) is only available
      * when we have the constructor; field decorators run with only (propertyName, decoratorName, options).
      */
-    public getFields(): FieldDecorator[] {
+    public getFields(): PropertyDecorator[] {
         if (this.cachedFields != null) {
             return this.cachedFields;
         }
@@ -72,8 +72,8 @@ export class MetadataReader {
             return [];
         }
 
-        const entityName = this.construct.name ?? '';
-        const out: FieldDecorator[] = [];
+        const className = this.construct.name ?? '';
+        const out: PropertyDecorator[] = [];
         const propertyNames = Object.keys(meta);
 
         logger.debug('[MetadataReader] Found properties with metadata:', propertyNames);
@@ -87,7 +87,7 @@ export class MetadataReader {
                 });
 
                 for (const d of decorators) {
-                    const fieldDecorator = new FieldDecorator(d.decoratorName, entityName, propertyName, d.options);
+                    const fieldDecorator = new PropertyDecorator(d.decoratorName, className, propertyName, d.options);
                     out.push(fieldDecorator);
 
                     logger.debug('[MetadataReader] Created field decorator:', {
@@ -110,8 +110,8 @@ export class MetadataReader {
     /**
      * Field decorator data for one property: one per decorator on that property.
      */
-    public getFieldByProperty(propertyName: string): FieldDecorator[] {
-        return this.getFields().filter((f) => f.getFieldName() === propertyName);
+    public getFieldByProperty(propertyName: string): PropertyDecorator[] {
+        return this.getFields().filter((f) => f.getPropertyName() === propertyName);
     }
 
     private getSymbolMetadata(): Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }> | undefined {
@@ -136,17 +136,17 @@ export class MetadataReader {
             if (field.getDecoratorName() !== decoratorName) {
                 continue;
             }
-            out[field.getFieldName()] = field.getOption(optionKey);
+            out[field.getPropertyName()] = field.getOption(optionKey);
         }
         return out;
     }
 
     /**
      * Field decorator with this decorator name (e.g. 'PrimaryKey', 'Column').
-     * Use for unique decorators: reader.getField('PrimaryKey').getFieldName().
+     * Use for unique decorators: reader.getField('PrimaryKey').getPropertyName().
      * target: constructor or instance (uses target.constructor when instance).
      */
-    public static getField(target: object | MetadataConstructor, decoratorName: string): FieldDecorator | undefined {
+    public static getField(target: object | MetadataConstructor, decoratorName: string): PropertyDecorator | undefined {
         const logger = AppLogger.getInstance();
         const construct: MetadataConstructor = typeof target === 'function' ? target : ((target as object).constructor as MetadataConstructor);
 
@@ -164,7 +164,7 @@ export class MetadataReader {
             className: construct.name,
             totalFields: fields.length,
             foundField: !!field,
-            fieldName: field?.getFieldName(),
+            propertyName: field?.getPropertyName(),
         });
 
         return field;
@@ -173,14 +173,14 @@ export class MetadataReader {
     /**
      * Instance form: field decorator with this decorator name for this reader's constructor.
      */
-    public getField(decoratorName: string): FieldDecorator | undefined {
+    public getField(decoratorName: string): PropertyDecorator | undefined {
         return this.getFields().find((f) => f.getDecoratorName() === decoratorName);
     }
 
     /**
      * All field decorators with this decorator name (e.g. getFieldsByDecorator('Column') for all @Column properties).
      */
-    public getFieldsByDecorator(decoratorName: string): FieldDecorator[] {
+    public getFieldsByDecorator(decoratorName: string): PropertyDecorator[] {
         return this.getFields().filter((f) => f.getDecoratorName() === decoratorName);
     }
 }

@@ -9,38 +9,30 @@ import { EntityMetadata } from './Decorator';
 import type { ColumnOptions } from './Decorator/Column';
 import { TransformerRegistry } from './Transformer';
 
-/** Constructor input: plain data for create/hydration. */
-export type EntityConstructorInput = Partial<Record<string, unknown>>;
-
-/** Static contract for entity classes. Subclasses satisfy this via @Entity (entityName) and their constructor. */
-export interface EntityClassStatic<TEntity extends AbstractEntity = AbstractEntity> {
-    new (...args: unknown[]): TEntity;
-    readonly name: string;
-    entityName: string;
-}
-
 /**
- * Base class for entities. Subclasses use @Entity and @Column; each column has explicit get/set.
- *
- * Static members: entityName (set by @Entity). Decorator data from EntityMetadata.for(construct).
- * Decorator data (primary key, column names) come from EntityMetadata.
- *
- * Constructor: pass plain data (e.g. from create/hydration). Rest args satisfy ClassConstructor for @Entity decorator typing.
+ * Core abstract entity for all database tables.  It stores field values,
+ * applies defaults, and defines property accessors; subclasses merely add
+ * metadata via decorators.
  */
 export abstract class AbstractEntity {
+    /**
+     * Tracks which prototypes have had their column accessors wired.  Stored in
+     * a WeakSet so we don’t need to pollute instances with any marker and so
+     * classes can be garbage‑collected normally.  Placed alongside other static
+     * properties rather than in the middle of method definitions.
+     */
+    private static readonly initializedPrototypes = new WeakSet<object>();
     // --- Properties: static first, then instance (protected → private) ---
     /** Table name (set by @Entity decorator on each subclass). */
     public static entityName: string;
-
     /** Field name → value. Used by getField/setField. */
     protected fieldValues: Map<string, unknown> = new Map();
-
     /** Metadata for this entity constructor (resolved once at construction). */
     private readonly entityMetadata: EntityMetadata;
 
     // --- Constructor ---
     public constructor(...args: unknown[]) {
-        const data = args[0] as EntityConstructorInput | undefined;
+        const data = args[0] as Partial<Record<string, unknown>> | undefined;
         this.entityMetadata = EntityMetadata.for(this.constructor as MetadataConstructor);
 
         const defaults = this.entityMetadata.getColumnDefaults();
@@ -48,7 +40,7 @@ export abstract class AbstractEntity {
         const merged = { ...defaults, ...input };
         this.fieldValues = new Map(Object.entries(merged));
 
-        this.initializeColumnAccessors();
+        this.ensureColumnAccessors();
     }
 
     // --- Methods: public → private ---
@@ -110,28 +102,50 @@ export abstract class AbstractEntity {
         return out;
     }
 
-    private initializeColumnAccessors(): void {
+    /**
+     * Define getters/setters for all columns on the prototype, once per class.
+     *
+     * We used to wire accessors on every instance which meant calling
+     * `Object.defineProperty` for each column on every construction.  That
+     * still worked, but it was wasteful and meant the getters captured the
+     * wrong `this` if we later tried to move the logic to the prototype.
+     *
+     * By performing the wiring on the prototype and tracking a simple boolean
+     * flag we avoid the repeated work.  Accessors use plain functions so that
+     * `this` refers to the concrete entity instance when the property is
+     * accessed.
+     */
+    private ensureColumnAccessors(): void {
+        // prototype object for this class; we only ever store it in a WeakSet so
+        // a plain object type is sufficient and avoids needless casts.
+        const proto = Object.getPrototypeOf(this);
+        if (AbstractEntity.initializedPrototypes.has(proto)) {
+            return;
+        }
+
         for (const field of this.entityMetadata.getColumnFields()) {
-            const fieldName = field.getFieldName();
+            const propertyName = field.getPropertyName();
             const options = field.getOptions<ColumnOptions>();
             const transformer = options.as != null ? TransformerRegistry.get(options.as) : undefined;
 
-            Object.defineProperty(this, fieldName, {
+            Object.defineProperty(proto, propertyName, {
                 configurable: true,
                 enumerable: true,
-                get: () => {
-                    const raw = this.getField(fieldName);
+                get(this: AbstractEntity) {
+                    const raw = this.getField(propertyName);
                     return transformer != null ? transformer.fromStorage(raw) : raw;
                 },
-                set: (value: unknown) => {
-                    if (value === undefined && this.fieldValues.has(fieldName)) {
+                set(this: AbstractEntity, value: unknown) {
+                    if (value === undefined && this.fieldValues.has(propertyName)) {
                         return;
                     }
 
                     const stored = transformer != null ? transformer.toStorage(value) : value;
-                    this.setField(fieldName, stored);
+                    this.setField(propertyName, stored);
                 },
             });
         }
+
+        AbstractEntity.initializedPrototypes.add(proto);
     }
 }

@@ -8,10 +8,10 @@
  * public uuid!: string;
  */
 
-import { Builder, type FieldDecoratorConfig } from '../../Decorator/Builder';
+import { Builder, type PropertyDecoratorConfig } from '../../Decorator/Builder';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
 
-class PrimaryKeyDecorator implements FieldDecoratorConfig<Record<string, never>> {
+class PrimaryKeyDecorator implements PropertyDecoratorConfig<Record<string, never>> {
     public readonly unique = true;
     public readonly decoratorName = 'PrimaryKey';
 

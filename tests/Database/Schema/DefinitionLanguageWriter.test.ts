@@ -1,27 +1,30 @@
 /**
  * DefinitionLanguageWriter tests — ZOMBIES: Zero, One, Many, Boundary, Interface, Exceptions.
- * SUT: DefinitionLanguageWriter. TransactionLike is mocked (execute).
+ * SUT: DefinitionLanguageWriter. Kysely instance is mocked (executeQuery).
  */
 
-import {
-    DefinitionLanguageWriter,
-    type TransactionLike,
-} from '@/Database/Schema/DefinitionLanguageWriter';
+import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
 import { AppLogger } from '@/Service/Logger';
+import { DatabaseException } from '@/Exception';
+import type { Kysely } from 'kysely';
+import type { DatabaseSchema } from '@/Database/Type';
 import { describe, it, expect, vi } from 'vitest';
 
-function createMockTx(execute?: (sql: string, params?: readonly unknown[]) => Promise<{ rows?: unknown[] } | undefined>): TransactionLike {
-    // Use type assertion to accept more flexible execute functions
-    const wrappedExecute = execute as any;
-    
-    const mockTx = {
-        execute: wrappedExecute ?? vi.fn(() => Promise.resolve({ rows: [] })),
-        transaction: async function<T>(fn: (tx: TransactionLike) => Promise<T>): Promise<T> {
-            return fn(mockTx);
+function createMockDb(execute?: (sql: string, params?: readonly unknown[]) => Promise<{ rows?: unknown[] } | undefined>) {
+    // minimal Kysely-like stub with executeQuery
+    const wrapped = execute as any;
+    const db: any = {
+        executeQuery: async (query: { sql: string; parameters: readonly unknown[] }) => {
+            const sql = query.sql;
+            const params = query.parameters;
+            if (wrapped) {
+                return wrapped(sql, params);
+            }
+            return { rows: [] };
         },
     };
-    return mockTx;
+    return db as unknown as Kysely<DatabaseSchema>;
 }
 
 function createMinimalDefinition(overrides: Partial<{
@@ -50,7 +53,7 @@ describe('DefinitionLanguageWriter', () => {
         it('write with no indexes and no fullTextSearchFields executes CREATE TABLE then PRAGMA (migration check)', async () => {
             const definition = createMinimalDefinition({ indexes: [], fullTextSearchFields: [] });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: pragmaRowsForDefinition(definition) };
@@ -69,7 +72,7 @@ describe('DefinitionLanguageWriter', () => {
         it('write with empty columns array produces valid CREATE TABLE', async () => {
             const definition = createMinimalDefinition({ columns: [] });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 return Promise.resolve();
@@ -86,7 +89,7 @@ describe('DefinitionLanguageWriter', () => {
                 indexes: ['CREATE INDEX IF NOT EXISTS idx_items_created_at ON items(created_at);'],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 return Promise.resolve();
@@ -105,7 +108,7 @@ describe('DefinitionLanguageWriter', () => {
                 fullTextSearchFields: [{ name: 'transcript', jsonPath: '$.text' }],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 return Promise.resolve();
@@ -132,7 +135,7 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 return Promise.resolve();
@@ -146,7 +149,7 @@ describe('DefinitionLanguageWriter', () => {
 
         it('write with multiple fullTextSearchFields creates FTS table with all content columns', async () => {
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -170,7 +173,7 @@ describe('DefinitionLanguageWriter', () => {
     describe('B — Boundary', () => {
         it('write with tableName and primaryKeyColumnName containing underscores preserves them in SQL', async () => {
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -185,7 +188,7 @@ describe('DefinitionLanguageWriter', () => {
 
         it('write with fullTextSearchField without jsonPath uses simple json_extract in trigger', async () => {
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -198,9 +201,10 @@ describe('DefinitionLanguageWriter', () => {
             expect(insertTrigger).toContain('json_extract(new.data, \'$.rawContent\')');
         });
 
+
         it('write with fullTextSearchField with jsonPath containing single quote escapes it in SQL', async () => {
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -223,7 +227,7 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
@@ -252,7 +256,7 @@ describe('DefinitionLanguageWriter', () => {
             });
             const logger = AppLogger.getInstance();
             const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('vcol')) {
                     throw new Error('virtual not supported');
                 }
@@ -261,7 +265,7 @@ describe('DefinitionLanguageWriter', () => {
                 }
                 return Promise.resolve();
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, logger);
             await writer.write(definition);
             expect(warnSpy).toHaveBeenCalledTimes(1);
             expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual\/generated column/);
@@ -277,7 +281,7 @@ describe('DefinitionLanguageWriter', () => {
                 fullTextSearchFields: [{ name: 'transcript', jsonPath: '$.text' }],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -297,7 +301,7 @@ describe('DefinitionLanguageWriter', () => {
                 fullTextSearchFields: [{ name: 'camelCaseName' }],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -312,7 +316,7 @@ describe('DefinitionLanguageWriter', () => {
         it('write calls execute with CREATE TABLE first', async () => {
             const order: number[] = [];
             let callIndex = 0;
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 order.push(callIndex++);
                 if (sql.includes('CREATE TABLE')) {
                     expect(order[order.length - 1]).toBe(0);
@@ -332,7 +336,7 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 return Promise.resolve();
             });
-            const tx = createMockTx(execute);
+            const tx = createMockDb(execute);
             const writer = new DefinitionLanguageWriter(tx);
             await writer.write(definition);
             expect(execute).toHaveBeenCalledTimes(4);
@@ -344,7 +348,7 @@ describe('DefinitionLanguageWriter', () => {
 
         it('constructor stores tx and write uses it', async () => {
             const execute = vi.fn(() => Promise.resolve());
-            const tx = createMockTx(execute);
+            const tx = createMockDb(execute);
             const writer = new DefinitionLanguageWriter(tx);
             await writer.write(createMinimalDefinition());
             expect(execute).toHaveBeenCalled();
@@ -353,13 +357,13 @@ describe('DefinitionLanguageWriter', () => {
 
     describe('E — Exceptions', () => {
         it('write propagates when execute rejects', async () => {
-            const tx = createMockTx(() => Promise.reject(new Error('DB error')));
+            const tx = createMockDb(() => Promise.reject(new Error('DB error')));
             const writer = new DefinitionLanguageWriter(tx);
             await expect(writer.write(createMinimalDefinition())).rejects.toThrow('DB error');
         });
 
         it('write propagates when execute throws synchronously', async () => {
-            const tx = createMockTx(() => {
+            const tx = createMockDb(() => {
                 throw new Error('sync error');
             });
             const writer = new DefinitionLanguageWriter(tx);
@@ -371,7 +375,7 @@ describe('DefinitionLanguageWriter', () => {
                 fullTextSearchFields: [{ name: 'x', jsonPath: '$.y' }],
             });
             let callCount = 0;
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 callCount++;
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 if (callCount === 3 && sql.includes('VIRTUAL TABLE')) {
@@ -390,7 +394,7 @@ describe('DefinitionLanguageWriter', () => {
                 fullTextSearchFields: [{ name: 'transcript', jsonPath: '$.text' }],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -408,7 +412,7 @@ describe('DefinitionLanguageWriter', () => {
                 fullTextSearchFields: [{ name: 'tags', jsonPath: "$.labels[*]" }],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 return Promise.resolve();
             });
@@ -428,7 +432,7 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const calls: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 calls.push(sql);
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
@@ -454,7 +458,7 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('plain')) {
                     throw new Error('cannot add');
                 }
@@ -477,7 +481,7 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const executed: string[] = [];
-            const tx = createMockTx(async (sql) => {
+            const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) {
                     return {}; // rows undefined -> treated as empty

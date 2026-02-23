@@ -5,7 +5,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { AbstractEntity } from '@/Database/AbstractEntity';
-import { EntityDecorator } from '@/Decorator/EntityDecorator';
+import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 
 const ENTITY_KEY = MetadataWriter.ENTITY_METADATA_KEY;
@@ -15,7 +15,7 @@ type FieldMeta = Record<string, { decorators: Array<{ decoratorName: string; opt
 type Constructor = new (...args: unknown[]) => unknown;
 
 function attachEntityMetadata(ctor: Constructor, tableName: string, fieldMeta: FieldMeta, primaryKey?: string): void {
-    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new EntityDecorator('Entity', {
+    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new ClassDecorator('Entity', {
         tableName,
     });
     (ctor as unknown as Record<symbol, unknown>)[Symbol.metadata] = fieldMeta;

@@ -9,7 +9,7 @@
  * public uuid!: string;
  */
 
-import { Builder, type FieldDecoratorConfig, type OptionsFromSchema, type OptionsSchema } from '../../Decorator/Builder';
+import { Builder, type OptionsFromSchema, type OptionsSchema, type PropertyDecoratorConfig } from '../../Decorator/Builder';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
 import { DatabaseException } from '../../Exception';
 import type { AbstractEntity } from '../AbstractEntity';
@@ -68,7 +68,7 @@ export type ColumnOptions<T = unknown> = OptionsFromSchema<
     }
 >;
 
-class ColumnDecorator implements FieldDecoratorConfig<ColumnOptions<unknown>> {
+class ColumnDecorator implements PropertyDecoratorConfig<ColumnOptions<unknown>> {
     public readonly schema = COLUMN_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_COLUMN_OPTIONS';
 

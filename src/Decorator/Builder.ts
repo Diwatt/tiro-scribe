@@ -1,25 +1,25 @@
 /**
  * Builder to build decorators: encapsulates addInitializer and the decorator return-function pattern.
- * Use buildEntity(config) or buildField(config) where config implements ClassDecoratorConfig or FieldDecoratorConfig.
+ * Use buildEntity(config) or buildField(config) where config implements ClassDecoratorConfig or PropertyDecoratorConfig.
  *
  * Options are typed as `object`; each decorator can declare a schema and the builder runs schemaValidator.validate, or provide a custom validate.
  * The only generic (T in buildEntity) preserves the decorated class type so static members (e.g. entityName) stay typed.
  */
 
 import { SchemaValidator } from './SchemaValidator';
-import type { ClassConstructor, ClassDecoratorConfig, FieldDecoratorConfig, OptionsSchema } from './Type';
+import type { ClassConstructor, ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } from './Type';
 
 declare const __DEV__: boolean;
 
 export type {
     ClassConstructor,
     ClassDecoratorConfig,
-    FieldDecoratorConfig,
     OptionFieldSchema,
     OptionFieldType,
     OptionFieldTypeComposition,
     OptionsFromSchema,
     OptionsSchema,
+    PropertyDecoratorConfig,
 } from './Type';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: decorator builder with static schemaValidator
@@ -68,7 +68,7 @@ export class Builder {
      * Options default to {} when not set; validate/before/initializer always receive an object.
      */
     public static buildField(
-        config: FieldDecoratorConfig<object>,
+        config: PropertyDecoratorConfig<object>,
     ): (options?: object) => (initialValue: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => void {
         return (options?: object) => {
             const opts = options ?? {};
@@ -76,7 +76,7 @@ export class Builder {
             return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
                 if (__DEV__ && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;
-                    Builder.schemaValidator.ensureFieldDecoratorUniqueness(meta, String(context.name), config.decoratorName);
+                    Builder.schemaValidator.ensurePropertyDecoratorUniqueness(meta, String(context.name), config.decoratorName);
                 }
                 if (config.before != null) {
                     config.before(context, opts);

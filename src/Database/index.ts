@@ -3,7 +3,7 @@
  * Central entry point for data layer.
  */
 
-export type { FieldDecoratorConfig } from '../Decorator';
+export type { PropertyDecoratorConfig } from '../Decorator';
 export {
     Builder,
     Column,

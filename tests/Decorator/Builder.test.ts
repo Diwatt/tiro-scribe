@@ -4,7 +4,7 @@ global.__DEV__ = true;
 
 import { vi } from 'vitest';
 import { Builder } from '@/Decorator/Builder';
-import type { ClassDecoratorConfig, FieldDecoratorConfig, OptionsSchema } from '@/Decorator/Type';
+import type { ClassDecoratorConfig, PropertyDecoratorConfig, OptionsSchema } from '@/Decorator/Type';
 import { DatabaseException } from '@/Exception/DatabaseException';
 
 describe('Builder', () => {
@@ -77,7 +77,7 @@ describe('Builder', () => {
 
     describe('buildField', () => {
         it('returns a function that returns a field decorator', () => {
-            const config: FieldDecoratorConfig<object> = {
+            const config: PropertyDecoratorConfig<object> = {
                 initializer: vi.fn(() => () => {}),
             };
             const decoratorFactory = Builder.buildField(config);
@@ -88,7 +88,7 @@ describe('Builder', () => {
 
         it('defaults options to {}', () => {
             const initializer = vi.fn(() => () => {});
-            const config: FieldDecoratorConfig<object> = { initializer };
+            const config: PropertyDecoratorConfig<object> = { initializer };
             const decorator = Builder.buildField(config)();
             const context = {
                 name: 'uuid',
@@ -102,7 +102,7 @@ describe('Builder', () => {
         it('passes options to before and initializer', () => {
             const before = vi.fn();
             const initializer = vi.fn(() => () => {});
-            const config: FieldDecoratorConfig<{ default: number }> = {
+            const config: PropertyDecoratorConfig<{ default: number }> = {
                 before,
                 initializer,
             };
@@ -119,7 +119,7 @@ describe('Builder', () => {
 
         it('validates options against schema when schema and errorCode set', () => {
             const schema: OptionsSchema = { default: { required: true } };
-            const config: FieldDecoratorConfig<object> = {
+            const config: PropertyDecoratorConfig<object> = {
                 schema,
                 errorCode: 'INVALID_COLUMN',
                 initializer: vi.fn(() => () => {}),
@@ -134,7 +134,7 @@ describe('Builder', () => {
             const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
                 id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
             };
-            const config: FieldDecoratorConfig<object> = {
+            const config: PropertyDecoratorConfig<object> = {
                 unique: true,
                 decoratorName: 'PrimaryKey',
                 initializer: vi.fn(() => () => {}),
@@ -150,7 +150,7 @@ describe('Builder', () => {
 
         it('invokes addInitializer with a function that calls initializer result', () => {
             const setter = vi.fn();
-            const config: FieldDecoratorConfig<object> = {
+            const config: PropertyDecoratorConfig<object> = {
                 initializer: vi.fn(() => setter),
             };
             const decorator = Builder.buildField(config)();

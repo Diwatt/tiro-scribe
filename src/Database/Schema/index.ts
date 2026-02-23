@@ -3,7 +3,6 @@
  */
 
 export { DefinitionBuilder } from './DefinitionBuilder';
-export type { TransactionLike } from './DefinitionLanguageWriter';
 export { DefinitionLanguageWriter } from './DefinitionLanguageWriter';
 export type { FullTextSearchFieldSpec } from './TableDefinition';
 export { TableDefinition } from './TableDefinition';

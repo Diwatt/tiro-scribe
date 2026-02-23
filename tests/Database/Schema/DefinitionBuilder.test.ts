@@ -3,21 +3,21 @@
  * SUT: DefinitionBuilder. All dependencies (EntityMetadata) are mocked.
  */
 
-import { EntityDecorator } from '@/Decorator/EntityDecorator';
-import { FieldDecorator } from '@/Decorator/FieldDecorator';
+import { ClassDecorator as EntityDecorator } from '@/Decorator/ClassDecorator';
+import { PropertyDecorator } from '@/Decorator/PropertyDecorator';
 import type { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import { OnDeleteAction } from '@/Database/Decorator';
 import type { ForeignKeyOptions } from '@/Database/Decorator';
-import type { EntityClassStatic } from '@/Database/AbstractEntity';
+import type { EntityClass } from '@/Database/Type';
 import { DatabaseException } from '@/Exception';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
 import { describe, it, expect, vi } from 'vitest';
 
 function createMockMetadata(overrides: {
     getTableName?: () => string;
-    getPrimaryKeyColumnField?: () => FieldDecorator | undefined;
-    getColumnFields?: () => FieldDecorator[];
+    getPrimaryKeyColumnField?: () => PropertyDecorator | undefined;
+    getColumnFields?: () => PropertyDecorator[];
     getForeignKeyOptions?: (propertyName: string) => ForeignKeyOptions | undefined;
     getForeignKeyTargetTableName?: (propertyName: string) => string | null;
 }): EntityMetadata {
@@ -32,9 +32,9 @@ function createMockMetadata(overrides: {
 
 function metadataFromReaderLike(readerLike: {
     getEntity?: () => EntityDecorator | undefined;
-    getPrimaryKeyColumn?: () => FieldDecorator | undefined;
-    getFieldsByDecorator?: (name: string) => FieldDecorator[];
-    getFieldByProperty?: (propertyName: string) => FieldDecorator[];
+    getPrimaryKeyColumn?: () => PropertyDecorator | undefined;
+    getFieldsByDecorator?: (name: string) => PropertyDecorator[];
+    getFieldByProperty?: (propertyName: string) => PropertyDecorator[];
 }): EntityMetadata {
     return createMockMetadata({
         getTableName: () => readerLike.getEntity?.()?.getOption('tableName') ?? '',
@@ -54,7 +54,7 @@ function metadataFromReaderLike(readerLike: {
             if (opts == null) {
                 return null;
             }
-            const target = typeof opts.target === 'function' ? (opts.target as () => EntityClassStatic)() : opts.target;
+            const target = typeof opts.target === 'function' ? (opts.target as () => EntityClass)() : opts.target;
             const table = (target as { entityName?: string })?.entityName;
             return table != null && String(table).trim() !== '' ? table : null;
         },
@@ -65,15 +65,15 @@ function createEntityDecorator(tableName: string): EntityDecorator {
     return new EntityDecorator('Entity', { tableName });
 }
 
-function createPrimaryKeyColumnField(propertyName: string, type: string, length?: number): FieldDecorator {
-    return new FieldDecorator('Column', 'TestEntity', propertyName, { type, length, default: '' });
+function createPrimaryKeyColumnField(propertyName: string, type: string, length?: number): PropertyDecorator {
+    return new PropertyDecorator('Column', 'TestEntity', propertyName, { type, length, default: '' });
 }
 
 function createColumnField(
     propertyName: string,
     options: { type: string; length?: number; index?: boolean; fullText?: boolean; fullTextPath?: string },
-): FieldDecorator {
-    return new FieldDecorator('Column', 'TestEntity', propertyName, { default: '', ...options });
+): PropertyDecorator {
+    return new PropertyDecorator('Column', 'TestEntity', propertyName, { default: '', ...options });
 }
 
 describe('DefinitionBuilder', () => {
@@ -150,7 +150,7 @@ describe('DefinitionBuilder', () => {
         it('adds REFERENCES clause and ON DELETE action for ForeignKey on primary key', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const targetEntity = { entityName: 'parents' };
-            const fkOnPk = new FieldDecorator('ForeignKey', 'Entity', 'uuid', {
+            const fkOnPk = new PropertyDecorator('ForeignKey', 'Entity', 'uuid', {
                 target: () => targetEntity,
                 column: 'uuid',
                 onDelete: OnDeleteAction.Cascade,
@@ -211,7 +211,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const therapistIdField = createColumnField('therapistId', { type: 'varchar', length: 36, index: true });
             const targetEntity = { entityName: 'therapists' };
-            const fkField = new FieldDecorator('ForeignKey', 'Encounter', 'therapistId', {
+            const fkField = new PropertyDecorator('ForeignKey', 'Encounter', 'therapistId', {
                 target: () => targetEntity,
                 column: 'uuid',
                 onDelete: OnDeleteAction.Restrict,
@@ -256,6 +256,7 @@ describe('DefinitionBuilder', () => {
             expect(definition.columns[0]).toContain('VARCHAR(1)');
         });
 
+
         it('excludes primary key property from column fields when building indexed columns', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const otherColumn = createColumnField('name', { type: 'varchar', index: true });
@@ -274,7 +275,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('id', 'text');
             const col = createColumnField('ownerId', { type: 'varchar', length: 36, index: true });
             const targetEntity = { entityName: 'owners' };
-            const foreignKeyDecorator = new FieldDecorator('ForeignKey', 'Entity', 'ownerId', {
+            const foreignKeyDecorator = new PropertyDecorator('ForeignKey', 'Entity', 'ownerId', {
                 target: () => targetEntity,
                 onDelete: OnDeleteAction.Restrict,
             });
@@ -307,7 +308,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const fkColumn = createColumnField('parentId', { type: 'varchar', length: 36, index: false });
             const targetEntity = { entityName: 'parents' };
-            const foreignKeyDecorator = new FieldDecorator('ForeignKey', 'Entity', 'parentId', {
+            const foreignKeyDecorator = new PropertyDecorator('ForeignKey', 'Entity', 'parentId', {
                 target: () => targetEntity,
                 column: 'uuid',
                 onDelete: OnDeleteAction.Restrict,
@@ -362,6 +363,19 @@ describe('DefinitionBuilder', () => {
         });
     });
 
+    describe('S — Simple', () => {
+        it('building with minimal metadata returns a TableDefinition', () => {
+            const metadata = metadataFromReaderLike({
+                getEntity: () => createEntityDecorator('foo'),
+                getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
+                getFieldsByDecorator: () => [],
+            });
+            const builder = new DefinitionBuilder(metadata);
+            const def = builder.build();
+            expect(def).toBeInstanceOf(TableDefinition);
+        });
+    });
+
     describe('E — Exceptions', () => {
         it('constructor propagates DatabaseException when getTableName throws ENTITY_METADATA_REQUIRED', () => {
             const metadata = createMockMetadata({
@@ -382,7 +396,7 @@ describe('DefinitionBuilder', () => {
         it('constructor throws when getPrimaryKeyColumn returns null', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('t'),
-                getPrimaryKeyColumn: () => undefined as unknown as FieldDecorator,
+                getPrimaryKeyColumn: () => undefined as unknown as PropertyDecorator,
             });
             expect(() => new DefinitionBuilder(metadata)).toThrow(DatabaseException);
         });
@@ -391,7 +405,7 @@ describe('DefinitionBuilder', () => {
             const pkField = createPrimaryKeyColumnField('uuid', 'varchar', 36);
             const col = createColumnField('refId', { type: 'varchar', length: 36, index: true });
             const badTarget: unknown = {};
-            const foreignKeyDecorator = new FieldDecorator('ForeignKey', 'Entity', 'refId', {
+            const foreignKeyDecorator = new PropertyDecorator('ForeignKey', 'Entity', 'refId', {
                 target: () => badTarget as { entityName?: string },
                 onDelete: OnDeleteAction.Restrict,
             });

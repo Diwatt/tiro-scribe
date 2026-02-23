@@ -8,7 +8,7 @@ if (typeof Symbol !== 'undefined' && !Symbol.metadata) {
     Symbol.metadata = Symbol('metadata');
 }
 
-import { EntityDecorator } from '@/Decorator/EntityDecorator';
+import { ClassDecorator as EntityDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import type { ClassConstructor, MetadataConstructor } from '@/Decorator/Type';
@@ -29,7 +29,7 @@ describe('MetadataReader', () => {
             const reader = new MetadataReader(construct);
             const entity = reader.getEntity();
             expect(entity).toBeInstanceOf(EntityDecorator);
-            expect(entity?.getEntityName()).toBe('with_entity');
+            expect(entity?.getOption('tableName')).toBe('with_entity');
         });
     });
 
@@ -52,10 +52,10 @@ describe('MetadataReader', () => {
             const reader = new MetadataReader(construct);
             const fields = reader.getFields();
             expect(fields).toHaveLength(2);
-            const byName = (key: string) => fields.find((f) => f.getFieldName() === key)!;
+            const byName = (key: string) => fields.find((f) => f.getPropertyName() === key)!;
             expect(byName('id').getDecoratorName()).toBe('PrimaryKey');
             expect(byName('uuid').getDecoratorName()).toBe('Column');
-            expect(byName('uuid').getEntityName()).toBe('WithFields');
+            expect(byName('uuid').getClassName()).toBe('WithFields');
         });
     });
 
@@ -72,7 +72,7 @@ describe('MetadataReader', () => {
             const reader = new MetadataReader(construct);
             const forA = reader.getFieldByProperty('a');
             expect(forA).toHaveLength(2);
-            expect(forA.every((f) => f.getFieldName() === 'a')).toBe(true);
+            expect(forA.every((f) => f.getPropertyName() === 'a')).toBe(true);
         });
     });
 
@@ -87,7 +87,7 @@ describe('MetadataReader', () => {
             const reader = new MetadataReader(construct);
             const primaryKeyField = reader.getField('PrimaryKey');
             expect(primaryKeyField).toBeDefined();
-            expect(primaryKeyField?.getFieldName()).toBe('pk');
+            expect(primaryKeyField?.getPropertyName()).toBe('pk');
         });
 
         it('returns undefined when no field has decorator name', () => {
@@ -109,7 +109,7 @@ describe('MetadataReader', () => {
             MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
             const primaryKeyField = MetadataReader.getField(construct, 'PrimaryKey');
             expect(primaryKeyField).toBeDefined();
-            expect(primaryKeyField?.getFieldName()).toBe('id');
+            expect(primaryKeyField?.getPropertyName()).toBe('id');
         });
 
         it('accepts instance and uses instance.constructor', () => {
@@ -122,7 +122,7 @@ describe('MetadataReader', () => {
             Object.defineProperty(instance, 'constructor', { value: construct });
             const primaryKeyField = MetadataReader.getField(instance, 'PrimaryKey');
             expect(primaryKeyField).toBeDefined();
-            expect(primaryKeyField?.getFieldName()).toBe('uuid');
+            expect(primaryKeyField?.getPropertyName()).toBe('uuid');
         });
     });
 });
