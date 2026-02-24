@@ -5,13 +5,13 @@
 
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
-import { registry } from '../Database/Registry';
 import type { TherapistRepository } from '@/Repository';
+import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
+import { AppLanguage } from '../Localization/AppLanguage';
 import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 import { InferenceModelDownloader } from '../Service/InferenceModelDownloader';
-import { globalActivityStatus, ActivityStatus } from './GlobalActivityStatus';
-import { AppLanguage } from '../Localization/AppLanguage';
+import { ActivityStatus, globalActivityStatus } from './GlobalActivityStatus';
 
 /** Initial state → hardware check → auth check → routing. */
 export enum StartupState {
@@ -45,7 +45,9 @@ export class StartupOrchestrator {
             return;
         }
 
-        const repo = await registry.getRepository<Therapist, TherapistRepository>(Therapist);
+        // provide explicit generic parameter so caller receives the
+        // specialized interface with autocomplete support.
+        const repo = await registry.getRepository<TherapistRepository>(Therapist);
         const hasSession = await repo.hasActiveSession();
         if (hasSession) {
             this.state.set(StartupState.Ready);

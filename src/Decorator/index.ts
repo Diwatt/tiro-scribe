@@ -7,12 +7,12 @@ export type { ColumnOptions, EntityOptions, SqliteType } from '../Database/Decor
 export { Column, Entity, PrimaryKey } from '../Database/Decorator';
 export type {
     ClassDecoratorConfig,
-    PropertyDecoratorConfig,
-    OptionFieldSchema,
-    OptionFieldType,
-    OptionFieldTypeComposition,
+    OptionPropertySchema,
+    OptionPropertyType,
+    OptionPropertyTypeComposition,
     OptionsFromSchema,
     OptionsSchema,
+    PropertyDecoratorConfig,
 } from './Builder';
 export { Builder } from './Builder';
 export { ClassDecorator } from './ClassDecorator';

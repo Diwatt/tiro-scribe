@@ -3,7 +3,7 @@
  */
 
 import type { DownloadQueue, Encounter, Patient, ProsodyMetrics, QueueItem, Therapist, Transcription } from '@/Entity';
-import type { AbstractEntity } from './AbstractEntity';
+import type { Entity } from './Entity';
 
 /** Inserts an underscore before each capital letter (for camelCase → snake_case). */
 type InsertUnderscoreBeforeCap<S extends string> = S extends `${infer A}${infer B}`
@@ -59,4 +59,4 @@ export type DatabaseSchema = SchemaFromTables<EntityTablesType>;
  */
 /** Constructor type accepted by registry and repositories: any class extending
  * AbstractEntity with a static `entityName` string. */
-export type EntityClass = (new (...args: unknown[]) => AbstractEntity) & { entityName: string };
+export type EntityClass = (new (...args: unknown[]) => Entity) & { entityName: string };

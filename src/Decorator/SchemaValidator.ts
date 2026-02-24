@@ -3,7 +3,7 @@
  */
 
 import { DatabaseException, DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from '../Exception';
-import type { OptionFieldSchema, OptionFieldType, OptionsSchema } from './Type';
+import type { OptionPropertySchema, OptionPropertyType, OptionsSchema } from './Type';
 
 export class SchemaValidator {
     /**
@@ -20,12 +20,12 @@ export class SchemaValidator {
         if (meta == null || typeof meta !== 'object') {
             return;
         }
-        const m = meta as Record<string, { decorators?: Array<{ decoratorName: string }> }>;
-        for (const [key, fieldMeta] of Object.entries(m)) {
+        const m = meta as Record<string, { decorators?: DecoratorMetadata[] }>;
+        for (const [key, propertyMeta] of Object.entries(m)) {
             if (key === currentPropertyName) {
                 continue;
             }
-            const decorators = fieldMeta?.decorators;
+            const decorators = propertyMeta?.decorators;
             if (Array.isArray(decorators) && decorators.some((d) => d.decoratorName === decoratorName)) {
                 throw new DecoratorException(
                     `Only one property can have @${decoratorName} (already on "${key}", tried to add "${currentPropertyName}")`,
@@ -54,13 +54,13 @@ export class SchemaValidator {
         }
     }
 
-    private ensureRequired(key: string, isSet: boolean, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
+    private ensureRequired(key: string, isSet: boolean, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
         if (field.required === true && !isSet) {
             throw new DatabaseException(`Option "${key}" is required`, errorCode, undefined, { options });
         }
     }
 
-    private ensureType(key: string, value: unknown, isSet: boolean, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
+    private ensureType(key: string, value: unknown, isSet: boolean, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
         if (!isSet) {
             return;
         }
@@ -80,7 +80,7 @@ export class SchemaValidator {
         }
     }
 
-    private getType(value: unknown): OptionFieldType {
+    private getType(value: unknown): OptionPropertyType {
         const t = typeof value;
         if (t === 'string' || t === 'number' || t === 'boolean' || t === 'function') {
             return t;
@@ -88,7 +88,7 @@ export class SchemaValidator {
         return 'object';
     }
 
-    private ensureNotBlank(key: string, value: unknown, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
+    private ensureNotBlank(key: string, value: unknown, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
         if (field.notBlank !== true || typeof value !== 'string') {
             return;
         }
@@ -97,7 +97,7 @@ export class SchemaValidator {
         }
     }
 
-    private ensureNumberConstraints(key: string, value: unknown, field: OptionFieldSchema, options: Record<string, unknown>, errorCode: string): void {
+    private ensureNumberConstraints(key: string, value: unknown, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
         if (typeof value !== 'number') {
             return;
         }

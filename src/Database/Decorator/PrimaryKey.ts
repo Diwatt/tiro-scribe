@@ -17,7 +17,7 @@ class PrimaryKeyDecorator implements PropertyDecoratorConfig<Record<string, neve
 
     public before(context: ClassFieldDecoratorContext<unknown, unknown>, _options: Record<string, never>): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
-        MetadataWriter.registerField(meta, String(context.name), 'PrimaryKey', {});
+        MetadataWriter.registerProperty(meta, String(context.name), 'PrimaryKey', {});
     }
 
     public initializer(_context: ClassFieldDecoratorContext<unknown, unknown>, _options: Record<string, never>): (instance: unknown) => void {
@@ -27,4 +27,4 @@ class PrimaryKeyDecorator implements PropertyDecoratorConfig<Record<string, neve
     }
 }
 
-export const PrimaryKey = Builder.buildField(new PrimaryKeyDecorator());
+export const PrimaryKey = Builder.buildProperty(new PrimaryKeyDecorator());

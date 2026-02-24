@@ -7,15 +7,17 @@
  * class Encounter extends AbstractEntity { ... }
  */
 
-import { Builder, type ClassConstructor, type ClassDecoratorConfig, type OptionsSchema } from '../../Decorator/Builder';
+import { isPlainObject } from 'lodash';
+import trim from 'lodash/trim';
+import { Builder, type ClassDecoratorConfig, type OptionsSchema } from '../../Decorator/Builder';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
+import type { DecoratorMetadata, MetadataMap } from '../../Decorator/Type';
 import { DatabaseException } from '../../Exception';
+import type { AbstractEntity } from '../AbstractEntity';
 
 declare const __DEV__: boolean;
 
-function isObject(value: unknown): value is Record<string, unknown> {
-    return value != null && typeof value === 'object' && !Array.isArray(value);
-}
+// Replaced by lodash helper – keep comment for context.
 
 export interface EntityOptions {
     /** Table name used for persistence (Registry / Repository). */
@@ -29,57 +31,46 @@ const ENTITY_OPTIONS_SCHEMA: OptionsSchema = {
     repositoryClass: { required: false, type: 'string', notBlank: true },
 };
 
-/** Export name must be a single identifier (no path). Registry validates that it exists in @/Repository. */
-const REPOSITORY_CLASS_NAME_REGEX = /^[A-Z][a-zA-Z0-9]*$/;
-
-type FieldMetadata = { decorators?: Array<{ decoratorName: string; options: unknown }> };
-
-interface PrimaryKeyColumnDef {
-    propertyName: string;
-    type: string;
-    length?: number;
-}
+// no built-in validation; the registry will complain if the provided
+// name is not actually exported by @/Repository.  Decorator no longer
+// enforces a pattern per user request.
 
 class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
     public readonly schema = ENTITY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_ENTITY_OPTIONS';
 
-    public decorate(target: ClassConstructor, context: ClassDecoratorContext<ClassConstructor>, options: EntityOptions): void {
-        this.setEntityNameAndRegister(target, options);
+    public decorate(target: typeof AbstractEntity, context: ClassDecoratorContext<typeof AbstractEntity>, options: EntityOptions): void {
+        // trim any user‑supplied whitespace so callers can accidentally pass
+        // `'  foo  '` and still get a valid name.  SchemaValidator already
+        // rejects blank/empty values but it does not mutate the string.
+        const normalized: EntityOptions = {
+            ...options,
+            tableName: trim(options.tableName),
+        };
+        if (normalized.repositoryClass != null) {
+            normalized.repositoryClass = trim(normalized.repositoryClass);
+        }
 
-        const meta = (context as { metadata?: Record<string, FieldMetadata> }).metadata;
-        const primaryKeyProp = this.processMetadata(target, meta, options.tableName);
+        this.setEntityNameAndRegister(target, normalized);
+
+        const meta = (context as { metadata?: MetadataMap }).metadata;
+        const primaryKeyProp = this.processMetadata(target, meta, normalized.tableName);
 
         if (primaryKeyProp === null) {
-            throw new DatabaseException(`Entity "${options.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
-                tableName: options.tableName,
+            throw new DatabaseException(`Entity "${normalized.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
+                tableName: normalized.tableName,
             });
         }
     }
 
-    public validate(options: EntityOptions): void {
-        const name = options.repositoryClass;
-        if (name == null || name.length === 0) {
-            return;
-        }
-        if (!REPOSITORY_CLASS_NAME_REGEX.test(name)) {
-            throw new DatabaseException(
-                `Entity repositoryClass must be an export name from @/Repository (e.g. 'TherapistRepository'), not a path. Got: ${name}`,
-                'INVALID_ENTITY_OPTIONS',
-                undefined,
-                { repositoryClass: name },
-            );
-        }
-    }
-
-    private setEntityNameAndRegister(target: ClassConstructor, options: EntityOptions): void {
+    private setEntityNameAndRegister(target: typeof AbstractEntity, options: EntityOptions): void {
         (target as typeof target & { entityName: string }).entityName = options.tableName;
-        MetadataWriter.registerEntity(target, options);
+        MetadataWriter.registerClass(target, options);
     }
 
-    private processMetadata(target: ClassConstructor, meta: Record<string, FieldMetadata> | undefined, tableName: string): string | null {
+    private processMetadata(target: typeof AbstractEntity, meta: MetadataMap | undefined, tableName: string): string | null {
         // Hermes-only: Symbol.metadata is always available
-        if (!isObject(meta)) {
+        if (!isPlainObject(meta)) {
             if (__DEV__) {
                 throw new DatabaseException(
                     `Entity "${tableName}" has no metadata available. This should not happen in Hermes with Stage 3 decorators.`,
@@ -93,20 +84,29 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
         }
 
         // Standard path: metadata is available via Symbol.metadata
-        return this.findAndSetPrimaryKey(target, meta);
+        return this.findAndSetPrimaryKey(target, meta as MetadataMap);
     }
 
-    private findAndSetPrimaryKey(
-        target: ClassConstructor,
-        metadata: Record<string, { decorators?: Array<{ decoratorName: string; options: unknown }> }>,
-    ): string | null {
+    private findAndSetPrimaryKey(_target: typeof AbstractEntity, metadata: MetadataMap): string | null {
         let primaryKeyProp: string | null = null;
 
         for (const [propName, fieldMeta] of Object.entries(metadata)) {
             const decorators = fieldMeta?.decorators;
-            if (Array.isArray(decorators) && this.hasDecorator(decorators, 'PrimaryKey')) {
+            if (this.findDecorator(decorators, 'PrimaryKey') != null) {
+                // ensure a @Column decorator exists on the same property
+                const columnDecorator = this.findDecorator(decorators, 'Column') as DecoratorMetadata | null;
+                if (columnDecorator == null) {
+                    throw new DatabaseException(
+                        `Primary key property "${propName}" must have a @Column() decorator.`,
+                        'PRIMARY_KEY_COLUMN_REQUIRED',
+                        undefined,
+                        {
+                            propertyName: propName,
+                        },
+                    );
+                }
+
                 primaryKeyProp = propName;
-                this.validateAndSetPrimaryKeyMetadata(target, propName, decorators);
                 // Continue to check for multiple primary keys (last one wins, but at least one exists)
             }
         }
@@ -114,42 +114,12 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
         return primaryKeyProp;
     }
 
-    private validateAndSetPrimaryKeyMetadata(target: ClassConstructor, propName: string, decorators: Array<{ decoratorName: string; options: unknown }>): void {
-        const columnDecorator = this.findDecorator(decorators, 'Column');
-        if (columnDecorator == null) {
-            throw new DatabaseException(`Primary key property "${propName}" must have a @Column() decorator.`, 'PRIMARY_KEY_COLUMN_REQUIRED', undefined, {
-                propertyName: propName,
-            });
+    private findDecorator(decorators: unknown, name: string): DecoratorMetadata | undefined {
+        if (!Array.isArray(decorators)) {
+            return undefined;
         }
-
-        const constructorMetadata = this.getConstructorMetadata(target);
-        constructorMetadata[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = propName;
-        constructorMetadata[MetadataWriter.PRIMARY_KEY_COLUMN_DEF_KEY] = this.buildPrimaryKeyColumnDef(propName, columnDecorator.options);
-    }
-
-    private hasDecorator(decorators: Array<{ decoratorName: string; options: unknown }>, name: string): boolean {
-        return Array.isArray(decorators) && decorators.some((d) => d.decoratorName === name);
-    }
-
-    private findDecorator(
-        decorators: Array<{ decoratorName: string; options: unknown }>,
-        name: string,
-    ): { decoratorName: string; options: unknown } | undefined {
-        return Array.isArray(decorators) ? decorators.find((d) => d.decoratorName === name) : undefined;
-    }
-
-    private buildPrimaryKeyColumnDef(propertyName: string, options: unknown): PrimaryKeyColumnDef {
-        // Safely cast options to a record-like structure
-        const columnOptions = isObject(options) ? (options as Record<string, unknown>) : {};
-        const type = columnOptions.type != null ? String(columnOptions.type) : 'text';
-        const length = typeof columnOptions.length === 'number' ? columnOptions.length : undefined;
-
-        return { propertyName, type, length };
-    }
-
-    private getConstructorMetadata(target: ClassConstructor): Record<string, unknown> {
-        return target as unknown as Record<string, unknown>;
+        return decorators.find((d) => d.decoratorName === name);
     }
 }
 
-export const Entity = Builder.buildEntity(new EntityDecorator());
+export const Entity = Builder.buildClass(new EntityDecorator());

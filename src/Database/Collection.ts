@@ -3,7 +3,7 @@
  * Inspired by Doctrine's ArrayCollection for type-safe collection operations.
  */
 
-import type { AbstractEntity } from './AbstractEntity';
+import type { Entity } from './Entity';
 
 export class Collection<T> implements Iterable<T> {
     private readonly items: T[];
@@ -75,16 +75,16 @@ export class Collection<T> implements Iterable<T> {
      * Convert collection items to DataObjects using each entity's toDataObject method.
      * This is a convenience method for collections of AbstractEntity.
      */
-    public toDataObjects(): T extends AbstractEntity ? Record<string, unknown>[] : never {
+    public toDataObjects(): T extends Entity ? Record<string, unknown>[] : never {
         if (this.items.length === 0) {
-            return [] as unknown as T extends AbstractEntity ? Record<string, unknown>[] : never;
+            return [] as unknown as T extends Entity ? Record<string, unknown>[] : never;
         }
         // Check if first item has toDataObject method
         const first = this.items[0] as unknown;
         if (typeof (first as Record<string, unknown>).toDataObject !== 'function') {
             throw new Error('Collection items must have toDataObject method');
         }
-        return this.items.map((item) => (item as unknown as AbstractEntity).toDataObject()) as T extends AbstractEntity ? Record<string, unknown>[] : never;
+        return this.items.map((item) => (item as unknown as Entity).toDataObject()) as T extends Entity ? Record<string, unknown>[] : never;
     }
 
     /**

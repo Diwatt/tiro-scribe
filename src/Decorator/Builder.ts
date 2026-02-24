@@ -1,22 +1,27 @@
 /**
  * Builder to build decorators: encapsulates addInitializer and the decorator return-function pattern.
- * Use buildEntity(config) or buildField(config) where config implements ClassDecoratorConfig or PropertyDecoratorConfig.
+ * Use buildClass(config) or buildProperty(config) where config implements ClassDecoratorConfig or PropertyDecoratorConfig
+ * (i.e. for class and property decorators respectively).
  *
  * Options are typed as `object`; each decorator can declare a schema and the builder runs schemaValidator.validate, or provide a custom validate.
- * The only generic (T in buildEntity) preserves the decorated class type so static members (e.g. entityName) stay typed.
+ * The only generic (T in buildClass) preserves the decorated class type so static members (e.g. entityName) stay typed.
  */
 
 import { SchemaValidator } from './SchemaValidator';
-import type { ClassConstructor, ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } from './Type';
+import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } from './Type';
+
+// Local constructor type used only for decorator-building generics.  This mirrors
+// the previous exported alias but keeps the generic decorator package free of
+// any database-specific dependencies.
+type ClassConstructor = abstract new (...args: unknown[]) => unknown;
 
 declare const __DEV__: boolean;
 
 export type {
-    ClassConstructor,
     ClassDecoratorConfig,
-    OptionFieldSchema,
-    OptionFieldType,
-    OptionFieldTypeComposition,
+    OptionPropertySchema,
+    OptionPropertyType,
+    OptionPropertyTypeComposition,
     OptionsFromSchema,
     OptionsSchema,
     PropertyDecoratorConfig,
@@ -46,11 +51,11 @@ export class Builder {
     }
 
     /**
-     * Builds an entity (class) decorator from a config implementing ClassDecoratorConfig.
+     * Builds a class decorator from a config implementing ClassDecoratorConfig.
      * Options default to {} when not set; validate/decorate always receive an object.
-     * Returns the same constructor type so static members (e.g. entityName) are preserved.
+     * Returns the same constructor type so static members stay typed.
      */
-    public static buildEntity(
+    public static buildClass(
         config: ClassDecoratorConfig<object>,
     ): (options?: object) => <T extends ClassConstructor>(target: T, context: ClassDecoratorContext<T>) => T {
         return (options?: object) => {
@@ -63,11 +68,14 @@ export class Builder {
         };
     }
 
+    // backwards compatibility: previously buildEntity was the method name; use buildClass instead.
+    // (alias removed)
+
     /**
-     * Builds a field decorator. Config: optional schema/errorCode (global validate), validate(options), before, initializer.
+     * Builds a property decorator. Config: optional schema/errorCode (global validate), validate(options), before, initializer.
      * Options default to {} when not set; validate/before/initializer always receive an object.
      */
-    public static buildField(
+    public static buildProperty(
         config: PropertyDecoratorConfig<object>,
     ): (options?: object) => (initialValue: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => void {
         return (options?: object) => {
@@ -87,4 +95,6 @@ export class Builder {
             };
         };
     }
+
+    // previously buildField existed; use buildProperty
 }

@@ -38,4 +38,17 @@ describe('PropertyDecorator', () => {
         const d = new PropertyDecorator('Column', 'E', 'f', undefined);
         expect(d.getOptions()).toEqual({});
     });
+
+    it('getOptions can be called with an explicit generic type', () => {
+        const d = new PropertyDecorator('Column', 'E', 'f', { foo: 'bar' });
+        const opts = d.getOptions<{ foo: string }>();
+        expect(opts.foo).toBe('bar');
+    });
+
+    it('does not invoke class constructor values when resolving options', () => {
+        class C {}
+        const d = new PropertyDecorator('Column', 'E', 'f', { target: C });
+        const opts = d.getOptions<{ target: unknown }>();
+        expect(opts.target).toBe(C);
+    });
 });

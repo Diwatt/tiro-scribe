@@ -7,14 +7,15 @@
 import type { MetadataConstructor } from '../Decorator/Type';
 import { EntityMetadata } from './Decorator';
 import type { ColumnOptions } from './Decorator/Column';
-import { TransformerRegistry } from './Transformer';
-
 /**
  * Core abstract entity for all database tables.  It stores field values,
  * applies defaults, and defines property accessors; subclasses merely add
  * metadata via decorators.
  */
-export abstract class AbstractEntity {
+import type { Entity } from './Entity';
+import { TransformerRegistry } from './Transformer';
+
+export abstract class AbstractEntity implements Entity {
     /**
      * Tracks which prototypes have had their column accessors wired.  Stored in
      * a WeakSet so we don’t need to pollute instances with any marker and so

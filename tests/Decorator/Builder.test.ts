@@ -8,12 +8,12 @@ import type { ClassDecoratorConfig, PropertyDecoratorConfig, OptionsSchema } fro
 import { DatabaseException } from '@/Exception/DatabaseException';
 
 describe('Builder', () => {
-    describe('buildEntity', () => {
+    describe('buildClass (formerly buildEntity)', () => {
         it('returns a function that returns a decorator', () => {
             const config: ClassDecoratorConfig<object> = {
                 decorate: vi.fn(),
             };
-            const decoratorFactory = Builder.buildEntity(config);
+            const decoratorFactory = Builder.buildClass(config);
             expect(typeof decoratorFactory).toBe('function');
             const decorator = decoratorFactory();
             expect(typeof decorator).toBe('function');
@@ -22,7 +22,7 @@ describe('Builder', () => {
         it('defaults options to {} when not provided', () => {
             const decorate = vi.fn();
             const config: ClassDecoratorConfig<object> = { decorate };
-            const decorator = Builder.buildEntity(config)();
+            const decorator = Builder.buildClass(config)();
             class TestEntity {}
             const target = TestEntity;
             const context = {} as ClassDecoratorContext<typeof target>;
@@ -33,7 +33,7 @@ describe('Builder', () => {
         it('passes options to decorate', () => {
             const decorate = vi.fn();
             const config: ClassDecoratorConfig<{ table_name: string }> = { decorate };
-            const decorator = Builder.buildEntity(config)({ table_name: 'tests' });
+            const decorator = Builder.buildClass(config)({ table_name: 'tests' });
             class TestEntity {}
             const target = TestEntity;
             const context = {} as ClassDecoratorContext<typeof target>;
@@ -43,7 +43,7 @@ describe('Builder', () => {
 
         it('returns target from decorator', () => {
             const config: ClassDecoratorConfig<object> = { decorate: vi.fn() };
-            const decorator = Builder.buildEntity(config)();
+            const decorator = Builder.buildClass(config)();
             class T {}
             const target = T;
             const result = decorator(target, {} as ClassDecoratorContext<typeof target>);
@@ -57,9 +57,9 @@ describe('Builder', () => {
                 errorCode: 'INVALID_ENTITY',
                 decorate: vi.fn(),
             };
-            expect(() => Builder.buildEntity(config)()).toThrow(DatabaseException);
+            expect(() => Builder.buildClass(config)()).toThrow(DatabaseException);
             expect(() => {
-                const decorator = Builder.buildEntity(config)({ table_name: 'ok' });
+                const decorator = Builder.buildClass(config)({ table_name: 'ok' });
                 class TestEntity {}
                 decorator(TestEntity, {} as never);
             }).not.toThrow();
@@ -68,19 +68,19 @@ describe('Builder', () => {
         it('calls custom validate when provided', () => {
             const validate = vi.fn();
             const config: ClassDecoratorConfig<object> = { decorate: vi.fn(), validate };
-            const decorator = Builder.buildEntity(config)({ x: 1 });
+            const decorator = Builder.buildClass(config)({ x: 1 });
             class T {}
             decorator(T, {} as never);
             expect(validate).toHaveBeenCalledWith({ x: 1 });
         });
     });
 
-    describe('buildField', () => {
-        it('returns a function that returns a field decorator', () => {
+    describe('buildProperty (formerly buildField)', () => {
+        it('returns a function that returns a property decorator', () => {
             const config: PropertyDecoratorConfig<object> = {
                 initializer: vi.fn(() => () => {}),
             };
-            const decoratorFactory = Builder.buildField(config);
+            const decoratorFactory = Builder.buildProperty(config);
             expect(typeof decoratorFactory).toBe('function');
             const decorator = decoratorFactory();
             expect(typeof decorator).toBe('function');
@@ -89,7 +89,7 @@ describe('Builder', () => {
         it('defaults options to {}', () => {
             const initializer = vi.fn(() => () => {});
             const config: PropertyDecoratorConfig<object> = { initializer };
-            const decorator = Builder.buildField(config)();
+            const decorator = Builder.buildProperty(config)();
             const context = {
                 name: 'uuid',
                 metadata: {},
@@ -106,7 +106,7 @@ describe('Builder', () => {
                 before,
                 initializer,
             };
-            const decorator = Builder.buildField(config)({ default: 42 });
+            const decorator = Builder.buildProperty(config)({ default: 42 });
             const context = {
                 name: 'x',
                 metadata: {},
@@ -124,14 +124,14 @@ describe('Builder', () => {
                 errorCode: 'INVALID_COLUMN',
                 initializer: vi.fn(() => () => {}),
             };
-            expect(() => Builder.buildField(config)()).toThrow(DatabaseException);
+            expect(() => Builder.buildProperty(config)()).toThrow(DatabaseException);
             expect(() => {
-                Builder.buildField(config)({ default: 1 });
+                Builder.buildProperty(config)({ default: 1 });
             }).not.toThrow();
         });
 
-        it('calls ensureFieldDecoratorUniqueness when unique and decoratorName set', () => {
-            const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
+        it('calls ensurePropertyDecoratorUniqueness when unique and decoratorName set', () => {
+            const meta: MetadataMap = {
                 id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
             };
             const config: PropertyDecoratorConfig<object> = {
@@ -139,7 +139,7 @@ describe('Builder', () => {
                 decoratorName: 'PrimaryKey',
                 initializer: vi.fn(() => () => {}),
             };
-            const decorator = Builder.buildField(config)();
+            const decorator = Builder.buildProperty(config)();
             const context = {
                 name: 'uuid',
                 metadata: meta,
@@ -153,7 +153,7 @@ describe('Builder', () => {
             const config: PropertyDecoratorConfig<object> = {
                 initializer: vi.fn(() => setter),
             };
-            const decorator = Builder.buildField(config)();
+            const decorator = Builder.buildProperty(config)();
             let capturedCb: (this: unknown) => void = () => {};
             const context = {
                 name: 'x',

@@ -4,26 +4,26 @@
  * Direct-to-Kysely implementation without EntityGateway or RowMapper intermediate layers.
  */
 
-import { CompiledQuery, type Kysely, type Transaction } from 'kysely';
+import { CompiledQuery, type Kysely } from 'kysely';
 import { AppLogger } from '@/Service/Logger';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
-import type { AbstractEntity } from './AbstractEntity';
 import { Collection } from './Collection';
 import { Criteria } from './Criteria';
 import { EntityMetadata } from './Decorator';
+import type { Entity } from './Entity';
 import { qb } from './Kysely';
 import { QueryCompiler, type QueryOptions } from './QueryCompiler';
-import type { DatabaseSchema } from './Type';
+import type { DatabaseSchema, EntityClass } from './Type';
 
-/** Entity constructor signature (plain data in, entity out). */
-// We no longer parameterize by specific entity type; everything is treated as
-// AbstractEntity at runtime.  Callers can still pass in concrete subclasses
-// but the repository API returns/accepts the base type.
-type EntityConstructor = new (data?: Partial<Record<string, unknown>>) => AbstractEntity;
-
-/** Entity class shape accepted by Repository.create (constructor + entityName). */
-type EntityClassForCreate = EntityConstructor & { entityName: string };
+/**
+ * Shape of an entity class constructor.
+ *
+ * Every concrete entity extends AbstractEntity (and therefore implements
+ * the Entity interface); the constructor accepts a partial Entity object and
+ * returns an Entity instance.  Declaring the interface here lets callers use
+ * `Entity` rather than rely on the concrete class type.
+ */
 
 /** Foreign key column reference (property name → column name). */
 interface RealForeignKeyColumn {
@@ -32,41 +32,236 @@ interface RealForeignKeyColumn {
 }
 
 export class Repository {
-    private readonly entityClass: EntityConstructor;
-    private readonly tableName: string;
+    private readonly allowedKeys: ReadonlySet<string>;
+    private readonly db: Kysely<DatabaseSchema>;
+    private readonly entityClass: EntityClass;
     private readonly metadata: EntityMetadata;
     private readonly primaryKeyField: string;
-    private readonly realForeignKeyColumns: RealForeignKeyColumn[];
-    private readonly db: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>;
     private readonly queryCompiler: QueryCompiler;
-    private readonly allowedKeys: ReadonlySet<string>;
+    private readonly realForeignKeyColumns: RealForeignKeyColumn[];
+    private readonly tableName: string;
 
-    /**
-     * Creates the appropriate repository: custom repo class when provided (e.g. by Registry), else generic Repository.
-     */
-    public static create(entityName: string, EntityClass: EntityClassForCreate, customRepositoryClass?: new () => Repository): Repository {
-        if (customRepositoryClass) {
-            return new customRepositoryClass();
-        }
+    // static helpers (e.g. create) are declared below after constructor to follow ordering rules
 
-        return new Repository(EntityClass, entityName);
-    }
-
-    protected constructor(entityClass: EntityConstructor, tableName: string, db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>) {
+    protected constructor(entityClass: EntityClass, tableName: string, db?: Kysely<DatabaseSchema>) {
         this.entityClass = entityClass;
         this.tableName = tableName;
         this.db = db ?? qb;
         this.metadata = EntityMetadata.for(entityClass as MetadataConstructor);
         this.primaryKeyField = this.metadata.getPrimaryKeyField();
         this.realForeignKeyColumns = this.metadata.getForeignKeyColumns() as RealForeignKeyColumn[];
-        // Include primary key field in allowed criteria keys even if column metadata is missing
+        // Every property that can be used in Criteria (for findBy/where
+        // clauses) must appear in this set.  We derive the list from column
+        // metadata, which usually includes the primary key, but there are
+        // edge cases where metadata omits it.  To be safe we always call
+        // `add` – the Set makes the operation idempotent, so if the key was
+        // already present this is a no-op.
         const columnNames = this.metadata.getColumnNames();
         const allowedKeys = new Set(columnNames);
-        if (!allowedKeys.has(this.primaryKeyField)) {
-            allowedKeys.add(this.primaryKeyField);
-        }
+        allowedKeys.add(this.primaryKeyField); // idempotent guarantee
         this.allowedKeys = allowedKeys;
         this.queryCompiler = new QueryCompiler(this.tableName, this.metadata);
+    }
+
+    /**
+     * Creates the appropriate repository: custom repo class when provided (e.g. by Registry), else generic Repository.
+     */
+    public static create(entityName: string, EntityClass: EntityClass, customRepositoryClass?: new () => Repository): Repository {
+        if (customRepositoryClass) {
+            return new customRepositoryClass();
+        }
+
+        // the provided class already matches the EntityClass constructor signature
+        return new Repository(EntityClass, entityName);
+    }
+
+    /**
+     * Check if an entity with the given primary key exists.
+     */
+    public async exists(primaryKey: string): Promise<boolean> {
+        const compiled = this.queryCompiler.compileExists({ [this.primaryKeyField]: primaryKey });
+        const rows = await this.executeQuery(compiled);
+        return rows.length > 0;
+    }
+
+    /**
+     * Find entity by primary key.
+     */
+    public async find(primaryKey: string): Promise<Entity | null> {
+        return this.findOneBy(Criteria.of({ [this.primaryKeyField]: primaryKey }));
+    }
+
+    /**
+     * Find all entities (no criteria).
+     */
+    public async findAll(options?: QueryOptions): Promise<Collection<Entity>> {
+        return this.findBy(Criteria.of({}), options);
+    }
+
+    /**
+     * Find entities matching criteria.
+     */
+    public async findBy(criteria: Criteria, options?: QueryOptions): Promise<Collection<Entity>> {
+        // Validate criteria keys against allowed entity properties
+        criteria.validate(this.allowedKeys);
+
+        const compiled = this.queryCompiler.build(criteria.value(), options);
+        const rows = await this.executeQuery(compiled);
+        const entities = this.toEntities(rows);
+        return new Collection(entities);
+    }
+
+    /**
+     * Find a single entity matching criteria, or null if none.
+     */
+    public async findOneBy(criteria: Criteria, options?: QueryOptions): Promise<Entity | null> {
+        const compiled = this.queryCompiler.build(criteria.value(), { ...options, limit: 1 });
+        const rows = await this.executeQuery(compiled);
+        return rows.length > 0 ? this.toEntity(rows[0]) : null;
+    }
+
+    /**
+     * Persist: create if entity unknown (primary key not in table), else update.
+     * Uses Kysely's onConflict for upsert operation.
+     * Real foreign key columns are written so REFERENCES constraints are satisfied.
+     */
+    public async persist(entity: Entity): Promise<Entity> {
+        const logger = AppLogger.getInstance();
+        const primaryKey = entity.primaryKey;
+
+        // Validate primary key is not empty or whitespace-only
+        if (!primaryKey || primaryKey.trim().length === 0) {
+            throw new DatabaseException('Cannot persist entity with empty or whitespace-only primary key.', 'REPOSITORY_INVALID_PRIMARY_KEY', undefined, {
+                tableName: this.tableName,
+                primaryKey,
+            });
+        }
+
+        const data = entity.toPlainObject();
+        logger.debug('[Repository] persist:', { primaryKey, dataKeys: Object.keys(data) });
+
+        // Check if entity exists to determine if we need to merge with stored record
+        const exists = await this.exists(primaryKey);
+        let mergedWithStored: Record<string, unknown>;
+
+        if (exists) {
+            // Update: load stored record, merge with incoming data
+            const stored = await this.find(primaryKey);
+            if (stored == null) {
+                throw new DatabaseException(
+                    `Cannot update: entity ${primaryKey} disappeared between exists() and find().`,
+                    'REPOSITORY_CONCURRENT_MODIFICATION',
+                    undefined,
+                    { tableName: this.tableName, primaryKey },
+                );
+            }
+            const storedRecord = stored.toPlainObject();
+            mergedWithStored = this.mergeForPersist(data, storedRecord);
+        } else {
+            // Create: merge with defaults only
+            mergedWithStored = this.mergeForPersist(data);
+        }
+
+        const row = this.toRow(mergedWithStored);
+
+        // Upsert using Kysely's onConflict
+        await this.db
+            .insertInto(this.tableName as keyof DatabaseSchema)
+            // biome-ignore lint/suspicious/noExplicitAny: Dynamic table insertion requires type assertion
+            .values(row as any)
+            .onConflict((oc) => oc.column('uuid').doUpdateSet(row))
+            .execute();
+
+        return this.refresh(entity);
+    }
+
+    /**
+     * Reloads an entity from the database by its primary key. Throws if not found.
+     */
+    public async refresh(entity: Entity): Promise<Entity> {
+        const primaryKey = entity.primaryKey;
+        const loaded = await this.find(primaryKey);
+        if (loaded == null) {
+            throw new DatabaseException(
+                `Cannot refresh: no entity with primary key "${primaryKey}" in table "${this.tableName}".`,
+                'REPOSITORY_ENTITY_NOT_FOUND',
+                undefined,
+                { tableName: this.tableName, primaryKey },
+            );
+        }
+
+        return loaded;
+    }
+
+    public async remove(entity: Entity): Promise<void> {
+        await this.db
+            .deleteFrom(this.tableName as keyof DatabaseSchema)
+            .where('uuid', '=', entity.primaryKey)
+            .execute();
+    }
+
+    /**
+     * Full-text search (requires FTS table: {tableName}_fts).
+     */
+    public async search(query: string, options?: QueryOptions): Promise<Collection<Entity>> {
+        const ftsTableName = `${this.tableName}_fts`;
+        const compiled = this.queryCompiler.build({}, options);
+        // Replace FROM clause to use FTS table instead of main table
+        const ftsSql = compiled.sql.replace(`FROM "${this.tableName}"`, `FROM "${ftsTableName}"`);
+        // Add MATCH clause
+        const matchClause = `"${ftsTableName}" MATCH ?`;
+        const wherePos = ftsSql.toUpperCase().indexOf(' WHERE ');
+        let finalSql: string;
+        let parameters: unknown[];
+        if (wherePos === -1) {
+            finalSql = `${ftsSql} WHERE ${matchClause}`;
+            parameters = [...compiled.parameters, query];
+        } else {
+            const beforeWhere = ftsSql.substring(0, wherePos);
+            const afterWhere = ftsSql.substring(wherePos + 7); // +7 for " WHERE "
+            finalSql = `${beforeWhere} WHERE ${matchClause} AND ${afterWhere}`;
+            parameters = [query, ...compiled.parameters];
+        }
+
+        try {
+            const rows = await this.executeQuery({ sql: finalSql, parameters });
+            const entities = this.toEntities(rows);
+
+            return new Collection(entities);
+        } catch {
+            return new Collection<Entity>([]);
+        }
+    }
+
+    /**
+     * Runs multiple operations in a single database transaction.
+     * All persist, remove, etc. inside the callback use the same transaction; commit on success.
+     * Rollback on throw is driver-dependent. Use for bulk writes or when several operations must succeed together.
+     * The repo passed to the callback is a base Repository (same entity/table);
+     * subclass methods (e.g. TherapistRepository) are not available on it.
+     */
+    public async transaction<T>(fn: (repo: Repository) => Promise<T>): Promise<T> {
+        // If we're already in a transaction, we can't start a new one
+        // For simplicity, we'll just execute the callback with the current repository
+        if ('isTransaction' in this.db) {
+            return await fn(this);
+        }
+
+        return await (this.db as Kysely<DatabaseSchema>).transaction().execute(async (trx) => {
+            const txRepo = new Repository(this.entityClass, this.tableName, trx);
+            return await fn(txRepo);
+        });
+    }
+
+    // --- private helpers ---------------------------------------------------
+
+    /**
+     * Execute a compiled SQL statement using Kysely.
+     */
+    private async executeQuery(compiled: { sql: string; parameters: unknown[] }): Promise<Record<string, unknown>[]> {
+        const result = await this.db.executeQuery(CompiledQuery.raw(compiled.sql, compiled.parameters));
+
+        return (result.rows ?? []) as Record<string, unknown>[];
     }
 
     /**
@@ -122,27 +317,9 @@ export class Repository {
     }
 
     /**
-     * Convert plain data to database row format (uuid, data JSON, plus foreign key columns).
-     */
-    private toRow(data: Record<string, unknown>): Record<string, unknown> {
-        const row: Record<string, unknown> = {
-            uuid: data[this.primaryKeyField],
-            data: JSON.stringify(this.normalizeForWrite(data)),
-        };
-
-        // Add real foreign key columns
-        for (const fk of this.realForeignKeyColumns) {
-            const value = data[fk.propertyName];
-            row[fk.columnName] = value !== undefined ? String(value) : null;
-        }
-
-        return row;
-    }
-
-    /**
      * Convert database row to entity instance.
      */
-    private toEntity(row: Record<string, unknown>): AbstractEntity {
+    private toEntity(row: Record<string, unknown>): Entity {
         // Parse JSON data
         const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
 
@@ -158,7 +335,7 @@ export class Repository {
 
         // Ensure primary key is set (should already be in data from row.uuid)
         if (entity.primaryKey !== row.uuid) {
-            (entity as Record<string, unknown>)[this.primaryKeyField] = row.uuid;
+            (entity as unknown as Record<string, unknown>)[this.primaryKeyField] = row.uuid;
         }
 
         return entity;
@@ -167,194 +344,25 @@ export class Repository {
     /**
      * Convert multiple database rows to entities.
      */
-    private toEntities(rows: Record<string, unknown>[]): AbstractEntity[] {
+    private toEntities(rows: Record<string, unknown>[]): Entity[] {
         return rows.map((row) => this.toEntity(row));
     }
 
     /**
-     * Execute a compiled SQL statement using Kysely.
+     * Convert plain data to database row format (uuid, data JSON, plus foreign key columns).
      */
-    private async executeQuery(compiled: { sql: string; parameters: unknown[] }): Promise<Record<string, unknown>[]> {
-        const result = await this.db.executeQuery(CompiledQuery.raw(compiled.sql, compiled.parameters));
+    private toRow(data: Record<string, unknown>): Record<string, unknown> {
+        const row: Record<string, unknown> = {
+            uuid: data[this.primaryKeyField],
+            data: JSON.stringify(this.normalizeForWrite(data)),
+        };
 
-        return (result.rows ?? []) as Record<string, unknown>[];
-    }
-
-    /**
-     * Check if an entity with the given primary key exists.
-     */
-    public async exists(primaryKey: string): Promise<boolean> {
-        const compiled = this.queryCompiler.compileExists({ [this.primaryKeyField]: primaryKey });
-        const rows = await this.executeQuery(compiled);
-        return rows.length > 0;
-    }
-
-    /**
-     * Find entities matching criteria.
-     */
-    public async findBy(criteria: Criteria, options?: QueryOptions): Promise<Collection<AbstractEntity>> {
-        // Validate criteria keys against allowed entity properties
-        criteria.validate(this.allowedKeys);
-
-        const compiled = this.queryCompiler.build(criteria.value(), options);
-        const rows = await this.executeQuery(compiled);
-        const entities = this.toEntities(rows);
-        return new Collection(entities);
-    }
-
-    /**
-     * Find a single entity matching criteria, or null if none.
-     */
-    public async findOneBy(criteria: Criteria, options?: QueryOptions): Promise<AbstractEntity | null> {
-        const compiled = this.queryCompiler.build(criteria.value(), { ...options, limit: 1 });
-        const rows = await this.executeQuery(compiled);
-        return rows.length > 0 ? this.toEntity(rows[0]) : null;
-    }
-
-    /**
-     * Find entity by primary key.
-     */
-    public async find(primaryKey: string): Promise<AbstractEntity | null> {
-        return this.findOneBy(Criteria.of({ [this.primaryKeyField]: primaryKey }));
-    }
-
-    /**
-     * Find all entities (no criteria).
-     */
-    public async findAll(options?: QueryOptions): Promise<Collection<AbstractEntity>> {
-        return this.findBy(Criteria.of({}), options);
-    }
-
-    /**
-     * Persist: create if entity unknown (primary key not in table), else update.
-     * Uses Kysely's onConflict for upsert operation.
-     * Real foreign key columns are written so REFERENCES constraints are satisfied.
-     */
-    public async persist(entity: AbstractEntity): Promise<AbstractEntity> {
-        const logger = AppLogger.getInstance();
-        const primaryKey = entity.primaryKey;
-
-        // Validate primary key is not empty or whitespace-only
-        if (!primaryKey || primaryKey.trim().length === 0) {
-            throw new DatabaseException('Cannot persist entity with empty or whitespace-only primary key.', 'REPOSITORY_INVALID_PRIMARY_KEY', undefined, {
-                tableName: this.tableName,
-                primaryKey,
-            });
+        // Add real foreign key columns
+        for (const fk of this.realForeignKeyColumns) {
+            const value = data[fk.propertyName];
+            row[fk.columnName] = value !== undefined ? String(value) : null;
         }
 
-        const data = entity.toPlainObject();
-        logger.debug('[Repository] persist:', { primaryKey, dataKeys: Object.keys(data) });
-
-        // Check if entity exists to determine if we need to merge with stored record
-        const exists = await this.exists(primaryKey);
-        let mergedWithStored: Record<string, unknown>;
-
-        if (exists) {
-            // Update: load stored record, merge with incoming data
-            const stored = await this.find(primaryKey);
-            if (stored == null) {
-                throw new DatabaseException(
-                    `Cannot update: entity ${primaryKey} disappeared between exists() and find().`,
-                    'REPOSITORY_CONCURRENT_MODIFICATION',
-                    undefined,
-                    { tableName: this.tableName, primaryKey },
-                );
-            }
-            const storedRecord = stored.toPlainObject();
-            mergedWithStored = this.mergeForPersist(data, storedRecord);
-        } else {
-            // Create: merge with defaults only
-            mergedWithStored = this.mergeForPersist(data);
-        }
-
-        const row = this.toRow(mergedWithStored);
-
-        // Upsert using Kysely's onConflict
-        await this.db
-            .insertInto(this.tableName as keyof DatabaseSchema)
-            // biome-ignore lint/suspicious/noExplicitAny: Dynamic table insertion requires type assertion
-            .values(row as any)
-            .onConflict((oc) => oc.column('uuid').doUpdateSet(row))
-            .execute();
-
-        return this.refresh(entity);
-    }
-
-    /**
-     * Runs multiple operations in a single database transaction.
-     * All persist, remove, etc. inside the callback use the same transaction; commit on success.
-     * Rollback on throw is driver-dependent. Use for bulk writes or when several operations must succeed together.
-     * The repo passed to the callback is a base Repository (same entity/table);
-     * subclass methods (e.g. TherapistRepository) are not available on it.
-     */
-    public async transaction<T>(fn: (repo: Repository) => Promise<T>): Promise<T> {
-        // If we're already in a transaction, we can't start a new one
-        // For simplicity, we'll just execute the callback with the current repository
-        if ('isTransaction' in this.db) {
-            return await fn(this);
-        }
-
-        return await (this.db as Kysely<DatabaseSchema>).transaction().execute(async (trx) => {
-            const txRepo = new Repository(this.entityClass, this.tableName, trx);
-            return await fn(txRepo);
-        });
-    }
-
-    /**
-     * Reloads an entity from the database by its primary key. Throws if not found.
-     */
-    public async refresh(entity: AbstractEntity): Promise<AbstractEntity> {
-        const primaryKey = entity.primaryKey;
-        const loaded = await this.find(primaryKey);
-        if (loaded == null) {
-            throw new DatabaseException(
-                `Cannot refresh: no entity with primary key "${primaryKey}" in table "${this.tableName}".`,
-                'REPOSITORY_ENTITY_NOT_FOUND',
-                undefined,
-                { tableName: this.tableName, primaryKey },
-            );
-        }
-
-        return loaded;
-    }
-
-    public async remove(entity: AbstractEntity): Promise<void> {
-        await this.db
-            .deleteFrom(this.tableName as keyof DatabaseSchema)
-            .where('uuid', '=', entity.primaryKey)
-            .execute();
-    }
-
-    /**
-     * Full-text search (requires FTS table: {tableName}_fts).
-     */
-    public async search(query: string, options?: QueryOptions): Promise<Collection<AbstractEntity>> {
-        const ftsTableName = `${this.tableName}_fts`;
-        const compiled = this.queryCompiler.build({}, options);
-        // Replace FROM clause to use FTS table instead of main table
-        const ftsSql = compiled.sql.replace(`FROM "${this.tableName}"`, `FROM "${ftsTableName}"`);
-        // Add MATCH clause
-        const matchClause = `"${ftsTableName}" MATCH ?`;
-        const wherePos = ftsSql.toUpperCase().indexOf(' WHERE ');
-        let finalSql: string;
-        let parameters: unknown[];
-        if (wherePos === -1) {
-            finalSql = `${ftsSql} WHERE ${matchClause}`;
-            parameters = [...compiled.parameters, query];
-        } else {
-            const beforeWhere = ftsSql.substring(0, wherePos);
-            const afterWhere = ftsSql.substring(wherePos + 7); // +7 for " WHERE "
-            finalSql = `${beforeWhere} WHERE ${matchClause} AND ${afterWhere}`;
-            parameters = [query, ...compiled.parameters];
-        }
-
-        try {
-            const rows = await this.executeQuery({ sql: finalSql, parameters });
-            const entities = this.toEntities(rows);
-
-            return new Collection(entities);
-        } catch {
-            return new Collection<AbstractEntity>([]);
-        }
+        return row;
     }
 }

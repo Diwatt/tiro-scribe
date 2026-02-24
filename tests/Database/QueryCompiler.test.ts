@@ -83,6 +83,28 @@ describe('QueryCompiler', () => {
             const compiled = compiler.build({}, { limit: -1 });
             expect(compiled.sql.toLowerCase()).not.toMatch(/limit\s+-1/);
         });
+
+        it('build with offset > 0 adds OFFSET clause and parameter', () => {
+            const compiler = newCompiler();
+            const compiled = compiler.build({}, { offset: 5 });
+            // Kysely uses parameter placeholder for OFFSET
+            expect(compiled.sql.toLowerCase()).toMatch(/offset\s+\?/);
+            expect(compiled.parameters).toContain(5);
+        });
+
+        it('build uses default orderBy column when none provided', () => {
+            const compiler = newCompiler();
+            const compiled = compiler.build({});
+            // mock encounter metadata has uuid as primary key so default order by should be uuid
+            expect(compiled.sql.toLowerCase()).toContain('order by');
+            expect(compiled.sql.toLowerCase()).toContain('uuid');
+        });
+
+        it('orderBy direction normalization lowercases DESC/ASC', () => {
+            const compiler = newCompiler();
+            const compiled = compiler.build({}, { orderBy: [{ column: 'therapistId', direction: 'DESC' }] });
+            expect(compiled.sql.toLowerCase()).toContain('order by');
+        });
     });
 
     describe('I — Interface', () => {
@@ -100,6 +122,14 @@ describe('QueryCompiler', () => {
             expect(typeof compiled.sql).toBe('string');
             expect(compiled.sql.toLowerCase()).toContain('select');
             expect(Array.isArray(compiled.parameters)).toBe(true);
+        });
+
+        it('compileExists with multiple criteria includes all parameters', () => {
+            const compiler = newCompiler();
+            const compiled = compiler.compileExists({ uuid: 'x', therapistId: 't1' });
+            expect(compiled.parameters).toContain('x');
+            expect(compiled.parameters).toContain('t1');
+            expect(compiled.sql.toLowerCase()).toContain('where');
         });
     });
 

@@ -3,7 +3,7 @@
  * SUT: DefinitionBuilder. All dependencies (EntityMetadata) are mocked.
  */
 
-import { ClassDecorator as EntityDecorator } from '@/Decorator/ClassDecorator';
+import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { PropertyDecorator } from '@/Decorator/PropertyDecorator';
 import type { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
@@ -31,23 +31,23 @@ function createMockMetadata(overrides: {
 }
 
 function metadataFromReaderLike(readerLike: {
-    getEntity?: () => EntityDecorator | undefined;
+    getEntity?: () => ClassDecorator | undefined;
     getPrimaryKeyColumn?: () => PropertyDecorator | undefined;
-    getFieldsByDecorator?: (name: string) => PropertyDecorator[];
-    getFieldByProperty?: (propertyName: string) => PropertyDecorator[];
+    getPropertiesByDecorator?: (name: string) => PropertyDecorator[];
+    getDecoratorsByProperty?: (propertyName: string) => PropertyDecorator[];
 }): EntityMetadata {
     return createMockMetadata({
         getTableName: () => readerLike.getEntity?.()?.getOption('tableName') ?? '',
         getPrimaryKeyColumnField: readerLike.getPrimaryKeyColumn,
-        getColumnFields: () => readerLike.getFieldsByDecorator?.('Column') ?? [],
+        getColumnFields: () => readerLike.getPropertiesByDecorator?.('Column') ?? [],
         getForeignKeyOptions: (prop) => {
-            const decorators = readerLike.getFieldByProperty?.(prop) ?? [];
+            const decorators = readerLike.getDecoratorsByProperty?.(prop) ?? [];
             const fk = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
             return fk?.getOptions<ForeignKeyOptions>();
         },
         getForeignKeyTargetTableName: (prop) => {
             const opts = (() => {
-                const decorators = readerLike.getFieldByProperty?.(prop) ?? [];
+                const decorators = readerLike.getDecoratorsByProperty?.(prop) ?? [];
                 const fk = decorators.find((d) => d.getDecoratorName() === 'ForeignKey');
                 return fk?.getOptions<ForeignKeyOptions>();
             })();
@@ -61,8 +61,8 @@ function metadataFromReaderLike(readerLike: {
     });
 }
 
-function createEntityDecorator(tableName: string): EntityDecorator {
-    return new EntityDecorator('Entity', { tableName });
+function createEntityDecorator(tableName: string): ClassDecorator {
+    return new ClassDecorator('Entity', { tableName });
 }
 
 function createPrimaryKeyColumnField(propertyName: string, type: string, length?: number): PropertyDecorator {
@@ -122,7 +122,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('uuid', 'varchar', 36),
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -139,7 +139,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('my_entities'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('primaryKeyId', 'varchar', 36),
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -158,8 +158,8 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('children'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: () => [],
-                getFieldByProperty: (prop) => (prop === 'uuid' ? [pkField, fkOnPk] : []),
+                getPropertiesByDecorator: () => [],
+                getDecoratorsByProperty: (prop) => (prop === 'uuid' ? [pkField, fkOnPk] : []),
             });
             const definition = new DefinitionBuilder(metadata).build();
             expect(definition.columns[0]).toBe('uuid VARCHAR(36) REFERENCES parents(uuid) ON DELETE CASCADE PRIMARY KEY');
@@ -176,7 +176,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('encounters'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [indexedA, indexedB, notIndexed] : []),
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [indexedA, indexedB, notIndexed] : []),
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -198,7 +198,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('encounters'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [ftsField] : []),
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [ftsField] : []),
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -219,9 +219,9 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('encounters'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) =>
+                getPropertiesByDecorator: (name) =>
                     name === 'Column' ? [therapistIdField] : [],
-                getFieldByProperty: (prop) =>
+                getDecoratorsByProperty: (prop) =>
                     prop === 'therapistId' ? [therapistIdField, fkField] : [],
             });
             const builder = new DefinitionBuilder(metadata);
@@ -238,7 +238,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -249,7 +249,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('code', 'varchar', 1),
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -263,7 +263,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('items'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [otherColumn] : []),
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [otherColumn] : []),
             });
             const builder = new DefinitionBuilder(metadata);
             const definition = builder.build();
@@ -282,8 +282,8 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('assets'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [col] : []),
-                getFieldByProperty: (prop) => (prop === 'ownerId' ? [col, foreignKeyDecorator] : []),
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [col] : []),
+                getDecoratorsByProperty: (prop) => (prop === 'ownerId' ? [col, foreignKeyDecorator] : []),
             });
             const definition = new DefinitionBuilder(metadata).build();
             const ownerIdColumn = definition.columns.find((c) => c.includes('owner_id'))!;
@@ -296,8 +296,8 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('tags'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [nonIndexed] : []),
-                getFieldByProperty: () => [],
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [nonIndexed] : []),
+                getDecoratorsByProperty: () => [],
             });
             const definition = new DefinitionBuilder(metadata).build();
             expect(definition.columns.filter((c) => c.includes('label'))).toHaveLength(0);
@@ -316,8 +316,8 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('children'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [fkColumn] : []),
-                getFieldByProperty: (prop) => (prop === 'parentId' ? [fkColumn, foreignKeyDecorator] : []),
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [fkColumn] : []),
+                getDecoratorsByProperty: (prop) => (prop === 'parentId' ? [fkColumn, foreignKeyDecorator] : []),
             });
             const definition = new DefinitionBuilder(metadata).build();
             const parentCol = definition.columns.find((c) => c.includes('parent_id'))!;
@@ -333,29 +333,29 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity,
                 getPrimaryKeyColumn,
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             new DefinitionBuilder(metadata);
             expect(getEntity).toHaveBeenCalledTimes(1);
             expect(getPrimaryKeyColumn).toHaveBeenCalledTimes(1);
         });
 
-        it('constructor calls getFieldsByDecorator with "Column"', () => {
-            const getFieldsByDecorator = vi.fn(() => []);
+        it('constructor calls getPropertiesByDecorator with "Column"', () => {
+            const getPropertiesByDecorator = vi.fn(() => []);
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('t'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
-                getFieldsByDecorator,
+                getPropertiesByDecorator,
             });
             new DefinitionBuilder(metadata);
-            expect(getFieldsByDecorator).toHaveBeenCalledWith('Column');
+            expect(getPropertiesByDecorator).toHaveBeenCalledWith('Column');
         });
 
         it('build returns same tableName and primaryKeyColumnName as provided by metadata', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('my_custom_table'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('primaryKey', 'varchar', 36),
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             const definition = new DefinitionBuilder(metadata).build();
             expect(definition.tableName).toBe('my_custom_table');
@@ -368,7 +368,7 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('foo'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),
-                getFieldsByDecorator: () => [],
+                getPropertiesByDecorator: () => [],
             });
             const builder = new DefinitionBuilder(metadata);
             const def = builder.build();
@@ -412,8 +412,8 @@ describe('DefinitionBuilder', () => {
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('edges'),
                 getPrimaryKeyColumn: () => pkField,
-                getFieldsByDecorator: (name) => (name === 'Column' ? [col] : []),
-                getFieldByProperty: (prop) => (prop === 'refId' ? [col, foreignKeyDecorator] : []),
+                getPropertiesByDecorator: (name) => (name === 'Column' ? [col] : []),
+                getDecoratorsByProperty: (prop) => (prop === 'refId' ? [col, foreignKeyDecorator] : []),
             });
             expect(() => new DefinitionBuilder(metadata)).toThrow(DatabaseException);
         });

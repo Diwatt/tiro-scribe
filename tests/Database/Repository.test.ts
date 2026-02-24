@@ -245,4 +245,77 @@ describe('Repository', () => {
             await expect(repo.refresh(missing)).rejects.toThrow(/REPOSITORY_ENTITY_NOT_FOUND|entity with primary key/);
         });
     });
+
+    // add some unit tests for internal helpers and special branches
+    describe('U — Utilities & internals', () => {
+        it('normalizeForWrite drops keys that are not columns', () => {
+            const r: any = repo;
+            const result = r.normalizeForWrite({ uuid: 'u', therapistId: 't', extra: 123 });
+            expect(result).toEqual({ uuid: 'u', therapistId: 't' });
+        });
+
+        it('mergeForPersist merges default, stored and incoming values correctly', () => {
+            const r: any = repo;
+            const defaults = { a: 1, b: 2 };
+            // monkey patch metadata.getColumnDefaults
+            r.metadata.getColumnDefaults = () => defaults;
+            const merged = r.mergeForPersist({ b: undefined, c: 3 }, { a: 9, b: 8, d: undefined });
+            // defaults 1,2 then stored override to 9,8 ; incoming overwrites b with undefined skipped and adds c
+            expect(merged).toEqual({ a: 9, b: 8, c: 3 });
+        });
+
+        it('toRow stringifies JSON data and includes foreign key columns when configured', () => {
+            const r: any = repo;
+            // by default MockEncounter has no real foreign-key columns
+            let row = r.toRow({ uuid: 'u1', therapistId: 't1', foo: 'bar' });
+            expect(row.uuid).toBe('u1');
+            expect(typeof row.data).toBe('string');
+            // foo is not a column on MockEncounter so it should be removed
+            expect(JSON.parse(row.data).foo).toBeUndefined();
+            expect(row.therapist_id).toBeUndefined();
+
+            // simulate metadata reporting a foreign key column
+            r.realForeignKeyColumns = [{ propertyName: 'therapistId', columnName: 'therapist_id' }];
+            row = r.toRow({ uuid: 'u2', therapistId: 't2' });
+            expect(row.therapist_id).toBe('t2');
+        });
+
+        it('toEntity parses string data and merges foreign key columns', () => {
+            const r: any = repo;
+            const raw = { uuid: 'u1', data: JSON.stringify({ therapistId: 't1', foo: 'bar' }), therapist_id: 't1' };
+            const ent = r.toEntity(raw);
+            expect(ent).toBeInstanceOf(MockEncounter);
+            expect(ent.getField('foo')).toBe('bar');
+            expect(ent.getField('therapistId')).toBe('t1');
+        });
+
+        it('transaction returns same repository when db has isTransaction property', async () => {
+            const fakeDb: any = { isTransaction: true };
+            // pass class as first arg and tableName second
+            const inlineRepo = new Repository(MockEncounter as any, MockEncounter.entityName, fakeDb);
+            const result = await inlineRepo.transaction(async (r) => {
+                expect(r).toBe(inlineRepo);
+                return 'done';
+            });
+            expect(result).toBe('done');
+        });
+
+        it('search handles existing WHERE clause via patched queryCompiler', async () => {
+            const r: any = repo;
+            // patch build to return a where clause with one parameter
+            r.queryCompiler = {
+                build: () => ({ sql: `SELECT * FROM "${r.tableName}" WHERE foo = ?`, parameters: [42] }),
+            };
+            // intercept executeQuery
+            let called: any;
+            r.executeQuery = async (compiled: { sql: string; parameters: unknown[] }) => {
+                called = compiled;
+                return [];
+            };
+            await r.search('term');
+            expect(called).toBeDefined();
+            expect(called.parameters).toEqual(['term', 42]);
+            expect(called.sql).toMatch(/WHERE ".+_fts" MATCH \? AND foo = \?/);
+        });
+    });
 });

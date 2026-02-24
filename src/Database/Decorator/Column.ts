@@ -88,7 +88,7 @@ class ColumnDecorator implements PropertyDecoratorConfig<ColumnOptions<unknown>>
 
     public before(context: ClassFieldDecoratorContext<unknown, unknown>, options: ColumnOptions<unknown>): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
-        MetadataWriter.registerField(meta, String(context.name), 'Column', options);
+        MetadataWriter.registerProperty(meta, String(context.name), 'Column', options);
     }
 
     public initializer(context: ClassFieldDecoratorContext<unknown, unknown>, options: ColumnOptions<unknown>): (instance: unknown) => void {
@@ -113,4 +113,4 @@ class ColumnDecorator implements PropertyDecoratorConfig<ColumnOptions<unknown>>
     }
 }
 
-export const Column = Builder.buildField(new ColumnDecorator());
+export const Column = Builder.buildProperty(new ColumnDecorator());

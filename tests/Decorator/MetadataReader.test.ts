@@ -8,121 +8,207 @@ if (typeof Symbol !== 'undefined' && !Symbol.metadata) {
     Symbol.metadata = Symbol('metadata');
 }
 
-import { ClassDecorator as EntityDecorator } from '@/Decorator/ClassDecorator';
+import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
-import type { ClassConstructor, MetadataConstructor } from '@/Decorator/Type';
+import type { MetadataConstructor, MetadataMap } from '@/Decorator/Type';
 
 describe('MetadataReader', () => {
-    describe('getEntity', () => {
+    describe('getClass', () => {
         it('returns undefined when constructor has no entity metadata', () => {
             class NoEntity {}
             const construct = NoEntity as unknown as MetadataConstructor;
             const reader = new MetadataReader(construct);
-            expect(reader.getEntity()).toBeUndefined();
+            expect(reader.getClass()).toBeUndefined();
         });
 
-        it('returns EntityDecorator when registered via MetadataWriter', () => {
+        it('returns ClassDecorator when registered via MetadataWriter', () => {
             class WithEntity {}
             const construct = WithEntity as unknown as MetadataConstructor;
-            MetadataWriter.registerEntity(construct as unknown as ClassConstructor, { tableName: 'with_entity' });
+            MetadataWriter.registerClass(construct as unknown as any, { tableName: 'with_entity' });
             const reader = new MetadataReader(construct);
-            const entity = reader.getEntity();
-            expect(entity).toBeInstanceOf(EntityDecorator);
-            expect(entity?.getOption('tableName')).toBe('with_entity');
+            const cls = reader.getClass();
+            expect(cls).toBeInstanceOf(ClassDecorator);
+            expect(cls?.getOption('tableName')).toBe('with_entity');
         });
     });
 
-    describe('getFields', () => {
+    describe('getProperties', () => {
         it('returns empty array when no Symbol.metadata', () => {
             class NoMeta {}
             const construct = NoMeta as unknown as MetadataConstructor;
             const reader = new MetadataReader(construct);
-            expect(reader.getFields()).toEqual([]);
+            expect(reader.getProperties()).toEqual([]);
         });
 
-        it('returns field decorators from Symbol.metadata', () => {
+        it('returns property decorators from Symbol.metadata', () => {
             class WithFields {}
             const construct = WithFields as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'WithFields', configurable: true });
-            const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
+            const meta: MetadataMap = {};
             (construct as any)[Symbol.metadata] = meta;
-            MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
-            MetadataWriter.registerField(meta, 'uuid', 'Column', { default: () => 'x' });
+            MetadataWriter.registerProperty(meta, 'id', 'PrimaryKey', {});
+            MetadataWriter.registerProperty(meta, 'uuid', 'Column', { default: () => 'x' });
             const reader = new MetadataReader(construct);
-            const fields = reader.getFields();
-            expect(fields).toHaveLength(2);
-            const byName = (key: string) => fields.find((f) => f.getPropertyName() === key)!;
+            const props = reader.getProperties();
+            expect(props).toHaveLength(2);
+            const byName = (key: string) => props.find((f) => f.getPropertyName() === key)!;
             expect(byName('id').getDecoratorName()).toBe('PrimaryKey');
             expect(byName('uuid').getDecoratorName()).toBe('Column');
             expect(byName('uuid').getClassName()).toBe('WithFields');
         });
     });
 
-    describe('getFieldByProperty', () => {
-        it('filters getFields by property name', () => {
+    describe('getDecoratorsByProperty', () => {
+        it('filters getProperties by property name', () => {
             class Multi {}
             const construct = Multi as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'Multi', configurable: true });
-            const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
+            const meta: MetadataMap = {};
             (construct as any)[Symbol.metadata] = meta;
-            MetadataWriter.registerField(meta, 'a', 'Column', {});
-            MetadataWriter.registerField(meta, 'a', 'PrimaryKey', {});
-            MetadataWriter.registerField(meta, 'b', 'Column', {});
+            MetadataWriter.registerProperty(meta, 'a', 'Column', {});
+            MetadataWriter.registerProperty(meta, 'a', 'PrimaryKey', {});
+            MetadataWriter.registerProperty(meta, 'b', 'Column', {});
             const reader = new MetadataReader(construct);
-            const forA = reader.getFieldByProperty('a');
+            const forA = reader.getDecoratorsByProperty('a');
             expect(forA).toHaveLength(2);
             expect(forA.every((f) => f.getPropertyName() === 'a')).toBe(true);
         });
     });
 
-    describe('getField (instance)', () => {
-        it('returns first field with given decorator name', () => {
+    describe('getProperty (instance)', () => {
+        it('returns first property with given decorator name', () => {
             class HasPK {}
             const construct = HasPK as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'HasPK', configurable: true });
-            const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
+            const meta: MetadataMap = {};
             (construct as any)[Symbol.metadata] = meta;
-            MetadataWriter.registerField(meta, 'pk', 'PrimaryKey', {});
+            MetadataWriter.registerProperty(meta, 'pk', 'PrimaryKey', {});
             const reader = new MetadataReader(construct);
-            const primaryKeyField = reader.getField('PrimaryKey');
-            expect(primaryKeyField).toBeDefined();
-            expect(primaryKeyField?.getPropertyName()).toBe('pk');
+            const primaryKeyProperty = reader.getProperty('PrimaryKey');
+            expect(primaryKeyProperty).toBeDefined();
+            expect(primaryKeyProperty?.getPropertyName()).toBe('pk');
         });
 
-        it('returns undefined when no field has decorator name', () => {
+        it('returns undefined when no property has decorator name', () => {
             class NoPK {}
             const construct = NoPK as unknown as MetadataConstructor;
             Object.defineProperty(construct, 'name', { value: 'NoPK', configurable: true });
             (construct as any)[Symbol.metadata] = {};
             const reader = new MetadataReader(construct);
-            expect(reader.getField('PrimaryKey')).toBeUndefined();
+            expect(reader.getProperty('PrimaryKey')).toBeUndefined();
         });
     });
 
-    describe('getField (static)', () => {
-        it('accepts constructor and returns field by decorator name', () => {
-            const construct = function StaticPK() {};
-            Object.defineProperty(construct, 'name', { value: 'StaticPK', configurable: true });
-            const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
-            (construct as any)[Symbol.metadata] = meta;
-            MetadataWriter.registerField(meta, 'id', 'PrimaryKey', {});
-            const primaryKeyField = MetadataReader.getField(construct, 'PrimaryKey');
-            expect(primaryKeyField).toBeDefined();
-            expect(primaryKeyField?.getPropertyName()).toBe('id');
+    describe('forTarget helper', () => {
+        it('returns a reader instance for a constructor', () => {
+            class C {}
+            const reader = MetadataReader.forTarget(C);
+            expect(reader).toBeInstanceOf(MetadataReader);
         });
 
-        it('accepts instance and uses instance.constructor', () => {
+        it('normalizes an instance to its constructor', () => {
+            class C {}
+            const inst = new C();
+            const reader = MetadataReader.forTarget(inst);
+            expect(reader).toBeInstanceOf(MetadataReader);
+        });
+    });
+
+    describe('getProperty via forTarget', () => {
+        it('works with a constructor', () => {
+            const construct = function StaticPK() {};
+            Object.defineProperty(construct, 'name', { value: 'StaticPK', configurable: true });
+            const meta: MetadataMap = {};
+            (construct as any)[Symbol.metadata] = meta;
+            MetadataWriter.registerProperty(meta, 'id', 'PrimaryKey', {});
+            const primaryKeyProperty = MetadataReader.forTarget(construct).getProperty('PrimaryKey');
+            expect(primaryKeyProperty).toBeDefined();
+            expect(primaryKeyProperty?.getPropertyName()).toBe('id');
+        });
+
+        it('works with an instance', () => {
             const construct = function InstancePK() {};
             Object.defineProperty(construct, 'name', { value: 'InstancePK', configurable: true });
-            const meta: Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }> = {};
+            const meta: MetadataMap = {};
             (construct as any)[Symbol.metadata] = meta;
-            MetadataWriter.registerField(meta, 'uuid', 'PrimaryKey', {});
+            MetadataWriter.registerProperty(meta, 'uuid', 'PrimaryKey', {});
             const instance = Object.create(construct.prototype);
             Object.defineProperty(instance, 'constructor', { value: construct });
-            const primaryKeyField = MetadataReader.getField(instance, 'PrimaryKey');
-            expect(primaryKeyField).toBeDefined();
-            expect(primaryKeyField?.getPropertyName()).toBe('uuid');
+            const primaryKeyProperty = MetadataReader.forTarget(instance).getProperty('PrimaryKey');
+            expect(primaryKeyProperty).toBeDefined();
+            expect(primaryKeyProperty?.getPropertyName()).toBe('uuid');
+        });
+    });
+
+    describe('helpers for property-level lookup', () => {
+        it('can tell when a property has a decorator', () => {
+            class A {}
+            const construct = A as unknown as MetadataConstructor;
+            Object.defineProperty(construct, 'name', { value: 'A', configurable: true });
+            const meta: MetadataMap = {};
+            (construct as any)[Symbol.metadata] = meta;
+            MetadataWriter.registerProperty(meta, 'foo', 'Column', {});
+            const reader = new MetadataReader(construct);
+            expect(reader.hasDecoratorOnProperty('foo', 'Column')).toBe(true);
+            expect(reader.hasDecoratorOnProperty('foo', 'PrimaryKey')).toBe(false);
+        });
+
+        it('can fetch a specific decorator from a property', () => {
+            class B {}
+            const construct = B as unknown as MetadataConstructor;
+            Object.defineProperty(construct, 'name', { value: 'B', configurable: true });
+            const meta: MetadataMap = {};
+            (construct as any)[Symbol.metadata] = meta;
+            MetadataWriter.registerProperty(meta, 'bar', 'ForeignKey', { target: () => B });
+            const reader = new MetadataReader(construct);
+            const dec = reader.getDecoratorFromProperty('bar', 'ForeignKey');
+            expect(dec).toBeDefined();
+            expect(dec?.getDecoratorName()).toBe('ForeignKey');
+        });
+    });
+
+    describe('additional helpers and caching', () => {
+        it('getPropertiesByDecorator filters decorators correctly', () => {
+            class C {}
+            const construct = C as unknown as MetadataConstructor;
+            Object.defineProperty(construct, 'name', { value: 'C', configurable: true });
+            const meta: MetadataMap = {};
+            (construct as any)[Symbol.metadata] = meta;
+            MetadataWriter.registerProperty(meta, 'a', 'Column', {});
+            MetadataWriter.registerProperty(meta, 'b', 'PrimaryKey', {});
+            MetadataWriter.registerProperty(meta, 'a', 'PrimaryKey', {});
+            const reader = new MetadataReader(construct);
+            const cols = reader.getPropertiesByDecorator('Column');
+            expect(cols).toHaveLength(1);
+            expect(cols[0].getPropertyName()).toBe('a');
+        });
+
+        it('getOptionValuesByProperty returns a map of option values', () => {
+            class D {}
+            const construct = D as unknown as MetadataConstructor;
+            Object.defineProperty(construct, 'name', { value: 'D', configurable: true });
+            const meta: MetadataMap = {};
+            (construct as any)[Symbol.metadata] = meta;
+            MetadataWriter.registerProperty(meta, 'x', 'Column', { default: 1 });
+            MetadataWriter.registerProperty(meta, 'y', 'Column', { default: () => 2 });
+            MetadataWriter.registerProperty(meta, 'z', 'PrimaryKey', {});
+            const reader = new MetadataReader(construct);
+            const vals = reader.getOptionValuesByProperty('Column', 'default');
+            expect(vals).toEqual({ x: 1, y: 2 });
+        });
+
+        it('getProperties caches results so repeated calls return same array instance', () => {
+            class E {}
+            const construct = E as unknown as MetadataConstructor;
+            Object.defineProperty(construct, 'name', { value: 'E', configurable: true });
+            const meta: MetadataMap = {};
+            (construct as any)[Symbol.metadata] = meta;
+            MetadataWriter.registerProperty(meta, 'p', 'Column', {});
+            const reader = new MetadataReader(construct);
+            const first = reader.getProperties();
+            const second = reader.getProperties();
+            expect(first).toBe(second);
         });
     });
 });

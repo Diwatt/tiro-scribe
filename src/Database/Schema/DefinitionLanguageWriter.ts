@@ -79,13 +79,28 @@ export class DefinitionLanguageWriter {
             await this.executeRaw(`ALTER TABLE ${tableName} ADD COLUMN ${columnDdl}`);
             return true;
         } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+
+            // COMMON CASE: column actually already exists despite our PRAGMA check.
+            // Older or embedded SQLite builds sometimes omit virtual/generated columns from
+            // `PRAGMA table_info` which leads us to try adding a column that the database
+            // already has.  ALTER TABLE will fail with "duplicate column name: ..." in
+            // that situation; treat it as a no‑op rather than logging a scary warning or
+            // rethrowing.
+            if (message.toLowerCase().includes('duplicate column name')) {
+                return false;
+            }
+
             if (isVirtualOrGenerated) {
+                // Virtual/generated columns may not be supported on the device's SQLite
+                // version.  Log a warning so the problem is visible in development, but
+                // don't block startup.
                 this.logger.warn('[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)', {
                     tableName,
                     columnName,
                     columnDdl,
                     error: err,
-                    errorMessage: err instanceof Error ? err.message : String(err),
+                    errorMessage: message,
                 });
                 return false;
             }

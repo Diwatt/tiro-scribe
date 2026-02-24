@@ -10,7 +10,7 @@
 
 import { Builder, type OptionsSchema, type PropertyDecoratorConfig } from '../../Decorator/Builder';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
-import type { EntityClassStatic } from '../AbstractEntity';
+import type { AbstractEntity } from '../AbstractEntity';
 
 export enum OnDeleteAction {
     Cascade = 'CASCADE',
@@ -21,7 +21,7 @@ export enum OnDeleteAction {
 
 export interface ForeignKeyOptions {
     /** Target entity class. Use () => EntityClass for lazy ref (avoids circular imports), or pass the class directly. */
-    target: (() => EntityClassStatic) | EntityClassStatic;
+    target: (() => typeof AbstractEntity) | typeof AbstractEntity;
     /** Column name on the target table (e.g. 'uuid'). Default: 'uuid'. */
     column?: string;
     /** Action when the referenced row is deleted. Default: RESTRICT. */
@@ -45,7 +45,7 @@ class ForeignKeyDecorator implements PropertyDecoratorConfig<ForeignKeyOptions> 
 
     public before(context: ClassFieldDecoratorContext<unknown, unknown>, options: ForeignKeyOptions): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
-        MetadataWriter.registerField(meta, String(context.name), 'ForeignKey', options);
+        MetadataWriter.registerProperty(meta, String(context.name), 'ForeignKey', options);
     }
 
     public initializer(_context: ClassFieldDecoratorContext<unknown, unknown>, _options: ForeignKeyOptions): (instance: unknown) => void {
@@ -55,4 +55,4 @@ class ForeignKeyDecorator implements PropertyDecoratorConfig<ForeignKeyOptions> 
     }
 }
 
-export const ForeignKey = Builder.buildField(new ForeignKeyDecorator());
+export const ForeignKey = Builder.buildProperty(new ForeignKeyDecorator());

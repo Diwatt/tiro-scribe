@@ -1,5 +1,5 @@
 /**
- * Class decorator metadata (DTO returned by MetadataReader.getEntity).
+ * Class decorator metadata (DTO returned by MetadataReader.getClass).
  * formerly named EntityDecorator; renamed to avoid confusion with
  * Database/Decorator/Entity.EntityDecorator implementation.
  */

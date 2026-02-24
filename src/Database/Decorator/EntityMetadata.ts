@@ -4,14 +4,18 @@
  * Used by AbstractEntity, RecordNormalizer, Repository, DefinitionBuilder.
  */
 
+import isEmpty from 'lodash/isEmpty';
+import isFunction from 'lodash/isFunction';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
 import snakeCase from 'lodash/snakeCase';
-import type { ClassDecorator as EntityDecorator } from '../../Decorator/ClassDecorator';
+import type { ClassDecorator } from '../../Decorator/ClassDecorator';
 import { MetadataReader } from '../../Decorator/MetadataReader';
-import { MetadataWriter } from '../../Decorator/MetadataWriter';
-import { PropertyDecorator } from '../../Decorator/PropertyDecorator';
+import type { PropertyDecorator } from '../../Decorator/PropertyDecorator';
 import type { MetadataConstructor } from '../../Decorator/Type';
 import { DatabaseException } from '../../Exception';
-import type { EntityClassStatic } from '../AbstractEntity';
+import type { AbstractEntity } from '../AbstractEntity';
+import type { Entity } from '../Entity';
 import type { ColumnOptions } from './Column';
 import type { ForeignKeyOptions } from './ForeignKey';
 
@@ -20,29 +24,10 @@ export interface ForeignKeyColumnRef {
     columnName: string;
 }
 
-type CacheKey =
-    | 'columnDefaults'
-    | 'columnFields'
-    | 'columnNames'
-    | 'foreignKeyColumns'
-    | 'orderByColumnName'
-    | 'primaryKeyColumnField'
-    | 'primaryKeyField'
-    | 'repositoryClassKey'
-    | 'tableName'
-    | 'dataObjectMapping';
-
 export class EntityMetadata {
-    private static readonly DECORATOR_COLUMN = 'Column';
-    private static readonly DECORATOR_FOREIGN_KEY = 'ForeignKey';
-    private static readonly DECORATOR_PRIMARY_KEY = 'PrimaryKey';
-    private static readonly FIELD_CREATED_AT = 'createdAt';
     private static readonly instanceByConstruct = new Map<MetadataConstructor, EntityMetadata>();
-    private static readonly OPTION_DEFAULT = 'default';
-    private static readonly OPTION_REPOSITORY_CLASS = 'repositoryClass';
-    private static readonly OPTION_TABLE_NAME = 'tableName';
 
-    private readonly cache = new Map<CacheKey, unknown>();
+    private readonly cache = new Map<string, unknown>();
     private readonly construct: MetadataConstructor;
     private readonly reader: MetadataReader;
 
@@ -64,30 +49,28 @@ export class EntityMetadata {
 
     /** Default values per column (from @Column default). Not cached so per-call defaults (e.g. UUID) stay fresh. */
     public getColumnDefaults(): Record<string, unknown> {
-        const values = this.reader.getOptionValuesByField(EntityMetadata.DECORATOR_COLUMN, EntityMetadata.OPTION_DEFAULT);
+        const values = this.reader.getOptionValuesByProperty('Column', 'default');
 
         return values != null && typeof values === 'object' ? values : {};
     }
 
     /** All @Column PropertyDecorator instances. Cached. Single source for column data. */
     public getColumnFields(): PropertyDecorator[] {
-        return this.getOrSet('columnFields', () => this.reader.getFieldsByDecorator(EntityMetadata.DECORATOR_COLUMN));
+        return this.getOrCreate('columnFields', () => this.reader.getPropertiesByDecorator('Column'));
     }
 
     /** All @Column field names. Cached. Derived from getColumnFields(). */
     public getColumnNames(): string[] {
-        return this.getOrSet('columnNames', () => this.getColumnFields().map((f) => f.getPropertyName()));
+        return this.getOrCreate('columnNames', () => this.getColumnFields().map((f) => f.getPropertyName()));
     }
 
     /** Columns that have @ForeignKey: property name + snake_case column name. Cached. */
     public getForeignKeyColumns(): ForeignKeyColumnRef[] {
-        return this.getOrSet('foreignKeyColumns', () => {
+        return this.getOrCreate('foreignKeyColumns', () => {
             const result: ForeignKeyColumnRef[] = [];
             for (const field of this.getColumnFields()) {
                 const propertyName = field.getPropertyName();
-                const decorators = this.reader.getFieldByProperty(propertyName);
-                const hasForeignKey = decorators.some((d) => d.getDecoratorName() === EntityMetadata.DECORATOR_FOREIGN_KEY);
-                if (hasForeignKey) {
+                if (this.reader.hasDecoratorOnProperty(propertyName, 'ForeignKey')) {
                     result.push({ propertyName, columnName: snakeCase(propertyName) });
                 }
             }
@@ -98,12 +81,12 @@ export class EntityMetadata {
 
     /** @ForeignKey options for a property, if present. */
     public getForeignKeyOptions(propertyName: string): ForeignKeyOptions | undefined {
-        const decorators = this.reader.getFieldByProperty(propertyName);
-        const foreignKeyDecorator = decorators.find((d) => d.getDecoratorName() === EntityMetadata.DECORATOR_FOREIGN_KEY);
+        const foreignKeyDecorator = this.reader.getDecoratorFromProperty(propertyName, 'ForeignKey');
         if (foreignKeyDecorator == null) {
             return undefined;
         }
 
+        // generic method now lets us obtain typed options directly
         return foreignKeyDecorator.getOptions<ForeignKeyOptions>();
     }
 
@@ -119,15 +102,31 @@ export class EntityMetadata {
             return null;
         }
 
-        return this.normalizeTableName(targetClass.entityName);
+        // name is assigned by the decorator and trimmed there; we only
+        // guard against the impossible (non‑string or empty) in case a test
+        // manually pokes at the static property.
+        if (!isString(targetClass.entityName) || isEmpty(targetClass.entityName)) {
+            return null;
+        }
+
+        return targetClass.entityName;
+    }
+
+    /**
+     * Return the column decorator for a given property, if that property has
+     * an @Column decorator.  This is a thin convenience wrapper around
+     * `getColumnFields()` and saves callers from writing their own `.find`
+     * loops every time they want the metadata for a single column.
+     */
+    public getColumnField(propertyName: string): PropertyDecorator | undefined {
+        return this.getColumnFields().find((f) => f.getPropertyName() === propertyName);
     }
 
     /** Default ORDER BY column: created_at if @Column index on createdAt, else primary key column (snake_case). */
     public getOrderByColumnName(): string {
-        return this.getOrSet('orderByColumnName', () => {
-            const hasCreatedAtIndex = this.getColumnFields().some(
-                (f) => f.getPropertyName() === EntityMetadata.FIELD_CREATED_AT && f.getOptions<ColumnOptions>().index === true,
-            );
+        return this.getOrCreate('orderByColumnName', () => {
+            const createdAtField = this.getColumnField('createdAt');
+            const hasCreatedAtIndex = createdAtField?.getOptions<ColumnOptions>().index === true;
 
             return hasCreatedAtIndex ? 'created_at' : snakeCase(this.getPrimaryKeyField());
         });
@@ -135,21 +134,8 @@ export class EntityMetadata {
 
     /** @Column decorator for the primary key property (for DDL type/length). */
     public getPrimaryKeyColumnField(): PropertyDecorator | undefined {
-        const value = this.getOrSet('primaryKeyColumnField', () => {
-            const fromReader = this.reader.getFieldByProperty(this.getPrimaryKeyField()).find((f) => f.getDecoratorName() === EntityMetadata.DECORATOR_COLUMN);
-            if (fromReader != null) {
-                return fromReader;
-            }
-            const fromFallback = (this.construct as unknown as Record<string, unknown>)[MetadataWriter.PRIMARY_KEY_COLUMN_DEF_KEY] as
-                | { propertyName: string; type: string; length?: number }
-                | undefined;
-            if (fromFallback != null && typeof fromFallback.propertyName === 'string' && typeof fromFallback.type === 'string') {
-                return new PropertyDecorator(EntityMetadata.DECORATOR_COLUMN, this.construct.name ?? '', fromFallback.propertyName, {
-                    type: fromFallback.type,
-                    length: fromFallback.length,
-                });
-            }
-            return null;
+        const value = this.getOrCreate('primaryKeyColumnField', () => {
+            return this.reader.getDecoratorFromProperty(this.getPrimaryKeyField(), 'Column') ?? null;
         });
 
         return (value as PropertyDecorator | null) ?? undefined;
@@ -157,14 +143,10 @@ export class EntityMetadata {
 
     /** Primary key property name. @Entity validates at definition time that exactly one @PrimaryKey exists. */
     public getPrimaryKeyField(): string {
-        return this.getOrSet('primaryKeyField', () => {
-            const fromReader = this.reader.getField(EntityMetadata.DECORATOR_PRIMARY_KEY);
+        return this.getOrCreate('primaryKeyField', () => {
+            const fromReader = this.reader.getProperty('PrimaryKey');
             if (fromReader != null) {
                 return fromReader.getPropertyName();
-            }
-            const fromFallback = (this.construct as unknown as Record<string, unknown>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY];
-            if (typeof fromFallback === 'string') {
-                return fromFallback;
             }
             throw new DatabaseException(
                 `Entity ${this.construct.name ?? 'unknown'} has no primary key metadata. Ensure @PrimaryKey() is applied and Symbol.metadata is supported.`,
@@ -197,10 +179,10 @@ export class EntityMetadata {
 
     /** Optional repository export name from @Entity({ repositoryClass }). Must be exported from @/Repository; Registry throws if missing. */
     public getRepositoryClassName(): string | undefined {
-        const value = this.getOrSet('repositoryClassKey', () => {
-            const entity = this.reader.getEntity() as EntityDecorator | undefined;
+        const value = this.getOrCreate('repositoryClassKey', () => {
+            const entity = this.reader.getClass() as ClassDecorator | undefined;
 
-            return entity?.getOption(EntityMetadata.OPTION_REPOSITORY_CLASS) ?? null;
+            return entity?.getOption('repositoryClass') ?? null;
         });
 
         return (value as string | null) ?? undefined;
@@ -208,14 +190,24 @@ export class EntityMetadata {
 
     /** Table name from @Entity({ tableName }). Callers only use EntityMetadata with @Entity constructors. */
     public getTableName(): string {
-        return this.getOrSet('tableName', () => {
-            const entity = this.reader.getEntity() as EntityDecorator;
-
-            return entity.getOption(EntityMetadata.OPTION_TABLE_NAME);
+        return this.getOrCreate('tableName', () => {
+            const entity = this.reader.getClass() as ClassDecorator;
+            const maybeName = entity.getOption('tableName');
+            // option is stored as unknown; runtime validation ensures a string.
+            return String(maybeName);
         });
     }
 
-    private getOrSet<T>(key: CacheKey, factory: () => T): T {
+    /**
+     * Simple memo‑cache helper.  If the given key is not already present in the
+     * `cache` map, it invokes the factory, stores the result and returns it.
+     * Otherwise the existing value is returned.
+     *
+     * The previous name `getOrSet` was a little vague; `getOrCreate` better
+     * conveys that we may run the factory to produce a value.  All callers
+     * below have been updated accordingly.
+     */
+    private getOrCreate<T>(key: string, factory: () => T): T {
         if (!this.cache.has(key)) {
             this.cache.set(key, factory());
         }
@@ -223,37 +215,42 @@ export class EntityMetadata {
         return this.cache.get(key) as T;
     }
 
-    private isEntityClassStatic(value: unknown): value is EntityClassStatic {
-        return typeof value === 'function' && (value as EntityClassStatic).prototype != null && (value as EntityClassStatic).entityName != null;
-    }
-
-    private normalizeTableName(value: unknown): string | null {
-        if (typeof value !== 'string') {
-            return null;
+    private isEntityConstructor(value: unknown): value is typeof AbstractEntity {
+        // simple structural guard rather than `instanceof` so we don't import
+        // the class at runtime (avoids cycles).
+        if (!isFunction(value)) {
+            return false;
         }
 
-        const trimmed = value.trim();
-        if (trimmed === '') {
-            return null;
+        // get the constructor's prototype object
+        const proto = Reflect.get(value, 'prototype');
+        if (!isObject(proto)) {
+            return false;
         }
 
-        return trimmed;
+        // must have the instance method provided by AbstractEntity
+        if (!isFunction((proto as unknown as Entity).toPlainObject)) {
+            return false;
+        }
+        return true;
     }
 
-    private resolveTargetClass(target: ForeignKeyOptions['target']): EntityClassStatic | null {
-        if (typeof target !== 'function') {
-            return this.isEntityClassStatic(target) ? target : null;
+    private resolveTargetClass(target: ForeignKeyOptions['target']): typeof AbstractEntity | null {
+        if (!isFunction(target)) {
+            return this.isEntityConstructor(target) ? target : null;
         }
 
         try {
-            const result = (target as () => EntityClassStatic)();
-            if (this.isEntityClassStatic(result)) {
+            // attempt invocation; if `target` is a class constructor this will
+            // throw a TypeError, which we simply ignore and handle below.
+            const result = (target as () => unknown)();
+            if (this.isEntityConstructor(result)) {
                 return result;
             }
         } catch {
-            // Ignore factory invocation failure and fall back to class-constructor validation.
+            // ignore and fall through to class-as-target case
         }
 
-        return this.isEntityClassStatic(target) ? target : null;
+        return this.isEntityConstructor(target) ? target : null;
     }
 }

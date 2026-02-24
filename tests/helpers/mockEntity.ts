@@ -8,24 +8,20 @@ import { AbstractEntity } from '@/Database/AbstractEntity';
 import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 
-const ENTITY_KEY = MetadataWriter.ENTITY_METADATA_KEY;
 
-type FieldMeta = Record<string, { decorators: Array<{ decoratorName: string; options: unknown }> }>;
+import type { MetadataMap } from '@/Decorator/Type';
+
+type FieldMeta = MetadataMap;
 
 type Constructor = new (...args: unknown[]) => unknown;
 
-function attachEntityMetadata(ctor: Constructor, tableName: string, fieldMeta: FieldMeta, primaryKey?: string): void {
-    (ctor as unknown as Record<string, unknown>)[ENTITY_KEY] = new ClassDecorator('Entity', {
-        tableName,
-    });
+function attachEntityMetadata(ctor: Constructor, tableName: string, fieldMeta: FieldMeta): void {
+    MetadataWriter.classMetadataMap.set(ctor, { tableName });
     (ctor as unknown as Record<symbol, unknown>)[Symbol.metadata] = fieldMeta;
-    if (primaryKey != null) {
-        (ctor as unknown as Record<string, string>)[MetadataWriter.PRIMARY_KEY_FIELD_KEY] = primaryKey;
-    }
 }
 
 /** Minimal encounter-like constructor for RecordNormalizer/Registry/Repository tests. */
-export function createMockEncounterConstructor(): (new (...args: unknown[]) => AbstractEntity) & {
+export function createMockEncounterConstructor(): (new (...args: unknown[]) => Entity) & {
     entityName: string;
     name: string;
 } {
@@ -45,13 +41,12 @@ export function createMockEncounterConstructor(): (new (...args: unknown[]) => A
             participantBiocodes: { decorators: [{ decoratorName: 'Column', options: { default: [], type: 'text' } }] },
             status: { decorators: [{ decoratorName: 'Column', options: { default: 'recording', type: 'text' } }] },
         },
-        'uuid',
     );
-    return MockEncounter as unknown as (new (...args: unknown[]) => AbstractEntity) & { entityName: string; name: string };
+    return MockEncounter as unknown as (new (...args: unknown[]) => Entity) & { entityName: string; name: string };
 }
 
 /** Entity with PrimaryKey for AbstractEntity tests. */
-export function createTestEntityConstructor(): (new (...args: unknown[]) => AbstractEntity) & {
+export function createTestEntityConstructor(): (new (...args: unknown[]) => Entity) & {
     entityName: string;
     name: string;
 } {
@@ -69,13 +64,12 @@ export function createTestEntityConstructor(): (new (...args: unknown[]) => Abst
             },
             name: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
         },
-        'id',
     );
-    return TestEntity as unknown as (new (...args: unknown[]) => AbstractEntity) & { entityName: string; name: string };
+    return TestEntity as unknown as (new (...args: unknown[]) => Entity) & { entityName: string; name: string };
 }
 
 /** Entity without PrimaryKey for PRIMARY_KEY_NOT_DEFINED test. */
-export function createNoPkEntityConstructor(): (new (...args: unknown[]) => AbstractEntity) & {
+export function createNoPkEntityConstructor(): (new (...args: unknown[]) => Entity) & {
     entityName: string;
     name: string;
 } {
@@ -84,5 +78,5 @@ export function createNoPkEntityConstructor(): (new (...args: unknown[]) => Abst
     attachEntityMetadata(NoPkEntity, 'no_pk_entities', {
         x: { decorators: [{ decoratorName: 'Column', options: { default: '', type: 'text' } }] },
     }); // no primaryKey = tests PRIMARY_KEY_NOT_DEFINED
-    return NoPkEntity as unknown as (new (...args: unknown[]) => AbstractEntity) & { entityName: string; name: string };
+    return NoPkEntity as unknown as (new (...args: unknown[]) => Entity) & { entityName: string; name: string };
 }

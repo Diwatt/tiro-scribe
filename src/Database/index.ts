@@ -7,7 +7,7 @@ export type { PropertyDecoratorConfig } from '../Decorator';
 export {
     Builder,
     Column,
-    Entity as EntityDecorator,
+    Entity,
     MetadataReader,
 } from '../Decorator';
 export { AbstractEntity } from './AbstractEntity';

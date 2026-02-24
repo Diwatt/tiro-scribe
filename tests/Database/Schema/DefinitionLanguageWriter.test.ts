@@ -274,6 +274,31 @@ describe('DefinitionLanguageWriter', () => {
             delete global.__DEV__;
         });
 
+        it('ignores duplicate-column errors from ALTER TABLE without warning', async () => {
+            const definition = createMinimalDefinition({
+                columns: [
+                    'uuid VARCHAR(36) PRIMARY KEY',
+                    'data TEXT NOT NULL',
+                    'extra INTEGER',
+                ],
+            });
+            const logger = AppLogger.getInstance();
+            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+            const tx = createMockDb(async (sql) => {
+                if (sql.startsWith('ALTER TABLE') && sql.includes('extra')) {
+                    throw new Error('Error code 1: duplicate column name: extra');
+                }
+                if (sql.includes('PRAGMA table_info')) {
+                    // pretend the PRAGMA omitted the column so writer will try to add it
+                    return { rows: [{ name: 'uuid' }, { name: 'data' }] };
+                }
+                return Promise.resolve();
+            });
+            const writer = new DefinitionLanguageWriter(tx, logger);
+            await writer.write(definition);
+            expect(warnSpy).not.toHaveBeenCalled();
+        });
+
         it('FTS triggers include DELETE and UPDATE behaviors with correct key usage', async () => {
             const definition = createMinimalDefinition({
                 tableName: 'encounters',
