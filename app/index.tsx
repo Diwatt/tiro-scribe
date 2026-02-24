@@ -10,6 +10,7 @@ import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { AppConfig } from '@/Config';
 import { Database } from '@/Database/Database';
 import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
 
@@ -34,6 +35,15 @@ function GateScreen(): React.JSX.Element | null {
         bootStarted.current = true;
 
         (async () => {
+            // optionally clear DB on launch when explicitly enabled via env.
+            // fallback to __DEV__ only for safety; the flag gives developers control
+            // without having to rebuild the binary.
+            if (__DEV__ && AppConfig.shouldClearDbOnLaunch) {
+                try {
+                    await Database.reset();
+                } catch (_e) {}
+            }
+
             await Database.initialize();
             await startupOrchestrator.run();
         })();

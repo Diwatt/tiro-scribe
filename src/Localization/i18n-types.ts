@@ -162,6 +162,8 @@ type RootTranslation = {
     activity: {
         /** Loading… */
         loading: string;
+        /** Starting… */
+        starting: string;
         /** Done */
         done: string;
         /** Warning */
@@ -339,6 +341,8 @@ export type TranslationFunctions = {
     activity: {
         /** Loading… */
         loading: () => LocalizedString;
+        /** Starting… */
+        starting: () => LocalizedString;
         /** Done */
         done: () => LocalizedString;
         /** Warning */

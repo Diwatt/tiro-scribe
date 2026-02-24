@@ -8,7 +8,6 @@ import { Button, HelperText, Snackbar, useTheme } from 'react-native-paper';
 import { AsyncButton } from '@/Components';
 import { Checkbox } from '@/Components/Form';
 import { useAppLanguage } from '@/Localization';
-import { globalActivityStatus } from '@/State/GlobalActivityStatus';
 import type { OnboardingFormData } from '@/State/Onboarding';
 import { onboardingState } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
@@ -43,7 +42,6 @@ export const StepRecovery = observer(function StepRecovery(): React.JSX.Element 
                 </View>
 
                 <AsyncButton
-                    statusKey={globalActivityStatus.recoveryKitStatusKey}
                     idleLabel={LL.onboarding.saveRecoveryKit()}
                     pendingLabel={LL.onboarding.recoveryKitPending()}
                     onPress={handleSaveRecoveryKit}

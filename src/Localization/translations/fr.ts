@@ -84,6 +84,7 @@ const fr: Translation = {
     },
     activity: {
         loading: 'Chargement…',
+        starting: 'Démarrage…',
         done: 'Terminé',
         warning: 'Attention',
         error: 'Une erreur est survenue',

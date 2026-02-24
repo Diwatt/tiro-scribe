@@ -16,27 +16,42 @@ const ENV_SCHEMA = z.object({
         .refine((s) => s.length > 0, 'EXPO_PUBLIC_API_BASE_URL is required')
         .refine((s) => !s.endsWith('/'), {
             message: 'EXPO_PUBLIC_API_BASE_URL must not end with a slash',
+        })
+        // rewrite localhost for android emulator during schema parsing
+        .transform((s) => {
+            let url = s;
+            const testOs = process.env.__TEST_PLATFORM_OS__;
+            let os: string | undefined = testOs;
+            if (os == null) {
+                try {
+                    const { Platform } = require('react-native');
+                    os = Platform?.OS;
+                } catch {
+                    // ignore when react-native unavailable
+                }
+            }
+            if (os === 'android' && url.includes('localhost')) {
+                url = url.replace('localhost', '10.0.2.2');
+            }
+            return url;
         }),
-    EXPO_PUBLIC_DATABASE_NAME: z
-        .string()
-        .trim()
-        .optional()
-        .default('tiro-scribe.sqlite'),
+    EXPO_PUBLIC_DATABASE_NAME: z.string().trim().optional().default('tiro-scribe.sqlite'),
     STORYBOOK_ENABLED: z
         .string()
         .optional()
         .default('')
         .transform((s) => s === 'true'),
-    EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR: z
+    EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR: z.string().trim().optional().default('artifacts'),
+    EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH: z
         .string()
-        .trim()
         .optional()
-        .default('artifacts'),
+        .default('false')
+        .transform((s) => s === 'true'),
 });
 
 type EnvConfig = z.output<typeof ENV_SCHEMA>;
 
-class AppConfig {
+export class AppConfig {
     private readonly config: EnvConfig;
 
     public constructor() {
@@ -59,6 +74,15 @@ class AppConfig {
         return this.config.STORYBOOK_ENABLED;
     }
 
+    /**
+     * When true, the app will delete and re‑create its local database on every
+     * cold start. Intended for development and controlled via the
+     * EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH env var (string "true"/"false").
+     */
+    public get shouldClearDbOnLaunch(): boolean {
+        return this.config.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH;
+    }
+
     private static parseEnv(): EnvConfig {
         if (__DEV__) {
             return ENV_SCHEMA.parse(process.env);
@@ -69,6 +93,7 @@ class AppConfig {
             EXPO_PUBLIC_DATABASE_NAME: process.env.EXPO_PUBLIC_DATABASE_NAME ?? 'tiro-scribe.sqlite',
             STORYBOOK_ENABLED: process.env.STORYBOOK_ENABLED === 'true',
             EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR: process.env.EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR ?? 'artifacts',
+            EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH: process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH === 'true',
         };
     }
 }

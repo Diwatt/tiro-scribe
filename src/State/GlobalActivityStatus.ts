@@ -1,6 +1,8 @@
 /**
- * Global activity status. One key per flow (e.g. recovery kit). Components call setStatus(key, status);
- * UI (e.g. AsyncButton) observes state$ and uses is(key, status) for display.
+ * Global activity status. Single shared slot displayed by the global bar or
+ * any consumer that observes `globalActivityStatus`. There is no concept of
+ * multiple named activities anymore; callers simply update status/message/icon
+ * on the singleton.
  */
 import { observable } from '@legendapp/state';
 
@@ -12,67 +14,67 @@ export enum ActivityStatus {
     Error = 'error',
 }
 
-export type ActivityStatusByKey = Record<string, ActivityStatus>;
-export type ActivityMessageByKey = Record<string, string>;
-export type ActivityProgressByKey = Record<string, number>;
+
+export type GlobalActivityState = {
+    status: ActivityStatus;
+    message: string;
+    icon?: React.ReactNode;
+};
 
 export class GlobalActivityStatus {
-    public readonly recoveryKitStatusKey = 'recoveryKit';
-    public readonly speakerIdDownloadKey = 'speakerIdDownload';
+    /**
+     * single observable that holds the whole “slot” of information. keeping a
+     * single object avoids partial updates being visible and simplifies
+     * consumers that only care about a single subscription. the getters below
+     * make it easy to access individual fields, and we still export the
+     * observable so tests/components can observe as needed.
+     */
+    public readonly state$ = observable<GlobalActivityState>({
+        status: ActivityStatus.Ready,
+        message: '',
+        icon: undefined,
+    });
 
-    public readonly state$ = observable<ActivityStatusByKey>({});
-    public readonly message$ = observable<ActivityMessageByKey>({});
-    public readonly progress$ = observable<ActivityProgressByKey>({});
-
-    public is(key: string, status: ActivityStatus): boolean {
-        return this.getStatus(key) === status;
+    public is(status: ActivityStatus): boolean {
+        return this.getStatus() === status;
     }
 
-    public setStatus(key: string, status: ActivityStatus, message?: string, autoHideAfterMs?: number): void {
-        this.state$[key].set(status);
-        if (message !== undefined) {
-            this.message$[key].set(message);
-        }
+    public setStatus(
+        status: ActivityStatus,
+        message: string,
+        icon?: React.ReactNode,
+        autoHideAfterMs: number = 0,
+    ): void {
+        this.state$.set({ status, message, icon });
 
-        // Auto-hide for success status if specified
-        if (status === ActivityStatus.Success && autoHideAfterMs !== undefined) {
+        if (autoHideAfterMs > 0) {
             setTimeout(() => {
-                this.reset(key);
+                this.reset();
             }, autoHideAfterMs);
         }
     }
 
-    public setProgress(key: string, progress: number, autoHideAfterMs?: number): void {
-        this.progress$[key].set(progress);
-        // Automatically set status to Pending when progress is > 0 and < 100
-        if (progress > 0 && progress < 100) {
-            this.state$[key].set(ActivityStatus.Pending);
-        } else if (progress >= 100) {
-            this.state$[key].set(ActivityStatus.Success);
-            // Auto-reset after specified time (default 3 seconds)
-            const hideDelay = autoHideAfterMs !== undefined ? autoHideAfterMs : 3000;
-            setTimeout(() => {
-                this.reset(key);
-            }, hideDelay);
-        }
+    public getStatus(): ActivityStatus {
+        // reading the observable within an `observer` component will
+        // register the dependency, so callers don't need direct access to
+        // the observable itself.
+        return this.state$.get().status;
     }
 
-    public getStatus(key: string): ActivityStatus {
-        return this.state$[key].get() ?? ActivityStatus.Ready;
+    public getMessage(): string | undefined {
+        return this.state$.get().message;
     }
 
-    public getMessage(key: string): string | undefined {
-        return this.message$[key].get();
+    public getIcon(): React.ReactNode | undefined {
+        return this.state$.get().icon;
     }
 
-    public getProgress(key: string): number {
-        return this.progress$[key].get() ?? 0;
-    }
-
-    public reset(key: string): void {
-        this.state$[key].set(ActivityStatus.Ready);
-        this.message$[key].set('');
-        this.progress$[key].set(0);
+    public reset(): void {
+        this.state$.set({
+            status: ActivityStatus.Ready,
+            message: '',
+            icon: undefined,
+        });
     }
 }
 

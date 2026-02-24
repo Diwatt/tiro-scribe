@@ -25,6 +25,7 @@ type GlobalActivityBarStory = StoryObj<typeof GlobalActivityBar>;
 export const Ready: GlobalActivityBarStory = {
     args: {
         status: ActivityStatus.Ready,
+        message: '',
     },
 };
 
@@ -57,6 +58,14 @@ export const ErrorState: GlobalActivityBarStory = {
     args: {
         status: ActivityStatus.Error,
         message: 'Failed to generate or share recovery kit.',
+    },
+};
+
+export const WithIcon: GlobalActivityBarStory = {
+    args: {
+        status: ActivityStatus.Pending,
+        message: 'Special icon',
+        icon: '🔥',
     },
 };
 

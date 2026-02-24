@@ -177,7 +177,7 @@ export class OnboardingState {
         this.state$.recoveryCode.set('');
         this.state$.isBusy.set(false);
         this.state$.practiceLanguages.set([AppLanguage.getInstance().getLocale()]);
-        globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
+        globalActivityStatus.reset('recoveryKit');
         this.pendingTherapist = null;
     }
 
@@ -198,23 +198,23 @@ export class OnboardingState {
         logger.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
         const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
         this.state$.error.set(undefined);
-        globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Pending, Ll.recoveryKit.generatingPdf());
+        globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.recoveryKit.generatingPdf());
         if (!code) {
             this.state$.error.set(Ll.onboarding.errorNoRecoveryCode());
-            globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
+            globalActivityStatus.reset('recoveryKit');
             return;
         }
         try {
             const uri = await this.recoveryKit.generatePdf(code);
             await this.recoveryKit.share(uri);
-            globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Success, Ll.recoveryKit.saved());
+            globalActivityStatus.setStatus(ActivityStatus.Success, Ll.recoveryKit.saved());
             logger.debug('[OnboardingState] generateAndShareRecoveryKit success');
-            globalActivityStatus.reset(globalActivityStatus.recoveryKitStatusKey);
+            globalActivityStatus.reset('recoveryKit');
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : Ll.recoveryKit.errorGeneric();
             logger.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
             this.state$.error.set(message);
-            globalActivityStatus.setStatus(globalActivityStatus.recoveryKitStatusKey, ActivityStatus.Error, message);
+            globalActivityStatus.setStatus(ActivityStatus.Error, message);
         }
     }
 }

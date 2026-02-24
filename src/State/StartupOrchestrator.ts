@@ -37,7 +37,14 @@ export class StartupOrchestrator {
     }
 
     public async run(): Promise<void> {
+        const bootStart = Date.now();
+
         this.state.set(StartupState.Booting);
+
+        // show an initial pending status during app boot; hide it after 5 seconds
+        const STARTUP_DELAY_MS = 5000;
+        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+        globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.activity.starting(), undefined, STARTUP_DELAY_MS);
 
         const compatible = deviceCompatibilityGate.isCompatible();
         if (!compatible) {
@@ -55,36 +62,46 @@ export class StartupOrchestrator {
         }
 
         this.state.set(StartupState.Onboarding);
-        this.downloadSpeakerId();
+        // don't await - download continues in background
+        this.downloadSpeakerId(bootStart);
     }
 
     /** Start Cam++ model download in background so it is ready before voice calibration step. */
-    private async downloadSpeakerId(): Promise<void> {
-        const key = globalActivityStatus.speakerIdDownloadKey;
+    private async downloadSpeakerId(bootStart: number): Promise<void> {
         const AUTO_HIDE_DELAY_MS = 3000; // 3 seconds
+        const STARTUP_DELAY_MS = 5000;
         const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
 
         try {
             // Set initial status
-            globalActivityStatus.setStatus(key, ActivityStatus.Pending, Ll.download.speakerModel());
+            globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.download.speakerModel());
 
             await InferenceModelDownloader.getInstance().ensureDownloaded('speaker_id', (progress: number) => {
-                // Update progress with auto-hide parameter for when it reaches 100%
-                globalActivityStatus.setProgress(key, progress, AUTO_HIDE_DELAY_MS);
-
-                // Update message with percentage
+                // update message with percentage only; progress isn't tracked anymore
                 const percentage = Math.round(progress);
-                // Use string interpolation since translation function with parameters might not work
                 const message = `${Ll.download.speakerModel()} ${percentage}%`;
-                globalActivityStatus.setStatus(key, ActivityStatus.Pending, message);
+                globalActivityStatus.setStatus(ActivityStatus.Pending, message);
             });
 
-            // Download completed successfully - setProgress already handles auto-hide at 100%
-            // But we also call setStatus to ensure consistent state
-            globalActivityStatus.setStatus(key, ActivityStatus.Success, Ll.download.speakerModelSuccess(), AUTO_HIDE_DELAY_MS);
+            // compute whether we should postpone the success message until after
+            // the startup notification has elapsed. If the download finishes
+            // while the startup bar is still visible we delay the success state
+            // so the user will actually see it once the blue bar disappears.
+            const elapsed = Date.now() - bootStart;
+            const remainingStartup = Math.max(0, STARTUP_DELAY_MS - elapsed);
+
+            const showSuccess = () => {
+                globalActivityStatus.setStatus(ActivityStatus.Success, Ll.download.speakerModelSuccess(), undefined, AUTO_HIDE_DELAY_MS);
+            };
+
+            if (remainingStartup > 0) {
+                setTimeout(showSuccess, remainingStartup);
+            } else {
+                showSuccess();
+            }
         } catch (_error) {
             // Download failed - don't auto-hide errors
-            globalActivityStatus.setStatus(key, ActivityStatus.Error, Ll.download.speakerModelError());
+            globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
             // Error is already captured by the status, no need for additional logging
         }
     }

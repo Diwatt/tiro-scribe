@@ -13,6 +13,11 @@ if (!Symbol.metadata) {
     });
 }
 
+// make React available globally so compiled JSX doesn't crash when tests
+// don't explicitly import it
+const React = require('react');
+globalThis.React = React;
+
 // Define __DEV__ global for React Native compatibility in tests
 // Make it writable so test files can override it if needed
 if (!('__DEV__' in globalThis)) {
@@ -23,6 +28,10 @@ if (!('__DEV__' in globalThis)) {
         configurable: true,
     });
 }
+
+// Some expo modules rely on EXPO_OS, which is normally injected by the
+// runtime.  Default to ios so Platform.OS is never undefined during tests.
+process.env.EXPO_OS ||= 'ios';
 
 // Mock expo/fetch directly to ensure it's available
 vi.mock('expo/fetch', () => ({
@@ -85,6 +94,11 @@ import { testKysely } from './mocks/kysely';
 // Mock expo-crypto for Security tests (getRandomBytes, getRandomValues)
 vi.mock('expo-crypto', () => mockExpoCrypto);
 
+// Mock expo-file-system early to prevent expo-modules-core errors
+vi.mock('expo-file-system', () => ({
+    documentDirectory: '/tmp/',
+}));
+
 // Mock expo-sqlite to avoid requireNativeModule errors
 vi.mock('expo-sqlite', () => ({
     openDatabaseAsync: vi.fn(() =>
@@ -109,15 +123,21 @@ vi.mock('expo-sqlite', () => ({
 
 // Mock Legend-State: simplified version
 vi.mock('@legendapp/state', () => {
+    // primitive values were not being updated because `state` was a const and
+    // the mock only mutated objects.  tests relying on writable observables
+    // (like GlobalActivityStatus) failed when assigning strings.  use a
+    // mutable `let` and always update the internal value for non-object types.
     const observable = (initial: unknown) => {
-        const state = typeof initial === 'object' && initial !== null ? { ...(initial as object) } : initial;
+        let state: any =
+            typeof initial === 'object' && initial !== null ? { ...(initial as object) } : initial;
         return {
             get: () => state,
             set: (value: unknown) => {
-                if (typeof value === 'object' && value !== null) {
-                    Object.assign(state as object, value);
+                if (typeof value === 'object' && value !== null && typeof state === 'object' && state !== null) {
+                    Object.assign(state, value);
                 } else {
-                    return value;
+                    // primitives or cases where previous state wasn't object just replace
+                    state = value;
                 }
             },
         };
@@ -146,6 +166,110 @@ vi.mock('@/Database/Kysely', () => ({
 // vi.mock('expo/fetch', () => ({
 //   fetch: mockExpoFetch.fetch,
 // }));
+
+// Expo modules core expects an ExpoGlobal object on the global scope with a
+// barebones EventEmitter present.  Provide a tiny shim so imports don't
+// crash during tests.  Some packages also reference globalThis.expo.
+if (!globalThis.ExpoGlobal) {
+    globalThis.ExpoGlobal = {
+        EventEmitter: class {
+            addListener() {
+                return { remove: () => {} };
+            }
+            removeAllListeners() {}
+        },
+    };
+}
+if (!globalThis.expo) {
+    globalThis.expo = {
+        EventEmitter: class {
+            addListener() {
+                return { remove: () => {} };
+            }
+            removeAllListeners() {}
+        },
+    } as any;
+}
+
+// React integration is not exercised in unit tests so we stub the `observer`
+// helper; the real implementation pulls in React and runtime helpers which
+// can bring in Flow syntax (e.g. `import typeof`) and blow up the transformer.
+vi.mock('@legendapp/state/react', () => ({
+    observer: (Comp: any) => Comp,
+}));
+
+// stub common React Native libs used by components to avoid bringing in
+// Flow-typed dependencies (react-native-paper, reanimated, safe-area-context, etc.)
+vi.mock('react-native-paper', () => {
+    const React = require('react');
+    // render as host components defined in our react-native mock so test
+    // renderer produces a tree instead of null
+    return {
+        Button: (props: any) => React.createElement('View', props, props.children),
+        Surface: (props: any) => React.createElement('View', props, props.children),
+        Text: (props: any) => React.createElement('Text', props, props.children),
+        ActivityIndicator: (props: any) => React.createElement('View', props, 'loading'),
+        useTheme: () => ({ colors: { actions: { success: { background: '', text: '' } } } }),
+    };
+});
+
+vi.mock('react-native-reanimated', () => ({
+    useAnimatedStyle: () => () => ({}),
+    useSharedValue: (v: any) => ({ value: v }),
+    withTiming: (v: any) => v,
+}));
+
+vi.mock('react-native-safe-area-context', () => ({
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+// several modules in react-native-virtualized-lists contain Flow syntax.
+// provide mocks for both the package and its common subpaths.
+vi.mock('@react-native/virtualized-lists', () => ({}));
+vi.mock('@react-native/virtualized-lists/Lists/VirtualizedListContext', () => ({}));
+vi.mock('@react-native/virtualized-lists/index', () => ({}));
+
+// stub expo-localization to avoid pulling in expo-modules-core/native
+vi.mock('expo-localization', () => ({
+    getLocales: () => [{ languageCode: 'en' }],
+    locale: 'en',
+}));
+
+// lucide icons use Flow syntax and crash the transformer; only a few icons are
+// actually referenced in our components so stub them to simple host components.
+vi.mock('lucide-react-native', () => {
+    const React = require('react');
+    const Icon = React.forwardRef(({ children, ...props }: any, ref: any) =>
+        React.createElement('Icon', { ...props, ref }, children),
+    );
+    return {
+        AlertCircle: Icon,
+        AlertTriangle: Icon,
+        Check: Icon,
+    };
+});
+
+// expo-device is used indirectly by some startup logic; it requires a native
+// module which isn't available in Node tests.  provide a minimal stand-in.
+// include the DeviceType enum so HardwareGuard checks succeed.
+// clear cache in case the module was loaded earlier in this process
+try {
+    delete require.cache[require.resolve('expo-device')];
+} catch {}
+vi.mock('expo-device', () => ({
+    osName: 'iOS',
+    osVersion: '14.0',
+    modelName: 'Simulator',
+    deviceName: 'TestDevice',
+    yearClass: 2022,
+    deviceType: 'PHONE',
+    DeviceType: { PHONE: 'PHONE', TABLET: 'TABLET', UNKNOWN: 'UNKNOWN' },
+    // provide minimal architecture list so hardware guard is happy
+    supportedCpuArchitectures: ['arm64'],
+    // give plenty of memory so hardware guard passes
+    totalMemory: 8 * 1024 * 1024 * 1024, // 8GB
+}));
+
 
 vi.mock('expo-secure-store', () => mockExpoSecureStore);
 

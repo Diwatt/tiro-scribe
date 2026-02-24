@@ -7,7 +7,20 @@
     },
     "files": {
         "ignoreUnknown": true,
-        "includes": ["**/src/**", "**/app/**", "**/modules/**", "**/tests/**", "!!src/Api/generated", "!!tests", "!!vitest", "!**/__tests__", "!**/*.test.ts", "!**/*.test.tsx", "!**/*.spec.ts", "!**/*.spec.tsx"]
+        "includes": [
+            "**/src/**",
+            "**/app/**",
+            "**/modules/**",
+            "**/tests/**",
+            "!!src/Api/generated",
+            "!!tests",
+            "!!vitest",
+            "!**/__tests__",
+            "!**/*.test.ts",
+            "!**/*.test.tsx",
+            "!**/*.spec.ts",
+            "!**/*.spec.tsx"
+        ]
     },
     "assist": {
         "enabled": true,
@@ -53,7 +66,8 @@
                     "level": "warn",
                     "options": { "filenameCases": ["PascalCase", "camelCase"] }
                 },
-                "useImportType": "error"
+                "useImportType": "error",
+                "noInlineImport": "error"
             },
             "complexity": {
                 "noExcessiveCognitiveComplexity": "warn",

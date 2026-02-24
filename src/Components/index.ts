@@ -4,7 +4,7 @@ export { AsyncButton } from './AsyncButton';
 export type { CheckboxProps, SelectMenuOption, SelectMenuProps, TextInputProps } from './Form';
 export { Checkbox, SelectMenu, TextInput } from './Form';
 export type { GlobalActivityBarProps } from './GlobalActivityBar';
-export { GlobalActivityBar } from './GlobalActivityBar';
+export { GlobalActivityBar, ObservedGlobalActivityBar } from './GlobalActivityBar';
 export { SecureSessionButton } from './SecureSessionButton/SecureSessionButton';
 export { StatusBatchWaiting } from './Status/StatusBatchWaiting';
 export { StatusError } from './Status/StatusError';

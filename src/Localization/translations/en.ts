@@ -84,6 +84,7 @@ const en: BaseTranslation = {
     },
     activity: {
         loading: 'Loading…',
+        starting: 'Starting…',
         done: 'Done',
         warning: 'Warning',
         error: 'An error occurred',
