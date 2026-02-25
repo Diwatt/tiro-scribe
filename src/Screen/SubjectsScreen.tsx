@@ -30,7 +30,7 @@ export function SubjectsScreen(): React.JSX.Element {
                             <Avatar.Icon size={40} icon={User} style={[styles.avatar, { backgroundColor: theme.colors.primaryContainer }]} />
                             <View style={styles.subjectInfo}>
                                 <Text variant="titleMedium" style={[styles.biocode, { color: theme.colors.onSurface }]}>
-                                    {item.biocode}
+                                    {Array.isArray(item.biocode) ? JSON.stringify(item.biocode) : item.biocode}
                                 </Text>
                                 <Text variant="bodySmall" style={[styles.lastEncounter, { color: theme.colors.onSurfaceVariant }]}>
                                     {LL.subjects.lastEncounter()} {item.lastEncounter}

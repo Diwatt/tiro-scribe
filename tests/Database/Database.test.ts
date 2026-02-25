@@ -1,7 +1,7 @@
 import { Database } from '@/Database/Database';
 import { appConfig } from '@/Config/AppConfig';
 import { deleteDatabaseAsync } from 'expo-sqlite';
-import { AppLogger } from '@/Service/Logger';
+import { appLogger } from '@/Service/Logger';
 
 // expo-sqlite is already mocked in vitest/setup.ts; we only need to clear
 // mocks before each test so call counts reset.
@@ -33,7 +33,7 @@ describe('Database utility methods', () => {
 
 
     it('logs database path when resetting', async () => {
-        const logger = AppLogger.getInstance();
+        const logger = appLogger;
         const spy = vi.spyOn(logger, 'info');
 
         await Database.reset();

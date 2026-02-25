@@ -1,17 +1,17 @@
 /**
  * OnboardingState – ViewModel for the onboarding wizard. Orchestrates flow via Entity (Therapist),
- * Database (registry), and Service (VoiceCalibration). Manages observables and RecoveryKit (UI-bound).
+ * Database (registry), and Service (VoiceCalibrator). Manages observables and RecoveryKit (UI-bound).
  */
 
 import { observable } from '@legendapp/state';
 import { registry } from '../../Database/Registry';
 import { Therapist } from '../../Entity/Therapist';
-import { AppLanguage } from '../../Localization/AppLanguage';
+import { appLanguage } from '../../Localization/AppLanguage';
 import { CryptoEngine, masterKeyVault, RecoveryCode, RecoveryKit } from '../../Security';
 import type { CreateTherapistInput } from '../../Security/TherapistForge';
 import { TherapistForge } from '../../Security/TherapistForge';
-import { AppLogger } from '../../Service/Logger';
-import { voiceCalibration } from '../../Service/VoiceCalibration';
+import { appLogger } from '../../Service/Logger';
+import { voiceCalibrator } from '../../Service/VoiceCalibrator';
 import { ActivityStatus, globalActivityStatus } from '../GlobalActivityStatus';
 import { startupOrchestrator } from '../StartupOrchestrator';
 import type { ProfileStepData } from './FormValidator';
@@ -25,7 +25,7 @@ export type { ValidationResult } from './Types';
 /** Number of steps in the onboarding wizard (progress UI). */
 export const ONBOARDING_STEPS = 4;
 
-const logger = AppLogger.getInstance();
+const logger = appLogger;
 
 export type OnboardingStateShape = {
     step: number;
@@ -41,7 +41,7 @@ export class OnboardingState {
         isBusy: false,
         error: undefined,
         recoveryCode: '',
-        practiceLanguages: [AppLanguage.getInstance().getLocale()],
+        practiceLanguages: [appLanguage.getLocale()],
     });
 
     private readonly recoveryKit: RecoveryKit;
@@ -80,7 +80,8 @@ export class OnboardingState {
                 const input = this.buildAccountInput(data, practiceLanguages);
                 const crypto = new CryptoEngine();
                 const recovery = new RecoveryCode();
-                const { therapist, artifacts } = TherapistForge.create(input, crypto, recovery);
+                const forge = new TherapistForge(crypto, recovery);
+                const { therapist, artifacts } = forge.create(input);
                 await masterKeyVault.save(therapist.uuid, artifacts.masterKey);
                 this.pendingTherapist = therapist;
                 this.state$.recoveryCode.set(artifacts.recoveryCode);
@@ -88,7 +89,7 @@ export class OnboardingState {
                 logger.debug('[OnboardingState] submit success', { step: 3, recoveryCodeLength: artifacts.recoveryCode?.length ?? 0 });
             },
             () => {
-                const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+                const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
                 return Ll.onboarding.errorAccountCreation();
             },
         );
@@ -98,7 +99,7 @@ export class OnboardingState {
         logger.debug('[OnboardingState] calibrateVoice', { hasPendingTherapist: this.pendingTherapist != null });
         await this.runAsyncAction(
             async () => {
-                const vector = await voiceCalibration.run();
+                const vector = await voiceCalibrator.run();
                 if (this.pendingTherapist) {
                     this.pendingTherapist.biocodeEmbedding = vector;
                 }
@@ -106,7 +107,7 @@ export class OnboardingState {
                 logger.debug('[OnboardingState] calibrateVoice success', { step: 4 });
             },
             () => {
-                const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+                const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
                 return Ll.onboarding.errorVoiceCalibration();
             },
         );
@@ -117,7 +118,7 @@ export class OnboardingState {
             recoveryCodeSaveConfirmed,
             hasPendingTherapist: this.pendingTherapist != null,
         });
-        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+        const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
         this.state$.error.set(undefined);
         if (!recoveryCodeSaveConfirmed) {
             this.state$.error.set(Ll.onboarding.errorConfirmSaveCode());
@@ -176,7 +177,7 @@ export class OnboardingState {
         this.state$.error.set(undefined);
         this.state$.recoveryCode.set('');
         this.state$.isBusy.set(false);
-        this.state$.practiceLanguages.set([AppLanguage.getInstance().getLocale()]);
+        this.state$.practiceLanguages.set([appLanguage.getLocale()]);
         globalActivityStatus.reset('recoveryKit');
         this.pendingTherapist = null;
     }
@@ -196,7 +197,7 @@ export class OnboardingState {
     public async generateAndShareRecoveryKit(): Promise<void> {
         const code = this.state$.recoveryCode.get();
         logger.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
-        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+        const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
         this.state$.error.set(undefined);
         globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.recoveryKit.generatingPdf());
         if (!code) {

@@ -21,7 +21,7 @@ export function TranscriptDetailScreen(): React.JSX.Element {
     const transcript =
         params.transcript || 'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
 
-    const biocode = params.biocode || 'SUBJ-****-A3F2';
+    const biocode = params.biocode ? (Array.isArray(params.biocode) ? JSON.stringify(params.biocode) : params.biocode) : 'SUBJ-****-A3F2';
     const date = params.date || '2 hours ago';
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

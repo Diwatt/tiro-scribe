@@ -1,5 +1,5 @@
 /**
- * Biocode - Voice Identity & Vector Projection
+ * BiocodeGenerator - Voice Identity & Vector Projection
  *
  * Implements the biocoding protocol:
  * 1. Extract speaker vector using sherpa-onnx
@@ -11,11 +11,12 @@ import { File, Paths } from 'expo-file-system';
 import type * as Ort from 'onnxruntime-react-native';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import QuickCrypto from 'react-native-quick-crypto';
+import QuickCrypto, { Buffer } from 'react-native-quick-crypto';
+import { CryptoEngine } from '@/Security/CryptoEngine';
 
 dayjs.extend(utc);
 
-/** Lazy-loaded ONNX Runtime; avoids loading native module until Biocode actually needs it. */
+/** Lazy-loaded ONNX Runtime; avoids loading native module until BiocodeGenerator actually needs it. */
 let ortModule: typeof Ort | null = null;
 async function getOrt(): Promise<typeof Ort> {
     if (ortModule == null) {
@@ -33,7 +34,8 @@ import {
     VectorLengthMismatchError,
 } from '../Exception';
 import { masterKeyVault } from '../Security/MasterKeyVault';
-import { AppLogger, type LoggerInterface } from './Logger';
+import { appLogger, type LoggerInterface } from './Logger';
+import { inferenceModelDownloader } from './InferenceModelDownloader';
 
 /** Extracted speaker vector from audio (e.g. Sherpa-ONNX). */
 export class SpeakerVector {
@@ -43,10 +45,15 @@ export class SpeakerVector {
     ) {}
 }
 
-/** Result of Biocode.generateBiocode / processAudio. timestamp: Dayjs UTC. */
+/** Result of BiocodeGenerator.generateBiocode / processAudio. timestamp: Dayjs UTC. */
 export class BiocodeResult {
     constructor(
-        public biocode: string,
+        /**
+         * The projected vector itself.  Previously we stored a SHA‑256 hash here,
+         * but floating‑point drift made the hashes unstable.  Consumers should
+         * persist this array (e.g. JSON) instead of a fixed string.
+         */
+        public biocode: number[],
         public confidence: number,
         public timestamp: dayjs.Dayjs,
     ) {}
@@ -58,11 +65,6 @@ export class BiocodeResult {
 const BIocode = {
     DEFAULT_INPUT_DIM: 192,
     DEFAULT_OUTPUT_DIM: 128,
-    LCG_MULTIPLIER: 1664525,
-    LCG_INCREMENT: 1013904223,
-    LCG_MODULUS: 2 ** 32,
-    LCG_NORMALIZE_MULTIPLIER: 2,
-    LCG_NORMALIZE_SUBTRACT: 1,
 } as const;
 
 /**
@@ -73,19 +75,25 @@ export interface ProjectedVector {
     confidence: number;
 }
 
-export class Biocode {
+export class BiocodeGenerator {
     private speakerSession: Ort.InferenceSession | null = null;
     private projectionMatrix: number[][] | null = null;
     private loggerInstance: LoggerInterface;
     private modelPath: string | null = null;
     private therapistUuid: string | null = null;
+    private readonly crypto: CryptoEngine;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    /**
+     * @param logger - optional logger instance
+     * @param crypto - crypto engine used for projection matrix derivation
+     */
+    constructor(logger: LoggerInterface = appLogger, crypto: CryptoEngine = new CryptoEngine()) {
         this.loggerInstance = logger;
+        this.crypto = crypto;
     }
 
     /**
-     * Initialize the Biocode with ONNX Runtime and speaker recognition model
+     * Initialize the BiocodeGenerator with ONNX Runtime and speaker recognition model
      * @param modelPath - Path to the Sherpa-ONNX speaker recognition model (.onnx file)
      */
     async initialize(modelPath: string): Promise<void> {
@@ -127,11 +135,10 @@ export class Biocode {
         }
 
         // Try to resolve via taxonomy/default configs (by localPath)
-        const { InferenceModelDownloader } = await import('./InferenceModelDownloader');
-        const downloader = InferenceModelDownloader.getInstance();
-        const config = await downloader.getConfigByLocalPath(modelPath);
+        const config = await inferenceModelDownloader.getConfigByLocalPath(modelPath);
         if (config != null) {
-            return await downloader.ensureDownloaded(config.capability);
+            const { uri } = await inferenceModelDownloader.download(config.capability);
+            return uri!; // uri is defined when download resolves successfully
         }
 
         throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);
@@ -158,22 +165,28 @@ export class Biocode {
      * @returns Projection matrix [outputDim x inputDim]
      */
     private generateProjectionMatrix(key: string, inputDim: number = BIocode.DEFAULT_INPUT_DIM, outputDim: number = BIocode.DEFAULT_OUTPUT_DIM): number[][] {
-        // Use key to seed a deterministic RNG
-        const seed = this.hashToNumber(key);
+        // derive a 32‑byte deterministic key from the provided projection key
+        const keyHex = this.crypto.keyFromPassword(key, 'biocode_projection');
+        const keyBuf = Buffer.from(keyHex, 'hex');
+
+        // construct AES-256-CTR cipher; IV fixed to zeros ensures deterministic
+        const iv = Buffer.alloc(16, 0);
+        const cipher = QuickCrypto.createCipheriv('aes-256-ctr', keyBuf, iv);
+
+        const total = inputDim * outputDim;
+        const bytesNeeded = total * 4; // 4 bytes per float
+        const zeros = Buffer.alloc(bytesNeeded, 0);
+        const randomBytes = Buffer.concat([cipher.update(zeros), cipher.final()]);
+
         const matrix: number[][] = [];
-
-        // Simple LCG (Linear Congruential Generator) for deterministic randomness
-        let state = seed;
-        const a = BIocode.LCG_MULTIPLIER;
-        const c = BIocode.LCG_INCREMENT;
-        const m = BIocode.LCG_MODULUS;
-
+        let offset = 0;
         for (let i = 0; i < outputDim; i++) {
             matrix[i] = [];
             for (let j = 0; j < inputDim; j++) {
-                state = (a * state + c) % m;
-                // Normalize to [-1, 1] range
-                const value = (state / m) * BIocode.LCG_NORMALIZE_MULTIPLIER - BIocode.LCG_NORMALIZE_SUBTRACT;
+                const uint = randomBytes.readUInt32LE(offset);
+                offset += 4;
+                // map [0, 2^32-1] -> [-1,1]
+                const value = (uint / 0xffffffff) * 2 - 1;
                 matrix[i][j] = value;
             }
         }
@@ -182,18 +195,6 @@ export class Biocode {
         return this.orthonormalize(matrix);
     }
 
-    /**
-     * Convert hash string to a number seed
-     */
-    private hashToNumber(key: string): number {
-        let hash = 0;
-        for (let i = 0; i < key.length; i++) {
-            const char = key.charCodeAt(i);
-            hash = (hash << 5) - hash + char;
-            hash = hash & hash; // Convert to 32-bit integer
-        }
-        return Math.abs(hash);
-    }
 
     /**
      * Orthonormalize matrix using Gram-Schmidt process
@@ -269,18 +270,25 @@ export class Biocode {
     }
 
     /**
-     * Extract speaker vector from audio file using ONNX Runtime
-     * @param audioPath - Path to the audio file
+     * Extract speaker vector from a file path or raw PCM buffer using ONNX Runtime.
+     * Accepting a Float32Array allows callers to avoid any disk I/O.
+     * @param audioInput - Path to the audio file *or* raw PCM buffer (16 kHz
+     * mono, normalized to [-1,1]).
      * @returns Speaker vector with confidence score
      */
-    async extractSpeakerVector(audioPath: string): Promise<SpeakerVector> {
+    async extractSpeakerVector(audioInput: string | Float32Array): Promise<SpeakerVector> {
         if (!this.speakerSession) {
             throw new SessionNotInitializedError('Biocode not initialized. Call initialize() first.');
         }
 
         try {
-            // Step 1: Load and preprocess audio
-            const audioFeatures = await this.preprocessAudio(audioPath);
+            // Step 1: Load and preprocess audio (overloaded for file vs buffer)
+            let audioFeatures: Float32Array;
+            if (typeof audioInput === 'string') {
+                audioFeatures = await this.preprocessAudio(audioInput);
+            } else {
+                audioFeatures = await this.preprocessBuffer(audioInput);
+            }
 
             // Step 2: Run inference with ONNX Runtime
             const embedding = await this.runSpeakerInference(audioFeatures);
@@ -298,25 +306,162 @@ export class Biocode {
 
     /**
      * Preprocess audio file to extract features (mel spectrogram)
-     * This is a simplified version - you may need to use a native audio processing library
-     * or implement proper mel spectrogram extraction
+     * Reads the file as Base64, converts to PCM and then reuses the buffer
+     * preprocessing logic.  This keeps the implementation entirely in JS and
+     * avoids any file I/O after the decoded buffer is created.
      */
-    private async preprocessAudio(_audioPath: string): Promise<Float32Array> {
-        // TODO: Implement proper audio preprocessing
-        // For now, this is a placeholder. You'll need to:
-        // 1. Load audio file (WAV format, 16kHz, mono)
-        // 2. Convert to mel spectrogram features
-        // 3. Return as Float32Array with shape [batch, time, features]
-
-        // Placeholder: Return dummy features
-        // In production, use a library like:
-        // - expo-audio for loading audio
-        // - A native module for mel spectrogram extraction
-        // - Or use Sherpa-ONNX's preprocessing utilities
-
-        throw new InvalidAudioFormatError('Audio preprocessing not implemented. You need to implement mel spectrogram extraction.');
+    private async preprocessAudio(audioPath: string): Promise<Float32Array> {
+        // load file and convert to float32 PCM
+        const base64 = await FileSystem.readAsStringAsync(audioPath, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+        const pcm = this.base64ToFloat32(base64);
+        return this.preprocessBuffer(pcm);
     }
 
+    /**
+     * Convert Base64‑encoded 16‑bit PCM (little‑endian) into normalized floats.
+     */
+    private base64ToFloat32(base64: string): Float32Array {
+        const buf = Buffer.from(base64, 'base64');
+        const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+        const out = new Float32Array(buf.length / 2);
+        for (let i = 0; i < out.length; i++) {
+            const int16 = view.getInt16(i * 2, true);
+            out[i] = int16 / 0x8000;
+        }
+        return out;
+    }
+
+    /**
+     * Preprocess a raw PCM buffer (16 kHz mono, Float32Array) to the feature
+     * tensor expected by the speaker model.  Callers should normalize the PCM
+     * samples to [-1,1] before invoking.
+     */
+    private async preprocessBuffer(pcm: Float32Array): Promise<Float32Array> {
+        if (pcm.length === 0) {
+            throw new InvalidAudioFormatError('PCM buffer is empty');
+        }
+
+        // model expects 16 kHz mono
+        const sampleRate = 16000;
+        const frameLen = 400; // 25 ms
+        const hopLen = 160; // 10 ms
+        const nFft = 512;
+        const nMels = 80;
+
+        // 1. pre‑emphasis
+        const alpha = 0.97;
+        const emphasized = new Float32Array(pcm.length);
+        emphasized[0] = pcm[0];
+        for (let i = 1; i < pcm.length; i++) {
+            emphasized[i] = pcm[i] - alpha * pcm[i - 1];
+        }
+
+        // 2. framing + windowing
+        const frameCount = Math.floor((emphasized.length - frameLen) / hopLen) + 1;
+        if (frameCount <= 0) {
+            throw new InvalidAudioFormatError('PCM buffer too short for framing');
+        }
+
+        const window = this.hammingWindow(frameLen);
+        const frames: Float32Array[] = new Array(frameCount);
+        for (let i = 0; i < frameCount; i++) {
+            const start = i * hopLen;
+            const frame = emphasized.subarray(start, start + frameLen);
+            const windowed = new Float32Array(frameLen);
+            for (let j = 0; j < frameLen; j++) {
+                windowed[j] = frame[j] * window[j];
+            }
+            frames[i] = windowed;
+        }
+
+        // 3. mel filters
+        const melFilters = this.melFilterBank(nFft, nMels, sampleRate);
+        const output = new Float32Array(nMels * frameCount);
+
+        // 4. compute mel spectrogram
+        for (let i = 0; i < frameCount; i++) {
+            const powerSpec = this.powerSpectrum(frames[i], nFft);
+            for (let m = 0; m < nMels; m++) {
+                let sum = 0;
+                const filter = melFilters[m];
+                for (let k = 0; k < filter.length; k++) {
+                    sum += powerSpec[k] * filter[k];
+                }
+                output[i * nMels + m] = Math.log10(sum + 1e-8);
+            }
+        }
+
+        return output;
+    }
+
+    /**
+     * Generate a Hamming window of given length.
+     */
+    private hammingWindow(length: number): Float32Array {
+        const w = new Float32Array(length);
+        for (let i = 0; i < length; i++) {
+            w[i] = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (length - 1));
+        }
+        return w;
+    }
+
+    /**
+     * Compute power spectrum for a single frame using naive DFT.
+     * Returns an array of length nFft/2+1 containing the power at each bin.
+     */
+    private powerSpectrum(frame: Float32Array, nFft: number): Float32Array {
+        const half = nFft / 2 + 1;
+        const spec = new Float32Array(half);
+        for (let k = 0; k < half; k++) {
+            let real = 0;
+            let imag = 0;
+            for (let n = 0; n < frame.length; n++) {
+                const angle = (2 * Math.PI * k * n) / nFft;
+                real += frame[n] * Math.cos(angle);
+                imag -= frame[n] * Math.sin(angle);
+            }
+            spec[k] = real * real + imag * imag;
+        }
+        return spec;
+    }
+
+    /**
+     * Create mel filter bank matrix [nMels x (nFft/2+1)].
+     */
+    private melFilterBank(nFft: number, nMels: number, sampleRate: number): Float32Array[] {
+        const fMin = 0;
+        const fMax = sampleRate / 2;
+        const melMin = 2595 * Math.log10(1 + fMin / 700);
+        const melMax = 2595 * Math.log10(1 + fMax / 700);
+        const melPoints = new Float32Array(nMels + 2);
+        for (let i = 0; i < melPoints.length; i++) {
+            melPoints[i] = melMin + ((melMax - melMin) / (nMels + 1)) * i;
+        }
+        const hzPoints = melPoints.map((m) => 700 * (10 ** (m / 2595) - 1));
+        const bin = hzPoints.map((hz) => Math.floor((nFft + 1) * hz / sampleRate));
+        const filters: Float32Array[] = [];
+        const half = nFft / 2 + 1;
+        for (let m = 1; m <= nMels; m++) {
+            const filter = new Float32Array(half);
+            const start = bin[m - 1];
+            const center = bin[m];
+            const end = bin[m + 1];
+            for (let k = start; k < center; k++) {
+                if (k >= 0 && k < half) {
+                    filter[k] = (k - start) / (center - start);
+                }
+            }
+            for (let k = center; k < end; k++) {
+                if (k >= 0 && k < half) {
+                    filter[k] = (end - k) / (end - center);
+                }
+            }
+            filters.push(filter);
+        }
+        return filters;
+    }
     /**
      * Run speaker recognition inference using ONNX Runtime
      */
@@ -325,32 +470,22 @@ export class Biocode {
             throw new SessionNotInitializedError();
         }
 
-        // Get model input/output names
         const inputName = this.speakerSession.inputNames[0];
         const outputName = this.speakerSession.outputNames[0];
 
-        // Get input shape from model metadata
-        // Use a default shape - actual shape will be determined by the model
-        // You may need to adjust this based on your specific model
-        const inputShape: readonly number[] = [1, 80, 100]; // Default: [batch, mel_bins, time_frames]
+        const nMels = 80;
+        const timeFrames = Math.ceil(features.length / nMels);
+        const inputShape: readonly number[] = [1, nMels, timeFrames];
 
-        // Reshape features to match model input shape
-        // Typical shape: [batch, time_frames, mel_bins] or [batch, features]
-        const reshapedFeatures = this.reshapeFeatures(features, inputShape);
+        const total = inputShape.reduce((a, b) => a * b, 1);
+        const buffer = new Float32Array(total);
+        buffer.set(features.subarray(0, total));
 
-        // Create input tensor
         const ort = await getOrt();
-        const tensor = new ort.Tensor('float32', reshapedFeatures, inputShape);
-
-        // Run inference
-        const results = await this.speakerSession.run({
-            [inputName]: tensor,
-        });
-
-        // Extract embedding from output
+        const tensor = new ort.Tensor('float32', buffer, inputShape);
+        const results = await this.speakerSession.run({ [inputName]: tensor });
         const outputTensor = results[outputName];
-        const embedding = Array.from(outputTensor.data as Float32Array);
-        return embedding;
+        return Array.from(outputTensor.data as Float32Array);
     }
 
     /**
@@ -446,14 +581,12 @@ export class Biocode {
             throw new SessionNotInitializedError('Projection matrix not set. Call setTherapistCredentials() first.');
         }
 
-        // Project the vector
+        // Project the vector and hand it back to the caller.  Previously we
+        // hashed the projection to a hex string; floating point drift made that
+        // unreliable during matching.  Consumers should persist the numeric
+        // array (e.g. JSON) and compare using cosine similarity later.
         const projected = this.applyProjection(speakerVector.vector);
-
-        // Generate deterministic biocode from projected vector
-        // This ensures same voice always produces same biocode
-        const vectorString = projected.join(',');
-        const biocode = QuickCrypto.createHash('sha256').update(vectorString).digest().toString('hex');
-        return new BiocodeResult(biocode, speakerVector.confidence, dayjs.utc());
+        return new BiocodeResult(projected, speakerVector.confidence, dayjs.utc());
     }
 
     /**

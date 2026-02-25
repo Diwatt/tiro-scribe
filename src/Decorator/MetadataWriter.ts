@@ -1,7 +1,7 @@
 // MetadataWriter writes decorator metadata (class and property options)
 // to a shared WeakMap. Readers use MetadataReader to access that data.
 
-import { AppLogger } from '@/Service/Logger';
+import { appLogger } from '@/Service/Logger';
 import type { MetadataMap } from './Type';
 
 // internal storage for class metadata to avoid mutating constructors
@@ -17,7 +17,7 @@ export class MetadataWriter {
 
     /** Called by class decorators to store their options. */
     public static registerClass(construct: object, options: object): void {
-        const logger = AppLogger.getInstance();
+        const logger = appLogger;
         // `name` is often available on constructor functions, but we don't
         // require it in the type so cast to any for the log.
         logger.debug('[MetadataWriter] Registering class', (construct as any).name);
@@ -33,7 +33,7 @@ export class MetadataWriter {
         decoratorName: string,
         options: unknown,
     ): void {
-        const logger = AppLogger.getInstance();
+        const logger = appLogger;
         if (meta == null || typeof meta !== 'object') {
             logger.debug('[MetadataWriter] invalid metadata object');
             return;

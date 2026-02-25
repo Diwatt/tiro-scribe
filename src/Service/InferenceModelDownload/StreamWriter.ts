@@ -18,6 +18,7 @@ export class StreamWriter {
     }
 
     public async initialize(): Promise<void> {
+        // Expect caller to have ensured file exists; this class just opens it.
         const writableStream = this.file.writableStream();
         this.writer = writableStream.getWriter();
     }

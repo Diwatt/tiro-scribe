@@ -193,4 +193,26 @@ export class DownloadQueue extends AbstractEntity {
 
         return entity;
     }
+
+    /**
+     * Helper for tests and in-memory helpers: return a queue entity in the
+     * completed state for the given capability. The returned object is not
+     * intended to be persisted.
+     */
+    public static createCompleted(capability: string): DownloadQueue {
+        const entity = new DownloadQueue();
+        entity.uuid = uuidv4();
+        entity.capability = capability;
+        entity.language = '';
+        entity.status = DownloadQueueStatus.Completed;
+        entity.progressPercent = 100;
+        entity.nbRetries = 0;
+        entity.maxRetries = 0;
+        entity.errorMessage = '';
+        entity.metadata = {};
+        entity.filePath = '';
+        entity.createdAt = dayjs.utc();
+        entity.updatedAt = dayjs.utc();
+        return entity;
+    }
 }

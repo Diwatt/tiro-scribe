@@ -12,6 +12,7 @@ import { Therapist } from '@/Entity/Therapist';
 import type { CryptoEngine } from '@/Security/CryptoEngine';
 import { type MasterKeyVaultInterface, masterKeyVault } from '@/Security/MasterKeyVault';
 import { TherapistForge } from '@/Security/TherapistForge';
+import { RecoveryCode } from '@/Security/RecoveryCode';
 
 export class TherapistRepository extends Repository<Therapist> {
     private readonly vault: MasterKeyVaultInterface;
@@ -41,7 +42,9 @@ export class TherapistRepository extends Repository<Therapist> {
         if (!therapist) {
             return false;
         }
-        const masterKey = TherapistForge.unlock(therapist, password, crypto);
+        // we only need crypto for unlock; recoveryCode is not used here
+        const forge = new TherapistForge(crypto, new RecoveryCode());
+        const masterKey = forge.unlock(therapist, password);
         if (masterKey == null) {
             return false;
         }

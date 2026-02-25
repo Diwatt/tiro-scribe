@@ -9,7 +9,7 @@
 import { CompiledQuery, type Kysely } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
 import type { DatabaseSchema } from '@/Database/Type';
-import { AppLogger, type LoggerInterface } from '@/Service/Logger';
+import { appLogger, type LoggerInterface } from '@/Service/Logger';
 import type { TableDefinition } from './TableDefinition';
 
 /** Row shape returned by PRAGMA table_info(table). Keys match SQLite (e.g. "name"). */
@@ -20,7 +20,7 @@ export class DefinitionLanguageWriter {
     private readonly db: Kysely<DatabaseSchema>;
     private readonly logger: LoggerInterface;
 
-    public constructor(db: Kysely<DatabaseSchema>, logger: LoggerInterface = AppLogger.getInstance()) {
+    public constructor(db: Kysely<DatabaseSchema>, logger: LoggerInterface = appLogger) {
         this.db = db;
         this.logger = logger;
     }

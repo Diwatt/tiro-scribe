@@ -5,12 +5,12 @@
  * 1. Microphone -> Raw Audio File
  * 2. Raw Audio File -> ONNX Transcription Model -> Raw Text
  * 3. Raw Text -> Anonymizer -> Clean Text
- * 4. Raw Audio -> ONNX Speaker Model -> Biocode
+ * 4. Raw Audio -> ONNX Speaker Model -> BiocodeGenerator
  * 5. Final Payload: { biocode, cleanTranscript, confidence }
  */
 
 import type * as Ort from 'onnxruntime-react-native';
-import type { Biocode } from './Biocode';
+import type { BiocodeGenerator } from './BiocodeGenerator';
 
 async function getOrt(): Promise<typeof Ort> {
     return import('onnxruntime-react-native');
@@ -21,14 +21,15 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { TranscriptionNotImplementedError } from '../Exception/TranscriptionNotImplementedError';
 import type { Anonymizer } from './Anonymizer';
-import { AppLogger, type LoggerInterface } from './Logger';
+import { appLogger, type LoggerInterface } from './Logger';
 
 dayjs.extend(utc);
 
 /** Payload passed through the audio pipeline. timestamp: Dayjs UTC. */
 export class ProcessingPayload {
     constructor(
-        public biocode: string,
+        /** projected biocode vector. */
+        public biocode: number[],
         public cleanTranscript: string,
         public confidence: number,
         public encounterUuid: string,
@@ -41,7 +42,7 @@ export class AudioProcessingResult {
     constructor(
         public rawText: string,
         public anonymizedText: string,
-        public biocode: string,
+        public biocode: number[],
         public confidence: number,
     ) {}
 }
@@ -62,11 +63,11 @@ const CONFIDENCE = {
 
 export class AudioProcessing {
     private transcriptionSession: Ort.InferenceSession | null = null;
-    private biocodeService: Biocode;
+    private biocodeService: BiocodeGenerator;
     private anonymizerService: Anonymizer;
     private loggerInstance: LoggerInterface;
 
-    constructor(biocodeService: Biocode, anonymizerService: Anonymizer, logger: LoggerInterface = AppLogger.getInstance()) {
+    constructor(biocodeService: BiocodeGenerator, anonymizerService: Anonymizer, logger: LoggerInterface = appLogger) {
         this.biocodeService = biocodeService;
         this.anonymizerService = anonymizerService;
         this.loggerInstance = logger;

@@ -24,24 +24,36 @@ export interface CreateTherapistResult {
 }
 
 export class TherapistForge {
+    private readonly crypto: CryptoEngine;
+    private readonly recovery: RecoveryCode;
+
+    /**
+     * @param crypto - cryptographic utilities (key derivation, encrypt/decrypt, hashing)
+     * @param recovery - recovery-code implementation for generating/verifying codes
+     */
+    constructor(crypto: CryptoEngine, recovery: RecoveryCode) {
+        this.crypto = crypto;
+        this.recovery = recovery;
+    }
+
     /**
      * Creates a therapist. Caller must persist and store masterKey in vault.
      */
-    public static create(input: CreateTherapistInput, crypto: CryptoEngine, recovery: RecoveryCode): CreateTherapistResult {
+    public create(input: CreateTherapistInput): CreateTherapistResult {
         const uuid = uuidv4();
-        const masterKey = crypto.randomKey(32);
-        const recoveryCode = recovery.create();
+        const masterKey = this.crypto.randomKey(32);
+        const recoveryCode = this.recovery.create();
 
-        const saltPrimary = crypto.salt(uuid, 'vault_primary');
-        const keyPrimaryHex = crypto.keyFromPassword(input.password, saltPrimary);
-        const encryptedPrimary = crypto.encrypt(masterKey, keyPrimaryHex);
+        const saltPrimary = this.crypto.salt(uuid, 'vault_primary');
+        const keyPrimaryHex = this.crypto.keyFromPassword(input.password, saltPrimary);
+        const encryptedPrimary = this.crypto.encrypt(masterKey, keyPrimaryHex);
 
-        const keyRecoveryHex = recovery.keyFromCode(recoveryCode, uuid);
-        const encryptedRecovery = crypto.encrypt(masterKey, keyRecoveryHex);
+        const keyRecoveryHex = this.recovery.keyFromCode(recoveryCode, uuid);
+        const encryptedRecovery = this.crypto.encrypt(masterKey, keyRecoveryHex);
 
-        const passwordHash = crypto.hash(input.password);
-        const recoveryCodeHash = crypto.hash(recoveryCode);
-        const masterKeyCheckHash = crypto.hash(masterKey);
+        const passwordHash = this.crypto.hash(input.password);
+        const recoveryCodeHash = this.crypto.hash(recoveryCode);
+        const masterKeyCheckHash = this.crypto.hash(masterKey);
 
         const qualifications = input.qualifications.length > 0 ? input.qualifications.join(',') : null;
         const years = parseInt(input.experience.trim(), 10);
@@ -72,12 +84,12 @@ export class TherapistForge {
      * Unlock with password: derive key, decrypt primary slot, verify integrity.
      * @returns masterKey if valid, null if password wrong or integrity check failed.
      */
-    public static unlock(therapist: Therapist, password: string, crypto: CryptoEngine): string | null {
-        const saltPrimary = crypto.salt(therapist.uuid, 'vault_primary');
-        const keyPrimaryHex = crypto.keyFromPassword(password, saltPrimary);
+    public unlock(therapist: Therapist, password: string): string | null {
+        const saltPrimary = this.crypto.salt(therapist.uuid, 'vault_primary');
+        const keyPrimaryHex = this.crypto.keyFromPassword(password, saltPrimary);
         try {
-            const masterKey = crypto.decrypt(therapist.encryptedMasterKeyPrimary, keyPrimaryHex);
-            const computedHash = crypto.hash(masterKey);
+            const masterKey = this.crypto.decrypt(therapist.encryptedMasterKeyPrimary, keyPrimaryHex);
+            const computedHash = this.crypto.hash(masterKey);
             if (computedHash !== therapist.masterKeyCheckHash) {
                 return null;
             }
@@ -93,13 +105,13 @@ export class TherapistForge {
      * Caller must persist the therapist and store masterKey in vault.
      * @returns masterKey for the caller to open the session.
      */
-    public static recover(therapist: Therapist, recoveryCode: string, newPassword: string, crypto: CryptoEngine, recovery: RecoveryCode): string {
-        const keyRecoveryHex = recovery.keyFromCode(recoveryCode, therapist.uuid);
-        const masterKey = crypto.decrypt(therapist.encryptedMasterKeyRecovery, keyRecoveryHex);
-        const saltPrimary = crypto.salt(therapist.uuid, 'vault_primary');
-        const keyPrimaryHex = crypto.keyFromPassword(newPassword, saltPrimary);
-        therapist.passwordHash = crypto.hash(newPassword);
-        therapist.encryptedMasterKeyPrimary = crypto.encrypt(masterKey, keyPrimaryHex);
+    public recover(therapist: Therapist, recoveryCode: string, newPassword: string): string {
+        const keyRecoveryHex = this.recovery.keyFromCode(recoveryCode, therapist.uuid);
+        const masterKey = this.crypto.decrypt(therapist.encryptedMasterKeyRecovery, keyRecoveryHex);
+        const saltPrimary = this.crypto.salt(therapist.uuid, 'vault_primary');
+        const keyPrimaryHex = this.crypto.keyFromPassword(newPassword, saltPrimary);
+        therapist.passwordHash = this.crypto.hash(newPassword);
+        therapist.encryptedMasterKeyPrimary = this.crypto.encrypt(masterKey, keyPrimaryHex);
 
         return masterKey;
     }

@@ -7,7 +7,7 @@
 import { computed, type Observable, type ObservableComputed, observable } from '@legendapp/state';
 import { v4 as uuidv4 } from 'uuid';
 import { RecorderState, SecureRecorder } from '../../modules/secure-recorder/src/index';
-import { AppLogger, type LoggerInterface } from './Logger';
+import { appLogger, type LoggerInterface } from './Logger';
 
 export interface AudioRecordingState {
     state: RecorderState;
@@ -32,7 +32,7 @@ class AudioRecording {
     private recordingStartTime: number | null = null;
     private durationIntervalId: ReturnType<typeof setInterval> | null = null;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    constructor(logger: LoggerInterface = appLogger) {
         this.loggerInstance = logger;
         this.state$ = observable<AudioRecordingState>({
             state: RecorderState.INACTIVE,
@@ -175,6 +175,38 @@ class AudioRecording {
                 filePath: recorder.filePath,
             });
         }
+    }
+
+    /**
+     * Start a PCM stream from the microphone.  The supplied callback is executed
+     * on a worklet thread (\'worklet\' directive must be present) and receives
+     * Float32Array chunks at 16 kHz.  This is a thin wrapper around the native
+     * SecureRecorder streaming hooks, which must be implemented natively.
+     */
+    async startStreaming(onFrame: (pcm: Float32Array) => void): Promise<void> {
+        await this.ensureRecorder();
+        if (!this.recorder) {
+            throw new Error('Recorder not initialized');
+        }
+        // `SecureRecorder` should expose a `startStream` or similar method that
+        // accepts a worklet callback.  Here we simply forward the call; the
+        // TypeScript definitions for SecureRecorder would need to be extended as
+        // part of the native module changes.
+        (this.recorder as any).startStream?.(onFrame);
+        this.loggerInstance.debug('▶️ [AudioRecording] startStreaming called');
+    }
+
+    /**
+     * Stop the in‑memory PCM stream started above.  This does *not* affect
+     * the normal file‑based recording API; the module can implement the same
+     * underlying stop logic.
+     */
+    async stopStreaming(): Promise<void> {
+        if (!this.recorder) {
+            return;
+        }
+        (this.recorder as any).stopStream?.();
+        this.loggerInstance.debug('⏹️ [AudioRecording] stopStreaming called');
     }
 
     /**

@@ -5,7 +5,7 @@
 
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
-import { AppLogger } from '@/Service/Logger';
+import { appLogger } from '@/Service/Logger';
 import { DatabaseException } from '@/Exception';
 import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
@@ -254,7 +254,7 @@ describe('DefinitionLanguageWriter', () => {
                     'vcol TEXT GENERATED ALWAYS AS (json_extract(data, \"$.x\")) VIRTUAL',
                 ],
             });
-            const logger = AppLogger.getInstance();
+            const logger = appLogger;
             const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('vcol')) {
@@ -282,7 +282,7 @@ describe('DefinitionLanguageWriter', () => {
                     'extra INTEGER',
                 ],
             });
-            const logger = AppLogger.getInstance();
+            const logger = appLogger;
             const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('extra')) {

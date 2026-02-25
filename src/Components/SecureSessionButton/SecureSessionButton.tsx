@@ -7,9 +7,9 @@ import { useTheme } from 'react-native-paper';
 import { useAppLanguage } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { RecorderState } from '../../../modules/secure-recorder/src';
-import { AppLogger } from '../../Service/Logger';
+import { appLogger } from '../../Service/Logger';
 
-const logger = AppLogger.getInstance();
+const logger = appLogger;
 
 /**
  * Button constants

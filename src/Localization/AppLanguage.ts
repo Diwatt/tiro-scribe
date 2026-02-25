@@ -24,8 +24,6 @@ export class AppLanguage {
 
     public static readonly DEFAULT_LOCALE: Locales = 'en';
 
-    private static instance: AppLanguage | null = null;
-
     private static readonly translationCache: Partial<Record<Locales, TranslationFunctions>> = AppLanguage.createEmptyTranslationCache();
 
     private static readonly dictionaries: Record<Locales, Translations> = INITIAL_DICTIONARIES;
@@ -34,13 +32,6 @@ export class AppLanguage {
 
     private constructor() {
         this.locale = this.getDeviceLocale();
-    }
-
-    public static getInstance(): AppLanguage {
-        if (AppLanguage.instance === null) {
-            AppLanguage.instance = new AppLanguage();
-        }
-        return AppLanguage.instance;
     }
 
     public getLocale(): Locales {
@@ -129,11 +120,16 @@ export class AppLanguage {
 }
 
 /**
+ * Shared singleton instance; creating it at module load time ensures the device
+ * locale is resolved early and avoids the need for consumers to call a factory.
+ */
+export const appLanguage = new AppLanguage();
+
+/**
  * React hook: current locale and translation functions (returned as LL for usage: LL.onboarding.aboutYou()).
  */
 export function useAppLanguage(): UseAppLanguageReturn {
-    const instance = AppLanguage.getInstance();
-    const locale = instance.getLocale();
-    const LL = instance.getTranslationFunctions(locale);
+    const locale = appLanguage.getLocale();
+    const LL = appLanguage.getTranslationFunctions(locale);
     return { locale, LL };
 }

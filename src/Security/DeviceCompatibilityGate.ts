@@ -8,7 +8,7 @@
 
 import { Platform } from 'react-native';
 import type { LoggerInterface } from '../Service/Logger';
-import { AppLogger } from '../Service/Logger';
+import { appLogger } from '../Service/Logger';
 import { HardwareGuard } from './HardwareGuard';
 
 /** Native platforms we run hardware checks for. RN Platform.OS and expo-device (Device.osName) use strings only; no OS enum. */
@@ -62,4 +62,4 @@ export class DeviceCompatibilityGate {
     }
 }
 
-export const deviceCompatibilityGate = new DeviceCompatibilityGate(AppLogger.getInstance(), DEFAULT_MATRIX);
+export const deviceCompatibilityGate = new DeviceCompatibilityGate(appLogger, DEFAULT_MATRIX);

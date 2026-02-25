@@ -47,29 +47,11 @@ describe('InferenceModelConfigProvider', () => {
         // Setup mocks
         vi.mocked(apiClientRegistry.get).mockReturnValue(mockInferenceModelClient);
         vi.mocked(InferenceModelClient).mockImplementation(() => mockInferenceModelClient);
-        vi.mocked((await import('@/Service/Logger')).AppLogger.getInstance).mockReturnValue(mockLogger);
 
         configProvider = new InferenceModelConfigProvider(mockLogger);
         vi.clearAllMocks();
     });
 
-    describe('getInstance', () => {
-        it('should return singleton instance', () => {
-            const instance1 = InferenceModelConfigProvider.getInstance();
-            const instance2 = InferenceModelConfigProvider.getInstance();
-            
-            expect(instance1).toBe(instance2);
-            expect(instance1).toBeInstanceOf(InferenceModelConfigProvider);
-        });
-
-        it('should create new instance when none exists', () => {
-            // Clear the singleton
-            (InferenceModelConfigProvider as any).instance = null;
-            
-            const instance = InferenceModelConfigProvider.getInstance();
-            expect(instance).toBeInstanceOf(InferenceModelConfigProvider);
-        });
-    });
 
     describe('getConfig', () => {
         const mockConfigs: Record<string, ModelConfig> = {
@@ -342,15 +324,5 @@ describe('InferenceModelConfigProvider', () => {
             expect(totalSize).toBeNaN();
         });
 
-        it('should handle concurrent calls to getInstance', () => {
-            // Clear singleton
-            (InferenceModelConfigProvider as any).instance = null;
-            
-            // Simulate concurrent calls
-            const instance1 = InferenceModelConfigProvider.getInstance();
-            const instance2 = InferenceModelConfigProvider.getInstance();
-            
-            expect(instance1).toBe(instance2);
-        });
     });
 });

@@ -1,14 +1,15 @@
-import { AppLanguage } from './AppLanguage';
+import { AppLanguage, appLanguage } from './AppLanguage';
 
 export type { UseAppLanguageReturn } from './AppLanguage';
 export { AppLanguage, useAppLanguage } from './AppLanguage';
 export type { Locales, TranslationFunctions } from './i18n-types';
 
-export const getDeviceLocale = (): ReturnType<AppLanguage['getDeviceLocale']> => AppLanguage.getInstance().getDeviceLocale();
+export const getDeviceLocale = (): ReturnType<AppLanguage['getDeviceLocale']> => appLanguage.getDeviceLocale();
 
 /** Ensures the singleton is created and locale is set from device (constructor runs on first getInstance()). */
 export const initAppLocale = (): void => {
-    AppLanguage.getInstance();
+    // Accessing the exported instance forces construction; no-op otherwise
+    void appLanguage;
 };
 
 export const SUPPORTED_LOCALES = AppLanguage.SUPPORTED_LOCALES;

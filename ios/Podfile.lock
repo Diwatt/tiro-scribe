@@ -2425,7 +2425,7 @@ DEPENDENCIES:
   - "ExpoDevice (from `../node_modules/.pnpm/expo-device@8.0.10_expo@54.0.33/node_modules/expo-device/ios`)"
   - "ExpoFileSystem (from `../node_modules/.pnpm/expo-file-system@19.0.21_expo@54.0.33_react-native@0.81.5_@babel+core@7.29.0_@react-nat_b6a0425871e2045daeecf6e59b513eac/node_modules/expo-file-system/ios`)"
   - "ExpoFont (from `../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.33_react-native@0.81.5_@babel+core@7.29.0_@react-native-com_d1c37e048c2e3c0b33f00bd9f0729978/node_modules/expo-font/ios`)"
-  - "ExpoHead (from `../node_modules/.pnpm/expo-router@6.0.23_01febf8e8aee10293594239eb2e850e6/node_modules/expo-router/ios`)"
+  - "ExpoHead (from `../node_modules/.pnpm/expo-router@6.0.23_2b0c4c7030459e81dc855a6b470d9253/node_modules/expo-router/ios`)"
   - "ExpoKeepAwake (from `../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.33_react@19.1.0/node_modules/expo-keep-awake/ios`)"
   - "ExpoLinking (from `../node_modules/.pnpm/expo-linking@8.0.11_expo@54.0.33_react-native@0.81.5_@babel+core@7.29.0_@react-native-c_674b53c860c6363f00b3f544cabffb52/node_modules/expo-linking/ios`)"
   - "ExpoLocalization (from `../node_modules/.pnpm/expo-localization@17.0.8_expo@54.0.33_react@19.1.0/node_modules/expo-localization/ios`)"
@@ -2556,7 +2556,7 @@ EXTERNAL SOURCES:
   ExpoFont:
     :path: "../node_modules/.pnpm/expo-font@14.0.11_expo@54.0.33_react-native@0.81.5_@babel+core@7.29.0_@react-native-com_d1c37e048c2e3c0b33f00bd9f0729978/node_modules/expo-font/ios"
   ExpoHead:
-    :path: "../node_modules/.pnpm/expo-router@6.0.23_01febf8e8aee10293594239eb2e850e6/node_modules/expo-router/ios"
+    :path: "../node_modules/.pnpm/expo-router@6.0.23_2b0c4c7030459e81dc855a6b470d9253/node_modules/expo-router/ios"
   ExpoKeepAwake:
     :path: "../node_modules/.pnpm/expo-keep-awake@15.0.8_expo@54.0.33_react@19.1.0/node_modules/expo-keep-awake/ios"
   ExpoLinking:

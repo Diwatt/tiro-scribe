@@ -9,7 +9,7 @@ import { observable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
 import type { Therapist } from '../Entity/Therapist';
 import type { LoggerInterface } from './Logger';
-import { AppLogger } from './Logger';
+import { appLogger } from './Logger';
 
 export interface ArtifactSpec {
     key: string;
@@ -51,7 +51,6 @@ const ARTIFACT_SPECS: Record<string, ArtifactSpec[]> = {
 };
 
 export class InferenceManager {
-    private static instance: InferenceManager | null = null;
     private readonly log: LoggerInterface;
     private readonly state$ = observable<ArtifactDownloadProgressState>({
         progress: 0,
@@ -60,17 +59,10 @@ export class InferenceManager {
     });
     private downloadPromise: Promise<void> | null = null;
 
-    public constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    public constructor(logger: LoggerInterface = appLogger) {
         this.log = logger;
     }
 
-    public static getInstance(): InferenceManager {
-        if (InferenceManager.instance == null) {
-            InferenceManager.instance = new InferenceManager();
-        }
-
-        return InferenceManager.instance;
-    }
 
     public getState$() {
         return this.state$;
@@ -189,7 +181,7 @@ export class InferenceManager {
     }
 }
 
-const inferenceManager = InferenceManager.getInstance();
+const inferenceManager = new InferenceManager();
 
 /**
  * Hook: returns { progress, isReady, isDownloading }. Updates when InferenceManager state changes.

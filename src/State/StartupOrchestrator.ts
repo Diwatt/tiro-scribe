@@ -8,10 +8,12 @@ import { observable } from '@legendapp/state';
 import type { TherapistRepository } from '@/Repository';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
-import { AppLanguage } from '../Localization/AppLanguage';
+import { appLanguage } from '../Localization/AppLanguage';
 import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
-import { InferenceModelDownloader } from '../Service/InferenceModelDownloader';
+import { inferenceModelDownloader } from '../Service/InferenceModelDownloader';
+import { DownloadState } from '../Service/InferenceModelDownload/Type';
 import { ActivityStatus, globalActivityStatus } from './GlobalActivityStatus';
+import { appLogger } from '@/Service/Logger';
 
 /** Initial state → hardware check → auth check → routing. */
 export enum StartupState {
@@ -43,7 +45,7 @@ export class StartupOrchestrator {
 
         // show an initial pending status during app boot; hide it after 5 seconds
         const STARTUP_DELAY_MS = 5000;
-        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+        const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
         globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.activity.starting(), undefined, STARTUP_DELAY_MS);
 
         const compatible = deviceCompatibilityGate.isCompatible();
@@ -70,39 +72,71 @@ export class StartupOrchestrator {
     private async downloadSpeakerId(bootStart: number): Promise<void> {
         const AUTO_HIDE_DELAY_MS = 3000; // 3 seconds
         const STARTUP_DELAY_MS = 5000;
-        const Ll = AppLanguage.getInstance().getTranslationFunctions(AppLanguage.getInstance().getLocale());
+        const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
+
+        // initial pending status; progress will update it
+        globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.download.speakerModel());
 
         try {
-            // Set initial status
-            globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.download.speakerModel());
+            const executor = await inferenceModelDownloader.download('speaker_id');
 
-            await InferenceModelDownloader.getInstance().ensureDownloaded('speaker_id', (progress: number) => {
-                // update message with percentage only; progress isn't tracked anymore
+            // update UI as progress events arrive
+            executor.progress$.onChange(({ value: progress }) => {
+                console.log(`Speaker ID download progress: ${progress}%`);
                 const percentage = Math.round(progress);
                 const message = `${Ll.download.speakerModel()} ${percentage}%`;
                 globalActivityStatus.setStatus(ActivityStatus.Pending, message);
             });
 
-            // compute whether we should postpone the success message until after
-            // the startup notification has elapsed. If the download finishes
-            // while the startup bar is still visible we delay the success state
-            // so the user will actually see it once the blue bar disappears.
-            const elapsed = Date.now() - bootStart;
-            const remainingStartup = Math.max(0, STARTUP_DELAY_MS - elapsed);
-
+            // watch state changes to surface success or error
             const showSuccess = () => {
-                globalActivityStatus.setStatus(ActivityStatus.Success, Ll.download.speakerModelSuccess(), undefined, AUTO_HIDE_DELAY_MS);
+                console.log(`Speaker ID download successful after ${Date.now() - bootStart}ms`);
+                const elapsed = Date.now() - bootStart;
+                const remainingStartup = Math.max(0, STARTUP_DELAY_MS - elapsed);
+                const successFn = () => {
+                    globalActivityStatus.setStatus(
+                        ActivityStatus.Success,
+                        Ll.download.speakerModelSuccess(),
+                        undefined,
+                        AUTO_HIDE_DELAY_MS,
+                    );
+                };
+
+                if (remainingStartup > 0) {
+                    setTimeout(successFn, remainingStartup);
+                } else {
+                    successFn();
+                }
             };
 
-            if (remainingStartup > 0) {
-                setTimeout(showSuccess, remainingStartup);
-            } else {
+            executor.state$.onChange(({ value: state }) => {
+                console.log(`Speaker ID download state changed: ${state} after ${Date.now() - bootStart}ms`);
+                if (state === DownloadState.Completed) {
+                    showSuccess();
+                } else if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
+                    appLogger.error('Speaker model download failed', {
+                        error: executor.getError(),
+                    });
+                    globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
+                }
+            });
+
+            // ensure we handle the case where the executor has already reached a
+            // terminal state before our subscription fired
+            const initialState = executor.getState();
+            if (initialState === DownloadState.Completed) {
                 showSuccess();
+            } else if (initialState === DownloadState.Failed || initialState === DownloadState.Cancelled) {
+                appLogger.error('Speaker model download failed', {
+                    error: executor.getError(),
+                });
+                globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
             }
-        } catch (_error) {
-            // Download failed - don't auto-hide errors
+        } catch (err) {
+            // any problem starting or observing download
+            appLogger.error('Speaker model download failed', { error: err });
             globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
-            // Error is already captured by the status, no need for additional logging
+            return;
         }
     }
 }

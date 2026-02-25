@@ -1,21 +1,13 @@
 /**
- * InferenceModelVersionManager – Handles version management for inference models.
- *
- * Responsibilities:
- * 1. Check for newer model versions from the API
- * 2. Compare local vs remote versions
- * 3. Manage version-specific storage and cleanup
- * 4. Coordinate updates with the downloader
- *
- * This class follows SOLID principles and uses dependency injection.
+ * Checks for newer model configurations and manages version state.
  */
 
 import semver from 'semver';
 import type { ModelConfig } from '@/Api';
-import { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
+import { InferenceModelConfigProvider, inferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import type { LoggerInterface } from './Logger';
-import { AppLogger } from './Logger';
+import { appLogger } from './Logger';
 
 /** Information about available updates */
 export interface UpdateInfo {
@@ -33,27 +25,18 @@ export interface UpdateCheckResult {
 }
 
 export class InferenceModelVersionManager {
-    private static instance: InferenceModelVersionManager | null = null;
 
     public constructor(
         private readonly logger: LoggerInterface,
         private readonly configProvider: InferenceModelConfigProvider,
         private readonly artifactStorage: ModelArtifactStorage,
     ) {
-        // All dependencies are automatically assigned via parameter properties
     }
 
-    public static getInstance(): InferenceModelVersionManager {
-        if (InferenceModelVersionManager.instance == null) {
-            InferenceModelVersionManager.instance = InferenceModelVersionManager.createDefaultInstance();
-        }
-
-        return InferenceModelVersionManager.instance;
-    }
 
     private static createDefaultInstance(): InferenceModelVersionManager {
-        const logger = AppLogger.getInstance();
-        const configProvider = InferenceModelConfigProvider.getInstance();
+        const logger = appLogger;
+        const configProvider = inferenceModelConfigProvider;
         const artifactStorage = new ModelArtifactStorage(logger);
 
         return new InferenceModelVersionManager(logger, configProvider, artifactStorage);
@@ -176,3 +159,7 @@ export class InferenceModelVersionManager {
         }, 0);
     }
 }
+
+// Export a default manager wired with production dependencies. Tests may
+// instantiate separate instances when they need to isolate behavior.
+export const inferenceModelVersionManager = InferenceModelVersionManager.createDefaultInstance();

@@ -7,7 +7,7 @@ import type { ModelConfig } from '@/Api';
 import { apiClientRegistry, InferenceModelClient } from '@/Api';
 import { ApiClientException } from '@/Exception';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { AppLogger, type LoggerInterface } from './Logger';
+import { appLogger, type LoggerInterface } from './Logger';
 
 /** Error codes used by InferenceModelConfigProvider */
 const ERROR_CODES = {
@@ -15,17 +15,7 @@ const ERROR_CODES = {
 } as const;
 
 export class InferenceModelConfigProvider {
-    private static instance: InferenceModelConfigProvider | null = null;
-
-    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
-
-    public static getInstance(): InferenceModelConfigProvider {
-        if (InferenceModelConfigProvider.instance == null) {
-            InferenceModelConfigProvider.instance = new InferenceModelConfigProvider();
-        }
-
-        return InferenceModelConfigProvider.instance;
-    }
+    public constructor(private readonly logger: LoggerInterface = appLogger) {}
 
     /**
      * Get a single model configuration by capability key.
@@ -93,3 +83,7 @@ export class InferenceModelConfigProvider {
         return totalSize;
     }
 }
+
+// Default singleton instance used by most callers. Tests can still create their
+// own `new InferenceModelConfigProvider(...)` if isolation is required.
+export const inferenceModelConfigProvider = new InferenceModelConfigProvider();

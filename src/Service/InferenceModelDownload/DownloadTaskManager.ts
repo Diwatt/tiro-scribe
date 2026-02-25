@@ -12,7 +12,7 @@ import { DownloadQueueStatus } from '@/Entity/Type';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
 import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
+import { appLogger } from '@/Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { DownloadTaskExecutor } from './DownloadTaskExecutor';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
@@ -29,7 +29,7 @@ export class DownloadTaskManager {
     private isPaused: boolean = false;
 
     public constructor(
-        logger: LoggerInterface = AppLogger.getInstance(),
+        logger: LoggerInterface = appLogger,
         repository: DownloadQueueRepository = new DownloadQueueRepository(),
         checksumVerifier: ChecksumVerifier,
         artifactStorage: ModelArtifactStorage,
@@ -444,27 +444,32 @@ export class DownloadTaskManager {
     }
 
     /**
-     * Create a download session for a queued task.
+     * Get an existing download session for a queued task or create a new one.
+     * The method does **not** persist anything to the database; it merely
+     * returns a `DownloadTaskExecutor` instance while ensuring there is at most
+     * one executor per capability in `activeSessions`.
+     *
+     * This replaces the older `createSession` name to make the behaviour more
+     * explicit (it may return an existing session).
+     *
      * @param queueEntity - The DownloadQueue entity from the database
      * @param config - Model configuration for the download
      */
-    public createSession(queueEntity: DownloadQueue, config: ModelConfig): DownloadTaskExecutor {
-        // Check if a session already exists for this capability
-        const existingSession = this.activeSessions.get(queueEntity.capability);
-        if (existingSession) {
-            this.logger.debug(`Session already exists for capability ${queueEntity.capability}`);
-            return existingSession;
+    public getOrCreateExecutor(queueEntity: DownloadQueue, config: ModelConfig): DownloadTaskExecutor {
+        // If an executor already exists for this capability, return it
+        const existing = this.activeSessions.get(queueEntity.capability);
+        if (existing) {
+            this.logger.debug(`Executor already exists for capability ${queueEntity.capability}`);
+            return existing;
         }
 
-        // Create new session
-        const session = new DownloadTaskExecutor(this.logger, queueEntity, config, this.checksumVerifier, this.artifactStorage);
-
-        // Store in active sessions map
-        this.activeSessions.set(queueEntity.capability, session);
-        this.logger.debug(`Created download session for capability ${queueEntity.capability}`);
-
-        return session;
+        // Otherwise create and cache a new executor
+        const executor = new DownloadTaskExecutor(this.logger, queueEntity, config, this.checksumVerifier, this.artifactStorage);
+        this.activeSessions.set(queueEntity.capability, executor);
+        this.logger.debug(`Created download executor for capability ${queueEntity.capability}`);
+        return executor;
     }
+
 
     /**
      * Clear all download tasks (for testing/reset).

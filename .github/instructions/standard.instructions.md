@@ -115,3 +115,19 @@ Explicit visibility is **MANDATORY** for ALL members in TypeScript, Kotlin, and 
 - Use `AppLogger` instance via DI.
 - No timestamps. The logger handles `dateFormat: 'time'`. Never add `new Date()`.
 - No PII in logs. Log only relevant identifiers/state.
+---
+
+## 10. Backwards Compatibility & Deprecations (WIP Policy)
+
+**Do not implement backward‑compatibility layers until the code is ready for
+release.** During development you are free to rename APIs and refactor
+callers without leaving aliases or guard clauses behind.
+
+- Rename methods and classes as needed; update all references and tests.
+- Avoid adding `@deprecated` shims or extra conditionals for future users.
+- Compatibility code carries maintenance cost and should only be added when
+  a release is imminent or when the package is consumed externally.
+
+Once the module enters a released version, follow semantic versioning and
+explicitly deprecate APIs with migration notes.
+

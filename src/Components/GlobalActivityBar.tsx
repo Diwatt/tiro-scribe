@@ -60,6 +60,9 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
     const message = propMessage ?? storeMessage;
     const icon = propIcon ?? storeIcon;
 
+    // debug - log every render and the status/message being shown
+    console.log('[GlobalActivityBar] render', { status, message });
+
     const theme = useTheme<ExtendedTheme>();
     const insets = useSafeAreaInsets();
     const translateY = useSharedValue<number>(BAR_CONFIG.hiddenOffset);

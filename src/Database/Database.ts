@@ -9,7 +9,7 @@
 // satisfy TypeScript.
 import { deleteDatabaseAsync } from 'expo-sqlite';
 import { appConfig } from '@/Config/AppConfig'; // used by reset/delete logic
-import { AppLogger } from '@/Service/Logger';
+import { appLogger } from '@/Service/Logger';
 import { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
@@ -68,7 +68,7 @@ export class Database {
     public static async reset(): Promise<void> {
         // log before deleting so tests and debugging can see what file is being
         // removed; matches expectation in Database.test.ts
-        AppLogger.getInstance().info('[Database] resetting database at', {
+        appLogger.info('[Database] resetting database at', {
             path: appConfig.databaseName,
         });
 

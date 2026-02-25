@@ -12,10 +12,10 @@ import { Directory, File, Paths } from 'expo-file-system';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { AppConfig } from '@/Config';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { AppLogger, type LoggerInterface } from '@/Service/Logger';
+import { appLogger, type LoggerInterface } from '@/Service/Logger';
 
 export class ModelArtifactStorage {
-    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
+    public constructor(private readonly logger: LoggerInterface = appLogger) {}
 
     /**
      * Extracts filename from a URL.
@@ -24,12 +24,22 @@ export class ModelArtifactStorage {
      */
     private extractFilenameFromUrl(url: string): string {
         try {
+            // grab last segment of pathname; simple and works in runtime
             const pathname = new URL(url).pathname;
-            const segments = pathname.split('/').filter(Boolean);
-            const filename = segments[segments.length - 1];
+            let filename = pathname.substring(pathname.lastIndexOf('/') + 1);
             if (!filename) {
                 throw new InferenceModelDownloaderException(`URL "${url}" does not contain a filename`);
             }
+            // Decode percent‑encoded characters (e.g. %2B → +) so the local file
+            // name matches what a browser would download.  Expo's File API has
+            // trouble with encoded or exotic names and may throw
+            // "file doesn't exist" errors when trying to open or write to them.
+            try {
+                filename = decodeURIComponent(filename);
+            } catch {
+                // if decoding fails for some reason, just keep the raw name
+            }
+
             return filename;
         } catch (error) {
             if (error instanceof Error) {

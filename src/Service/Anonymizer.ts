@@ -10,7 +10,7 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { EntityType } from '@/Entity';
-import { AppLogger, type LoggerInterface } from './Logger';
+import { appLogger, type LoggerInterface } from './Logger';
 
 dayjs.extend(customParseFormat);
 
@@ -65,7 +65,7 @@ export class Anonymizer {
     private relationCounter: Map<string, number> = new Map();
     private loggerInstance: LoggerInterface;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    constructor(logger: LoggerInterface = appLogger) {
         this.loggerInstance = logger;
     }
 

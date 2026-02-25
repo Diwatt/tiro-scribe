@@ -7,14 +7,14 @@
 
 import type React from 'react';
 import { AppConfig } from '@/Config';
-import { AppLogger } from './Service/Logger';
+import { appLogger } from './Service/Logger';
 
 let StorybookUIRoot: React.ComponentType | null = null;
 if (typeof __DEV__ !== 'undefined' && __DEV__ && AppConfig.isStorybookEnabled) {
     try {
         StorybookUIRoot = require('../.rnstorybook').default;
     } catch (e) {
-        AppLogger.getInstance().warn('[TiroScribe] Failed to load Storybook:', {
+        appLogger.warn('[TiroScribe] Failed to load Storybook:', {
             error: e,
             errorMessage: e instanceof Error ? e.message : String(e),
         });

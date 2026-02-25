@@ -6,7 +6,7 @@
 import type { ProcessingPayload } from './AudioProcessing';
 import { InvalidAudioFormatError } from '../Exception/InvalidAudioFormatError';
 import type { AudioProcessing } from './AudioProcessing';
-import { AppLogger, type LoggerInterface } from './Logger';
+import { appLogger, type LoggerInterface } from './Logger';
 
 /**
  * Adapter interface that QueueService expects
@@ -26,7 +26,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
     private sessionStartDate: Date;
     private loggerInstance: LoggerInterface;
 
-    constructor(audioProcessingService: AudioProcessing, encounterUuid: string, sessionStartDate: Date, logger: LoggerInterface = AppLogger.getInstance()) {
+    constructor(audioProcessingService: AudioProcessing, encounterUuid: string, sessionStartDate: Date, logger: LoggerInterface = appLogger) {
         this.audioProcessingService = audioProcessingService;
         this.encounterUuid = encounterUuid;
         this.sessionStartDate = sessionStartDate;
@@ -58,7 +58,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
 export class MockAudioPipeline implements AudioPipeline {
     private loggerInstance: LoggerInterface;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    constructor(logger: LoggerInterface = appLogger) {
         this.loggerInstance = logger;
     }
 

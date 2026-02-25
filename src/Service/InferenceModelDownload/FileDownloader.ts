@@ -6,13 +6,13 @@
 import { fetch } from 'expo/fetch';
 import type { File } from 'expo-file-system';
 import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { AppLogger, type LoggerInterface } from '@/Service/Logger';
+import { appLogger, type LoggerInterface } from '@/Service/Logger';
 import { StreamWriter } from './StreamWriter';
 
 export class FileDownloader {
     public constructor(
         private readonly destinationFile: File,
-        private readonly logger: LoggerInterface = AppLogger.getInstance(),
+        private readonly logger: LoggerInterface = appLogger,
     ) {}
 
     /**
@@ -33,6 +33,19 @@ export class FileDownloader {
         this.logger.debug(`Downloading file from ${url} to ${this.destinationFile.uri}`);
 
         const streamWriter = new StreamWriter(this.destinationFile);
+
+        // make sure destination file exists before we try to open a stream;
+        // this mirrors the previous behaviour that lived in StreamWriter.
+        if (!this.destinationFile.exists) {
+            try {
+                this.destinationFile.create();
+            } catch (err) {
+                throw new InferenceModelDownloaderException(
+                    `Failed to create output file ${this.destinationFile.uri}`,
+                    err instanceof Error ? err : new Error(String(err)),
+                );
+            }
+        }
 
         try {
             yield 0;

@@ -9,7 +9,8 @@ import { observable } from '@legendapp/state';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import type { ModelConfig } from '@/Api';
-import type { DownloadQueue } from '@/Entity/DownloadQueue';
+import { DownloadQueue } from '@/Entity/DownloadQueue';
+import type { DownloadQueueStatus } from '@/Entity/Type';
 import type { LoggerInterface } from '@/Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { FileDownloader } from './FileDownloader';
@@ -72,6 +73,36 @@ export class DownloadTaskExecutor {
         return this._completedAt$;
     }
 
+    /**
+     * Create a dummy executor already in the `Completed` state.
+     *
+     * This is used when the model files are already present locally and we
+     * want to hand back an observable object without performing any download
+     * work or touching the queue database. The returned executor will report
+     * `state$ === DownloadState.Completed` and `progress$ === 100`.
+     *
+     * Note: the underlying `queueEntity` is a throwaway object that is **not**
+     * persisted anywhere; its only purpose is to satisfy the executor's
+     * constructor requirements.
+     */
+    public static createCompleted(
+        capability: string,
+        config: ModelConfig,
+        logger: LoggerInterface,
+        artifactStorage: ModelArtifactStorage,
+        checksumVerifier: ChecksumVerifier,
+    ): DownloadTaskExecutor {
+        // use entity helper to avoid repeating fields inline
+        const fakeQueue = DownloadQueue.createCompleted(capability);
+
+        const executor = new DownloadTaskExecutor(logger, fakeQueue, config, checksumVerifier, artifactStorage);
+        // make sure observables are in the completed state using setters
+        executor.setState(DownloadState.Completed);
+        executor.setProgress(100);
+        executor.setCompletedAt(dayjs());
+        return executor;
+    }
+
     public get capability(): string {
         return this.queueEntity.capability;
     }
@@ -104,6 +135,39 @@ export class DownloadTaskExecutor {
         return this.queueEntity;
     }
 
+    // ------------------------------------------------------------------
+    // Internal setters (use instead of mutating observables directly)
+    // ------------------------------------------------------------------
+
+    /**
+     * Set the current download state.
+     */
+    private setState(state: DownloadState): void {
+        this._state$.set(state);
+    }
+
+    /**
+     * Update progress (0‑100).
+     */
+    private setProgress(progress: number): void {
+        this._progress$.set(progress);
+    }
+
+    /**
+     * Record completion timestamp.
+     */
+    private setCompletedAt(time: Dayjs | undefined): void {
+        this._completedAt$.set(time);
+    }
+
+    /**
+     * Set error message observable.
+     */
+    private setError(error: string | undefined): void {
+        this._error$.set(error);
+    }
+
+
     /**
      * Check if executor is in downloading state.
      */
@@ -118,9 +182,9 @@ export class DownloadTaskExecutor {
      */
     public cancel(): boolean {
         if (this.isDownloading()) {
-            this._state$.set(DownloadState.Cancelled);
-            this._error$.set(DownloadTaskExecutor.CANCELLATION_ERROR_MESSAGE);
-            this._completedAt$.set(dayjs());
+            this.setState(DownloadState.Cancelled);
+            this.setError(DownloadTaskExecutor.CANCELLATION_ERROR_MESSAGE);
+            this.setCompletedAt(dayjs());
             return true;
         }
         return false;
@@ -139,7 +203,7 @@ export class DownloadTaskExecutor {
 
         try {
             // Update state to Downloading
-            this._state$.set(DownloadState.Downloading);
+            this.setState(DownloadState.Downloading);
             this.logger.debug('[DownloadTaskExecutor] Starting download task execution');
 
             for (let i = 0; i < this.modelConfig.files.length; i++) {
@@ -155,7 +219,7 @@ export class DownloadTaskExecutor {
                     const progressPercent = overallProgress * 100;
 
                     // Update progress observable (0‑100)
-                    this._progress$.set(progressPercent);
+                    this.setProgress(progressPercent);
 
                     // Call progress callback if provided
                     if (this.onProgress) {
@@ -171,7 +235,7 @@ export class DownloadTaskExecutor {
                 totalDownloaded += 1;
                 const progressAfterFile = (totalDownloaded / totalFiles) * 100;
                 // Update progress after each file
-                this._progress$.set(progressAfterFile);
+                this.setProgress(progressAfterFile);
 
                 // Call progress callback if provided
                 if (this.onProgress) {
@@ -180,9 +244,9 @@ export class DownloadTaskExecutor {
             }
 
             // Mark as completed
-            this._state$.set(DownloadState.Completed);
-            this._progress$.set(100);
-            this._completedAt$.set(dayjs());
+            this.setState(DownloadState.Completed);
+            this.setProgress(100);
+            this.setCompletedAt(dayjs());
 
             this.logger.debug('[DownloadTaskExecutor] Download completed successfully');
 
@@ -192,10 +256,10 @@ export class DownloadTaskExecutor {
             }
         } catch (error) {
             // Mark as failed
-            this._state$.set(DownloadState.Failed);
+            this.setState(DownloadState.Failed);
             const errorMessage = error instanceof Error ? error.message : String(error);
-            this._error$.set(errorMessage);
-            this._completedAt$.set(dayjs());
+            this.setError(errorMessage);
+            this.setCompletedAt(dayjs());
 
             this.logger.error('[DownloadTaskExecutor] Download failed', error);
 

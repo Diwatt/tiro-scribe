@@ -6,7 +6,7 @@
 
 import { AppConfig } from '@/Config';
 import { ApiClientException } from '@/Exception';
-import { AppLogger } from '@/Service/Logger';
+import { appLogger } from '@/Service/Logger';
 import isEmpty from 'lodash/isEmpty';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';
@@ -34,7 +34,7 @@ export class ApiClientRegistry {
     private ensureClientConfigured(): Client {
         if (!this.isConfigured) {
             const base = AppConfig.apiHost;
-            const logger = AppLogger.getInstance();
+            const logger = appLogger;
 
             // Add request interceptor to log URLs
             client.interceptors.request.use((request: Request, options: ResolvedRequestOptions) => {

@@ -1,11 +1,12 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { startupOrchestrator, StartupState } from '@/State/StartupOrchestrator';
 import { globalActivityStatus, ActivityStatus } from '@/State/GlobalActivityStatus';
-import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import { InferenceModelDownloader, inferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import { DownloadState } from '@/Service/InferenceModelDownload/Type';
 import { registry } from '@/Database/Registry';
 import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '@/Entity/Therapist';
-import { AppLanguage } from '@/Localization/AppLanguage';
+import { appLanguage } from '@/Localization/AppLanguage';
 
 
 describe('StartupOrchestrator', () => {
@@ -23,18 +24,17 @@ describe('StartupOrchestrator', () => {
             } as unknown) as TherapistRepository;
         });
 
-        // stub downloader behaviour; call progress callback to simulate instant completion
-        vi.spyOn(InferenceModelDownloader, 'getInstance').mockReturnValue({
-            ensureDownloaded: vi.fn().mockImplementation(async (_capability: string, onProgress?: (n: number) => void) => {
-                if (onProgress) {
-                    onProgress(100);
-                }
-                return 'dummy-path';
-            }),
-        } as unknown as InferenceModelDownloader);
+        // stub downloader behaviour; simulate instant completion by
+        // returning a fake executor already in the Completed state.
+        vi.spyOn(inferenceModelDownloader, 'download').mockResolvedValue({
+            state$: { onChange: (cb: any) => cb({ value: DownloadState.Completed }) },
+            progress$: { onChange: () => {} },
+            getState: () => DownloadState.Completed,
+            getError: () => undefined,
+        } as unknown as ReturnType<typeof inferenceModelDownloader.download>);
 
         // ensure the language subsystem returns predictable strings
-        AppLanguage.getInstance().getTranslationFunctions('en');
+        appLanguage.getTranslationFunctions('en');
     });
 
     afterEach(() => {
@@ -74,18 +74,25 @@ describe('StartupOrchestrator', () => {
     });
 
     it('shows success immediately if download completes after boot delay', async () => {
-        // override the downloader stub to resolve only once we manually call it
-        let resolveDownload!: (val: string) => void;
-        vi.spyOn(InferenceModelDownloader, 'getInstance').mockReturnValue({
-            ensureDownloaded: vi.fn().mockImplementation(async (_cap: string, onProgress?: (n: number) => void) => {
-                if (onProgress) {
-                    onProgress(100);
-                }
-                return new Promise<string>((res) => {
-                    resolveDownload = res;
-                });
-            }),
-        } as unknown as InferenceModelDownloader);
+        // override the downloader stub to resolve only once we manually trigger
+        // the completion via state change.  We capture the onChange callback so
+        // we can simulate progress later if needed.
+        let stateCb: ((arg: { value: DownloadState }) => void) | undefined;
+        let currentState = DownloadState.Downloading;
+        vi.spyOn(inferenceModelDownloader, 'download').mockResolvedValue({
+            state$: { onChange: (cb: any) => { stateCb = cb; } },
+            progress$: { onChange: () => {} },
+            getState: () => currentState,
+            getError: () => undefined,
+        } as unknown as ReturnType<typeof inferenceModelDownloader.download>);
+
+        // helper to complete later
+        const completeDownload = () => {
+            currentState = DownloadState.Completed;
+            stateCb?.({ value: DownloadState.Completed });
+        };
+        // expose helper for the test body
+        (global as any).completeDownload = completeDownload;
 
         await startupOrchestrator.run();
         expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
@@ -97,7 +104,7 @@ describe('StartupOrchestrator', () => {
         expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
 
         // now complete the download
-        resolveDownload('ok');
+        (global as any).completeDownload();
         // flush any pending microtasks
         await Promise.resolve();
 

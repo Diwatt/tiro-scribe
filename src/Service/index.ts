@@ -1,2 +1,2 @@
 export { Biocode } from './Biocode';
-export { VoiceCalibration } from './VoiceCalibration';
+export { VoiceCalibrator } from './VoiceCalibrator';

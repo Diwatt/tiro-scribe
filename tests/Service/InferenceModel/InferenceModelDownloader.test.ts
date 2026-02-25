@@ -21,7 +21,7 @@ vi.mock('@/Repository/DownloadQueueRepository', () => ({
     DownloadQueueRepository: vi.fn(),
 }));
 vi.mock('@/Service/InferenceModelConfigProvider', () => ({
-    InferenceModelConfigProvider: Object.assign(vi.fn(), { getInstance: vi.fn() }),
+    InferenceModelConfigProvider: vi.fn(),
 }));
 vi.mock('@/Service/InferenceModelDownload/ChecksumVerifier', () => ({
     ChecksumVerifier: vi.fn(),
@@ -71,6 +71,7 @@ describe('InferenceModelDownloader', () => {
     let mockArtifactStorage: any;
 
     beforeEach(async () => {
+        // Mock app language to a fixed locale so defaulting is predictable
         // Create mock logger
         mockLogger = {
             debug: vi.fn(),
@@ -142,7 +143,6 @@ describe('InferenceModelDownloader', () => {
         vi.mocked(DownloadTaskManager).mockImplementation(function () { return mockDownloadTaskManager; } as any);
         vi.mocked(FileDownloader).mockImplementation(function () { return mockFileDownloader; } as any);
         vi.mocked(ModelArtifactStorage).mockImplementation(function () { return mockArtifactStorage; } as any);
-        vi.mocked((await import('@/Service/Logger')).AppLogger.getInstance).mockReturnValue(mockLogger);
 
         downloader = new InferenceModelDownloader(
             mockLogger,
@@ -153,25 +153,6 @@ describe('InferenceModelDownloader', () => {
         vi.clearAllMocks();
     });
 
-    describe('getInstance', () => {
-        beforeEach(() => {
-            (InferenceModelDownloader as any).instance = null;
-            vi.mocked(InferenceModelConfigProvider.getInstance).mockReturnValue(mockConfigProvider);
-        });
-
-        it('should return singleton instance', () => {
-            const instance1 = InferenceModelDownloader.getInstance();
-            const instance2 = InferenceModelDownloader.getInstance();
-
-            expect(instance1).toBe(instance2);
-            expect(instance1).toBeInstanceOf(InferenceModelDownloader);
-        });
-
-        it('should create new instance when none exists', () => {
-            const instance = InferenceModelDownloader.getInstance();
-            expect(instance).toBeInstanceOf(InferenceModelDownloader);
-        });
-    });
 
     describe('download', () => {
         const mockConfig: ModelConfig = {
@@ -201,14 +182,14 @@ describe('InferenceModelDownloader', () => {
         });
 
         it('should download model with capability only', async () => {
-            await downloader.download('speaker_id');
+            await downloader.enqueueDownload('speaker_id');
             
             expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', undefined);
             expect(mockDownloadTaskManager.add).toHaveBeenCalledWith('speaker_id', undefined);
         });
 
         it('should download model with capability and language', async () => {
-            await downloader.download('speaker_id', 'fr');
+            await downloader.enqueueDownload('speaker_id', 'fr');
             
             expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', 'fr');
             expect(mockDownloadTaskManager.add).toHaveBeenCalledWith('speaker_id', 'fr');
@@ -218,24 +199,24 @@ describe('InferenceModelDownloader', () => {
             const error = new Error('Config not found');
             mockConfigProvider.getConfig.mockRejectedValue(error);
             
-            await expect(downloader.download('speaker_id')).rejects.toThrow('Config not found');
+            await expect(downloader.enqueueDownload('speaker_id')).rejects.toThrow('Config not found');
         });
 
         it('should propagate errors from task manager', async () => {
             const error = new Error('Task creation failed');
             mockDownloadTaskManager.add.mockRejectedValue(error);
             
-            await expect(downloader.download('speaker_id')).rejects.toThrow('Task creation failed');
+            await expect(downloader.enqueueDownload('speaker_id')).rejects.toThrow('Task creation failed');
         });
 
         it('should log download initiation', async () => {
-            await downloader.download('speaker_id');
+            await downloader.enqueueDownload('speaker_id');
             
-            // download() method doesn't log anything
+            // enqueueDownload() method doesn't log anything
             // The logging happens inside DownloadTaskManager
             // So we just verify the download was initiated
-            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', undefined);
-            expect(mockDownloadTaskManager.add).toHaveBeenCalledWith('speaker_id', undefined);
+            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', 'en');
+            expect(mockDownloadTaskManager.add).toHaveBeenCalledWith('speaker_id', 'en');
         });
     });
 
@@ -356,7 +337,7 @@ describe('InferenceModelDownloader', () => {
         });
     });
 
-    describe('ensureDownloaded', () => {
+    describe('download', () => {
         const mockConfig: ModelConfig = {
             capability: 'speaker_id',
             id: 'speaker-v1',
@@ -371,54 +352,108 @@ describe('InferenceModelDownloader', () => {
             mockArtifactStorage.getModelUri.mockReturnValue('file://models/speaker_id/speaker-v1');
         });
 
-        it('should return existing path when already downloaded', async () => {
-            const path = await downloader.ensureDownloaded('speaker_id');
-            
-            expect(path).toBe('file://models/speaker_id/speaker-v1');
-            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', undefined);
+        it('should return existing executor when already downloaded', async () => {
+            const executor = await downloader.download('speaker_id');
+
+            // caller can derive URIs from config/artifact storage if needed
+            expect(executor.config).toBe(mockConfig);
+            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', 'en');
             expect(mockArtifactStorage.hasAllFiles).toHaveBeenCalledWith(mockConfig);
         });
 
-        it('should download when not already downloaded', async () => {
+        it('should create and return session when not already downloaded', async () => {
             mockArtifactStorage.hasAllFiles.mockReturnValue(false);
-            vi.spyOn(downloader as any, 'ensureDownloadedWithConfig').mockResolvedValue('file://downloaded/path');
-            
-            const path = await downloader.ensureDownloaded('speaker_id');
-            
-            expect(path).toBe('file://downloaded/path');
-            expect(downloader['ensureDownloadedWithConfig']).toHaveBeenCalledWith(mockConfig, undefined);
+            const fakeExecutor: any = {
+                getState: () => DownloadState.Completed,
+                getProgress: () => 100,
+                start: vi.fn().mockResolvedValue(undefined),
+                getModelUri: () => 'file://downloaded/path',
+            };
+            mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
+            mockDownloadTaskManager.getOrCreateExecutor.mockReturnValue(fakeExecutor);
+
+            const executor = await downloader.download('speaker_id');
+
+            expect(executor).toBe(fakeExecutor);
+            expect(executor.getModelUri()).toBe('file://downloaded/path');
+            expect(fakeExecutor.start).toHaveBeenCalled();
         });
 
-        it('should download with progress callback', async () => {
-            mockArtifactStorage.hasAllFiles.mockReturnValue(false);
-            const progressCallback = vi.fn();
-            vi.spyOn(downloader as any, 'ensureDownloadedWithConfig').mockResolvedValue('file://downloaded/path');
-            
-            const path = await downloader.ensureDownloaded('speaker_id', progressCallback);
-            
-            expect(path).toBe('file://downloaded/path');
-            expect(downloader['ensureDownloadedWithConfig']).toHaveBeenCalledWith(mockConfig, progressCallback);
-        });
+
 
         it('should download with language filter', async () => {
             mockArtifactStorage.hasAllFiles.mockReturnValue(false);
-            vi.spyOn(downloader as any, 'ensureDownloadedWithConfig').mockResolvedValue('file://downloaded/path');
-            
-            const path = await downloader.ensureDownloaded('speaker_id', undefined, 'fr');
-            
-            expect(path).toBe('file://downloaded/path');
+            const fakeExecutor: any = {
+                getState: () => DownloadState.Completed,
+                getProgress: () => 100,
+                start: vi.fn().mockResolvedValue(undefined),
+                getModelUri: () => 'file://downloaded/path',
+            };
+            mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
+            mockDownloadTaskManager.getOrCreateExecutor.mockReturnValue(fakeExecutor);
+
+            const executor = await downloader.download('speaker_id', 'fr');
+
+            expect(executor).toBe(fakeExecutor);
             expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', 'fr');
+            expect(fakeExecutor.start).toHaveBeenCalled();
         });
 
         it('should propagate errors', async () => {
             const error = new Error('Config not found');
             mockConfigProvider.getConfig.mockRejectedValue(error);
             
-            await expect(downloader.ensureDownloaded('speaker_id')).rejects.toThrow('Config not found');
+            await expect(downloader.download('speaker_id')).rejects.toThrow('Config not found');
+        });
+
+        it('should start executor and return before completion', async () => {
+            mockArtifactStorage.hasAllFiles.mockReturnValue(false);
+
+            // create a promise that resolves later
+            let resolveStart: () => void;
+            const startPromise = new Promise<void>((r) => { resolveStart = r; });
+            const fakeExecutor: any = {
+                getState: () => DownloadState.Downloading,
+                getProgress: () => 0,
+                start: vi.fn().mockReturnValue(startPromise),
+                getModelUri: () => 'file://downloaded/path',
+            };
+
+            mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
+            mockDownloadTaskManager.getOrCreateExecutor.mockReturnValue(fakeExecutor);
+
+            const executor = await downloader.download('speaker_id');
+            expect(executor).toBe(fakeExecutor);
+            expect(fakeExecutor.start).toHaveBeenCalled();
+
+            // download() resolved before startPromise settles
+            let settled = false;
+            startPromise.then(() => { settled = true; });
+            await Promise.resolve();
+            expect(settled).toBe(false);
+
+            // now finish the start promise and verify state
+            resolveStart!();
+            await startPromise;
+        });
+
+        it('should let start errors propagate to caller', async () => {
+            mockArtifactStorage.hasAllFiles.mockReturnValue(false);
+            const fakeExecutor: any = {
+                getState: () => DownloadState.Downloading,
+                start: vi.fn().mockRejectedValue(new Error('network')), 
+                getError: vi.fn().mockReturnValue('network'),
+            };
+            mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
+            mockDownloadTaskManager.getOrCreateExecutor.mockReturnValue(fakeExecutor);
+
+            const executor = await downloader.download('speaker_id');
+            expect(executor).toBe(fakeExecutor);
+            await expect(executor.start()).rejects.toThrow('network');
         });
     });
 
-    describe('getConfigByLocalPath', () => {
+
         const mockConfigs: Record<string, ModelConfig> = {
             speaker_id: {
                 capability: 'speaker_id',
@@ -487,37 +522,24 @@ describe('InferenceModelDownloader', () => {
         });
     });
 
-    // Zombie method tests - edge cases and error conditions
+    // Edge‑case tests for invalid config behaviour
     describe('zombie method tests', () => {
-        it('should handle null/undefined config from getConfig', async () => {
-            mockConfigProvider.getConfig.mockResolvedValue(null);
-            
-            // download() will call getConfig which returns null, then call add
-            // This might cause issues later but doesn't immediately throw
+        it('should propagate if getConfig returns null', async () => {
+            mockConfigProvider.getConfig.mockResolvedValue(null as any);
             mockDownloadTaskManager.add.mockResolvedValue(undefined);
             mockDownloadTaskManager.processQueue.mockResolvedValue(undefined);
-            
-            await expect(downloader.download('speaker_id')).resolves.toBeUndefined();
+
+            await expect(downloader.download('speaker_id')).rejects.toThrow();
         });
 
-        it('should handle empty config object', async () => {
+        it('should propagate if getConfig returns an empty object', async () => {
             mockConfigProvider.getConfig.mockResolvedValue({} as any);
-            
             mockDownloadTaskManager.add.mockResolvedValue(undefined);
             mockDownloadTaskManager.processQueue.mockResolvedValue(undefined);
-            
-            await expect(downloader.download('speaker_id')).resolves.toBeUndefined();
+
+            await expect(downloader.download('speaker_id')).rejects.toThrow();
         });
 
-        it('should handle concurrent calls to getInstance', () => {
-            (InferenceModelDownloader as any).instance = null;
-            vi.mocked(InferenceModelConfigProvider.getInstance).mockReturnValue(mockConfigProvider);
-
-            const instance1 = InferenceModelDownloader.getInstance();
-            const instance2 = InferenceModelDownloader.getInstance();
-
-            expect(instance1).toBe(instance2);
-        });
 
         it('should handle error in getLocalConfigs', async () => {
             const error = new Error('Storage error');

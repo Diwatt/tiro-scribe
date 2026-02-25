@@ -84,7 +84,6 @@ describe('InferenceModelVersionManager', () => {
 
         // Setup mocks
         vi.mocked(InferenceModelConfigProvider).mockImplementation(() => mockConfigProvider);
-        vi.mocked((await import('@/Service/Logger')).AppLogger.getInstance).mockReturnValue(mockLogger);
 
         versionManager = new InferenceModelVersionManager(
             mockLogger,
@@ -94,23 +93,6 @@ describe('InferenceModelVersionManager', () => {
         vi.clearAllMocks();
     });
 
-    describe('getInstance', () => {
-        it('should return singleton instance', () => {
-            const instance1 = InferenceModelVersionManager.getInstance();
-            const instance2 = InferenceModelVersionManager.getInstance();
-            
-            expect(instance1).toBe(instance2);
-            expect(instance1).toBeInstanceOf(InferenceModelVersionManager);
-        });
-
-        it('should create new instance when none exists', () => {
-            // Clear the singleton
-            (InferenceModelVersionManager as any).instance = null;
-            
-            const instance = InferenceModelVersionManager.getInstance();
-            expect(instance).toBeInstanceOf(InferenceModelVersionManager);
-        });
-    });
 
     describe('checkForUpdates', () => {
         const mockRemoteConfigs: Record<string, ModelConfig> = {
@@ -476,16 +458,6 @@ describe('InferenceModelVersionManager', () => {
             expect(() => (versionManager as any).isNewerVersion('2.0.0', 1 as any)).toThrow();
         });
 
-        it('should handle concurrent calls to getInstance', () => {
-            // Clear singleton
-            (InferenceModelVersionManager as any).instance = null;
-            
-            // Simulate concurrent calls
-            const instance1 = InferenceModelVersionManager.getInstance();
-            const instance2 = InferenceModelVersionManager.getInstance();
-            
-            expect(instance1).toBe(instance2);
-        });
 
         it('should handle error in calculateTotalSize', async () => {
             vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({});
