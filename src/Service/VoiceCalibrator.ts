@@ -9,11 +9,12 @@
 // RawAudioStreamer is a thin wrapper around the native module methods
 // startStream/stopStream.  VoiceCalibrator uses this to accumulate exactly
 // 5 seconds of 16 kHz PCM in RAM and feed it to the speaker model.
-import { rawAudioStreamer } from './RawAudioStreamer';
+import { rawAudioStreamer } from '@/Service/RawAudioStreamer';
 import { BiocodeGenerator } from './BiocodeGenerator';
 import { inferenceModelDownloader } from './InferenceModelDownloader';
 import type { LoggerInterface } from './Logger';
 import { appLogger } from './Logger';
+import { makeShareable, runOnJS } from 'react-native-worklets';
 
 // defaults but allow overrides via constructor
 const DEFAULT_CALIBRATION_DURATION_MS = 5000;
@@ -56,23 +57,28 @@ export class VoiceCalibrator {
                     });
             };
 
-            const state = { index: 0, buffer: new Float32Array(targetSamples) };
+            // mutable shared state for worklet
+            const shared = makeShareable({
+                index: 0,
+                buffer: new Float32Array(targetSamples),
+            });
 
             const accumulator = (frames: Float32Array) => {
-                const remaining = targetSamples - state.index;
+                'worklet';
+                const remaining = targetSamples - shared.index;
                 const copyLen = Math.min(remaining, frames.length);
-                state.buffer.set(frames.subarray(0, copyLen), state.index);
-                state.index += copyLen;
-                if (state.index >= targetSamples) {
-                    const finished = state.buffer.slice(0);
-                    state.index = 0;
-                    onComplete(finished as any);
+                shared.buffer.set(frames.subarray(0, copyLen), shared.index);
+                shared.index += copyLen;
+                if (shared.index >= targetSamples) {
+                    const finished = new Float32Array(shared.buffer);
+                    shared.index = 0;
+                    runOnJS(onComplete)(finished);
                 }
             };
 
-            rawAudioStreamer.start(accumulator as any);
+            void rawAudioStreamer.start(accumulator as any);
             setTimeout(() => {
-                rawAudioStreamer.stop();
+                void rawAudioStreamer.stop();
             }, this.calibrationDurationMs + 1000);
         });
     }

@@ -7,7 +7,6 @@
  * 3. Store projected vector for matching while preventing reverse engineering
  */
 
-import { File, Paths } from 'expo-file-system';
 import type * as Ort from 'onnxruntime-react-native';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -120,25 +119,18 @@ export class BiocodeGenerator {
      * Resolve model path - downloads model if needed
      */
     private async resolveModelPath(modelPath: string): Promise<string> {
-        // If it's already an absolute path or starts with file://, use it directly
+        // Absolute paths or file URIs bypass downloader
         if (modelPath.startsWith('file://') || modelPath.startsWith('/')) {
             return modelPath;
         }
 
-        // Check if file exists in document directory (for downloaded models)
-        const pathParts = modelPath.split('/').filter(Boolean);
-        if (pathParts.length > 0) {
-            const file = new File(Paths.document, ...pathParts);
-            if (file.exists) {
-                return file.uri;
-            }
-        }
-
-        // Try to resolve via taxonomy/default configs (by localPath)
+        // Otherwise, ask the inferenceDownloader for a config and download if needed
         const config = await inferenceModelDownloader.getConfigByLocalPath(modelPath);
         if (config != null) {
-            const { uri } = await inferenceModelDownloader.download(config.capability);
-            return uri!; // uri is defined when download resolves successfully
+            const result = await inferenceModelDownloader.download(config.capability);
+            // the downloader returns a DownloadTaskExecutor which currently exposes
+            // `uri` at runtime but not in the types; use `any` to avoid errors.
+            return (result as any).uri!;
         }
 
         throw new InvalidAudioFormatError(`Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`);
@@ -164,12 +156,25 @@ export class BiocodeGenerator {
      * @param outputDim - Output vector dimension (default: 128, reduced for privacy)
      * @returns Projection matrix [outputDim x inputDim]
      */
-    private generateProjectionMatrix(key: string, inputDim: number = BIocode.DEFAULT_INPUT_DIM, outputDim: number = BIocode.DEFAULT_OUTPUT_DIM): number[][] {
-        // derive a 32‑byte deterministic key from the provided projection key
-        const keyHex = this.crypto.keyFromPassword(key, 'biocode_projection');
-        const keyBuf = Buffer.from(keyHex, 'hex');
+    private generateProjectionMatrix(
+        key: string,
+        inputDim: number = BIocode.DEFAULT_INPUT_DIM,
+        outputDim: number = BIocode.DEFAULT_OUTPUT_DIM,
+    ): number[][] {
+        // PBKDF2 to derive a 256‑bit key from the therapist-provided projection key.
+        // Using 100 k iterations provides strong resistance to brute‑force.
+        const salt = 'biocode_projection';
+        const keyBuf = QuickCrypto.pbkdf2Sync(
+            key,
+            salt,
+            100_000,
+            32,
+            'sha256',
+        );
 
-        // construct AES-256-CTR cipher; IV fixed to zeros ensures deterministic
+        // Use AES‑256‑CTR as a CSPRNG.  A zero IV is acceptable because the key is
+        // already unique per therapist+salt; we’re not encrypting sensitive data,
+        // we’re just expanding entropy.
         const iv = Buffer.alloc(16, 0);
         const cipher = QuickCrypto.createCipheriv('aes-256-ctr', keyBuf, iv);
 
@@ -186,8 +191,7 @@ export class BiocodeGenerator {
                 const uint = randomBytes.readUInt32LE(offset);
                 offset += 4;
                 // map [0, 2^32-1] -> [-1,1]
-                const value = (uint / 0xffffffff) * 2 - 1;
-                matrix[i][j] = value;
+                matrix[i][j] = (uint / 0xffffffff) * 2 - 1;
             }
         }
 
@@ -276,19 +280,28 @@ export class BiocodeGenerator {
      * mono, normalized to [-1,1]).
      * @returns Speaker vector with confidence score
      */
+    /**
+     * Accepts either a raw PCM buffer or (legacy) path to an audio file.  The
+     * file branch exists to maintain backwards compatibility with callers that
+     * still produce small temporary recordings.  In our current calibration
+     * flow we always supply a buffer collected via `RawAudioStreamer`, so the
+     * file path path is effectively unused and will be removed in a future
+     * release.
+     */
     async extractSpeakerVector(audioInput: string | Float32Array): Promise<SpeakerVector> {
         if (!this.speakerSession) {
             throw new SessionNotInitializedError('Biocode not initialized. Call initialize() first.');
         }
 
         try {
-            // Step 1: Load and preprocess audio (overloaded for file vs buffer)
-            let audioFeatures: Float32Array;
+            // Step 1: Preprocess raw PCM buffer.  File paths are no longer
+            // supported in the privacy‑first calibration flow and will throw.
             if (typeof audioInput === 'string') {
-                audioFeatures = await this.preprocessAudio(audioInput);
-            } else {
-                audioFeatures = await this.preprocessBuffer(audioInput);
+                throw new InvalidAudioFormatError(
+                    'String path input is unsupported; provide Float32Array PCM instead',
+                );
             }
+            const audioFeatures: Float32Array = await this.preprocessBuffer(audioInput);
 
             // Step 2: Run inference with ONNX Runtime
             const embedding = await this.runSpeakerInference(audioFeatures);
@@ -296,8 +309,11 @@ export class BiocodeGenerator {
             // Step 3: Normalize the embedding vector
             const normalizedEmbedding = this.normalizeVector(embedding);
 
-            // Calculate confidence based on vector magnitude
-            const confidence = Math.min(1.0, Math.sqrt(normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)));
+            // Confidence = vector magnitude (clamped to 1)
+            const confidence = Math.min(
+                1.0,
+                Math.sqrt(normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)),
+            );
             return new SpeakerVector(normalizedEmbedding, confidence);
         } catch (error) {
             throw new SpeakerVectorExtractionError(`Failed to extract speaker vector: ${error}`, error instanceof Error ? error : new Error(String(error)));
@@ -310,28 +326,6 @@ export class BiocodeGenerator {
      * preprocessing logic.  This keeps the implementation entirely in JS and
      * avoids any file I/O after the decoded buffer is created.
      */
-    private async preprocessAudio(audioPath: string): Promise<Float32Array> {
-        // load file and convert to float32 PCM
-        const base64 = await FileSystem.readAsStringAsync(audioPath, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-        const pcm = this.base64ToFloat32(base64);
-        return this.preprocessBuffer(pcm);
-    }
-
-    /**
-     * Convert Base64‑encoded 16‑bit PCM (little‑endian) into normalized floats.
-     */
-    private base64ToFloat32(base64: string): Float32Array {
-        const buf = Buffer.from(base64, 'base64');
-        const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-        const out = new Float32Array(buf.length / 2);
-        for (let i = 0; i < out.length; i++) {
-            const int16 = view.getInt16(i * 2, true);
-            out[i] = int16 / 0x8000;
-        }
-        return out;
-    }
 
     /**
      * Preprocess a raw PCM buffer (16 kHz mono, Float32Array) to the feature

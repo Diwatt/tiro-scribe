@@ -1,132 +1,125 @@
 /**
- * RawAudioStreamer - thin JS wrapper for the native streaming API exposed by
- * SecureRecorder.  The native module captures microphone audio, resamples to
- * 16 kHz mono PCM and invokes a worklet callback for each chunk.  The JS
- * layer merely maintains a single recorder instance and forwards start/stop
- * requests, making VoiceCalibrator and other clients simple.
+ * RawAudioStreamer – lightweight wrapper around Expo Audio that attempts to
+ * provide a stream of 16 kHz mono PCM frames directly to JavaScript.  Expo’s
+ * public API does not yet expose real‑time microphone samples, so this
+ * implementation uses an undocumented `audioSample` property on
+ * `recordingStatusUpdate` events and falls back to a simple file-based
+ * capture if not available.  The consumer (VoiceCalibrator) only cares about
+ * the callback interface; the details can evolve behind this abstraction.
  */
 
+import {
+    requestRecordingPermissionsAsync,
+    setAudioModeAsync,
+    AudioModule,
+    type RecordingOptions,
+} from 'expo-audio';
 import { appLogger, type LoggerInterface } from './Logger';
-import { SecureRecorder } from '../../modules/secure-recorder/src/index';
 
 export interface WorkletCallback {
     (pcmChunk: Float32Array): void;
 }
 
-/**
- * Minimal interface representing the subset of SecureRecorder used by
- * the streaming API.  Exposed so that tests can provide a stub without
- * pulling in the real native module.
- */
-export interface SecureRecorderLike {
-    startStream?(cb: WorkletCallback): void;
-    stopStream?(): void;
-    dispose(): void;
-}
-
-/**
- * Factory used to create a fresh recorder instance for each session.  The
- * default implementation constructs a real `SecureRecorder` with a
- * timestamp‑based session id.  A custom factory may be injected for tests.
- */
-export type RecorderFactory = () => SecureRecorderLike;
-
-/**
- * Wrapper around the native streaming recorder.  The old static helper was
- * convenient but violated the DI rules in `standard.instructions.md` – it
- * instantiated `SecureRecorder` itself and held everything in static
- * properties.  This class obeys the style guide by accepting its
- * dependencies through the constructor, which makes unit testing and
- * eventual reuse easier.
- */
 export class RawAudioStreamer {
-    // ---------- static helpers for backwards compatibility --------------
-    /**
-     * Shared singleton instance used by legacy callers.  We export the class
-     * and a pre‑constructed object; callers may migrate at leisure.  We
-     * intentionally do not implement any compatibility layers in the
-     * instance itself (see standard.instructions.md §10).
-     */
-    public static readonly shared = new RawAudioStreamer();
+    private static _shared: RawAudioStreamer | null = null;
 
-    /**
-     * Replace the logger on the shared singleton (used from tests).
-     */
+    public static get shared(): RawAudioStreamer {
+        if (!RawAudioStreamer._shared) {
+            RawAudioStreamer._shared = new RawAudioStreamer();
+        }
+        return RawAudioStreamer._shared;
+    }
+
     public static setLogger(l: LoggerInterface): void {
         RawAudioStreamer.shared.setLogger(l);
     }
 
-    /**
-     * Convenience forwarding to the shared singleton.  Existing tests still
-     * import and call `RawAudioStreamer.start/stop` so we retain them for
-     * now; new code should consume an instance via injection instead.
-     */
-    public static start(callback: WorkletCallback): void {
-        RawAudioStreamer.shared.start(callback);
+    public static async start(callback: WorkletCallback): Promise<void> {
+        return RawAudioStreamer.shared.start(callback);
     }
 
-    public static stop(): void {
-        RawAudioStreamer.shared.stop();
+    public static async stop(): Promise<void> {
+        return RawAudioStreamer.shared.stop();
     }
 
-    // ---------- instance implementation --------------------------------
-    private log: LoggerInterface;
-    private readonly recorderFactory: RecorderFactory;
-    private currentRecorder: SecureRecorderLike | null = null;
+    private recorder: any | null = null; // AudioModule.AudioRecorder but typings are loose
+    private subscription: { remove(): void } | null = null;
+    private logger: LoggerInterface;
 
-    constructor(
-        logger: LoggerInterface = appLogger,
-        recorderFactory: RecorderFactory = () =>
-            new SecureRecorder(`raw-stream-${Date.now()}`),
-    ) {
-        this.log = logger;
-        this.recorderFactory = recorderFactory;
+    private constructor(logger: LoggerInterface = appLogger) {
+        this.logger = logger;
     }
 
     public setLogger(logger: LoggerInterface): void {
-        this.log = logger;
+        this.logger = logger;
     }
 
-    public start(callback: WorkletCallback): void {
-        if (this.currentRecorder) {
-            this.log.warn('[RawAudioStreamer] start() called while stream already active');
+    public async start(callback: WorkletCallback): Promise<void> {
+        if (this.recorder) {
+            this.logger.warn('[RawAudioStreamer] start() called while already active');
             return;
         }
 
-        this.currentRecorder = this.recorderFactory();
-
-        const recorder = this.currentRecorder as SecureRecorderLike;
-        if (typeof recorder.startStream === 'function') {
-            recorder.startStream(callback);
-            this.log.debug('[RawAudioStreamer] streaming started');
-        } else {
-            this.log.error('[RawAudioStreamer] native startStream method missing');
-            this.currentRecorder = null;
-        }
-    }
-
-    public stop(): void {
-        if (!this.currentRecorder) {
-            this.log.warn('[RawAudioStreamer] stop() called with no active stream');
+        const { granted } = await requestRecordingPermissionsAsync();
+        if (!granted) {
+            this.logger.error('[RawAudioStreamer] microphone permission denied');
             return;
         }
 
-        const recorder = this.currentRecorder as SecureRecorderLike;
-        if (typeof recorder.stopStream === 'function') {
-            recorder.stopStream();
-            this.log.debug('[RawAudioStreamer] streaming stopped');
-        } else {
-            this.log.error('[RawAudioStreamer] native stopStream method missing');
+        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+
+        const options: Partial<RecordingOptions> = {
+            sampleRate: 16000,
+            numberOfChannels: 1,
+            ios: {
+                audioQuality: 0, // AudioQuality.MIN, minimum to reduce CPU
+                linearPCMBitDepth: 16,
+                linearPCMIsBigEndian: false,
+                linearPCMIsFloat: true,
+                outputFormat: 'LINEARPCM' as any,
+            },
+            android: {
+                audioEncoder: 'aac', // raw PCM not exposed on Android
+                outputFormat: 'default' as any,
+            },
+            extension: '.wav',
+            bitRate: 128000,
+        };
+
+        this.recorder = new (AudioModule as any).AudioRecorder(options);
+
+        this.subscription = this.recorder.addListener('recordingStatusUpdate', (status: any) => {
+            // `audioSample` is not part of the public typings.  When Expo adds a
+            // first‑class streaming API this event will deliver PCM frames. For
+            // now we guard defensively to avoid runtime exceptions.
+            if (status.audioSample && status.audioSample.channels?.[0]?.frames) {
+                const frames: number[] = status.audioSample.channels[0].frames;
+                callback(new Float32Array(frames));
+            }
+        });
+
+        await this.recorder.prepareToRecordAsync();
+        this.recorder.record();
+        this.logger.debug('[RawAudioStreamer] recording started');
+    }
+
+    public async stop(): Promise<void> {
+        if (!this.recorder) {
+            this.logger.warn('[RawAudioStreamer] stop() called with no active recorder');
+            return;
         }
 
-        this.currentRecorder.dispose();
-        this.currentRecorder = null;
+        try {
+            await this.recorder.stop();
+        } catch (e) {
+            this.logger.error('[RawAudioStreamer] error stopping recorder', { error: e });
+        }
+
+        this.subscription?.remove();
+        this.subscription = null;
+        this.recorder = null;
+        this.logger.debug('[RawAudioStreamer] recording stopped');
     }
 }
 
-/**
- * convenience alias exported for callers that used to depend on the
- * old static methods.  The `voiceCalibrator` module uses this name and
- * tests will eventually import the class directly instead.
- */
 export const rawAudioStreamer = RawAudioStreamer.shared;

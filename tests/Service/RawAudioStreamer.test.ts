@@ -1,46 +1,79 @@
-import { RawAudioStreamer } from '../../src/Service/RawAudioStreamer';
-import { SecureRecorder } from '../../modules/secure-recorder/src/index';
-
-jest.mock('../../modules/secure-recorder/src/index', () => {
+// ensure logger is stubbed so ctor default works
+vi.mock('@/Service/Logger', () => {
     return {
-        SecureRecorder: jest.fn().mockImplementation(() => {
-            return {
-                startStream: jest.fn((_cb: any) => {}),
-                stopStream: jest.fn(() => {}),
-                dispose: jest.fn(() => {}),
-            };
-        }),
+        appLogger: {
+            warn: vi.fn(),
+            error: vi.fn(),
+            debug: vi.fn(),
+        },
+    };
+});
+
+import { RawAudioStreamer } from '../../src/Service/RawAudioStreamer';
+import * as Audio from 'expo-audio';
+
+vi.mock('expo-audio', () => {
+    // simple class that stores the last-created instance for our assertions
+    class MockRecorder {
+        static lastInstance: any;
+        constructor(options: any) {
+            MockRecorder.lastInstance = this;
+        }
+
+        prepareToRecordAsync = vi.fn(async () => {});
+        record = vi.fn(() => {});
+        stop = vi.fn(async () => {});
+        addListener = vi.fn((event: string, cb: any) => {
+            return { remove: vi.fn() };
+        });
+    }
+
+    return {
+        requestRecordingPermissionsAsync: vi.fn(async () => ({ granted: true })),
+        setAudioModeAsync: vi.fn(async () => {}),
+        AudioModule: {
+            AudioRecorder: MockRecorder,
+        },
+        // expose class so tests can inspect lastInstance
+        __mockRecorderClass: MockRecorder,
     };
 });
 
 describe('RawAudioStreamer', () => {
-    let streamer: RawAudioStreamer;
-
     beforeEach(() => {
-        // reset module state and ensure fresh instance
-        (SecureRecorder as jest.MockedClass<typeof SecureRecorder>).mockClear();
-        streamer = new RawAudioStreamer();
+        vi.clearAllMocks();
     });
 
-    it('forwards start/stop to SecureRecorder and accumulates samples', () => {
-        const fakeCallback = jest.fn();
-        streamer.start(fakeCallback as any);
-        expect(SecureRecorder).toHaveBeenCalled();
-        const instance = (SecureRecorder as jest.MockedClass<typeof SecureRecorder>).mock.results[0].value as any;
-        expect(instance.startStream).toHaveBeenCalledWith(fakeCallback);
+    it('starts recorder, emits frames and stops correctly', async () => {
+        const callback = vi.fn();
+        await RawAudioStreamer.start(callback);
 
-        // calling again should warn but not create new recorder
-        streamer.start(fakeCallback as any);
-        expect(SecureRecorder).toHaveBeenCalledTimes(1);
+        expect(Audio.requestRecordingPermissionsAsync).toHaveBeenCalled();
+        expect(Audio.setAudioModeAsync).toHaveBeenCalled();
 
-        streamer.stop();
-        expect(instance.stopStream).toHaveBeenCalled();
-        expect(instance.dispose).toHaveBeenCalled();
+        // grab the instance that was created by our mock class
+        const recorderInstance = (Audio as any).__mockRecorderClass.lastInstance;
+        expect(recorderInstance).toBeDefined();
+        expect(recorderInstance.prepareToRecordAsync).toHaveBeenCalled();
+        expect(recorderInstance.record).toHaveBeenCalled();
+
+        // simulate a sample event
+        const sampleListener = recorderInstance.addListener.mock.calls[0][1];
+        sampleListener({ audioSample: { channels: [{ frames: [0.5, -0.5] }] } });
+        expect(callback).toHaveBeenCalledWith(new Float32Array([0.5, -0.5]));
+
+        // calling start again should not recreate recorder instance
+        const firstInstance = recorderInstance;
+        await RawAudioStreamer.start(callback);
+        const secondInstance = (Audio as any).__mockRecorderClass.lastInstance;
+        expect(secondInstance).toBe(firstInstance);
+
+        await RawAudioStreamer.stop();
+        expect(recorderInstance.stop).toHaveBeenCalled();
     });
 
-    it('stop is safe when not started', () => {
-        // ensure no throw on second stop
-        streamer.stop();
-        streamer.stop();
+    it('stop is safe when not started', async () => {
+        await RawAudioStreamer.stop();
+        await RawAudioStreamer.stop();
     });
 });
