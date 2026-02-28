@@ -30,8 +30,11 @@ vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => {
     };
 });
 vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
-        getInstance: vi.fn(),
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
     },
 }));
 

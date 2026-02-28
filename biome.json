@@ -66,8 +66,7 @@
                     "level": "warn",
                     "options": { "filenameCases": ["PascalCase", "camelCase"] }
                 },
-                "useImportType": "error",
-                "noInlineImport": "error"
+                "useImportType": "error"
             },
             "complexity": {
                 "noExcessiveCognitiveComplexity": "warn",

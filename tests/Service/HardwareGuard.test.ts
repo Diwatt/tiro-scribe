@@ -10,6 +10,15 @@ import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { HardwareGuard } from '@/Security/HardwareGuard';
 import { appLogger } from '@/Service/Logger';
 
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
 const mockDevice = {
     deviceType: DeviceType.PHONE,
     osVersion: '15.0',

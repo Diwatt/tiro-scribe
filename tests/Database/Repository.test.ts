@@ -4,13 +4,22 @@
  * Uses a real in-memory SQLite database via Kysely — no Kysely mocking.
  */
 
-import type { AbstractEntity } from '@/Database/AbstractEntity';
+import { vi, describe, beforeAll, beforeEach, it, expect } from 'vitest';
 import { Collection } from '@/Database/Collection';
 import { Criteria } from '@/Database/Criteria';
 import { DatabaseException } from '@/Exception';
 import { Repository } from '@/Database/Repository';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
 import { ensureTestTable, clearTestTable } from '../../vitest/mocks/kysely';
+
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
 
 describe('Repository', () => {
     const MockEncounter = createMockEncounterConstructor();

@@ -11,6 +11,15 @@ import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
 import { describe, it, expect, vi } from 'vitest';
 
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
 function createMockDb(execute?: (sql: string, params?: readonly unknown[]) => Promise<{ rows?: unknown[] } | undefined>) {
     // minimal Kysely-like stub with executeQuery
     const wrapped = execute as any;

@@ -1,5 +1,6 @@
 ---
-applyTo: "src/**/*.ts,src/**/*.tsx"
+trigger: glob
+globs: "src/**/*.ts,src/**/*.tsx"
 ---
 
 # Standards: Architecture & OOP (MVVM / Enterprise)

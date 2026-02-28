@@ -1,5 +1,6 @@
 ---
-applyTo: "ios/**/*.swift,android/**/*.kt,**/SecureRecorder**,**/Service/Biocode*"
+trigger: glob
+globs: "ios/**/*.swift,android/**/*.kt,**/SecureRecorder**"
 ---
 
 # SecureRecorder: Zero-Trust Security Rules (CRITICAL)

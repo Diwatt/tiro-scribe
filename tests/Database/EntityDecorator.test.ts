@@ -4,10 +4,16 @@ import { PrimaryKey } from '@/Database/Decorator/PrimaryKey';
 import { Column } from '@/Database/Decorator/Column';
 import { AbstractEntity } from '@/Database/AbstractEntity';
 import { EntityMetadata } from '@/Database/Decorator';
+import { vi, describe, it, expect } from 'vitest';
 
-// We don't need to attach metadata manually; the real decorator will run
-// when the class is defined and populate Symbol.metadata and static
-// entityName.
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
 
 describe('Entity decorator normalization', () => {
     it('trims tableName and repositoryClass before assignment', () => {

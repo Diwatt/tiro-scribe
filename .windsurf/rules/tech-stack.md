@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+trigger: glob
+globs: "**/*"
 ---
 
 # Tech Stack & Architectural Layers

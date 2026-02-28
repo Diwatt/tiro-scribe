@@ -57,11 +57,40 @@ vi.mock('react-native-quick-crypto', () => {
     };
     return {
         default: {
-            createHash: () => ({
-                update: () => ({
-                    digest: () => ({ toString: () => 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' }),
-                }),
-            }),
+            createHash: () => {
+                let content = '';
+                return {
+                    update: (data: any) => {
+                        content += String(data);
+                        return {
+                            digest: () => {
+                                // Deterministic hash based on content
+                                let h = 0x811c9dc5;
+                                for (let i = 0; i < content.length; i++) {
+                                    h ^= content.charCodeAt(i);
+                                    h = Math.imul(h, 0x01000193);
+                                }
+                                const hex = (h >>> 0).toString(16).padStart(64, '0');
+                                return { toString: () => hex };
+                            },
+                            update: (d: any) => {
+                                content += String(d);
+                                return {
+                                    digest: () => {
+                                        let h = 0x811c9dc5;
+                                        for (let i = 0; i < content.length; i++) {
+                                            h ^= content.charCodeAt(i);
+                                            h = Math.imul(h, 0x01000193);
+                                        }
+                                        const hex = (h >>> 0).toString(16).padStart(64, '0');
+                                        return { toString: () => hex };
+                                    }
+                                };
+                            }
+                        };
+                    },
+                };
+            },
             createCipheriv: () => ({
                 update: () => alloc(0),
                 final: () => alloc(0),

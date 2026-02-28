@@ -1,7 +1,84 @@
 import { Database } from '@/Database/Database';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Kysely } from 'kysely';
+import { ExpoDialect } from 'kysely-expo';
 import { appConfig } from '@/Config/AppConfig';
 import { deleteDatabaseAsync } from 'expo-sqlite';
 import { appLogger } from '@/Service/Logger';
+
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
+
+vi.mock('kysely', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('kysely')>();
+    return {
+        ...actual,
+        Kysely: vi.fn().mockImplementation(() => ({
+            getExecutor: vi.fn().mockReturnValue({ adapter: { supportsTransactionalDdl: () => true } }),
+            schema: {
+                createTable: vi.fn().mockReturnThis(),
+                ifNotExists: vi.fn().mockReturnThis(),
+                addColumn: vi.fn().mockReturnThis(),
+                execute: vi.fn(),
+            },
+            transaction: vi.fn().mockReturnValue({
+                execute: vi.fn(async (cb) => {
+                    const mockTrx = {
+                        executeQuery: vi.fn(),
+                        getExecutor: vi.fn().mockReturnValue({ adapter: { supportsTransactionalDdl: () => true } }),
+                    };
+                    return cb(mockTrx);
+                }),
+            }),
+            executeQuery: vi.fn(),
+            destroy: vi.fn(),
+        })),
+        sql: Object.assign(
+            (strings: TemplateStringsArray, ...values: any[]) => ({
+                compile: () => ({ sql: 'MOCKED_SQL', parameters: [] }),
+            }),
+            {
+                raw: (s: string) => ({ compile: () => ({ sql: s, parameters: [] }) }),
+            }
+        ),
+    };
+});
+vi.mock('kysely-expo');
+
+// Mock the singleton qb instance
+vi.mock('@/Database/Kysely', () => {
+    const mockSchema = {
+        createIndex: vi.fn().mockReturnThis(),
+        on: vi.fn().mockReturnThis(),
+        column: vi.fn().mockReturnThis(),
+        ifNotExists: vi.fn().mockReturnThis(),
+        compile: vi.fn().mockReturnValue({ sql: 'MOCKED_INDEX_SQL' }),
+    };
+
+    return {
+        qb: {
+            transaction: vi.fn().mockReturnValue({
+                execute: vi.fn(async (cb) => {
+                    const mockTrx = {
+                        executeQuery: vi.fn().mockResolvedValue({ rows: [] }),
+                        getExecutor: vi.fn().mockReturnValue({ adapter: { supportsTransactionalDdl: () => true } }),
+                        schema: mockSchema,
+                    };
+                    return cb(mockTrx);
+                }),
+            }),
+            executeQuery: vi.fn().mockResolvedValue({ rows: [] }),
+            destroy: vi.fn(),
+            schema: mockSchema,
+        }
+    };
+});
 
 // expo-sqlite is already mocked in vitest/setup.ts; we only need to clear
 // mocks before each test so call counts reset.

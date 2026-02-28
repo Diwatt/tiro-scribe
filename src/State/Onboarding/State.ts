@@ -100,9 +100,8 @@ export class OnboardingState {
         await this.runAsyncAction(
             async () => {
                 const vector = await voiceCalibrator.run();
-                if (this.pendingTherapist) {
-                    this.pendingTherapist.biocodeEmbedding = vector;
-                }
+                // embedding is no longer stored in Therapist for privacy
+                // any client using the vector should handle it in-memory
                 this.state$.step.set(4);
                 logger.debug('[OnboardingState] calibrateVoice success', { step: 4 });
             },

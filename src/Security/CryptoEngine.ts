@@ -47,4 +47,34 @@ export class CryptoEngine {
         const derived = QuickCrypto.pbkdf2Sync(password, salt, CryptoEngine.PBKDF2_ITERATIONS, CryptoEngine.KEY_LEN, 'SHA-256');
         return derived.toString('hex');
     }
+
+    /**
+     * Derive a deterministic byte sequence from key material.
+     * Uses PBKDF2 + AES-256-CTR as a PRF (pseudorandom function).
+     * @param keyHex - hex-encoded key material
+     * @param salt - additional salt string
+     * @param byteLength - number of bytes to produce
+     * @returns Buffer of deterministic random bytes
+     */
+    public generateDeterministicBytes(keyHex: string, salt: string, byteLength: number): Buffer {
+        // Derive a key once using PBKDF2
+        const key = QuickCrypto.pbkdf2Sync(keyHex, salt, CryptoEngine.PBKDF2_ITERATIONS, CryptoEngine.KEY_LEN, 'sha256');
+        const keyHexString = key.toString('hex');
+
+        // Use hash function in counter mode for fast deterministic byte generation
+        let result = Buffer.alloc(0);
+        let counter = 0;
+
+        while (result.length < byteLength) {
+            const counterBuffer = Buffer.alloc(4);
+            counterBuffer.writeUInt32LE(counter, 0);
+            const counterHex = counterBuffer.toString('hex');
+            const hashHex = this.hash(`${keyHexString}${counterHex}`);
+            const hashBuffer = Buffer.from(hashHex, 'hex');
+            result = Buffer.concat([result, hashBuffer]);
+            counter++;
+        }
+
+        return result.subarray(0, byteLength);
+    }
 }

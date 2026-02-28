@@ -6,6 +6,16 @@
 import { registry } from '@/Database';
 import { DatabaseException } from '@/Exception';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
+import { vi, describe, it, expect } from 'vitest';
+
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
 
 describe('Registry', () => {
     const MockEncounter = createMockEncounterConstructor();

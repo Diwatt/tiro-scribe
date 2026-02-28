@@ -40,12 +40,9 @@ export class Therapist extends AbstractEntity {
     @Column({ default: '[]', type: 'text', as: 'json' })
     public languages!: string[];
 
+    /** Projected-voice biocode (vector stored as JSON array). Set at calibration; same every encounter. */
     @Column({ default: '[]', type: 'text', as: 'json' })
-    public biocodeEmbedding!: number[];
-
-    /** Projected-voice biocode (hash from Biocode service). Set at calibration; same every encounter. */
-    @Column({ default: null, type: 'varchar', length: 64 })
-    public biocode!: string | null;
+    public biocode!: number[];
 
     @Column({ default: null, type: 'varchar' })
     public therapyMethod!: string | null;
@@ -56,12 +53,8 @@ export class Therapist extends AbstractEntity {
     @Column({ default: null, type: 'integer' })
     public yearsOfExperience!: number | null;
 
-    public getBiocode(): string | null {
+    public getBiocode(): number[] {
         return this.biocode;
-    }
-
-    public getBiocodeEmbedding(): number[] {
-        return this.biocodeEmbedding;
     }
 
     public getEmail(): string {
@@ -116,12 +109,8 @@ export class Therapist extends AbstractEntity {
         return this.yearsOfExperience;
     }
 
-    public setBiocode(value: string | null): void {
+    public setBiocode(value: number[]): void {
         this.biocode = value;
-    }
-
-    public setBiocodeEmbedding(value: number[]): void {
-        this.biocodeEmbedding = value;
     }
 
     public setEmail(value: string): void {

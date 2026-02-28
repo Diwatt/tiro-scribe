@@ -47,6 +47,7 @@ const ENV_SCHEMA = z.object({
         .optional()
         .default('false')
         .transform((s) => s === 'true'),
+    EXPO_PUBLIC_PROJECTION_SALT: z.string().trim().optional().default('biocode_projection'),
 });
 
 type EnvConfig = z.output<typeof ENV_SCHEMA>;
@@ -83,6 +84,10 @@ export class AppConfig {
         return this.config.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH;
     }
 
+    public get projectionSalt(): string {
+        return this.config.EXPO_PUBLIC_PROJECTION_SALT;
+    }
+
     private static parseEnv(): EnvConfig {
         if (__DEV__) {
             return ENV_SCHEMA.parse(process.env);
@@ -94,6 +99,7 @@ export class AppConfig {
             STORYBOOK_ENABLED: process.env.STORYBOOK_ENABLED === 'true',
             EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR: process.env.EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR ?? 'artifacts',
             EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH: process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH === 'true',
+            EXPO_PUBLIC_PROJECTION_SALT: process.env.EXPO_PUBLIC_PROJECTION_SALT ?? 'biocode_projection',
         };
     }
 }

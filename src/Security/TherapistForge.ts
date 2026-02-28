@@ -56,7 +56,7 @@ export class TherapistForge {
         const masterKeyCheckHash = this.crypto.hash(masterKey);
 
         const qualifications = input.qualifications.length > 0 ? input.qualifications.join(',') : null;
-        const years = parseInt(input.experience.trim(), 10);
+        const years = Number.parseInt(input.experience.trim(), 10);
         const yearsOfExperience = Number.isNaN(years) ? null : years;
         const methods = input.methods.length > 0 ? input.methods.join(',') : null;
 
@@ -71,7 +71,7 @@ export class TherapistForge {
             recoveryCodeHash,
             masterKeyCheckHash,
             languages: input.languages,
-            biocodeEmbedding: [],
+            biocode: [],
             qualification: qualifications,
             yearsOfExperience,
             therapyMethod: methods,
@@ -87,17 +87,14 @@ export class TherapistForge {
     public unlock(therapist: Therapist, password: string): string | null {
         const saltPrimary = this.crypto.salt(therapist.uuid, 'vault_primary');
         const keyPrimaryHex = this.crypto.keyFromPassword(password, saltPrimary);
-        try {
-            const masterKey = this.crypto.decrypt(therapist.encryptedMasterKeyPrimary, keyPrimaryHex);
-            const computedHash = this.crypto.hash(masterKey);
-            if (computedHash !== therapist.masterKeyCheckHash) {
-                return null;
-            }
 
-            return masterKey;
-        } catch (_error: unknown) {
+        const masterKey = this.crypto.decrypt(therapist.encryptedMasterKeyPrimary, keyPrimaryHex);
+        const computedHash = this.crypto.hash(masterKey);
+        if (computedHash !== therapist.masterKeyCheckHash) {
             return null;
         }
+
+        return masterKey;
     }
 
     /**

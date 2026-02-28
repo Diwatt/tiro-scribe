@@ -6,6 +6,16 @@ import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import type { MetadataMap } from '@/Decorator/Type';
+import { vi, describe, it, expect } from 'vitest';
+
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
 
 describe('MetadataWriter', () => {
 

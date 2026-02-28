@@ -22,6 +22,10 @@ vi.mock('@/Repository/DownloadQueueRepository', () => ({
 }));
 vi.mock('@/Service/InferenceModelConfigProvider', () => ({
     InferenceModelConfigProvider: vi.fn(),
+    inferenceModelConfigProvider: {
+        getConfig: vi.fn(),
+        getConfigs: vi.fn(),
+    },
 }));
 vi.mock('@/Service/InferenceModelDownload/ChecksumVerifier', () => ({
     ChecksumVerifier: vi.fn(),
@@ -36,8 +40,11 @@ vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
     ModelArtifactStorage: vi.fn(),
 }));
 vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
-        getInstance: vi.fn(),
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
     },
 }));
 
@@ -118,6 +125,7 @@ describe('InferenceModelDownloader', () => {
             getActiveSessions: vi.fn().mockReturnValue([]),
             removeSession: vi.fn(),
             processQueue: vi.fn(),
+            getOrCreateExecutor: vi.fn(),
         };
 
         // Create mock file downloader
@@ -215,8 +223,8 @@ describe('InferenceModelDownloader', () => {
             // enqueueDownload() method doesn't log anything
             // The logging happens inside DownloadTaskManager
             // So we just verify the download was initiated
-            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', 'en');
-            expect(mockDownloadTaskManager.add).toHaveBeenCalledWith('speaker_id', 'en');
+            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', undefined);
+            expect(mockDownloadTaskManager.add).toHaveBeenCalledWith('speaker_id', undefined);
         });
     });
 
@@ -357,7 +365,7 @@ describe('InferenceModelDownloader', () => {
 
             // caller can derive URIs from config/artifact storage if needed
             expect(executor.config).toBe(mockConfig);
-            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', 'en');
+            expect(mockConfigProvider.getConfig).toHaveBeenCalledWith('speaker_id', undefined);
             expect(mockArtifactStorage.hasAllFiles).toHaveBeenCalledWith(mockConfig);
         });
 
@@ -454,6 +462,7 @@ describe('InferenceModelDownloader', () => {
     });
 
 
+    describe('getConfigByLocalPath', () => {
         const mockConfigs: Record<string, ModelConfig> = {
             speaker_id: {
                 capability: 'speaker_id',

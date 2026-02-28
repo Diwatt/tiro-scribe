@@ -8,6 +8,14 @@ import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '@/Entity/Therapist';
 import { appLanguage } from '@/Localization/AppLanguage';
 
+vi.mock('@/Service/Logger', () => ({
+    appLogger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    },
+}));
 
 describe('StartupOrchestrator', () => {
     beforeEach(() => {
@@ -31,7 +39,7 @@ describe('StartupOrchestrator', () => {
             progress$: { onChange: () => {} },
             getState: () => DownloadState.Completed,
             getError: () => undefined,
-        } as unknown as ReturnType<typeof inferenceModelDownloader.download>);
+        } as any);
 
         // ensure the language subsystem returns predictable strings
         appLanguage.getTranslationFunctions('en');
@@ -84,7 +92,7 @@ describe('StartupOrchestrator', () => {
             progress$: { onChange: () => {} },
             getState: () => currentState,
             getError: () => undefined,
-        } as unknown as ReturnType<typeof inferenceModelDownloader.download>);
+        } as any);
 
         // helper to complete later
         const completeDownload = () => {

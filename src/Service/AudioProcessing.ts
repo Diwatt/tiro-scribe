@@ -126,14 +126,14 @@ export class AudioProcessing {
         const anonymizationResult = await this.anonymizerService.anonymize(rawText);
 
         // Step 3: Extract biocode from audio
-        const biocodeResult = await this.biocodeService.processAudio(audioPath);
+        const biocode = await this.biocodeService.processAudio(audioPath);
 
         // Step 4: Calculate overall confidence
-        const overallConfidence = (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
+        const overallConfidence = (anonymizationResult.confidence + biocode.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
 
         // Step 5: Build final payload
         return new ProcessingPayload(
-            biocodeResult.biocode,
+            biocode.biocode,
             anonymizationResult.cleanText,
             overallConfidence,
             encounterUuid,
@@ -159,13 +159,13 @@ export class AudioProcessing {
             rawText = TRANSCRIPTION.NOT_AVAILABLE;
         }
 
-        const biocodeResult = await this.biocodeService.processAudio(audioPath);
+        const biocode = await this.biocodeService.processAudio(audioPath);
         const anonymizationResult = await this.anonymizerService.anonymize(rawText);
         return new AudioProcessingResult(
             rawText,
             anonymizationResult.cleanText,
-            biocodeResult.biocode,
-            (anonymizationResult.confidence + biocodeResult.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
+            biocode.biocode,
+            (anonymizationResult.confidence + biocode.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
         );
     }
 
