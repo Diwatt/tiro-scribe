@@ -3,9 +3,8 @@
  * Adapter to connect Queue with AudioProcessing
  */
 
-import type { ProcessingPayload } from './AudioProcessing';
 import { InvalidAudioFormatError } from '../Exception/InvalidAudioFormatError';
-import type { AudioProcessing } from './AudioProcessing';
+import type { AudioProcessing, ProcessingPayload } from './AudioProcessing';
 import { appLogger, type LoggerInterface } from './Logger';
 
 /**
@@ -23,13 +22,21 @@ export interface AudioPipeline {
 export class AudioPipelineAdapter implements AudioPipeline {
     private audioProcessingService: AudioProcessing;
     private encounterUuid: string;
-    private sessionStartDate: Date;
     private loggerInstance: LoggerInterface;
+    private projectionMatrix: number[][];
+    private sessionStartDate: Date;
 
-    constructor(audioProcessingService: AudioProcessing, encounterUuid: string, sessionStartDate: Date, logger: LoggerInterface = appLogger) {
+    constructor(
+        audioProcessingService: AudioProcessing,
+        encounterUuid: string,
+        sessionStartDate: Date,
+        projectionMatrix: number[][],
+        logger: LoggerInterface = appLogger,
+    ) {
         this.audioProcessingService = audioProcessingService;
         this.encounterUuid = encounterUuid;
         this.sessionStartDate = sessionStartDate;
+        this.projectionMatrix = projectionMatrix;
         this.loggerInstance = logger;
     }
 
@@ -40,7 +47,12 @@ export class AudioPipelineAdapter implements AudioPipeline {
      */
     async process(filePath: string): Promise<void> {
         // Process the audio and get the payload
-        const payload: ProcessingPayload = await this.audioProcessingService.processAudio(filePath, this.encounterUuid, this.sessionStartDate);
+        const payload: ProcessingPayload = await this.audioProcessingService.processAudio(
+            filePath,
+            this.encounterUuid,
+            this.sessionStartDate,
+            this.projectionMatrix,
+        );
 
         // TODO: Save the payload to the recordings table or sync_queue
         // For now, we just process it - the actual storage can be handled elsewhere

@@ -12,7 +12,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { AppConfig } from '@/Config';
 import { Database } from '@/Database/Database';
-import { StartupState, startupOrchestrator } from '@/State/StartupOrchestrator';
+import { STARTUP_ORCHESTRATOR, StartupState } from '@/State/StartupOrchestrator';
 
 async function hideSplash(): Promise<void> {
     try {
@@ -23,7 +23,7 @@ async function hideSplash(): Promise<void> {
     }
 }
 
-function GateScreen(): React.JSX.Element | null {
+export default observer(function GateScreen(): React.JSX.Element | null {
     const theme = useTheme();
     const router = useRouter();
     const bootStarted = useRef(false);
@@ -41,15 +41,17 @@ function GateScreen(): React.JSX.Element | null {
             if (__DEV__ && AppConfig.shouldClearDbOnLaunch) {
                 try {
                     await Database.reset();
-                } catch (_e) {}
+                } catch (_error_) {
+                    // Database reset failed, continue silently
+                }
             }
 
             await Database.initialize();
-            await startupOrchestrator.run();
+            await STARTUP_ORCHESTRATOR.run();
         })();
     }, []);
 
-    const state = startupOrchestrator.state$.get();
+    const state = STARTUP_ORCHESTRATOR.stateObservable.get();
 
     useEffect(() => {
         if (state === StartupState.Booting) {
@@ -75,9 +77,7 @@ function GateScreen(): React.JSX.Element | null {
             <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
     );
-}
-
-export default observer(GateScreen);
+});
 
 const styles = StyleSheet.create({
     centered: {

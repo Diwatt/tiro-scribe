@@ -19,14 +19,6 @@ export class DownloadQueueRepository extends Repository<DownloadQueue> {
     }
 
     /**
-     * Find download tasks by status.
-     */
-    public async findByStatus(status: DownloadQueueStatus): Promise<Collection<DownloadQueue>> {
-        const criteria = Criteria.of({ status });
-        return this.findBy(criteria);
-    }
-
-    /**
      * Find download tasks by capability.
      */
     public async findByCapability(capability: string): Promise<Collection<DownloadQueue>> {
@@ -40,6 +32,37 @@ export class DownloadQueueRepository extends Repository<DownloadQueue> {
     public async findByCapabilityAndLanguage(capability: string, language: string): Promise<Collection<DownloadQueue>> {
         const criteria = Criteria.of({ capability, language });
         return this.findBy(criteria);
+    }
+
+    /**
+     * Find download tasks by status.
+     */
+    public async findByStatus(status: DownloadQueueStatus): Promise<Collection<DownloadQueue>> {
+        const criteria = Criteria.of({ status });
+        return this.findBy(criteria);
+    }
+
+    /**
+     * Find the oldest pending download task (by createdAt).
+     */
+    public async findOldestPending(): Promise<DownloadQueue | null> {
+        const items = await this.findByStatus(DownloadQueueStatus.Pending);
+        if (items.length === 0) {
+            return null;
+        }
+        return items
+            .toArray()
+            .reduce((oldest, current) => (current.getCreatedAt().isBefore(oldest.getCreatedAt()) ? current : oldest));
+    }
+
+    /**
+     * Find download tasks that are processable (pending or failed with retries left).
+     */
+    public async findProcessable(): Promise<DownloadQueue[]> {
+        const pending = await this.findByStatus(DownloadQueueStatus.Pending);
+        const failed = await this.findByStatus(DownloadQueueStatus.Failed);
+
+        return [...pending, ...failed.filter((item) => item.getNbRetries() < item.getMaxRetries())];
     }
 
     /**
@@ -78,27 +101,6 @@ export class DownloadQueueRepository extends Repository<DownloadQueue> {
         }
 
         return stats;
-    }
-
-    /**
-     * Find download tasks that are processable (pending or failed with retries left).
-     */
-    public async findProcessable(): Promise<DownloadQueue[]> {
-        const pending = await this.findByStatus(DownloadQueueStatus.Pending);
-        const failed = await this.findByStatus(DownloadQueueStatus.Failed);
-
-        return [...pending, ...failed.filter((item) => item.getNbRetries() < item.getMaxRetries())];
-    }
-
-    /**
-     * Find the oldest pending download task (by createdAt).
-     */
-    public async findOldestPending(): Promise<DownloadQueue | null> {
-        const items = await this.findByStatus(DownloadQueueStatus.Pending);
-        if (items.length === 0) {
-            return null;
-        }
-        return items.toArray().reduce((oldest, current) => (current.getCreatedAt().isBefore(oldest.getCreatedAt()) ? current : oldest));
     }
 
     // Note: These methods return Collection instances.

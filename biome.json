@@ -35,7 +35,7 @@
         "formatWithErrors": false,
         "indentStyle": "space",
         "indentWidth": 4,
-        "lineWidth": 160,
+        "lineWidth": 120,
         "lineEnding": "lf"
     },
     "javascript": {
@@ -50,29 +50,96 @@
     },
     "linter": {
         "enabled": true,
+        "domains": {
+            "react": "all",
+            "project": "recommended"
+        },
         "rules": {
             "recommended": true,
             "style": {
                 "noDefaultExport": "error",
                 "useBlockStatements": "error",
-                "useConsistentArrayType": { "level": "warn", "options": { "syntax": "shorthand" } },
-                "useNamingConvention": {
+                "noUselessElse": "error",
+                "useConsistentArrayType": {
                     "level": "warn",
-                    "options": { "strictCase": false }
+                    "options": { "syntax": "shorthand" }
+                },
+                "useNamingConvention": {
+                    "level": "error",
+                    "options": {
+                        "strictCase": true,
+                        "requireAscii": true,
+                        "conventions": [
+                            {
+                                "selector": {
+                                    "kind": "const",
+                                    "scope": "global"
+                                },
+                                "formats": ["CONSTANT_CASE", "PascalCase"]
+                            },
+                            {
+                                "selector": { "kind": "typeLike" },
+                                "formats": ["PascalCase"]
+                            },
+                            {
+                                "selector": { "kind": "enumMember" },
+                                "formats": ["PascalCase", "CONSTANT_CASE"]
+                            },
+                            {
+                                "selector": { "kind": "typeParameter" },
+                                "formats": ["PascalCase"],
+                                "match": "T[A-Z][a-zA-Z0-9]*"
+                            },
+                            {
+                                "selector": { "kind": "function" },
+                                "formats": ["camelCase", "PascalCase"]
+                            },
+                            {
+                                "selector": { "kind": "classMember" },
+                                "formats": ["camelCase"]
+                            },
+                            {
+                                "selector": { "kind": "variable" },
+                                "formats": ["camelCase"]
+                            }
+                        ]
+                    }
                 },
                 "noNonNullAssertion": "warn",
                 "useSelfClosingElements": "error",
                 "useFilenamingConvention": {
-                    "level": "warn",
+                    "level": "error",
                     "options": { "filenameCases": ["PascalCase", "camelCase"] }
                 },
-                "useImportType": "error"
+                "useImportType": "error",
+                "useExportType": "error",
+                "useForOf": "error",
+                "useShorthandFunctionType": "error",
+                "useTemplate": "error",
+                "noInferrableTypes": "off",
+                "noNamespace": "error",
+                "useConsistentMemberAccessibility": {
+                    "level": "error",
+                    "options": {
+                        "accessibility": "explicit"
+                    }
+                },
+                "noCommonJs": "error"
             },
             "complexity": {
-                "noExcessiveCognitiveComplexity": "warn",
+                "noExcessiveCognitiveComplexity": {
+                    "level": "warn",
+                    "options": { "maxAllowedComplexity": 15 }
+                },
                 "noStaticOnlyClass": "warn",
                 "useArrowFunction": "off",
-                "noBannedTypes": "warn"
+                "noBannedTypes": "warn",
+                "noForEach": "warn",
+                "noUselessStringConcat": "error",
+                "noUselessUndefinedInitialization": "error",
+                "noVoid": "error",
+                "useLiteralKeys": "error",
+                "useOptionalChain": "error"
             },
             "suspicious": {
                 "noExplicitAny": "error",
@@ -80,36 +147,52 @@
                 "noArrayIndexKey": "warn",
                 "noEmptyBlockStatements": "warn",
                 "noShadowRestrictedNames": "warn",
-                "useIterableCallbackReturn": "warn"
+                "useIterableCallbackReturn": "warn",
+                "noDoubleEquals": "error",
+                "noConfusingVoidType": "error"
             },
             "correctness": {
                 "noUnusedVariables": "error",
                 "noUnusedImports": "error",
+                "noUnusedPrivateClassMembers": "error",
                 "noEmptyPattern": "warn",
-                "useExhaustiveDependencies": "warn",
-                "useHookAtTopLevel": "warn"
+                "useExhaustiveDependencies": "error",
+                "useHookAtTopLevel": "error",
+                "noInvalidUseBeforeDeclaration": "error",
+                "noReactPropAssignments": "error"
+            },
+            "performance": {
+                "noAccumulatingSpread": "warn"
+            },
+            "nursery": {
+                "noLeakedRender": "error",
+                "noJsxPropsBind": "warn",
+                "noUnknownAttribute": "warn"
             }
         }
     },
     "overrides": [
         {
-            "includes": ["**/*.config.js", "**/*.config.ts", "app/**", "src/Navigation/types.ts", "stories/**", "src/Localization/**"],
+            "includes": [
+                "**/*.config.js",
+                "**/*.config.ts",
+                "app/**",
+                "src/Navigation/types.ts",
+                "stories/**",
+                "src/Localization/**"
+            ],
             "linter": {
                 "rules": {
-                    "style": { "noDefaultExport": "off", "useNamingConvention": "off", "useFilenamingConvention": "off" }
+                    "style": {
+                        "noDefaultExport": "off",
+                        "useNamingConvention": "off",
+                        "useFilenamingConvention": "off"
+                    }
                 }
             }
         },
         {
-            "includes": ["src/Database/Schema.ts"],
-            "linter": {
-                "rules": {
-                    "style": { "useNamingConvention": "off" }
-                }
-            }
-        },
-        {
-            "includes": ["src/Config/AppConfig.ts"],
+            "includes": ["src/Database/Schema.ts", "src/Config/AppConfig.ts"],
             "linter": {
                 "rules": {
                     "style": { "useNamingConvention": "off" }
@@ -162,12 +245,19 @@
             }
         },
         {
-            "includes": ["src/Service/**", "src/Security/**", "src/State/**", "src/Api/**", "src/Util/**"],
+            "includes": ["src/Api/**"],
             "linter": {
                 "rules": {
-                    "complexity": { "noStaticOnlyClass": "off", "noExcessiveCognitiveComplexity": "off" },
-                    "style": { "noNonNullAssertion": "off", "useNamingConvention": "off" },
-                    "suspicious": { "noEmptyBlockStatements": "off" }
+                    "complexity": { "noStaticOnlyClass": "off" },
+                    "style": { "noNonNullAssertion": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["src/Util/**"],
+            "linter": {
+                "rules": {
+                    "complexity": { "noStaticOnlyClass": "off" }
                 }
             }
         }

@@ -50,25 +50,6 @@ export class DefinitionLanguageWriter {
      * For virtual columns, ADD COLUMN may fail on older SQLite; errors are logged and skipped.
      */
 
-    private async migrateMissingColumns(definition: TableDefinition): Promise<void> {
-        const result = await this.executeRaw<TableInfoRow>(`PRAGMA table_info(${definition.tableName})`);
-        const rows = result?.rows ?? [];
-        const existingNames = new Set(rows.map((r) => String((r as { name?: string }).name ?? '')));
-
-        const definitionColumnNames = definition.columns.map((line) => line.trim().split(/\s+/)[0]);
-        for (let i = 0; i < definition.columns.length; i++) {
-            const columnName = definitionColumnNames[i];
-            const columnDdl = definition.columns[i];
-            if (existingNames.has(columnName)) {
-                continue;
-            }
-            const added = await this.addColumnOrWarn(definition.tableName, columnName, columnDdl);
-            if (added) {
-                existingNames.add(columnName);
-            }
-        }
-    }
-
     /**
      * Adds a column. Only virtual/generated columns may have errors caught and logged (e.g. older SQLite);
      * physical columns (e.g. foreign keys) must throw on failure to avoid database corruption.
@@ -95,22 +76,20 @@ export class DefinitionLanguageWriter {
                 // Virtual/generated columns may not be supported on the device's SQLite
                 // version.  Log a warning so the problem is visible in development, but
                 // don't block startup.
-                this.logger.warn('[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)', {
-                    tableName,
-                    columnName,
-                    columnDdl,
-                    error: err,
-                    errorMessage: message,
-                });
+                this.logger.warn(
+                    '[DefinitionLanguageWriter] ADD COLUMN failed for virtual/generated column (older SQLite may not support it)',
+                    {
+                        tableName,
+                        columnName,
+                        columnDdl,
+                        error: err,
+                        errorMessage: message,
+                    },
+                );
                 return false;
             }
             throw err;
         }
-    }
-
-    private async executeRaw<T = Record<string, unknown>>(sqlText: string): Promise<{ rows?: T[] }> {
-        const result = await this.db.executeQuery(CompiledQuery.raw(sqlText, []));
-        return { rows: (result?.rows ?? []) as T[] };
     }
 
     /** Builds the SQL expression that extracts content from a JSON field for full-text indexing. */
@@ -121,6 +100,30 @@ export class DefinitionLanguageWriter {
         return `json_extract(new.data, '$.${fieldName}')`;
     }
 
+    private async executeRaw<T = Record<string, unknown>>(sqlText: string): Promise<{ rows?: T[] }> {
+        const result = await this.db.executeQuery(CompiledQuery.raw(sqlText, []));
+        return { rows: (result?.rows ?? []) as T[] };
+    }
+
+    private async migrateMissingColumns(definition: TableDefinition): Promise<void> {
+        const result = await this.executeRaw<TableInfoRow>(`PRAGMA table_info(${definition.tableName})`);
+        const rows = result?.rows ?? [];
+        const existingNames = new Set(rows.map((r) => String((r as { name?: string }).name ?? '')));
+
+        const definitionColumnNames = definition.columns.map((line) => line.trim().split(/\s+/)[0]);
+        for (let i = 0; i < definition.columns.length; i++) {
+            const columnName = definitionColumnNames[i];
+            const columnDdl = definition.columns[i];
+            if (existingNames.has(columnName)) {
+                continue;
+            }
+            const added = await this.addColumnOrWarn(definition.tableName, columnName, columnDdl);
+            if (added) {
+                existingNames.add(columnName);
+            }
+        }
+    }
+
     private async writeFullTextSearchTable(definition: TableDefinition): Promise<void> {
         const { tableName, primaryKeyColumnName, fullTextSearchFields } = definition;
         const fullTextSearchTable = `${tableName}_fts`;
@@ -129,8 +132,13 @@ export class DefinitionLanguageWriter {
             `CREATE VIRTUAL TABLE IF NOT EXISTS ${fullTextSearchTable} USING fts5(${primaryKeyColumnName} UNINDEXED, ${fullTextSearchColumns});`,
         );
 
-        const extractors = fullTextSearchFields.map((f) => this.buildFullTextSearchExtractorExpression(f.name, f.jsonPath)).join(', ');
-        const targetCols = [primaryKeyColumnName, ...fullTextSearchFields.map((f) => `content_${snakeCase(f.name)}`)].join(', ');
+        const extractors = fullTextSearchFields
+            .map((f) => this.buildFullTextSearchExtractorExpression(f.name, f.jsonPath))
+            .join(', ');
+        const targetCols = [
+            primaryKeyColumnName,
+            ...fullTextSearchFields.map((f) => `content_${snakeCase(f.name)}`),
+        ].join(', ');
 
         await this.executeRaw(`DROP TRIGGER IF EXISTS ${tableName}_ai`);
         await this.executeRaw(`DROP TRIGGER IF EXISTS ${tableName}_au`);

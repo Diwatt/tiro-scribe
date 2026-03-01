@@ -4,9 +4,9 @@
  * Uses expo-file-system File.downloadFileAsync. Optional WiFi-only check.
  */
 
-import { Directory, File, Paths } from 'expo-file-system';
 import { observable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
+import { Directory, File, Paths } from 'expo-file-system';
 import type { Therapist } from '../Entity/Therapist';
 import type { LoggerInterface } from './Logger';
 import { appLogger } from './Logger';
@@ -51,21 +51,16 @@ const ARTIFACT_SPECS: Record<string, ArtifactSpec[]> = {
 };
 
 export class InferenceManager {
+    private downloadPromise: Promise<void> | null = null;
     private readonly log: LoggerInterface;
     private readonly state$ = observable<ArtifactDownloadProgressState>({
         progress: 0,
         isReady: true,
         isDownloading: false,
     });
-    private downloadPromise: Promise<void> | null = null;
 
     public constructor(logger: LoggerInterface = appLogger) {
         this.log = logger;
-    }
-
-
-    public getState$() {
-        return this.state$;
     }
 
     /**
@@ -120,20 +115,8 @@ export class InferenceManager {
         return this.downloadPromise;
     }
 
-    private getLanguages(therapist: Therapist | null): string[] {
-        if (!therapist) {
-            return [];
-        }
-        const raw = therapist.languages;
-        if (Array.isArray(raw)) {
-            return raw;
-        }
-        try {
-            const parsed = JSON.parse(typeof raw === 'string' ? raw : '[]') as unknown;
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
+    public getState$() {
+        return this.state$;
     }
 
     private collectSpecs(languages: string[]): ArtifactSpec[] {
@@ -156,10 +139,6 @@ export class InferenceManager {
         return out;
     }
 
-    private async ensureWiFiOnly(): Promise<boolean> {
-        return true;
-    }
-
     private async downloadOne(spec: ArtifactSpec, onProgress: (p: number) => void): Promise<string> {
         const pathParts = spec.localPath.split('/');
         const file = new File(Paths.document, spec.localPath);
@@ -179,6 +158,26 @@ export class InferenceManager {
 
         return file.uri;
     }
+
+    private async ensureWiFiOnly(): Promise<boolean> {
+        return true;
+    }
+
+    private getLanguages(therapist: Therapist | null): string[] {
+        if (!therapist) {
+            return [];
+        }
+        const raw = therapist.languages;
+        if (Array.isArray(raw)) {
+            return raw;
+        }
+        try {
+            const parsed = JSON.parse(typeof raw === 'string' ? raw : '[]') as unknown;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
 }
 
 const inferenceManager = new InferenceManager();
@@ -188,11 +187,11 @@ const inferenceManager = new InferenceManager();
  * Component using this hook should be wrapped with observer() so it re-renders on progress updates.
  */
 export function useArtifactDownloadProgress(): ArtifactDownloadProgressState {
-    const state$ = inferenceManager.getState$();
+    const state = inferenceManager.getState$();
     return useSelector(() => ({
-        progress: state$.progress.get(),
-        isReady: state$.isReady.get(),
-        isDownloading: state$.isDownloading.get(),
+        progress: state.progress.get(),
+        isReady: state.isReady.get(),
+        isDownloading: state.isDownloading.get(),
     }));
 }
 

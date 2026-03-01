@@ -13,5 +13,12 @@ interface StatusWarningProps {
 export function StatusWarning({ title = 'Warning', message }: StatusWarningProps): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const statusColors = theme.colors.statusWarning;
-    return <Status title={title} subtitle={message} icon={<AlertTriangle size={24} color={statusColors.text} />} state={StatusState.Warning} />;
+    return (
+        <Status
+            title={title}
+            subtitle={message}
+            icon={<AlertTriangle size={24} color={statusColors.text} />}
+            state={StatusState.Warning}
+        />
+    );
 }

@@ -20,10 +20,6 @@ interface Props {
 export class AppErrorBoundary extends Component<Props, State> {
     public override state: State = { error: null };
 
-    public static getDerivedStateFromError(error: Error): State {
-        return { error };
-    }
-
     public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         appLogger.error(`${LOG_PREFIX} AppErrorBoundary caught render error:`, {
             error,
@@ -33,15 +29,21 @@ export class AppErrorBoundary extends Component<Props, State> {
         });
     }
 
+    public static getDerivedStateFromError(error: Error): State {
+        return { error };
+    }
+
     public override render(): ReactNode {
         if (this.state.error) {
             return (
-                <View style={styles.container}>
-                    <Text style={styles.title}>Something went wrong</Text>
-                    <Text style={styles.message} selectable>
+                <View style={STYLES.container}>
+                    <Text style={STYLES.title}>Something went wrong</Text>
+                    <Text style={STYLES.message} selectable>
                         {this.state.error?.message ?? String(this.state.error)}
                     </Text>
-                    <Text style={styles.hint}>Check Metro or Xcode console for details. Reload the app to try again.</Text>
+                    <Text style={STYLES.hint}>
+                        Check Metro or Xcode console for details. Reload the app to try again.
+                    </Text>
                 </View>
             );
         }
@@ -49,7 +51,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     }
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',

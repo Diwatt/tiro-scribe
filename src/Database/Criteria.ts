@@ -31,10 +31,6 @@ export class Criteria {
         return new Criteria({ ...criteria });
     }
 
-    public value(): Record<string, unknown> {
-        return { ...this.data };
-    }
-
     /**
      * Validates that every criterion key is in the allowed set (entity property names).
      * Call before passing to a query builder. Throws DatabaseException if any key is not allowed.
@@ -51,15 +47,16 @@ export class Criteria {
      * Validates that every order-by column is in the allowed set (entity property names).
      * Call before building a query with explicit orderBy. Throws DatabaseException if any column is not allowed.
      */
-    public static validateOrderBy(
-        specs: ReadonlyArray<{ column: string }>,
-        allowedKeys: ReadonlySet<string>,
-    ): void {
+    public static validateOrderBy(specs: ReadonlyArray<{ column: string }>, allowedKeys: ReadonlySet<string>): void {
         Criteria.requireNamesInAllowlist(
             specs.map((s) => s.column),
             allowedKeys,
             { code: CODE_INVALID_ORDER_BY_COLUMN, label: 'Order by column', contextKey: 'column' },
         );
+    }
+
+    public value(): Record<string, unknown> {
+        return { ...this.data };
     }
 
     private static isScalar(value: unknown): boolean {
@@ -88,4 +85,3 @@ export class Criteria {
         }
     }
 }
-

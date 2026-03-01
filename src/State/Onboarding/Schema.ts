@@ -5,6 +5,17 @@
 import { z } from 'zod';
 
 export class Schema {
+    public static readonly defaults: z.infer<typeof Schema.form> = {
+        languages: ['fr'],
+        qualifications: [],
+        experience: '',
+        methods: [],
+        email: '',
+        password: '',
+        confirmPassword: '',
+        recoveryCodeSaveConfirmed: false,
+    };
+
     public static readonly formBase = z.object({
         languages: z.array(z.string()).min(1, 'Please select at least one language.'),
         qualifications: z.array(z.string()).min(1, 'Please select at least one qualification.'),
@@ -28,17 +39,6 @@ export class Schema {
         message: 'Passwords do not match.',
         path: ['confirmPassword'],
     });
-
-    public static readonly defaults: z.infer<typeof Schema.form> = {
-        languages: ['fr'],
-        qualifications: [],
-        experience: '',
-        methods: [],
-        email: '',
-        password: '',
-        confirmPassword: '',
-        recoveryCodeSaveConfirmed: false,
-    };
 }
 
 export type OnboardingFormData = z.infer<typeof Schema.form>;

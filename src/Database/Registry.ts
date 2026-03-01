@@ -39,9 +39,14 @@ export class Registry {
     public async getRepository<R = Repository>(EntityClass: EntityClass): Promise<R> {
         const entityName = EntityClass.entityName;
         if (!entityName) {
-            throw new DatabaseException(`Entity class ${EntityClass.name} must define static entityName`, ERROR_CODES.entityNameRequired, undefined, {
-                entityClass: EntityClass.name,
-            });
+            throw new DatabaseException(
+                `Entity class ${EntityClass.name} must define static entityName`,
+                ERROR_CODES.entityNameRequired,
+                undefined,
+                {
+                    entityClass: EntityClass.name,
+                },
+            );
         }
 
         const existing = this.repositories.get(entityName);
@@ -57,8 +62,8 @@ export class Registry {
             // alias it via RepoCtor above so that we don't have to repeat the
             // cast at the call site or resort to `any`.
             const repoLookup = Repositories as unknown as Record<string, RepoCtor>;
-            const RepoClass = repoLookup[repositoryClassName];
-            if (RepoClass == null) {
+            const repoClass = repoLookup[repositoryClassName];
+            if (repoClass == null) {
                 throw new DatabaseException(
                     `Custom repository '${repositoryClassName}' is not exported from @/Repository. Add it to src/Repository/index.ts.`,
                     ERROR_CODES.repositoryNotExported,
@@ -66,7 +71,7 @@ export class Registry {
                     { repositoryClassName },
                 );
             }
-            customClass = RepoClass;
+            customClass = repoClass;
         }
 
         const repository = Repository.create(entityName, EntityClass, customClass);

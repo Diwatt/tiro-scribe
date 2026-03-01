@@ -11,8 +11,8 @@ export function SettingsScreen(): React.JSX.Element {
     const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
     const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
     return (
-        <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+        <ScrollView style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
+            <Surface style={[STYLES.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
                     <List.Subheader>{LL.settings.profile()}</List.Subheader>
                     <List.Item
@@ -24,7 +24,7 @@ export function SettingsScreen(): React.JSX.Element {
                 </List.Section>
             </Surface>
 
-            <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+            <Surface style={[STYLES.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
                     <List.Subheader>{LL.settings.privacySecurity()}</List.Subheader>
                     <List.Item
@@ -36,7 +36,7 @@ export function SettingsScreen(): React.JSX.Element {
                 </List.Section>
             </Surface>
 
-            <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+            <Surface style={[STYLES.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
                     <List.Subheader>{LL.settings.preferences()}</List.Subheader>
                     <List.Item
@@ -55,17 +55,21 @@ export function SettingsScreen(): React.JSX.Element {
                 </List.Section>
             </Surface>
 
-            <Surface style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+            <Surface style={[STYLES.section, { backgroundColor: theme.colors.surface }]}>
                 <List.Section>
                     <List.Subheader>{LL.settings.about()}</List.Subheader>
-                    <List.Item title={LL.settings.version()} description="1.0.0" left={(p) => <List.Icon {...p} icon={Settings} />} />
+                    <List.Item
+                        title={LL.settings.version()}
+                        description="1.0.0"
+                        left={(p) => <List.Icon {...p} icon={Settings} />}
+                    />
                 </List.Section>
             </Surface>
         </ScrollView>
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         flex: 1,
     },

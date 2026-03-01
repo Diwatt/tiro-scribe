@@ -81,6 +81,22 @@ export class TherapistForge {
     }
 
     /**
+     * Recover with recovery code: decrypt master key, re-encrypt with new password, update entity fields.
+     * Caller must persist the therapist and store masterKey in vault.
+     * @returns masterKey for the caller to open the session.
+     */
+    public recover(therapist: Therapist, recoveryCode: string, newPassword: string): string {
+        const keyRecoveryHex = this.recovery.keyFromCode(recoveryCode, therapist.uuid);
+        const masterKey = this.crypto.decrypt(therapist.encryptedMasterKeyRecovery, keyRecoveryHex);
+        const saltPrimary = this.crypto.salt(therapist.uuid, 'vault_primary');
+        const keyPrimaryHex = this.crypto.keyFromPassword(newPassword, saltPrimary);
+        therapist.passwordHash = this.crypto.hash(newPassword);
+        therapist.encryptedMasterKeyPrimary = this.crypto.encrypt(masterKey, keyPrimaryHex);
+
+        return masterKey;
+    }
+
+    /**
      * Unlock with password: derive key, decrypt primary slot, verify integrity.
      * @returns masterKey if valid, null if password wrong or integrity check failed.
      */
@@ -93,22 +109,6 @@ export class TherapistForge {
         if (computedHash !== therapist.masterKeyCheckHash) {
             return null;
         }
-
-        return masterKey;
-    }
-
-    /**
-     * Recover with recovery code: decrypt master key, re-encrypt with new password, update entity fields.
-     * Caller must persist the therapist and store masterKey in vault.
-     * @returns masterKey for the caller to open the session.
-     */
-    public recover(therapist: Therapist, recoveryCode: string, newPassword: string): string {
-        const keyRecoveryHex = this.recovery.keyFromCode(recoveryCode, therapist.uuid);
-        const masterKey = this.crypto.decrypt(therapist.encryptedMasterKeyRecovery, keyRecoveryHex);
-        const saltPrimary = this.crypto.salt(therapist.uuid, 'vault_primary');
-        const keyPrimaryHex = this.crypto.keyFromPassword(newPassword, saltPrimary);
-        therapist.passwordHash = this.crypto.hash(newPassword);
-        therapist.encryptedMasterKeyPrimary = this.crypto.encrypt(masterKey, keyPrimaryHex);
 
         return masterKey;
     }

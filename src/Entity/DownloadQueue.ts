@@ -18,156 +18,66 @@ const MAX_RETRY_COUNT = 3;
 
 @Entity({ tableName: 'download_queue' })
 export class DownloadQueue extends AbstractEntity {
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
-
     @Column({ default: '', type: 'varchar', length: 64, index: true })
     public capability!: string;
-
-    @Column({ default: '', type: 'varchar', length: 8, index: true })
-    public language!: string;
-
-    @Column({ default: DownloadQueueStatus.Pending, type: 'varchar', length: 16, index: true })
-    public status!: DownloadQueueStatus;
-
-    @Column({ default: 0, type: 'integer' })
-    public progressPercent!: number;
-
-    @Column({ default: 0, type: 'integer' })
-    public nbRetries!: number;
-
-    @Column({ default: 3, type: 'integer' })
-    public maxRetries!: number;
-
-    @Column({ default: '', type: 'text' })
-    public errorMessage!: string;
-
-    @Column({ default: '{}', type: 'text', as: 'json' })
-    public metadata!: Record<string, unknown>;
-
-    @Column({ default: '', type: 'text' })
-    public filePath!: string;
 
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     public createdAt!: Dayjs;
 
+    @Column({ default: '', type: 'text' })
+    public errorMessage!: string;
+
+    @Column({ default: '', type: 'text' })
+    public filePath!: string;
+
+    @Column({ default: '', type: 'varchar', length: 8, index: true })
+    public language!: string;
+
+    @Column({ default: 3, type: 'integer' })
+    public maxRetries!: number;
+
+    @Column({ default: '{}', type: 'text', as: 'json' })
+    public metadata!: Record<string, unknown>;
+
+    @Column({ default: 0, type: 'integer' })
+    public nbRetries!: number;
+
+    @Column({ default: 0, type: 'integer' })
+    public progressPercent!: number;
+
+    @Column({ default: DownloadQueueStatus.Pending, type: 'varchar', length: 16, index: true })
+    public status!: DownloadQueueStatus;
+
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
     public updatedAt!: Dayjs;
 
+    @PrimaryKey()
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
+    public uuid!: string;
+
     // --- Getters ---
 
-    public getUuid(): string {
-        return this.uuid;
+    /**
+     * Helper for tests and in-memory helpers: return a queue entity in the
+     * completed state for the given capability. The returned object is not
+     * intended to be persisted.
+     */
+    public static createCompleted(capability: string): DownloadQueue {
+        const entity = new DownloadQueue();
+        entity.uuid = uuidv4();
+        entity.capability = capability;
+        entity.language = '';
+        entity.status = DownloadQueueStatus.Completed;
+        entity.progressPercent = 100;
+        entity.nbRetries = 0;
+        entity.maxRetries = 0;
+        entity.errorMessage = '';
+        entity.metadata = {};
+        entity.filePath = '';
+        entity.createdAt = dayjs.utc();
+        entity.updatedAt = dayjs.utc();
+        return entity;
     }
-
-    public getCapability(): string {
-        return this.capability;
-    }
-
-    public getLanguage(): string {
-        return this.language;
-    }
-
-    public getStatus(): DownloadQueueStatus {
-        return this.status;
-    }
-
-    public getProgressPercent(): number {
-        return this.progressPercent;
-    }
-
-    public getNbRetries(): number {
-        return this.nbRetries;
-    }
-
-    public getMaxRetries(): number {
-        return this.maxRetries;
-    }
-
-    public getErrorMessage(): string {
-        return this.errorMessage;
-    }
-
-    public getMetadata(): Record<string, unknown> {
-        return this.metadata;
-    }
-
-    public getFilePath(): string {
-        return this.filePath;
-    }
-
-    public getCreatedAt(): Dayjs {
-        return this.createdAt;
-    }
-
-    public getUpdatedAt(): Dayjs {
-        return this.updatedAt;
-    }
-
-    // --- Setters ---
-
-    public setUuid(value: string): void {
-        this.uuid = value;
-    }
-
-    public setCapability(value: string): void {
-        this.capability = value;
-    }
-
-    public setLanguage(value: string): void {
-        this.language = value;
-    }
-
-    public setStatus(value: DownloadQueueStatus): void {
-        this.status = value;
-    }
-
-    public setProgressPercent(value: number): void {
-        this.progressPercent = value;
-    }
-
-    public setNbRetries(value: number): void {
-        this.nbRetries = value;
-    }
-
-    public setMaxRetries(value: number): void {
-        this.maxRetries = value;
-    }
-
-    public setErrorMessage(value: string): void {
-        this.errorMessage = value;
-    }
-
-    public setMetadata(value: Record<string, unknown>): void {
-        this.metadata = value;
-    }
-
-    public setFilePath(value: string): void {
-        this.filePath = value;
-    }
-
-    public setCreatedAt(value: Dayjs): void {
-        this.createdAt = value;
-    }
-
-    public setUpdatedAt(value: Dayjs): void {
-        this.updatedAt = value;
-    }
-
-    // --- Business logic ---
-
-    public get isProcessable(): boolean {
-        if (this.status === DownloadQueueStatus.Pending) {
-            return true;
-        }
-        if (this.status === DownloadQueueStatus.Failed && this.nbRetries < MAX_RETRY_COUNT) {
-            return true;
-        }
-        return false;
-    }
-
-    // --- Static conversion methods ---
 
     /**
      * Create a DownloadQueue entity from a DownloadTask DataObject.
@@ -194,25 +104,115 @@ export class DownloadQueue extends AbstractEntity {
         return entity;
     }
 
-    /**
-     * Helper for tests and in-memory helpers: return a queue entity in the
-     * completed state for the given capability. The returned object is not
-     * intended to be persisted.
-     */
-    public static createCompleted(capability: string): DownloadQueue {
-        const entity = new DownloadQueue();
-        entity.uuid = uuidv4();
-        entity.capability = capability;
-        entity.language = '';
-        entity.status = DownloadQueueStatus.Completed;
-        entity.progressPercent = 100;
-        entity.nbRetries = 0;
-        entity.maxRetries = 0;
-        entity.errorMessage = '';
-        entity.metadata = {};
-        entity.filePath = '';
-        entity.createdAt = dayjs.utc();
-        entity.updatedAt = dayjs.utc();
-        return entity;
+    public getCapability(): string {
+        return this.capability;
+    }
+
+    public getCreatedAt(): Dayjs {
+        return this.createdAt;
+    }
+
+    public getErrorMessage(): string {
+        return this.errorMessage;
+    }
+
+    public getFilePath(): string {
+        return this.filePath;
+    }
+
+    public getLanguage(): string {
+        return this.language;
+    }
+
+    public getMaxRetries(): number {
+        return this.maxRetries;
+    }
+
+    public getMetadata(): Record<string, unknown> {
+        return this.metadata;
+    }
+
+    public getNbRetries(): number {
+        return this.nbRetries;
+    }
+
+    public getProgressPercent(): number {
+        return this.progressPercent;
+    }
+
+    public getStatus(): DownloadQueueStatus {
+        return this.status;
+    }
+
+    // --- Setters ---
+
+    public getUpdatedAt(): Dayjs {
+        return this.updatedAt;
+    }
+
+    public getUuid(): string {
+        return this.uuid;
+    }
+
+    public get isProcessable(): boolean {
+        if (this.status === DownloadQueueStatus.Pending) {
+            return true;
+        }
+        if (this.status === DownloadQueueStatus.Failed && this.nbRetries < MAX_RETRY_COUNT) {
+            return true;
+        }
+        return false;
+    }
+
+    public setCapability(value: string): void {
+        this.capability = value;
+    }
+
+    public setCreatedAt(value: Dayjs): void {
+        this.createdAt = value;
+    }
+
+    public setErrorMessage(value: string): void {
+        this.errorMessage = value;
+    }
+
+    public setFilePath(value: string): void {
+        this.filePath = value;
+    }
+
+    public setLanguage(value: string): void {
+        this.language = value;
+    }
+
+    public setMaxRetries(value: number): void {
+        this.maxRetries = value;
+    }
+
+    public setMetadata(value: Record<string, unknown>): void {
+        this.metadata = value;
+    }
+
+    public setNbRetries(value: number): void {
+        this.nbRetries = value;
+    }
+
+    public setProgressPercent(value: number): void {
+        this.progressPercent = value;
+    }
+
+    // --- Business logic ---
+
+    public setStatus(value: DownloadQueueStatus): void {
+        this.status = value;
+    }
+
+    // --- Static conversion methods ---
+
+    public setUpdatedAt(value: Dayjs): void {
+        this.updatedAt = value;
+    }
+
+    public setUuid(value: string): void {
+        this.uuid = value;
     }
 }

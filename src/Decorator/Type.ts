@@ -54,9 +54,11 @@ type SchemaFieldValueType<F extends OptionPropertySchema> = F extends { type: in
     : unknown;
 
 /** Value type for key K: from Overrides when set, otherwise from schema. */
-type OptionValueType<S extends OptionsSchema, K extends keyof S, O extends Partial<{ [Key in keyof S]: unknown }>> = K extends keyof O
-    ? O[K]
-    : SchemaFieldValueType<S[K]>;
+type OptionValueType<
+    S extends OptionsSchema,
+    K extends keyof S,
+    O extends Partial<{ [Key in keyof S]: unknown }>,
+> = K extends keyof O ? O[K] : SchemaFieldValueType<S[K]>;
 
 /** Required keys only: those with required: true in the schema. */
 type RequiredOptionsFromSchema<S extends OptionsSchema, O extends Partial<{ [Key in keyof S]: unknown }>> = {
@@ -72,11 +74,10 @@ type OptionalOptionsFromSchema<S extends OptionsSchema, O extends Partial<{ [Key
  * Derives an options interface from a schema.
  * Use Overrides to give custom types for specific keys (e.g. default: T | (() => T)).
  */
-export type OptionsFromSchema<S extends OptionsSchema, Overrides extends Partial<{ [K in keyof S]: unknown }> = object> = RequiredOptionsFromSchema<
-    S,
-    Overrides
-> &
-    OptionalOptionsFromSchema<S, Overrides>;
+export type OptionsFromSchema<
+    S extends OptionsSchema,
+    Overrides extends Partial<{ [K in keyof S]: unknown }> = object,
+> = RequiredOptionsFromSchema<S, Overrides> & OptionalOptionsFromSchema<S, Overrides>;
 
 // Constructor type for class decorator targets was previously exported
 // here.  We no longer provide a public alias – any database-specific code
@@ -111,7 +112,11 @@ export type MetadataMap = Record<string, FieldMetadata>;
 /** Interface for class decorators (formerly "entity" in comments) (e.g. Entity). Implement and pass an instance to Builder.buildClass. */
 export interface ClassDecoratorConfig<TOptions = object> {
     /** Run when the decorator is applied to the class (target, context, options). */
-    decorate(target: InternalClassConstructor, context: ClassDecoratorContext<InternalClassConstructor>, options: TOptions): void;
+    decorate(
+        target: InternalClassConstructor,
+        context: ClassDecoratorContext<InternalClassConstructor>,
+        options: TOptions,
+    ): void;
     /** Optional schema; when set, builder runs schemaValidator.validate before decorate. errorCode used for exceptions. */
     schema?: OptionsSchema;
     errorCode?: string;

@@ -120,7 +120,7 @@ type ExtendedColors = typeof MD3LightTheme.colors & {
 // Omitting any of these would fall back to MD3 defaults and mix with our palette; we override all for a consistent look.
 // ---------------------------------------------------------------------------
 
-const semanticTheme = {
+const SEMANTIC_THEME = {
     primary: BRAND.primary,
     onPrimary: TEXT_COLOR_LIGHT,
     primaryContainer: BRAND.primaryContainer,
@@ -210,11 +210,11 @@ const semanticTheme = {
 // Light theme
 // ---------------------------------------------------------------------------
 
-export const AppLightTheme: MD3Theme & { colors: ExtendedColors } = {
+export const APP_LIGHT_THEME: MD3Theme & { colors: ExtendedColors } = {
     ...MD3LightTheme,
     colors: {
         ...MD3LightTheme.colors,
-        ...semanticTheme,
+        ...SEMANTIC_THEME,
     },
     roundness: 8,
 };
@@ -223,10 +223,10 @@ export const AppLightTheme: MD3Theme & { colors: ExtendedColors } = {
 // Dark theme – all derived via colord from same primitives/semantic
 // ---------------------------------------------------------------------------
 
-const darkSurface = colord(SEMANTIC.success).darken(0.83).toHex();
-const darkSurfaceLight = colord(SEMANTIC.success).lighten(0.8).toHex();
+const DARK_SURFACE = colord(SEMANTIC.success).darken(0.83).toHex();
+const DARK_SURFACE_LIGHT = colord(SEMANTIC.success).lighten(0.8).toHex();
 
-export const AppDarkTheme: MD3Theme & { colors: ExtendedColors } = {
+export const APP_DARK_THEME: MD3Theme & { colors: ExtendedColors } = {
     ...MD3DarkTheme,
     colors: {
         ...MD3DarkTheme.colors,
@@ -251,11 +251,11 @@ export const AppDarkTheme: MD3Theme & { colors: ExtendedColors } = {
         onErrorContainer: colord(SEMANTIC.error).lighten(0.4).toHex(),
 
         background: colord(SEMANTIC.success).darken(0.85).toHex(),
-        onBackground: darkSurfaceLight,
-        surface: darkSurface,
-        onSurface: darkSurfaceLight,
+        onBackground: DARK_SURFACE_LIGHT,
+        surface: DARK_SURFACE,
+        onSurface: DARK_SURFACE_LIGHT,
         surfaceVariant: colord(SEMANTIC.pending).darken(0.7).toHex(),
-        onSurfaceVariant: colord(TEXT_COLOR_LIGHT).mix(darkSurface, 0.35).toHex(),
+        onSurfaceVariant: colord(TEXT_COLOR_LIGHT).mix(DARK_SURFACE, 0.35).toHex(),
         outline: colord(SEMANTIC.success).lighten(0.4).toHex(),
         outlineVariant: colord(SEMANTIC.success).darken(0.7).toHex(),
         shadow: colord(PRIMITIVES.espresso).darken(1).toHex(),
@@ -271,8 +271,8 @@ export const AppDarkTheme: MD3Theme & { colors: ExtendedColors } = {
             level4: colord(SEMANTIC.success).darken(0.74).toHex(),
             level5: colord(SEMANTIC.success).darken(0.72).toHex(),
         },
-        surfaceDisabled: colord(darkSurfaceLight).mix(darkSurface, 0.12).toHex(),
-        onSurfaceDisabled: colord(darkSurfaceLight).mix(darkSurface, 0.38).toHex(),
+        surfaceDisabled: colord(DARK_SURFACE_LIGHT).mix(DARK_SURFACE, 0.12).toHex(),
+        onSurfaceDisabled: colord(DARK_SURFACE_LIGHT).mix(DARK_SURFACE, 0.38).toHex(),
         backdrop: colord(PRIMITIVES.espresso).alpha(0.5).toHex(),
 
         statusIdle: new SemanticStatusColors(SEMANTIC.success).dark(TEXT_COLOR_LIGHT),
@@ -317,6 +317,6 @@ export const AppDarkTheme: MD3Theme & { colors: ExtendedColors } = {
     roundness: 8,
 };
 
-export type AppTheme = typeof AppLightTheme;
+export type AppTheme = typeof APP_LIGHT_THEME;
 export type ExtendedTheme = MD3Theme & { colors: ExtendedColors };
-export const AppTheme = AppLightTheme;
+export const APP_THEME = APP_LIGHT_THEME;

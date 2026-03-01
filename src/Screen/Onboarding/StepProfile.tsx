@@ -16,7 +16,7 @@ const PROFILE_ATTRIBUTES_QUERY_OPTIONS = {
     gcTime: Infinity,
 } as const;
 
-export const StepProfile = observer(function StepProfile(): React.JSX.Element {
+export const StepProfile = observer(function stepProfile(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useAppLanguage();
     const { control, getValues, setError } = useFormContext<OnboardingFormData>();
@@ -52,18 +52,22 @@ export const StepProfile = observer(function StepProfile(): React.JSX.Element {
 
     if (isLoading) {
         return (
-            <View style={[styles.stepRoot, styles.loadingContainer]}>
+            <View style={[STYLES.stepRoot, STYLES.loadingContainer]}>
                 <ActivityIndicator size="large" />
-                <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.aboutYou()}</Text>
+                <Text style={[STYLES.loadingText, { color: theme.colors.onSurfaceVariant }]}>
+                    {LL.onboarding.aboutYou()}
+                </Text>
             </View>
         );
     }
 
     return (
-        <View style={styles.stepRoot}>
-            <View style={styles.stepBody}>
-                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.aboutYou()}</Text>
-                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.aboutYouDesc()}</Text>
+        <View style={STYLES.stepRoot}>
+            <View style={STYLES.stepBody}>
+                <Text style={[STYLES.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.aboutYou()}</Text>
+                <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant }]}>
+                    {LL.onboarding.aboutYouDesc()}
+                </Text>
                 <ChipGroup control={control} name="languages" label={LL.onboarding.languages()} options={languages} />
                 <MultiSelectModal
                     control={control}
@@ -72,7 +76,14 @@ export const StepProfile = observer(function StepProfile(): React.JSX.Element {
                     options={qualifications}
                     placeholder={LL.onboarding.qualificationsPlaceholder()}
                 />
-                <TextInput control={control} name="experience" label={LL.onboarding.experience()} keyboardType="number-pad" numericOnly style={styles.input} />
+                <TextInput
+                    control={control}
+                    name="experience"
+                    label={LL.onboarding.experience()}
+                    keyboardType="number-pad"
+                    numericOnly
+                    style={STYLES.input}
+                />
                 <MultiSelectModal
                     control={control}
                     name="methods"
@@ -86,15 +97,20 @@ export const StepProfile = observer(function StepProfile(): React.JSX.Element {
                     </HelperText>
                 ) : null}
             </View>
-            <View style={styles.stepSpacer} />
-            <Button mode="contained" onPress={handleContinue} style={styles.primaryButton} contentStyle={styles.primaryButtonContent}>
+            <View style={STYLES.stepSpacer} />
+            <Button
+                mode="contained"
+                onPress={handleContinue}
+                style={STYLES.primaryButton}
+                contentStyle={STYLES.primaryButtonContent}
+            >
                 {LL.onboarding.continue()}
             </Button>
         </View>
     );
 });
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     stepRoot: { flex: 1 },
     stepBody: { flexGrow: 0 },
     stepSpacer: { flex: 1, minHeight: 24 },

@@ -17,17 +17,17 @@ dayjs.extend(utc);
 
 @Entity({ tableName: 'patients' })
 export class Patient extends AbstractEntity {
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    /** Projected-voice biocode (from Biocode service). */
+    @Column({ default: '', type: 'varchar', length: 64 })
+    public biocode!: string;
+
+    /** UTC, stored as ISO string. */
+    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
+    public createdAt!: Dayjs;
 
     @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
     @Column({ default: '', type: 'varchar', length: 36 })
     public encounterId!: string;
-
-    /** Projected-voice biocode (from Biocode service). */
-    @Column({ default: '', type: 'varchar', length: 64 })
-    public biocode!: string;
 
     /** Server-assigned patient UUID after recognition; null until then. */
     @Column({ default: null, type: 'varchar', length: 36 })
@@ -35,11 +35,11 @@ export class Patient extends AbstractEntity {
 
     /** UTC, stored as ISO string. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public createdAt!: Dayjs;
-
-    /** UTC, stored as ISO string. */
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
     public updatedAt!: Dayjs;
+
+    @PrimaryKey()
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
+    public uuid!: string;
 
     public getBiocode(): string {
         return this.biocode;

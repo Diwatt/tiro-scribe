@@ -26,7 +26,11 @@ export class DecryptionManager {
         try {
             await this.nativeModule.stream(encryptedPath);
         } catch (error) {
-            throw this.errorNormalizer.createError(ErrorCode.DECRYPTION_FAILED, error instanceof Error ? error.message : String(error), error);
+            throw this.errorNormalizer.createError(
+                ErrorCode.DECRYPTION_FAILED,
+                error instanceof Error ? error.message : String(error),
+                error,
+            );
         }
     }
 }

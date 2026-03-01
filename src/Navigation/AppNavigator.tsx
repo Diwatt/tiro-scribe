@@ -15,17 +15,17 @@ import { Home, RecordingScreen, SettingsScreen, SubjectsScreen, TranscriptDetail
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import type { MainTabParamList, RootStackParamList } from './types';
 
-const MainTab = createBottomTabNavigator<MainTabParamList>();
-const RootStack = createNativeStackNavigator<RootStackParamList>();
+const MAIN_TAB = createBottomTabNavigator<MainTabParamList>();
+const ROOT_STACK = createNativeStackNavigator<RootStackParamList>();
 
 /**
  * Main Tab Navigator
  * Bottom tab navigation for main app sections
  */
-function MainTabNavigator() {
+function mainTabNavigator() {
     const theme = useTheme<ExtendedTheme>();
     return (
-        <MainTab.Navigator
+        <MAIN_TAB.Navigator
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: theme.colors.primary,
@@ -36,28 +36,28 @@ function MainTabNavigator() {
                 },
             }}
         >
-            <MainTab.Screen
+            <MAIN_TAB.Screen
                 name="Home"
                 component={Home}
                 options={{
                     tabBarIcon: ({ color, size }) => <HomeIcon size={size} color={color} />,
                 }}
             />
-            <MainTab.Screen
+            <MAIN_TAB.Screen
                 name="Subjects"
                 component={SubjectsScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
                 }}
             />
-            <MainTab.Screen
+            <MAIN_TAB.Screen
                 name="Settings"
                 component={SettingsScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => <SettingsIcon size={size} color={color} />,
                 }}
             />
-        </MainTab.Navigator>
+        </MAIN_TAB.Navigator>
     );
 }
 
@@ -65,11 +65,11 @@ function MainTabNavigator() {
  * Root Stack Navigator
  * Handles modal screens (Recording, Transcript Detail)
  */
-function RootNavigator() {
+function _rootNavigator() {
     return (
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
-            <RootStack.Screen name="Main" component={MainTabNavigator} />
-            <RootStack.Screen
+        <ROOT_STACK.Navigator screenOptions={{ headerShown: false }}>
+            <ROOT_STACK.Screen name="Main" component={mainTabNavigator} />
+            <ROOT_STACK.Screen
                 name="Recording"
                 component={RecordingScreen}
                 options={{
@@ -77,7 +77,7 @@ function RootNavigator() {
                     animation: 'fade',
                 }}
             />
-            <RootStack.Screen
+            <ROOT_STACK.Screen
                 name="TranscriptDetail"
                 component={TranscriptDetailScreen}
                 options={{
@@ -85,14 +85,14 @@ function RootNavigator() {
                     animation: 'slide_from_bottom',
                 }}
             />
-        </RootStack.Navigator>
+        </ROOT_STACK.Navigator>
     );
 }
 
 export function AppNavigator() {
     return (
         <NavigationContainer>
-            <RootNavigator />
+            <rootNavigator />
         </NavigationContainer>
     );
 }

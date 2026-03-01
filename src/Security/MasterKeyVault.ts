@@ -23,16 +23,16 @@ export class MasterKeyVault implements MasterKeyVaultInterface {
         }
     }
 
-    public async save(uuid: string, key: string): Promise<void> {
-        await SecureStore.setItemAsync(MasterKeyVault.KEY_PREFIX + uuid, key);
-    }
-
     public async load(uuid: string): Promise<string> {
         const value = await SecureStore.getItemAsync(MasterKeyVault.KEY_PREFIX + uuid);
         if (value == null || value.length === 0) {
             throw new Error('Master key unavailable. Unlock with password or recovery code.');
         }
         return value;
+    }
+
+    public async save(uuid: string, key: string): Promise<void> {
+        await SecureStore.setItemAsync(MasterKeyVault.KEY_PREFIX + uuid, key);
     }
 }
 

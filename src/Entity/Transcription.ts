@@ -25,17 +25,9 @@ export class Utterance {
 
 @Entity({ tableName: 'transcriptions' })
 export class Transcription extends AbstractEntity {
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
-
     @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
     @Column({ default: '', type: 'varchar', length: 36 })
     public encounterId!: string;
-
-    /** Time-series of utterances (raw Whisper/ASR output). */
-    @Column({ default: '[]', type: 'text', as: 'json', fullText: true, fullTextPath: '$.text' })
-    public utterances!: Utterance[];
 
     /** ASR model name (e.g. whisper-small-en). */
     @Column({ default: '', type: 'varchar', length: 64 })
@@ -44,6 +36,14 @@ export class Transcription extends AbstractEntity {
     /** ASR model version (e.g. 3.1). */
     @Column({ default: '', type: 'varchar', length: 16 })
     public modelVersion!: string;
+
+    /** Time-series of utterances (raw Whisper/ASR output). */
+    @Column({ default: '[]', type: 'text', as: 'json', fullText: true, fullTextPath: '$.text' })
+    public utterances!: Utterance[];
+
+    @PrimaryKey()
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
+    public uuid!: string;
 
     public getEncounterId(): string {
         return this.encounterId;

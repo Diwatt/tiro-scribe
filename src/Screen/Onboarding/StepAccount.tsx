@@ -19,7 +19,7 @@ const STRENGTH_COLORS = {
     mediumOrStrong: '#059669',
 } as const;
 
-export const StepAccount = observer(function StepAccount(): React.JSX.Element {
+export const StepAccount = observer(function stepAccount(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     const { control, handleSubmit, watch, clearErrors } = useFormContext<OnboardingFormData>();
@@ -28,7 +28,10 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
 
     const password = watch('password');
     const confirmPassword = watch('confirmPassword');
-    const passwordStrength: Result<string> | null = useMemo(() => (password ? checkPasswordStrength(password) : null), [password]);
+    const passwordStrength: Result<string> | null = useMemo(
+        () => (password ? checkPasswordStrength(password) : null),
+        [password],
+    );
 
     useEffect(() => {
         if (password && confirmPassword && password === confirmPassword) {
@@ -37,20 +40,30 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
     }, [password, confirmPassword, clearErrors]);
 
     return (
-        <View style={styles.stepRoot}>
-            <View style={styles.stepBody}>
-                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.secureAccount()}</Text>
-                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.secureAccountDesc()}</Text>
+        <View style={STYLES.stepRoot}>
+            <View style={STYLES.stepBody}>
+                <Text style={[STYLES.stepTitle, { color: theme.colors.onBackground }]}>
+                    {LL.onboarding.secureAccount()}
+                </Text>
+                <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant }]}>
+                    {LL.onboarding.secureAccountDesc()}
+                </Text>
                 <TextInput
                     control={control}
                     name="email"
                     label={LL.onboarding.email()}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    style={styles.input}
+                    style={STYLES.input}
                 />
-                <TextInput control={control} name="password" label={LL.onboarding.password()} secureTextEntry style={styles.input} />
-                <View style={styles.strengthRow}>
+                <TextInput
+                    control={control}
+                    name="password"
+                    label={LL.onboarding.password()}
+                    secureTextEntry
+                    style={STYLES.input}
+                />
+                <View style={STYLES.strengthRow}>
                     <ProgressBar
                         progress={passwordStrength ? (passwordStrength.id + 1) / 4 : 0}
                         color={
@@ -62,12 +75,12 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
                                       : STRENGTH_COLORS.mediumOrStrong
                                 : theme.colors.outline
                         }
-                        style={styles.strengthBar}
+                        style={STYLES.strengthBar}
                     />
                     {passwordStrength ? (
                         <Text
                             style={[
-                                styles.strengthLabel,
+                                STYLES.strengthLabel,
                                 {
                                     color:
                                         passwordStrength.id === 0
@@ -82,22 +95,28 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
                         </Text>
                     ) : null}
                 </View>
-                <TextInput control={control} name="confirmPassword" label={LL.onboarding.confirmPassword()} secureTextEntry style={styles.input} />
+                <TextInput
+                    control={control}
+                    name="confirmPassword"
+                    label={LL.onboarding.confirmPassword()}
+                    secureTextEntry
+                    style={STYLES.input}
+                />
                 {error ? (
                     <HelperText type="error" visible>
                         {error}
                     </HelperText>
                 ) : null}
             </View>
-            <View style={styles.stepSpacer} />
-            <View style={styles.buttonRow}>
+            <View style={STYLES.stepSpacer} />
+            <View style={STYLES.buttonRow}>
                 <Button
                     mode="contained"
                     onPress={() => onboardingState.goToStep(1)}
                     buttonColor={theme.colors.secondary}
                     textColor={theme.colors.onSecondary}
-                    style={styles.buttonHalf}
-                    contentStyle={styles.primaryButtonContent}
+                    style={STYLES.buttonHalf}
+                    contentStyle={STYLES.primaryButtonContent}
                 >
                     {LL.onboarding.back()}
                 </Button>
@@ -106,8 +125,8 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
                     loading={isBusy}
                     disabled={isBusy}
                     onPress={handleSubmit((data) => onboardingState.submit(data))}
-                    style={styles.buttonHalf}
-                    contentStyle={styles.primaryButtonContent}
+                    style={STYLES.buttonHalf}
+                    contentStyle={STYLES.primaryButtonContent}
                 >
                     {isBusy ? LL.onboarding.creatingAccount() : LL.onboarding.continue()}
                 </Button>
@@ -116,7 +135,7 @@ export const StepAccount = observer(function StepAccount(): React.JSX.Element {
     );
 });
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     stepRoot: { flex: 1 },
     stepBody: { flexGrow: 0 },
     stepSpacer: { flex: 1, minHeight: 24 },

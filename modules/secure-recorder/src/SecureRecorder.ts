@@ -68,7 +68,11 @@ export class SecureRecorder {
      * @param nativeModule - Native module implementation (defaults to SecureRecorderModule)
      * @param eventEmitter - Event emitter implementation (defaults to SecureRecorderEventEmitter)
      */
-    public constructor(sessionId: string, nativeModule: NativeRecorderModule = SecureRecorderModule, eventEmitter: EventEmitter = SecureRecorderModule) {
+    public constructor(
+        sessionId: string,
+        nativeModule: NativeRecorderModule = SecureRecorderModule,
+        eventEmitter: EventEmitter = SecureRecorderModule,
+    ) {
         // Initialize dependencies first
         this.errorNormalizer = new ErrorNormalizer();
         this.nativeModule = nativeModule;
@@ -82,9 +86,12 @@ export class SecureRecorder {
         this._sessionId = sessionId;
 
         // Subscribe to native status changes
-        this.eventSubscription = this.eventEmitter.addListener('onRecordingStatusChanged', (status: RecordingStatus) => {
-            this._updateStateFromStatus(status);
-        }) as EventSubscription;
+        this.eventSubscription = this.eventEmitter.addListener(
+            'onRecordingStatusChanged',
+            (status: RecordingStatus) => {
+                this._updateStateFromStatus(status);
+            },
+        ) as EventSubscription;
 
         // Initialize state from native module
         this._syncState();
@@ -135,7 +142,10 @@ export class SecureRecorder {
         }
 
         if (currentState === RecorderState.STOPPED) {
-            throw this.createError(ErrorCode.RECORDER_STOPPED, 'Recorder has been stopped. Create a new instance to record again.');
+            throw this.createError(
+                ErrorCode.RECORDER_STOPPED,
+                'Recorder has been stopped. Create a new instance to record again.',
+            );
         }
 
         try {
@@ -290,7 +300,10 @@ export class SecureRecorder {
     // Static factory for PermissionManager (for backward compatibility)
     private static getPermissionManager(): PermissionManager {
         if (!SecureRecorder.permissionManager) {
-            SecureRecorder.permissionManager = new PermissionManager(SecureRecorderModule, requestRecordingPermissionsAsync);
+            SecureRecorder.permissionManager = new PermissionManager(
+                SecureRecorderModule,
+                requestRecordingPermissionsAsync,
+            );
         }
         return SecureRecorder.permissionManager;
     }

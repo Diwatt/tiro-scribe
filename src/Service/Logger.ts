@@ -35,7 +35,6 @@ export const appLogger: ReactNativeLogger = reactNativeLogger.createLogger({
     printDate: true,
 });
 
-
 /**
  * Logger interface type for dependency injection
  * Extracted from the logger instance type

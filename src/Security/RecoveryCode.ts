@@ -7,11 +7,11 @@ import * as ExpoCrypto from 'expo-crypto';
 import QuickCrypto from 'react-native-quick-crypto';
 
 export class RecoveryCode {
-    private static readonly PBKDF2_ITERATIONS = 100_000;
-    private static readonly KEY_LEN = 32;
     private static readonly CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    private static readonly TOTAL_CHARS = 12;
     private static readonly CHARSET_SIZE = 32;
+    private static readonly KEY_LEN = 32;
+    private static readonly PBKDF2_ITERATIONS = 100_000;
+    private static readonly TOTAL_CHARS = 12;
 
     /**
      * Generates a recovery code in one pass using expo-crypto.
@@ -37,7 +37,13 @@ export class RecoveryCode {
      * Derives a key from the recovery code using PBKDF2 with a unique salt (therapist UUID).
      */
     public keyFromCode(code: string, salt: string): string {
-        const derived = QuickCrypto.pbkdf2Sync(code, salt, RecoveryCode.PBKDF2_ITERATIONS, RecoveryCode.KEY_LEN, 'SHA-256');
+        const derived = QuickCrypto.pbkdf2Sync(
+            code,
+            salt,
+            RecoveryCode.PBKDF2_ITERATIONS,
+            RecoveryCode.KEY_LEN,
+            'SHA-256',
+        );
         return derived.toString('hex');
     }
 }

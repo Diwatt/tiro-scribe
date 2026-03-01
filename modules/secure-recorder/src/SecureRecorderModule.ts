@@ -25,36 +25,38 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         return this._nativeModule;
     }
 
-    startRecording(sessionId: string): Promise<string> {
+    public startRecording(sessionId: string): Promise<string> {
         return this.nativeModule.startRecording(sessionId);
     }
 
-    stopRecording(): Promise<string> {
+    public stopRecording(): Promise<string> {
         return this.nativeModule.stopRecording();
     }
 
-    getStatus(): Promise<RecordingStatus> {
+    public getStatus(): Promise<RecordingStatus> {
         return this.nativeModule.getStatus();
     }
 
-    hasPermission(): Promise<boolean> {
+    public hasPermission(): Promise<boolean> {
         return this.nativeModule.hasPermission();
     }
 
-    stream(encryptedPath: string): Promise<void> {
+    public stream(encryptedPath: string): Promise<void> {
         return this.nativeModule.stream(encryptedPath);
     }
 
-    addListener<TEventPayload = unknown>(event: string, listener: (data: TEventPayload) => void): { remove: () => void } {
+    public addListener<TEventPayload = unknown>(
+        event: string,
+        listener: (data: TEventPayload) => void,
+    ): { remove: () => void } {
         return this.nativeModule.addListener(event, listener);
     }
 
-    removeAllListeners(event?: string): void {
+    public removeAllListeners(event?: string): void {
         this.nativeModule.removeAllListeners(event);
     }
 }
 
 export const SecureRecorderModule = new NativeSecureRecorder();
 
-// biome-ignore lint/style/noDefaultExport: Required for backward compatibility with existing consumers.
 export default SecureRecorderModule;

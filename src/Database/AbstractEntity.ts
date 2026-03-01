@@ -16,6 +16,9 @@ import type { Entity } from './Entity';
 import { TransformerRegistry } from './Transformer';
 
 export abstract class AbstractEntity implements Entity {
+    // --- Properties: static first, then instance (protected → private) ---
+    /** Table name (set by @Entity decorator on each subclass). */
+    public static entityName: string;
     /**
      * Tracks which prototypes have had their column accessors wired.  Stored in
      * a WeakSet so we don’t need to pollute instances with any marker and so
@@ -23,13 +26,10 @@ export abstract class AbstractEntity implements Entity {
      * properties rather than in the middle of method definitions.
      */
     private static readonly initializedPrototypes = new WeakSet<object>();
-    // --- Properties: static first, then instance (protected → private) ---
-    /** Table name (set by @Entity decorator on each subclass). */
-    public static entityName: string;
-    /** Field name → value. Used by getField/setField. */
-    protected fieldValues: Map<string, unknown> = new Map();
     /** Metadata for this entity constructor (resolved once at construction). */
     private readonly entityMetadata: EntityMetadata;
+    /** Field name → value. Used by getField/setField. */
+    protected fieldValues: Map<string, unknown> = new Map();
 
     // --- Constructor ---
     public constructor(...args: unknown[]) {
@@ -44,6 +44,11 @@ export abstract class AbstractEntity implements Entity {
         this.ensureColumnAccessors();
     }
 
+    /** Value access. Public so Column initializer can wire get/set; subclasses use in get fieldName() { return this.getField<Type>('fieldName'); } */
+    public getField<T = unknown>(key: string): T {
+        return this.fieldValues.get(key) as T;
+    }
+
     // --- Methods: public → private ---
     /** Primary key (e.g. UUID) for repository keying. Resolves field name from @PrimaryKey. */
     public get primaryKey(): string {
@@ -54,14 +59,25 @@ export abstract class AbstractEntity implements Entity {
         this.setField(this.entityMetadata.getPrimaryKeyField(), value);
     }
 
-    /** Value access. Public so Column initializer can wire get/set; subclasses use in get fieldName() { return this.getField<Type>('fieldName'); } */
-    public getField<T = unknown>(key: string): T {
-        return this.fieldValues.get(key) as T;
-    }
-
     /** Value access. Public so Column initializer can wire get/set; subclasses use in set fieldName(v) { this.setField('fieldName', v); } */
     public setField(key: string, value: unknown): void {
         this.fieldValues.set(key, value);
+    }
+
+    /**
+     * Convert entity to a data object.
+     * Returns a plain object suitable for DTOs, with values transformed by 'as' transformers.
+     * Differs from toPlainObject in that values are retrieved via property getters (applies 'as' transformers).
+     */
+    public toDataObject(): Record<string, unknown> {
+        const columnNames = this.entityMetadata.getColumnNames();
+        const out: Record<string, unknown> = {};
+        for (const key of columnNames) {
+            // Use property getter to get transformed value (e.g., after 'as' transformer)
+            const value = (this as Record<string, unknown>)[key];
+            out[key] = value;
+        }
+        return out;
     }
 
     /**
@@ -84,22 +100,6 @@ export abstract class AbstractEntity implements Entity {
             }
         }
 
-        return out;
-    }
-
-    /**
-     * Convert entity to a data object.
-     * Returns a plain object suitable for DTOs, with values transformed by 'as' transformers.
-     * Differs from toPlainObject in that values are retrieved via property getters (applies 'as' transformers).
-     */
-    public toDataObject(): Record<string, unknown> {
-        const columnNames = this.entityMetadata.getColumnNames();
-        const out: Record<string, unknown> = {};
-        for (const key of columnNames) {
-            // Use property getter to get transformed value (e.g., after 'as' transformer)
-            const value = (this as Record<string, unknown>)[key];
-            out[key] = value;
-        }
         return out;
     }
 

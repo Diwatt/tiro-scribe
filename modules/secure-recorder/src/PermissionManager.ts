@@ -28,7 +28,11 @@ export class PermissionManager {
         try {
             return await this.nativeModule.hasPermission();
         } catch (error) {
-            throw this.errorNormalizer.createError(ErrorCode.PERMISSION_CHECK_FAILED, error instanceof Error ? error.message : String(error), error);
+            throw this.errorNormalizer.createError(
+                ErrorCode.PERMISSION_CHECK_FAILED,
+                error instanceof Error ? error.message : String(error),
+                error,
+            );
         }
     }
 
@@ -40,7 +44,11 @@ export class PermissionManager {
             const { granted } = await this.requestPermissionFn();
             return granted;
         } catch (error) {
-            throw this.errorNormalizer.createError(ErrorCode.PERMISSION_REQUEST_FAILED, error instanceof Error ? error.message : String(error), error);
+            throw this.errorNormalizer.createError(
+                ErrorCode.PERMISSION_REQUEST_FAILED,
+                error instanceof Error ? error.message : String(error),
+                error,
+            );
         }
     }
 }

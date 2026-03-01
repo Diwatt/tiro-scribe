@@ -6,7 +6,7 @@ import { useAppLanguage } from '@/Localization';
 import { onboardingState } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
-export const StepVoice = observer(function StepVoice(): React.JSX.Element {
+export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     const actions = theme.colors.actions;
@@ -14,29 +14,38 @@ export const StepVoice = observer(function StepVoice(): React.JSX.Element {
     const isBusy = onboardingState.state$.isBusy.get();
 
     return (
-        <View style={styles.stepRoot}>
-            <View style={styles.stepBody}>
-                <Text style={[styles.stepTitle, { color: theme.colors.onBackground }]}>{LL.onboarding.voiceCalibration()}</Text>
-                <Text style={[styles.body, { color: theme.colors.onSurfaceVariant }]}>{LL.onboarding.voiceCalibrationDesc()}</Text>
+        <View style={STYLES.stepRoot}>
+            <View style={STYLES.stepBody}>
+                <Text style={[STYLES.stepTitle, { color: theme.colors.onBackground }]}>
+                    {LL.onboarding.voiceCalibration()}
+                </Text>
+                <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant }]}>
+                    {LL.onboarding.voiceCalibrationDesc()}
+                </Text>
                 {error ? (
                     <HelperText type="error" visible>
                         {error}
                     </HelperText>
                 ) : null}
-                {isBusy ? <ActivityIndicator size="large" style={styles.voiceLoader} /> : null}
+                {isBusy ? <ActivityIndicator size="large" style={STYLES.voiceLoader} /> : null}
             </View>
-            <View style={styles.stepSpacer} />
+            <View style={STYLES.stepSpacer} />
             {!isBusy ? (
                 <>
                     <Button
                         mode="contained"
                         onPress={() => onboardingState.calibrateVoice()}
-                        style={[styles.primaryButton, { backgroundColor: actions.primary.background }]}
-                        contentStyle={styles.primaryButtonContent}
+                        style={[STYLES.primaryButton, { backgroundColor: actions.primary.background }]}
+                        contentStyle={STYLES.primaryButtonContent}
                     >
                         {LL.onboarding.startCalibration()}
                     </Button>
-                    <Button mode="text" onPress={() => onboardingState.reset()} style={styles.backButton} contentStyle={styles.primaryButtonContent}>
+                    <Button
+                        mode="text"
+                        onPress={() => onboardingState.reset()}
+                        style={STYLES.backButton}
+                        contentStyle={STYLES.primaryButtonContent}
+                    >
                         {LL.onboarding.back()}
                     </Button>
                 </>
@@ -45,7 +54,7 @@ export const StepVoice = observer(function StepVoice(): React.JSX.Element {
     );
 });
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     stepRoot: { flex: 1 },
     stepBody: { flexGrow: 0 },
     stepSpacer: { flex: 1, minHeight: 24 },

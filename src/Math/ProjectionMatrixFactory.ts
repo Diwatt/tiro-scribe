@@ -34,16 +34,6 @@ export class ProjectionMatrixFactory {
     }
 
     /**
-     * Ensure the result is a 2D number array
-     */
-    private ensure2DArray(raw: unknown): number[][] {
-        if (Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])) {
-            return raw as number[][];
-        }
-        return (raw as { toArray(): number[][] }).toArray();
-    }
-
-    /**
      * Convert deterministic bytes to float array in [-1, 1]
      */
     private convertBytesToFloats(masterKey: string, floatCount: number): number[] {
@@ -67,6 +57,16 @@ export class ProjectionMatrixFactory {
     }
 
     /**
+     * Ensure the result is a 2D number array
+     */
+    private ensure2DArray(raw: unknown): number[][] {
+        if (Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])) {
+            return raw as number[][];
+        }
+        return (raw as { toArray(): number[][] }).toArray();
+    }
+
+    /**
      * Orthonormalize matrix using QR decomposition (Householder reflections)
      * More numerically stable than classical Gram-Schmidt
      */
@@ -74,16 +74,16 @@ export class ProjectionMatrixFactory {
         const rows = matrix.length;
         const cols = matrix[0].length;
 
-        const Mt = transpose(matrix);
-        const decomposition = qr(Mt);
+        const mt = transpose(matrix);
+        const decomposition = qr(mt);
 
-        const Q = this.ensure2DArray(decomposition.Q);
+        const q = this.ensure2DArray(decomposition.Q);
 
         const result: number[][] = [];
         for (let i = 0; i < rows; i++) {
             result[i] = new Array(cols);
             for (let j = 0; j < cols; j++) {
-                result[i][j] = Q[j][i];
+                result[i][j] = q[j][i];
             }
         }
         return result;

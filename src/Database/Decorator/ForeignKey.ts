@@ -40,15 +40,18 @@ const FOREIGN_KEY_OPTIONS_SCHEMA = {
 
 class ForeignKeyDecorator implements PropertyDecoratorConfig<ForeignKeyOptions> {
     public readonly decoratorName = 'ForeignKey';
-    public readonly schema = FOREIGN_KEY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_FOREIGN_KEY_OPTIONS';
+    public readonly schema = FOREIGN_KEY_OPTIONS_SCHEMA;
 
     public before(context: ClassFieldDecoratorContext<unknown, unknown>, options: ForeignKeyOptions): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
         MetadataWriter.registerProperty(meta, String(context.name), 'ForeignKey', options);
     }
 
-    public initializer(_context: ClassFieldDecoratorContext<unknown, unknown>, _options: ForeignKeyOptions): (instance: unknown) => void {
+    public initializer(
+        _context: ClassFieldDecoratorContext<unknown, unknown>,
+        _options: ForeignKeyOptions,
+    ): (instance: unknown) => void {
         return () => {
             /* no-op: metadata only, no instance wiring */
         };

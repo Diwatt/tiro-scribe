@@ -7,13 +7,6 @@
 import type { FieldTransformer } from './FieldTransformer';
 
 export class JsonTransformer implements FieldTransformer {
-    public toStorage(value: unknown): unknown {
-        if (typeof value === 'string') {
-            return value;
-        }
-        return JSON.stringify(value);
-    }
-
     public fromStorage(value: unknown): unknown {
         if (typeof value !== 'string') {
             return value ?? [];
@@ -27,5 +20,12 @@ export class JsonTransformer implements FieldTransformer {
         } catch (_error: unknown) {
             return [];
         }
+    }
+
+    public toStorage(value: unknown): unknown {
+        if (typeof value === 'string') {
+            return value;
+        }
+        return JSON.stringify(value);
     }
 }

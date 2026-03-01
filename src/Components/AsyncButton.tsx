@@ -1,35 +1,34 @@
 import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
-import { Button, useTheme, type ButtonProps } from 'react-native-paper';
+import { Button, type ButtonProps, useTheme } from 'react-native-paper';
 import { ActivityStatus, globalActivityStatus } from '../State/GlobalActivityStatus';
 import type { ExtendedTheme } from '../theme/AppTheme';
-
-const SUCCESS_RESET_LABEL = 'Terminé';
+import { getLabel } from './AsyncButtonUtils';
 
 export interface AsyncButtonProps extends Omit<ButtonProps, 'loading' | 'disabled' | 'children'> {
-    /** Controlled status. When omitted the button will read the single global activity status. */
-    status?: ActivityStatus;
-    idleLabel: string;
-    pendingLabel?: string;
-    successLabel?: string;
-    onPress?: (e: GestureResponderEvent) => void;
-    style?: StyleProp<ViewStyle>;
-    contentStyle?: React.ComponentProps<typeof Button>['contentStyle'];
+    readonly status?: ActivityStatus;
+    readonly idleLabel: string;
+    readonly pendingLabel?: string;
+    readonly successLabel?: string;
+    readonly onPress?: (e: GestureResponderEvent) => void;
+    readonly style?: StyleProp<ViewStyle>;
+    readonly contentStyle?: React.ComponentProps<typeof Button>['contentStyle'];
 }
 
-export function getLabel(status: ActivityStatus, idleLabel: string, pendingLabel?: string, successLabel?: string): string {
-    if (status === ActivityStatus.Pending) {
-        return pendingLabel ?? idleLabel;
-    }
-    if (status === ActivityStatus.Success) {
-        return successLabel ?? SUCCESS_RESET_LABEL;
-    }
-    return idleLabel;
-}
-
-function AsyncButtonInner(props: AsyncButtonProps): React.JSX.Element {
-    const { status: statusProp, idleLabel, pendingLabel, successLabel, onPress, style, contentStyle, icon, mode = 'contained', ...rest } = props;
+export function AsyncButtonInner(props: AsyncButtonProps): React.JSX.Element {
+    const {
+        status: statusProp,
+        idleLabel,
+        pendingLabel,
+        successLabel,
+        onPress,
+        style,
+        contentStyle,
+        icon,
+        mode = 'contained',
+        ...rest
+    } = props;
 
     const theme = useTheme<ExtendedTheme>();
     const actions = theme.colors.actions;

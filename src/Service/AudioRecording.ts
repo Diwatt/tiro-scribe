@@ -25,12 +25,12 @@ export interface AudioRecordingState {
 const DURATION_TICK_MS = 100;
 
 class AudioRecording {
-    private state$: Observable<AudioRecordingState>;
     private _isRecording$: ObservableComputed<boolean>;
-    private recorder: SecureRecorder | null = null;
-    private loggerInstance: LoggerInterface;
-    private recordingStartTime: number | null = null;
     private durationIntervalId: ReturnType<typeof setInterval> | null = null;
+    private loggerInstance: LoggerInterface;
+    private recorder: SecureRecorder | null = null;
+    private recordingStartTime: number | null = null;
+    private state$: Observable<AudioRecordingState>;
 
     constructor(logger: LoggerInterface = appLogger) {
         this.loggerInstance = logger;
@@ -46,10 +46,22 @@ class AudioRecording {
     }
 
     /**
-     * Get the observable state for use in React components
+     * Cleanup recorder resources
      */
-    getState(): Observable<AudioRecordingState> {
-        return this.state$;
+    cleanup(): void {
+        this.loggerInstance.debug('🔴 [AudioRecording] Cleanup: disposing recorder');
+        this.stopDurationTicker();
+        if (this.recorder) {
+            this.recorder.dispose();
+            this.recorder = null;
+        }
+    }
+
+    /**
+     * Current recording duration in milliseconds. 0 when not recording.
+     */
+    get durationMs(): number {
+        return this.state$.durationMs.get();
     }
 
     /**
@@ -57,6 +69,13 @@ class AudioRecording {
      */
     getFilePath(): string | null {
         return this.state$.filePath.get();
+    }
+
+    /**
+     * Get the observable state for use in React components
+     */
+    getState(): Observable<AudioRecordingState> {
+        return this.state$;
     }
 
     /**
@@ -72,141 +91,6 @@ class AudioRecording {
      */
     get isRecording$(): ObservableComputed<boolean> {
         return this._isRecording$;
-    }
-
-    /**
-     * Current recording duration in milliseconds. 0 when not recording.
-     */
-    get durationMs(): number {
-        return this.state$.durationMs.get();
-    }
-
-    /**
-     * Start the duration ticker. Call when recording starts.
-     */
-    private startDurationTicker(): void {
-        this.stopDurationTicker();
-        this.recordingStartTime = Date.now();
-        this.state$.durationMs.set(0);
-        this.durationIntervalId = setInterval(() => {
-            if (this.recordingStartTime !== null) {
-                this.state$.durationMs.set(Date.now() - this.recordingStartTime);
-            }
-        }, DURATION_TICK_MS);
-    }
-
-    /**
-     * Stop the duration ticker and set final duration. Call when recording stops.
-     */
-    private stopDurationTicker(): void {
-        if (this.durationIntervalId !== null) {
-            clearInterval(this.durationIntervalId);
-            this.durationIntervalId = null;
-        }
-        if (this.recordingStartTime !== null) {
-            this.state$.durationMs.set(Date.now() - this.recordingStartTime);
-            this.recordingStartTime = null;
-        }
-    }
-
-    /**
-     * Set up event handlers for the recorder
-     */
-    private setupEventHandlers(recorder: SecureRecorder): void {
-        recorder.onerror = (e) => {
-            this.loggerInstance.error('❌ [AudioRecording] Recording error:', {
-                code: e.code,
-                message: e.message,
-                details: e.details,
-            });
-        };
-
-        recorder.onstatuschange = (event) => {
-            this.loggerInstance.info('📊 [AudioRecording] Status changed:', {
-                state: event.state,
-                previousState: this.state$.state.get(),
-                sessionId: event.sessionId,
-                filePath: event.filePath,
-                reason: event.reason,
-            });
-
-            const wasRecording = this.state$.state.get() === RecorderState.RECORDING;
-
-            // Event handlers automatically update observable state
-            this.state$.state.set(event.state);
-            if (event.filePath) {
-                this.state$.filePath.set(event.filePath);
-            }
-
-            // Start/stop duration timer with recording state
-            if (event.state === RecorderState.RECORDING) {
-                this.startDurationTicker();
-            } else if (wasRecording) {
-                this.stopDurationTicker();
-            }
-        };
-    }
-
-    /**
-     * Ensure recorder exists, creating it if needed
-     */
-    private async ensureRecorder(): Promise<void> {
-        if (this.recorder?.state === RecorderState.STOPPED) {
-            this.loggerInstance.debug('🔄 [AudioRecording] Recorder is STOPPED, creating new instance');
-            // Dispose old recorder to remove event listeners
-            this.recorder.dispose();
-            this.recorder = null;
-        }
-
-        if (!this.recorder) {
-            this.loggerInstance.debug('🆕 [AudioRecording] No recorder exists, creating new one');
-            const sessionId = uuidv4();
-            this.loggerInstance.debug('🎙️ [AudioRecording] Creating new SecureRecorder', {
-                sessionId,
-            });
-
-            const recorder = new SecureRecorder(sessionId);
-            this.setupEventHandlers(recorder);
-            this.recorder = recorder;
-
-            this.loggerInstance.debug('✅ [AudioRecording] Recorder created:', {
-                sessionId,
-                initialState: recorder.state,
-                filePath: recorder.filePath,
-            });
-        }
-    }
-
-    /**
-     * Start a PCM stream from the microphone.  The supplied callback is executed
-     * on a worklet thread (\'worklet\' directive must be present) and receives
-     * Float32Array chunks at 16 kHz.  This is a thin wrapper around the native
-     * SecureRecorder streaming hooks, which must be implemented natively.
-     */
-    async startStreaming(onFrame: (pcm: Float32Array) => void): Promise<void> {
-        await this.ensureRecorder();
-        if (!this.recorder) {
-            throw new Error('Recorder not initialized');
-        }
-        // `SecureRecorder` should expose a `startStream` or similar method that
-        // accepts a worklet callback.  Here we simply forward the call; the
-        // TypeScript definitions for SecureRecorder would need to be extended as
-        // part of the native module changes.
-        (this.recorder as any).startStream?.(onFrame);
-        this.loggerInstance.debug('▶️ [AudioRecording] startStreaming called');
-    }
-
-    /**
-     * Stop the in‑memory PCM stream started above.  This does *not* affect
-     * the normal file‑based recording API; the module can implement the same
-     * underlying stop logic.
-     */
-    async stopStreaming(): Promise<void> {
-        if (!this.recorder) {
-            return;
-        }
-        (this.recorder as any).stopStream?.();
-        this.loggerInstance.debug('⏹️ [AudioRecording] stopStreaming called');
     }
 
     /**
@@ -252,6 +136,25 @@ class AudioRecording {
             });
             throw error;
         }
+    }
+
+    /**
+     * Start a PCM stream from the microphone.  The supplied callback is executed
+     * on a worklet thread (\'worklet\' directive must be present) and receives
+     * Float32Array chunks at 16 kHz.  This is a thin wrapper around the native
+     * SecureRecorder streaming hooks, which must be implemented natively.
+     */
+    async startStreaming(onFrame: (pcm: Float32Array) => void): Promise<void> {
+        await this.ensureRecorder();
+        if (!this.recorder) {
+            throw new Error('Recorder not initialized');
+        }
+        // `SecureRecorder` should expose a `startStream` or similar method that
+        // accepts a worklet callback.  Here we simply forward the call; the
+        // TypeScript definitions for SecureRecorder would need to be extended as
+        // part of the native module changes.
+        (this.recorder as any).startStream?.(onFrame);
+        this.loggerInstance.debug('▶️ [AudioRecording] startStreaming called');
     }
 
     /**
@@ -305,14 +208,111 @@ class AudioRecording {
     }
 
     /**
-     * Cleanup recorder resources
+     * Stop the in‑memory PCM stream started above.  This does *not* affect
+     * the normal file‑based recording API; the module can implement the same
+     * underlying stop logic.
      */
-    cleanup(): void {
-        this.loggerInstance.debug('🔴 [AudioRecording] Cleanup: disposing recorder');
-        this.stopDurationTicker();
-        if (this.recorder) {
+    async stopStreaming(): Promise<void> {
+        if (!this.recorder) {
+            return;
+        }
+        (this.recorder as any).stopStream?.();
+        this.loggerInstance.debug('⏹️ [AudioRecording] stopStreaming called');
+    }
+
+    /**
+     * Ensure recorder exists, creating it if needed
+     */
+    private async ensureRecorder(): Promise<void> {
+        if (this.recorder?.state === RecorderState.STOPPED) {
+            this.loggerInstance.debug('🔄 [AudioRecording] Recorder is STOPPED, creating new instance');
+            // Dispose old recorder to remove event listeners
             this.recorder.dispose();
             this.recorder = null;
+        }
+
+        if (!this.recorder) {
+            this.loggerInstance.debug('🆕 [AudioRecording] No recorder exists, creating new one');
+            const sessionId = uuidv4();
+            this.loggerInstance.debug('🎙️ [AudioRecording] Creating new SecureRecorder', {
+                sessionId,
+            });
+
+            const recorder = new SecureRecorder(sessionId);
+            this.setupEventHandlers(recorder);
+            this.recorder = recorder;
+
+            this.loggerInstance.debug('✅ [AudioRecording] Recorder created:', {
+                sessionId,
+                initialState: recorder.state,
+                filePath: recorder.filePath,
+            });
+        }
+    }
+
+    /**
+     * Set up event handlers for the recorder
+     */
+    private setupEventHandlers(recorder: SecureRecorder): void {
+        recorder.onerror = (e) => {
+            this.loggerInstance.error('❌ [AudioRecording] Recording error:', {
+                code: e.code,
+                message: e.message,
+                details: e.details,
+            });
+        };
+
+        recorder.onstatuschange = (event) => {
+            this.loggerInstance.info('📊 [AudioRecording] Status changed:', {
+                state: event.state,
+                previousState: this.state$.state.get(),
+                sessionId: event.sessionId,
+                filePath: event.filePath,
+                reason: event.reason,
+            });
+
+            const wasRecording = this.state$.state.get() === RecorderState.RECORDING;
+
+            // Event handlers automatically update observable state
+            this.state$.state.set(event.state);
+            if (event.filePath) {
+                this.state$.filePath.set(event.filePath);
+            }
+
+            // Start/stop duration timer with recording state
+            if (event.state === RecorderState.RECORDING) {
+                this.startDurationTicker();
+            } else if (wasRecording) {
+                this.stopDurationTicker();
+            }
+        };
+    }
+
+    /**
+     * Start the duration ticker. Call when recording starts.
+     */
+    private startDurationTicker(): void {
+        this.stopDurationTicker();
+        this.recordingStartTime = Date.now();
+        this.state$.durationMs.set(0);
+        this.durationIntervalId = setInterval(() => {
+            if (this.recordingStartTime !== null) {
+                this.state$.durationMs.set(Date.now() - this.recordingStartTime);
+            }
+        }, DURATION_TICK_MS);
+    }
+
+    /**
+     * Stop the duration ticker and set final duration. Call when recording stops.
+     */
+    private stopDurationTicker(): void {
+        if (this.durationIntervalId !== null) {
+            clearInterval(this.durationIntervalId);
+            this.durationIntervalId = null;
+        }
+        if (this.recordingStartTime !== null) {
+            this.state$.durationMs.set(Date.now() - this.recordingStartTime);
+            this.recordingStartTime = null;
         }
     }
 }

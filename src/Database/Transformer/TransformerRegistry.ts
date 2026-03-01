@@ -11,12 +11,12 @@ import { JsonTransformer } from './JsonTransformer';
 export class TransformerRegistry {
     private static readonly _registry = new Map<string, FieldTransformer>();
 
-    public static register(name: string, transformer: FieldTransformer): void {
-        TransformerRegistry._registry.set(name, transformer);
-    }
-
     public static get(name: string): FieldTransformer | undefined {
         return TransformerRegistry._registry.get(name);
+    }
+
+    public static register(name: string, transformer: FieldTransformer): void {
+        TransformerRegistry._registry.set(name, transformer);
     }
 
     /** Remove a registered transformer (e.g. for test cleanup). */

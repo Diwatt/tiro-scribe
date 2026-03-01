@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { type StyleProp, StyleSheet, Text, View, type ViewStyle } from 'react-native';
@@ -25,7 +25,83 @@ export interface ChipGroupProps<T extends FieldValues> {
     searchable?: boolean;
 }
 
-const styles = StyleSheet.create({
+interface ChipGroupRenderProps {
+    readonly value: string[];
+    readonly onChange: (value: string[]) => void;
+    readonly error?: string;
+    readonly label?: string;
+    readonly labelStyle?: StyleProp<ViewStyle>;
+    readonly chipRowStyle?: StyleProp<ViewStyle>;
+    readonly options: { value: string; label: string }[];
+    readonly searchable: boolean;
+    readonly theme: ExtendedTheme;
+    readonly search: string;
+    readonly onSearchChange: (search: string) => void;
+}
+
+function ChipGroupRender({
+    value,
+    onChange,
+    error,
+    label,
+    labelStyle,
+    chipRowStyle,
+    options,
+    searchable,
+    theme,
+    search,
+    onSearchChange,
+}: ChipGroupRenderProps): React.JSX.Element {
+    const handleChipPress = useCallback(
+        (optionValue: string): void => {
+            const current = value ?? [];
+            onChange(
+                current.includes(optionValue) ? current.filter((x) => x !== optionValue) : [...current, optionValue],
+            );
+        },
+        [onChange, value],
+    );
+
+    return (
+        <>
+            {label ? (
+                <Text style={[STYLES.label, labelStyle, { color: theme.colors.onSurfaceVariant }]}>{label}</Text>
+            ) : null}
+            {searchable ? (
+                <TextInput
+                    mode="outlined"
+                    placeholder="Search…"
+                    value={search}
+                    onChangeText={onSearchChange}
+                    style={STYLES.searchInput}
+                />
+            ) : null}
+            <View style={[STYLES.chipRow, chipRowStyle]}>
+                {useMemo(
+                    () =>
+                        options.map((option, index) => (
+                            <Chip
+                                key={`${option.value}-${index}`}
+                                style={STYLES.chip}
+                                selected={value?.includes(option.value) ?? false}
+                                onPress={() => handleChipPress(option.value)}
+                            >
+                                {option.label}
+                            </Chip>
+                        )),
+                    [options, value, handleChipPress],
+                )}
+            </View>
+            {error ? (
+                <HelperText type="error" visible>
+                    {error}
+                </HelperText>
+            ) : null}
+        </>
+    );
+}
+
+const STYLES = StyleSheet.create({
     label: {
         fontSize: 14,
         marginBottom: 8,
@@ -57,38 +133,32 @@ export function ChipGroup<T extends FieldValues>({
     const normalized = normalizeOptions(options);
     const [search, setSearch] = useState('');
     const showSearch = searchable ?? normalized.length > SEARCHABLE_THRESHOLD;
-    const filtered = showSearch && search.trim() ? normalized.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase())) : normalized;
+    const filtered =
+        showSearch && search.trim()
+            ? normalized.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()))
+            : normalized;
 
-    return (
-        <Controller
-            name={name}
-            control={control}
-            render={({ field: { value, onChange }, fieldState: { error } }) => (
-                <>
-                    {label ? <Text style={[styles.label, labelStyle, { color: theme.colors.onSurfaceVariant }]}>{label}</Text> : null}
-                    {showSearch ? <TextInput mode="outlined" placeholder="Search…" value={search} onChangeText={setSearch} style={styles.searchInput} /> : null}
-                    <View style={[styles.chipRow, chipRowStyle]}>
-                        {filtered.map((option, index) => (
-                            <Chip
-                                key={`${option.value}-${index}`}
-                                style={styles.chip}
-                                selected={(value as string[])?.includes(option.value) ?? false}
-                                onPress={() => {
-                                    const current = (value as string[]) ?? [];
-                                    onChange(current.includes(option.value) ? current.filter((x) => x !== option.value) : [...current, option.value]);
-                                }}
-                            >
-                                {option.label}
-                            </Chip>
-                        ))}
-                    </View>
-                    {error?.message ? (
-                        <HelperText type="error" visible>
-                            {error.message}
-                        </HelperText>
-                    ) : null}
-                </>
-            )}
-        />
+    const renderChipGroup = useCallback(
+        (params: {
+            field: { value: string[]; onChange: (value: string[]) => void };
+            fieldState: { error?: { message?: string } };
+        }) => (
+            <ChipGroupRender
+                value={params.field.value}
+                onChange={params.field.onChange}
+                error={params.fieldState.error?.message}
+                label={label}
+                labelStyle={labelStyle}
+                chipRowStyle={chipRowStyle}
+                options={filtered}
+                searchable={showSearch}
+                theme={theme}
+                search={search}
+                onSearchChange={setSearch}
+            />
+        ),
+        [label, labelStyle, chipRowStyle, filtered, showSearch, theme, search],
     );
+
+    return <Controller name={name} control={control} render={renderChipGroup} />;
 }

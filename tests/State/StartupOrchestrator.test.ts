@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { startupOrchestrator, StartupState } from '@/State/StartupOrchestrator';
+import { STARTUP_ORCHESTRATOR, StartupState } from '@/State/StartupOrchestrator';
 import { globalActivityStatus, ActivityStatus } from '@/State/GlobalActivityStatus';
 import { InferenceModelDownloader, inferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import { DownloadState } from '@/Service/InferenceModelDownload/Type';
@@ -51,7 +51,7 @@ describe('StartupOrchestrator', () => {
     });
 
     it('shows a pending startup status and hides it after 5 seconds', async () => {
-        await startupOrchestrator.run();
+        await STARTUP_ORCHESTRATOR.run();
 
         expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
         // download progress may override the initial start message in our stub
@@ -66,7 +66,7 @@ describe('StartupOrchestrator', () => {
     });
 
     it('triggers speaker model download and shows success after boot timer', async () => {
-        await startupOrchestrator.run();
+        await STARTUP_ORCHESTRATOR.run();
 
         // download begins immediately; we should see a pending state (shared slot)
         expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
@@ -102,7 +102,7 @@ describe('StartupOrchestrator', () => {
         // expose helper for the test body
         (global as any).completeDownload = completeDownload;
 
-        await startupOrchestrator.run();
+        await STARTUP_ORCHESTRATOR.run();
         expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
 
         // move past the booting interval
@@ -122,8 +122,8 @@ describe('StartupOrchestrator', () => {
     });
 
     it('updates state$ to Onboarding when no active session exists', async () => {
-        await startupOrchestrator.run();
-        expect(startupOrchestrator.state$.get()).toBe(StartupState.Onboarding);
+        await STARTUP_ORCHESTRATOR.run();
+        expect(STARTUP_ORCHESTRATOR.stateObservable.get()).toBe(StartupState.Onboarding);
     });
 
     it('sets Ready state when a session already exists', async () => {
@@ -132,7 +132,7 @@ describe('StartupOrchestrator', () => {
             hasActiveSession: vi.fn().mockResolvedValue(true),
         });
 
-        await startupOrchestrator.run();
-        expect(startupOrchestrator.state$.get()).toBe(StartupState.Ready);
+        await STARTUP_ORCHESTRATOR.run();
+        expect(STARTUP_ORCHESTRATOR.stateObservable.get()).toBe(StartupState.Ready);
     });
 });

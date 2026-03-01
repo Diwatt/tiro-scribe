@@ -6,31 +6,32 @@ import type React from 'react';
 import { createContext, type ReactNode, useContext } from 'react';
 import type { Anonymizer } from '../Service/Anonymizer';
 import type { AudioProcessing } from '../Service/AudioProcessing';
-import type { BiocodeGenerator } from '../Service/BiocodeGenerator';
+
+import type { SpeakerProcessor } from '../Service/SpeakerId/SpeakerProcessor';
 
 /**
  * Types only—Biocode, Anonymizer, AudioProcessing are not loaded at app start.
  * Transcript, Biocode, NER will be wired when those features are added.
  */
 interface ServicesContextType {
-    biocodeService: BiocodeGenerator | null;
+    speakerProcessor: SpeakerProcessor | null;
     anonymizerService: Anonymizer | null;
     audioProcessingService: AudioProcessing | null;
 }
 
-const ServicesContext = createContext<ServicesContextType>({
-    biocodeService: null,
+const SERVICES_CONTEXT = createContext<ServicesContextType>({
+    speakerProcessor: null,
     anonymizerService: null,
     audioProcessingService: null,
 });
 
-export const useServices = () => useContext(ServicesContext);
+export const useServices = () => useContext(SERVICES_CONTEXT);
 
 interface ServicesProviderProps {
-    children: ReactNode;
-    services: ServicesContextType;
+    readonly children: ReactNode;
+    readonly services: ServicesContextType;
 }
 
-export function ServicesProvider({ children, services }: ServicesProviderProps): React.JSX.Element {
-    return <ServicesContext.Provider value={services}>{children}</ServicesContext.Provider>;
+export function servicesProvider({ children, services }: ServicesProviderProps): React.JSX.Element {
+    return <SERVICES_CONTEXT.Provider value={services}>{children}</SERVICES_CONTEXT.Provider>;
 }

@@ -21,13 +21,13 @@ export function StatusBatchWaiting({ queueCount, onPressAction }: StatusBatchWai
             icon={<LayersPlus size={24} color={statusColors.text} />}
             state={StatusState.BatchWaiting}
         >
-            <View style={styles.actionRow}>
+            <View style={STYLES.actionRow}>
                 <Button
                     mode="contained"
                     buttonColor={statusColors.accent}
                     textColor={theme.colors.onPrimary}
                     icon="play"
-                    style={styles.actionButton}
+                    style={STYLES.actionButton}
                     onPress={onPressAction}
                 >
                     Process queue now
@@ -37,7 +37,7 @@ export function StatusBatchWaiting({ queueCount, onPressAction }: StatusBatchWai
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     actionRow: {
         marginTop: 16,
         alignItems: 'flex-start',

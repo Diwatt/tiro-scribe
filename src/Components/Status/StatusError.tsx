@@ -13,5 +13,12 @@ interface StatusErrorProps {
 export function StatusError({ title = 'Error', message }: StatusErrorProps): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const statusColors = theme.colors.statusError;
-    return <Status title={title} subtitle={message} icon={<AlertCircle size={24} color={statusColors.text} />} state={StatusState.Error} />;
+    return (
+        <Status
+            title={title}
+            subtitle={message}
+            icon={<AlertCircle size={24} color={statusColors.text} />}
+            state={StatusState.Error}
+        />
+    );
 }

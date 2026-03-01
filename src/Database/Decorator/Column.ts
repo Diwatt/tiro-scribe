@@ -9,7 +9,12 @@
  * public uuid!: string;
  */
 
-import { Builder, type OptionsFromSchema, type OptionsSchema, type PropertyDecoratorConfig } from '../../Decorator/Builder';
+import {
+    Builder,
+    type OptionsFromSchema,
+    type OptionsSchema,
+    type PropertyDecoratorConfig,
+} from '../../Decorator/Builder';
 import { MetadataWriter } from '../../Decorator/MetadataWriter';
 import { DatabaseException } from '../../Exception';
 import type { AbstractEntity } from '../AbstractEntity';
@@ -69,29 +74,18 @@ export type ColumnOptions<T = unknown> = OptionsFromSchema<
 >;
 
 class ColumnDecorator implements PropertyDecoratorConfig<ColumnOptions<unknown>> {
-    public readonly schema = COLUMN_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_COLUMN_OPTIONS';
-
-    public validate(options: ColumnOptions<unknown>): void {
-        if (options.fullText === true && options.as === 'json') {
-            const path = options.fullTextPath;
-            if (path == null || typeof path !== 'string' || path.trim() === '') {
-                throw new DatabaseException(
-                    'Column with fullText and as:"json" must specify fullTextPath (e.g. "$.text") so FTS indexes extracted text, not raw JSON.',
-                    this.errorCode,
-                    undefined,
-                    { options },
-                );
-            }
-        }
-    }
+    public readonly schema = COLUMN_OPTIONS_SCHEMA;
 
     public before(context: ClassFieldDecoratorContext<unknown, unknown>, options: ColumnOptions<unknown>): void {
         const meta = context.metadata as Record<string | symbol, unknown> | undefined;
         MetadataWriter.registerProperty(meta, String(context.name), 'Column', options);
     }
 
-    public initializer(context: ClassFieldDecoratorContext<unknown, unknown>, options: ColumnOptions<unknown>): (instance: unknown) => void {
+    public initializer(
+        context: ClassFieldDecoratorContext<unknown, unknown>,
+        options: ColumnOptions<unknown>,
+    ): (instance: unknown) => void {
         return (instance: unknown) => {
             const self = instance as AbstractEntity;
             const key = String(context.name);
@@ -110,6 +104,20 @@ class ColumnDecorator implements PropertyDecoratorConfig<ColumnOptions<unknown>>
                 },
             });
         };
+    }
+
+    public validate(options: ColumnOptions<unknown>): void {
+        if (options.fullText === true && options.as === 'json') {
+            const path = options.fullTextPath;
+            if (path == null || typeof path !== 'string' || path.trim() === '') {
+                throw new DatabaseException(
+                    'Column with fullText and as:"json" must specify fullTextPath (e.g. "$.text") so FTS indexes extracted text, not raw JSON.',
+                    this.errorCode,
+                    undefined,
+                    { options },
+                );
+            }
+        }
     }
 }
 

@@ -10,7 +10,6 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import type { ModelConfig } from '@/Api';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
-import type { DownloadQueueStatus } from '@/Entity/Type';
 import type { LoggerInterface } from '@/Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { FileDownloader } from './FileDownloader';
@@ -18,12 +17,15 @@ import type { ModelArtifactStorage } from './ModelArtifactStorage';
 import { DownloadState } from './Type';
 
 export class DownloadTaskExecutor {
-    private readonly queueEntity: DownloadQueue;
+    /** Error message used to identify user‑cancelled downloads */
+    private static readonly CANCELLATION_ERROR_MESSAGE = 'Download cancelled by user';
+    private readonly _completedAt$ = observable<Dayjs | undefined>(undefined);
+    private readonly _error$: Observable<string | undefined>;
+    private readonly _progress$: Observable<number>;
     private readonly _startedAt: Dayjs;
     private readonly _state$: Observable<DownloadState>;
-    private readonly _progress$: Observable<number>;
-    private readonly _error$: Observable<string | undefined>;
-    private readonly _completedAt$ = observable<Dayjs | undefined>(undefined);
+
+    private readonly queueEntity: DownloadQueue;
 
     public constructor(
         private readonly logger: LoggerInterface,
@@ -45,32 +47,30 @@ export class DownloadTaskExecutor {
         this._error$ = observable<string | undefined>(queueEntity.errorMessage || undefined);
     }
 
-    /** Error message used to identify user‑cancelled downloads */
-    private static readonly CANCELLATION_ERROR_MESSAGE = 'Download cancelled by user';
-
     /**
-     * Observable for download state.
+     * Cancel the download if it's currently downloading.
+     * @returns true if cancelled, false if not in a cancellable state
      */
-    public get state$(): Observable<DownloadState> {
-        return this._state$;
+    public cancel(): boolean {
+        if (this.isDownloading()) {
+            this.setState(DownloadState.Cancelled);
+            this.setError(DownloadTaskExecutor.CANCELLATION_ERROR_MESSAGE);
+            this.setCompletedAt(dayjs());
+            return true;
+        }
+        return false;
     }
 
-    /**
-     * Observable for progress (0-100).
-     */
-    public get progress$(): Observable<number> {
-        return this._progress$;
-    }
-
-    /**
-     * Observable for error message.
-     */
-    public get error$(): Observable<string | undefined> {
-        return this._error$;
+    public get capability(): string {
+        return this.queueEntity.capability;
     }
 
     public get completedAt$() {
         return this._completedAt$;
+    }
+
+    public get config(): ModelConfig {
+        return this.modelConfig;
     }
 
     /**
@@ -103,70 +103,32 @@ export class DownloadTaskExecutor {
         return executor;
     }
 
-    public get capability(): string {
-        return this.queueEntity.capability;
-    }
-
-    public get config(): ModelConfig {
-        return this.modelConfig;
-    }
-
-    public get startedAt(): Dayjs {
-        return this._startedAt;
-    }
-
-    public getState(): DownloadState {
-        return this._state$.get();
-    }
-
-    public getProgress(): number {
-        return this._progress$.get();
-    }
-
-    public getError(): string | undefined {
-        return this._error$.get();
+    /**
+     * Observable for error message.
+     */
+    public get error$(): Observable<string | undefined> {
+        return this._error$;
     }
 
     public getCompletedAt(): Dayjs | undefined {
         return this._completedAt$.get();
     }
 
+    public getError(): string | undefined {
+        return this._error$.get();
+    }
+
+    public getProgress(): number {
+        return this._progress$.get();
+    }
+
     public getQueueEntity(): DownloadQueue {
         return this.queueEntity;
     }
 
-    // ------------------------------------------------------------------
-    // Internal setters (use instead of mutating observables directly)
-    // ------------------------------------------------------------------
-
-    /**
-     * Set the current download state.
-     */
-    private setState(state: DownloadState): void {
-        this._state$.set(state);
+    public getState(): DownloadState {
+        return this._state$.get();
     }
-
-    /**
-     * Update progress (0‑100).
-     */
-    private setProgress(progress: number): void {
-        this._progress$.set(progress);
-    }
-
-    /**
-     * Record completion timestamp.
-     */
-    private setCompletedAt(time: Dayjs | undefined): void {
-        this._completedAt$.set(time);
-    }
-
-    /**
-     * Set error message observable.
-     */
-    private setError(error: string | undefined): void {
-        this._error$.set(error);
-    }
-
 
     /**
      * Check if executor is in downloading state.
@@ -177,18 +139,15 @@ export class DownloadTaskExecutor {
     }
 
     /**
-     * Cancel the download if it's currently downloading.
-     * @returns true if cancelled, false if not in a cancellable state
+     * Observable for progress (0-100).
      */
-    public cancel(): boolean {
-        if (this.isDownloading()) {
-            this.setState(DownloadState.Cancelled);
-            this.setError(DownloadTaskExecutor.CANCELLATION_ERROR_MESSAGE);
-            this.setCompletedAt(dayjs());
-            return true;
-        }
-        return false;
+    public get progress$(): Observable<number> {
+        return this._progress$;
     }
+
+    // ------------------------------------------------------------------
+    // Internal setters (use instead of mutating observables directly)
+    // ------------------------------------------------------------------
 
     /**
      * Start the download process.
@@ -271,5 +230,44 @@ export class DownloadTaskExecutor {
 
             throw error;
         }
+    }
+
+    public get startedAt(): Dayjs {
+        return this._startedAt;
+    }
+
+    /**
+     * Observable for download state.
+     */
+    public get state$(): Observable<DownloadState> {
+        return this._state$;
+    }
+
+    /**
+     * Record completion timestamp.
+     */
+    private setCompletedAt(time: Dayjs | undefined): void {
+        this._completedAt$.set(time);
+    }
+
+    /**
+     * Set error message observable.
+     */
+    private setError(error: string | undefined): void {
+        this._error$.set(error);
+    }
+
+    /**
+     * Update progress (0‑100).
+     */
+    private setProgress(progress: number): void {
+        this._progress$.set(progress);
+    }
+
+    /**
+     * Set the current download state.
+     */
+    private setState(state: DownloadState): void {
+        this._state$.set(state);
     }
 }

@@ -6,14 +6,14 @@
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import type { TherapistRepository } from '@/Repository';
+import { appLogger } from '@/Service/Logger';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
 import { appLanguage } from '../Localization/AppLanguage';
 import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
-import { inferenceModelDownloader } from '../Service/InferenceModelDownloader';
 import { DownloadState } from '../Service/InferenceModelDownload/Type';
+import { inferenceModelDownloader } from '../Service/InferenceModelDownloader';
 import { ActivityStatus, globalActivityStatus } from './GlobalActivityStatus';
-import { appLogger } from '@/Service/Logger';
 
 /** Initial state → hardware check → auth check → routing. */
 export enum StartupState {
@@ -34,19 +34,15 @@ export class StartupOrchestrator {
         this.state = observable<StartupState>(initialState);
     }
 
-    public get state$(): Observable<StartupState> {
-        return this.state;
-    }
-
     public async run(): Promise<void> {
         const bootStart = Date.now();
 
         this.state.set(StartupState.Booting);
 
         // show an initial pending status during app boot; hide it after 5 seconds
-        const STARTUP_DELAY_MS = 5000;
-        const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
-        globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.activity.starting(), undefined, STARTUP_DELAY_MS);
+        const startupDelayMs = 5000;
+        const ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
+        globalActivityStatus.setStatus(ActivityStatus.Pending, ll.activity.starting(), undefined, startupDelayMs);
 
         const compatible = deviceCompatibilityGate.isCompatible();
         if (!compatible) {
@@ -68,37 +64,39 @@ export class StartupOrchestrator {
         this.downloadSpeakerId(bootStart);
     }
 
+    public get stateObservable(): Observable<StartupState> {
+        return this.state;
+    }
+
     /** Start Cam++ model download in background so it is ready before voice calibration step. */
     private async downloadSpeakerId(bootStart: number): Promise<void> {
-        const AUTO_HIDE_DELAY_MS = 3000; // 3 seconds
-        const STARTUP_DELAY_MS = 5000;
-        const Ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
+        const autoHideDelayMs = 3000; // 3 seconds
+        const startupDelayMs = 5000;
+        const ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
 
         // initial pending status; progress will update it
-        globalActivityStatus.setStatus(ActivityStatus.Pending, Ll.download.speakerModel());
+        globalActivityStatus.setStatus(ActivityStatus.Pending, ll.download.speakerModel());
 
         try {
             const executor = await inferenceModelDownloader.download('speaker_id');
 
             // update UI as progress events arrive
             executor.progress$.onChange(({ value: progress }) => {
-                console.log(`Speaker ID download progress: ${progress}%`);
                 const percentage = Math.round(progress);
-                const message = `${Ll.download.speakerModel()} ${percentage}%`;
+                const message = `${ll.download.speakerModel()} ${percentage}%`;
                 globalActivityStatus.setStatus(ActivityStatus.Pending, message);
             });
 
             // watch state changes to surface success or error
             const showSuccess = () => {
-                console.log(`Speaker ID download successful after ${Date.now() - bootStart}ms`);
                 const elapsed = Date.now() - bootStart;
-                const remainingStartup = Math.max(0, STARTUP_DELAY_MS - elapsed);
+                const remainingStartup = Math.max(0, startupDelayMs - elapsed);
                 const successFn = () => {
                     globalActivityStatus.setStatus(
                         ActivityStatus.Success,
-                        Ll.download.speakerModelSuccess(),
+                        ll.download.speakerModelSuccess(),
                         undefined,
-                        AUTO_HIDE_DELAY_MS,
+                        autoHideDelayMs,
                     );
                 };
 
@@ -110,14 +108,13 @@ export class StartupOrchestrator {
             };
 
             executor.state$.onChange(({ value: state }) => {
-                console.log(`Speaker ID download state changed: ${state} after ${Date.now() - bootStart}ms`);
                 if (state === DownloadState.Completed) {
                     showSuccess();
                 } else if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
                     appLogger.error('Speaker model download failed', {
                         error: executor.getError(),
                     });
-                    globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
+                    globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
                 }
             });
 
@@ -130,15 +127,15 @@ export class StartupOrchestrator {
                 appLogger.error('Speaker model download failed', {
                     error: executor.getError(),
                 });
-                globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
+                globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
             }
         } catch (err) {
             // any problem starting or observing download
             appLogger.error('Speaker model download failed', { error: err });
-            globalActivityStatus.setStatus(ActivityStatus.Error, Ll.download.speakerModelError());
+            globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
             return;
         }
     }
 }
 
-export const startupOrchestrator = new StartupOrchestrator();
+export const STARTUP_ORCHESTRATOR = new StartupOrchestrator();

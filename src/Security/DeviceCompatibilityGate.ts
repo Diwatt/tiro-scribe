@@ -13,9 +13,9 @@ import { HardwareGuard } from './HardwareGuard';
 
 /** Native platforms we run hardware checks for. RN Platform.OS and expo-device (Device.osName) use strings only; no OS enum. */
 const OS = { IOS: 'ios', ANDROID: 'android' } as const;
-type NativeOS = (typeof OS)[keyof typeof OS];
+type NativeOs = (typeof OS)[keyof typeof OS];
 
-const NATIVE_OS: readonly NativeOS[] = [OS.IOS, OS.ANDROID];
+const NATIVE_OS: readonly NativeOs[] = [OS.IOS, OS.ANDROID];
 
 export type PlatformRequirements = {
     minRamGigabytes: number;
@@ -35,25 +35,25 @@ export const DEFAULT_MATRIX: CompatibilityMatrix = {
 export class DeviceCompatibilityGate {
     // --- public ---
 
+    private activeGuard: HardwareGuard | null = null;
+
     public constructor(
         private readonly logger: LoggerInterface,
         private readonly matrix: CompatibilityMatrix = DEFAULT_MATRIX,
     ) {}
 
+    // --- private ---
+
     /** Returns true if not ios/android (skip check), or if the platform guard.isCompatible(). */
     public isCompatible(): boolean {
         const platform = Platform.OS;
-        if (!NATIVE_OS.includes(platform as NativeOS)) {
+        if (!NATIVE_OS.includes(platform as NativeOs)) {
             return true;
         }
-        return this.getActiveGuard(platform as NativeOS).isCompatible();
+        return this.getActiveGuard(platform as NativeOs).isCompatible();
     }
 
-    // --- private ---
-
-    private activeGuard: HardwareGuard | null = null;
-
-    private getActiveGuard(platform: NativeOS): HardwareGuard {
+    private getActiveGuard(platform: NativeOs): HardwareGuard {
         if (this.activeGuard == null) {
             const requirements = this.matrix[platform];
             this.activeGuard = new HardwareGuard(this.logger, requirements.minRamGigabytes, requirements.minSemver);

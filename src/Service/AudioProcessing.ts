@@ -5,12 +5,12 @@
  * 1. Microphone -> Raw Audio File
  * 2. Raw Audio File -> ONNX Transcription Model -> Raw Text
  * 3. Raw Text -> Anonymizer -> Clean Text
- * 4. Raw Audio -> ONNX Speaker Model -> BiocodeGenerator
+ * 4. Raw Audio -> ONNX Speaker Model -> BiocodeFactory
  * 5. Final Payload: { biocode, cleanTranscript, confidence }
  */
 
 import type * as Ort from 'onnxruntime-react-native';
-import type { BiocodeGenerator } from './BiocodeGenerator';
+import type { SpeakerProcessor } from './SpeakerId/SpeakerProcessor';
 
 async function getOrt(): Promise<typeof Ort> {
     return import('onnxruntime-react-native');
@@ -62,13 +62,16 @@ const CONFIDENCE = {
 } as const;
 
 export class AudioProcessing {
+    private readonly anonymizerService: Anonymizer;
+    private readonly loggerInstance: LoggerInterface;
     private transcriptionSession: Ort.InferenceSession | null = null;
-    private biocodeService: BiocodeGenerator;
-    private anonymizerService: Anonymizer;
-    private loggerInstance: LoggerInterface;
 
-    constructor(biocodeService: BiocodeGenerator, anonymizerService: Anonymizer, logger: LoggerInterface = appLogger) {
-        this.biocodeService = biocodeService;
+    constructor(
+        speakerProcessor: SpeakerProcessor,
+        anonymizerService: Anonymizer,
+        logger: LoggerInterface = appLogger,
+    ) {
+        this.speakerProcessor = speakerProcessor;
         this.anonymizerService = anonymizerService;
         this.loggerInstance = logger;
     }
@@ -101,9 +104,15 @@ export class AudioProcessing {
      * @param audioPath - Path to the raw audio file
      * @param encounterUuid - Unique encounter UUID identifier
      * @param sessionStartDate - Start date/time of the encounter for temporal fuzzing
+     * @param projectionMatrix - Therapist's projection matrix for biocode generation
      * @returns Complete processing payload
      */
-    async processAudio(audioPath: string, encounterUuid: string, sessionStartDate: Date): Promise<ProcessingPayload> {
+    async processAudio(
+        audioPath: string,
+        encounterUuid: string,
+        sessionStartDate: Date,
+        projectionMatrix: number[][],
+    ): Promise<ProcessingPayload> {
         // Set session start date for temporal fuzzing
         this.anonymizerService.setSessionStartDate(sessionStartDate);
 
@@ -116,24 +125,23 @@ export class AudioProcessing {
             // TODO: Implement transcription inference
             // rawText = await this.transcribeWithONNX(audioPath);
             throw new TranscriptionNotImplementedError();
-        } else {
-            // Fallback: Return empty text or implement alternative transcription
-            this.loggerInstance.warn('No transcription model loaded. Skipping transcription step.');
-            rawText = TRANSCRIPTION.NOT_AVAILABLE;
         }
+        // Fallback: Return empty text or implement alternative transcription
+        this.loggerInstance.warn('No transcription model loaded. Skipping transcription step.');
+        rawText = TRANSCRIPTION.NOT_AVAILABLE;
 
         // Step 2: Anonymize the transcribed text
         const anonymizationResult = await this.anonymizerService.anonymize(rawText);
 
         // Step 3: Extract biocode from audio
-        const biocode = await this.biocodeService.processAudio(audioPath);
+        const biocode = await this.speakerProcessor.processAudio(audioPath, projectionMatrix);
 
         // Step 4: Calculate overall confidence
         const overallConfidence = (anonymizationResult.confidence + biocode.confidence) / CONFIDENCE.AVERAGE_DIVISOR;
 
         // Step 5: Build final payload
         return new ProcessingPayload(
-            biocode.biocode,
+            biocode.projectedVector,
             anonymizationResult.cleanText,
             overallConfidence,
             encounterUuid,
@@ -145,9 +153,14 @@ export class AudioProcessing {
      * Process audio and return detailed result
      * @param audioPath - Path to the raw audio file
      * @param sessionStartDate - Start date/time of the session
+     * @param projectionMatrix - Therapist's projection matrix for biocode generation
      * @returns Detailed audio processing result
      */
-    async processAudioDetailed(audioPath: string, sessionStartDate: Date): Promise<AudioProcessingResult> {
+    async processAudioDetailed(
+        audioPath: string,
+        sessionStartDate: Date,
+        projectionMatrix: number[][],
+    ): Promise<AudioProcessingResult> {
         this.anonymizerService.setSessionStartDate(sessionStartDate);
 
         // Parallel processing of transcription and biocode extraction
@@ -159,12 +172,12 @@ export class AudioProcessing {
             rawText = TRANSCRIPTION.NOT_AVAILABLE;
         }
 
-        const biocode = await this.biocodeService.processAudio(audioPath);
+        const biocode = await this.speakerProcessor.processAudio(audioPath, projectionMatrix);
         const anonymizationResult = await this.anonymizerService.anonymize(rawText);
         return new AudioProcessingResult(
             rawText,
             anonymizationResult.cleanText,
-            biocode.biocode,
+            biocode.projectedVector,
             (anonymizationResult.confidence + biocode.confidence) / CONFIDENCE.AVERAGE_DIVISOR,
         );
     }

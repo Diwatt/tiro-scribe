@@ -33,8 +33,8 @@ export interface CompiledStatement {
 }
 
 export class QueryCompiler {
-    private readonly tableName: string;
     private readonly metadata: EntityMetadata;
+    private readonly tableName: string;
 
     public constructor(tableName: string, metadata: EntityMetadata) {
         this.tableName = tableName;
@@ -79,17 +79,9 @@ export class QueryCompiler {
         return { sql: compiled.sql, parameters: [...compiled.parameters] };
     }
 
-    private whereConditions(criteria: QueryCriteria): readonly WhereCondition[] {
-        const conditions: WhereCondition[] = [];
-        for (const [key, value] of Object.entries(criteria)) {
-            const columnExpression = this.metadata.getColumnExpression(key);
-            conditions.push(sql<boolean>`${sql.raw(columnExpression)} = ${value}`);
-        }
-
-        return conditions;
-    }
-
-    private orderByClauses(options: QueryOptions | undefined): Array<{ expression: string; direction: 'asc' | 'desc' }> {
+    private orderByClauses(
+        options: QueryOptions | undefined,
+    ): Array<{ expression: string; direction: 'asc' | 'desc' }> {
         const orderBys = this.resolveOrderBy(options);
 
         return orderBys.map((item) => {
@@ -110,5 +102,15 @@ export class QueryCompiler {
         }
 
         return [];
+    }
+
+    private whereConditions(criteria: QueryCriteria): readonly WhereCondition[] {
+        const conditions: WhereCondition[] = [];
+        for (const [key, value] of Object.entries(criteria)) {
+            const columnExpression = this.metadata.getColumnExpression(key);
+            conditions.push(sql<boolean>`${sql.raw(columnExpression)} = ${value}`);
+        }
+
+        return conditions;
     }
 }

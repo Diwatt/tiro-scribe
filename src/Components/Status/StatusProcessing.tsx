@@ -22,13 +22,15 @@ export function StatusProcessing({ progress, currentTask, timeEstimate }: Status
             iconBgOverride={statusColors.iconBackground}
             state={StatusState.Processing}
         >
-            {timeEstimate && <Text style={[styles.timeEstimate, { color: statusColors.text }]}>{timeEstimate}</Text>}
+            {Boolean(timeEstimate) && (
+                <Text style={[STYLES.timeEstimate, { color: statusColors.text }]}>{timeEstimate}</Text>
+            )}
             {progress !== undefined && (
                 <ProgressBar
                     progress={progress / 100}
                     color={statusColors.accent}
                     style={[
-                        styles.progressBar,
+                        STYLES.progressBar,
                         {
                             marginTop: 16,
                             backgroundColor: 'rgba(255,255,255, 0.5)',
@@ -40,7 +42,7 @@ export function StatusProcessing({ progress, currentTask, timeEstimate }: Status
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     timeEstimate: {
         fontWeight: 'bold',
         fontSize: 12,

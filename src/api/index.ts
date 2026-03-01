@@ -6,27 +6,25 @@
 
 /** 1. Client registry – use get(Model) to obtain the client instance (lazy). */
 export {
-    apiClientRegistry,
     ApiClientRegistry,
+    apiClientRegistry,
     InferenceModelClient,
     ProfileAttributesClient,
 } from './ApiClientRegistry';
-
-/** 2. React Query hooks and keys. */
-export {
-    useInferenceModels,
-    useProfileAttributes,
-    INFERENCE_MODELS_QUERY_KEY,
-    PROFILE_ATTRIBUTES_QUERY_KEY,
-} from './hooks';
-export type { InferenceModelsQueryOptions, ProfileAttributesQueryOptions } from './hooks';
-
 /** Types (from spec + inference-model client). */
-export type { ModelConfig, InferenceModelMap } from './Client/InferenceModelClient';
+export type { InferenceModelMap, ModelConfig } from './Client/InferenceModelClient';
 export type {
-    InferenceModelFile,
     InferenceModel,
+    InferenceModelFile,
     InferenceModelVariant,
     LabeledOption,
     ProfileAttributes,
 } from './generated/Types';
+export type { InferenceModelsQueryOptions, ProfileAttributesQueryOptions } from './hooks';
+/** 2. React Query hooks and keys. */
+export {
+    INFERENCE_MODELS_QUERY_KEY,
+    PROFILE_ATTRIBUTES_QUERY_KEY,
+    useInferenceModels,
+    useProfileAttributes,
+} from './hooks';

@@ -66,7 +66,11 @@ export class Repository {
     /**
      * Creates the appropriate repository: custom repo class when provided (e.g. by Registry), else generic Repository.
      */
-    public static create(entityName: string, EntityClass: EntityClass, customRepositoryClass?: new () => Repository): Repository {
+    public static create(
+        entityName: string,
+        EntityClass: EntityClass,
+        customRepositoryClass?: new () => Repository,
+    ): Repository {
         if (customRepositoryClass) {
             return new customRepositoryClass();
         }
@@ -131,10 +135,15 @@ export class Repository {
 
         // Validate primary key is not empty or whitespace-only
         if (!primaryKey || primaryKey.trim().length === 0) {
-            throw new DatabaseException('Cannot persist entity with empty or whitespace-only primary key.', 'REPOSITORY_INVALID_PRIMARY_KEY', undefined, {
-                tableName: this.tableName,
-                primaryKey,
-            });
+            throw new DatabaseException(
+                'Cannot persist entity with empty or whitespace-only primary key.',
+                'REPOSITORY_INVALID_PRIMARY_KEY',
+                undefined,
+                {
+                    tableName: this.tableName,
+                    primaryKey,
+                },
+            );
         }
 
         const data = entity.toPlainObject();
@@ -268,7 +277,10 @@ export class Repository {
      * Merge entity defaults with partial data (and optionally stored record for update).
      * Create: mergeForPersist(data). Update: mergeForPersist(data, storedRecord).
      */
-    private mergeForPersist(data: Partial<Record<string, unknown>>, storedRecord?: Record<string, unknown>): Record<string, unknown> {
+    private mergeForPersist(
+        data: Partial<Record<string, unknown>>,
+        storedRecord?: Record<string, unknown>,
+    ): Record<string, unknown> {
         const logger = appLogger;
         const defaults = this.metadata.getColumnDefaults();
 
@@ -317,6 +329,13 @@ export class Repository {
     }
 
     /**
+     * Convert multiple database rows to entities.
+     */
+    private toEntities(rows: Record<string, unknown>[]): Entity[] {
+        return rows.map((row) => this.toEntity(row));
+    }
+
+    /**
      * Convert database row to entity instance.
      */
     private toEntity(row: Record<string, unknown>): Entity {
@@ -339,13 +358,6 @@ export class Repository {
         }
 
         return entity;
-    }
-
-    /**
-     * Convert multiple database rows to entities.
-     */
-    private toEntities(rows: Record<string, unknown>[]): Entity[] {
-        return rows.map((row) => this.toEntity(row));
     }
 
     /**

@@ -4,7 +4,7 @@
 
 import semver from 'semver';
 import type { ModelConfig } from '@/Api';
-import { InferenceModelConfigProvider, inferenceModelConfigProvider } from './InferenceModelConfigProvider';
+import { type InferenceModelConfigProvider, inferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import type { LoggerInterface } from './Logger';
 import { appLogger } from './Logger';
@@ -25,22 +25,11 @@ export interface UpdateCheckResult {
 }
 
 export class InferenceModelVersionManager {
-
     public constructor(
         private readonly logger: LoggerInterface,
         private readonly configProvider: InferenceModelConfigProvider,
         private readonly artifactStorage: ModelArtifactStorage,
-    ) {
-    }
-
-
-    private static createDefaultInstance(): InferenceModelVersionManager {
-        const logger = appLogger;
-        const configProvider = inferenceModelConfigProvider;
-        const artifactStorage = new ModelArtifactStorage(logger);
-
-        return new InferenceModelVersionManager(logger, configProvider, artifactStorage);
-    }
+    ) {}
 
     /**
      * Check for updates for all models or specific capabilities
@@ -97,6 +86,14 @@ export class InferenceModelVersionManager {
         };
     }
 
+    public static createDefaultInstance(): InferenceModelVersionManager {
+        const logger = appLogger;
+        const configProvider = inferenceModelConfigProvider;
+        const artifactStorage = new ModelArtifactStorage(logger);
+
+        return new InferenceModelVersionManager(logger, configProvider, artifactStorage);
+    }
+
     /**
      * Update a specific model to the latest version
      */
@@ -124,7 +121,23 @@ export class InferenceModelVersionManager {
 
         // The actual download will be handled by the InferenceModelDownloader
         // This method just prepares for the update
-        this.logger.debug(`Model ${capability} marked for update from ${localConfig.version} to ${remoteConfig.version}`);
+        this.logger.debug(
+            `Model ${capability} marked for update from ${localConfig.version} to ${remoteConfig.version}`,
+        );
+    }
+
+    /**
+     * Calculate the total size of all files in a model configuration
+     */
+    private calculateConfigSize(config: ModelConfig): number {
+        if (!config.files || config.files.length === 0) {
+            return 0;
+        }
+
+        // Sum up the size of all files
+        return config.files.reduce((total, file) => {
+            return total + (file.sizeBytes || 0);
+        }, 0);
     }
 
     /**
@@ -143,20 +156,6 @@ export class InferenceModelVersionManager {
     private isNewerVersion(remoteVersion: string, localVersion: string): boolean {
         // Use semver to properly compare versions
         return semver.gt(remoteVersion, localVersion);
-    }
-
-    /**
-     * Calculate the total size of all files in a model configuration
-     */
-    private calculateConfigSize(config: ModelConfig): number {
-        if (!config.files || config.files.length === 0) {
-            return 0;
-        }
-
-        // Sum up the size of all files
-        return config.files.reduce((total, file) => {
-            return total + (file.sizeBytes || 0);
-        }, 0);
     }
 }
 

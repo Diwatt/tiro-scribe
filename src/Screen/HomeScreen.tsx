@@ -37,14 +37,22 @@ export const Home = observer((): React.JSX.Element => {
         router.push({ pathname: '/main/recording', params: { autoStart: 'true' } });
     };
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
+            <ScrollView contentContainerStyle={STYLES.scrollContent} showsVerticalScrollIndicator={false}>
                 {isDownloading && (
-                    <Card style={[styles.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
+                    <Card style={[STYLES.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
                         <Card.Content>
-                            <Text style={[styles.bannerTitle, { color: theme.colors.onSurface }]}>{LL.home.initializingAi()}</Text>
-                            <ProgressBar progress={progress} color={theme.colors.primary} style={styles.bannerProgress} />
-                            <Text style={[styles.bannerPercent, { color: theme.colors.onSurfaceVariant }]}>{Math.round(progress * 100)}%</Text>
+                            <Text style={[STYLES.bannerTitle, { color: theme.colors.onSurface }]}>
+                                {LL.home.initializingAi()}
+                            </Text>
+                            <ProgressBar
+                                progress={progress}
+                                color={theme.colors.primary}
+                                style={STYLES.bannerProgress}
+                            />
+                            <Text style={[STYLES.bannerPercent, { color: theme.colors.onSurfaceVariant }]}>
+                                {Math.round(progress * 100)}%
+                            </Text>
                         </Card.Content>
                     </Card>
                 )}
@@ -52,15 +60,19 @@ export const Home = observer((): React.JSX.Element => {
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            <View style={styles.buttonContainer}>
+            <View style={STYLES.buttonContainer}>
                 <SecureSessionButton onPress={handlePress} isRecording={false} disabled={isDownloading} />
-                {isDownloading && <Text style={[styles.warning, { color: theme.colors.statusWarning.text }]}>{LL.home.processingDelayed()}</Text>}
+                {isDownloading && (
+                    <Text style={[STYLES.warning, { color: theme.colors.statusWarning.text }]}>
+                        {LL.home.processingDelayed()}
+                    </Text>
+                )}
             </View>
         </View>
     );
 });
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         flex: 1,
     },

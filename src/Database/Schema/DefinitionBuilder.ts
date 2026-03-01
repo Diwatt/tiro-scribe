@@ -22,32 +22,23 @@ interface PrimaryKeyColumnDef {
 }
 
 export class DefinitionBuilder {
-    /**
-     * Format SQL type string; uppercase and optionally include a length.
-     * SQLite ignores length, but keeping it matches our schema tests and
-     * doesn't hurt readability.
-     */
-    private formatSqlType(type: string, length?: number): string {
-        const upper = type.toUpperCase();
-        if (length != null && length > 0) {
-            return `${upper}(${length})`;
-        }
-        return upper;
-    }
-
-    private readonly tableName: string;
-    private readonly primaryKeyPropertyName: string;
-    private readonly primaryKeyColumnName: string;
-    private readonly primaryKeyColumn: PrimaryKeyColumnDef;
     private readonly columnFields: PropertyDecorator[];
+
     /** Property name → " REFERENCES table(column) ON DELETE action" for columns with @ForeignKey. */
     private readonly foreignKeyClauseByPropertyName: Map<string, string>;
-
+    private readonly primaryKeyColumn: PrimaryKeyColumnDef;
+    private readonly primaryKeyColumnName: string;
+    private readonly primaryKeyPropertyName: string;
+    private readonly tableName: string;
     public constructor(metadata: EntityMetadata) {
         this.tableName = metadata.getTableName();
         const primaryKeyColumnField = metadata.getPrimaryKeyColumnField();
         if (primaryKeyColumnField == null) {
-            throw new DatabaseException('Entity must have @Entity and @PrimaryKey.', 'ENTITY_METADATA_REQUIRED', undefined);
+            throw new DatabaseException(
+                'Entity must have @Entity and @PrimaryKey.',
+                'ENTITY_METADATA_REQUIRED',
+                undefined,
+            );
         }
         this.primaryKeyPropertyName = primaryKeyColumnField.getPropertyName();
         this.primaryKeyColumnName = snakeCase(this.primaryKeyPropertyName);
@@ -59,41 +50,10 @@ export class DefinitionBuilder {
             type: primaryKeyType,
             length: primaryKeyLength,
         };
-        this.columnFields = metadata.getColumnFields().filter((f) => f.getPropertyName() !== this.primaryKeyPropertyName);
+        this.columnFields = metadata
+            .getColumnFields()
+            .filter((f) => f.getPropertyName() !== this.primaryKeyPropertyName);
         this.foreignKeyClauseByPropertyName = this.buildForeignKeyClauses(metadata);
-    }
-
-    private buildForeignKeyClauses(metadata: EntityMetadata): Map<string, string> {
-        const map = new Map<string, string>();
-        const addIfPresent = (propertyName: string): void => {
-            const clause = this.getForeignKeyReferencesClause(metadata, propertyName);
-            if (clause != null) {
-                map.set(propertyName, clause);
-            }
-        };
-        addIfPresent(this.primaryKeyPropertyName);
-        for (const field of this.columnFields) {
-            addIfPresent(field.getPropertyName());
-        }
-
-        return map;
-    }
-
-    private getForeignKeyReferencesClause(metadata: EntityMetadata, propertyName: string): string | null {
-        const options = metadata.getForeignKeyOptions(propertyName);
-        if (options == null) {
-            return null;
-        }
-        const referencedTable = metadata.getForeignKeyTargetTableName(propertyName);
-        if (referencedTable == null || referencedTable.trim() === '') {
-            throw new DatabaseException('ForeignKey target must be an @Entity class with tableName.', 'INVALID_FOREIGN_KEY_TARGET', undefined, {
-                propertyName,
-            });
-        }
-        const referencedColumn = options.column ?? 'uuid';
-        const onDelete = options.onDelete ?? OnDeleteAction.Restrict;
-
-        return ` REFERENCES ${referencedTable}(${referencedColumn}) ON DELETE ${onDelete}`;
     }
 
     /** Returns the shared schema contract; consumed by DefinitionLanguageWriter.write(). */
@@ -144,30 +104,20 @@ export class DefinitionBuilder {
         return columns;
     }
 
-    private buildIndexes(): string[] {
-        const indexes: string[] = [];
-
+    private buildForeignKeyClauses(metadata: EntityMetadata): Map<string, string> {
+        const map = new Map<string, string>();
+        const addIfPresent = (propertyName: string): void => {
+            const clause = this.getForeignKeyReferencesClause(metadata, propertyName);
+            if (clause != null) {
+                map.set(propertyName, clause);
+            }
+        };
+        addIfPresent(this.primaryKeyPropertyName);
         for (const field of this.columnFields) {
-            const propertyName = field.getPropertyName();
-            const hasForeignKey = this.foreignKeyClauseByPropertyName.has(propertyName);
-            const options = field.getOptions<ColumnOptions>();
-
-            if (hasForeignKey) {
-                const columnName = snakeCase(propertyName);
-                // Use Kysely's CreateIndexBuilder for foreign key indexes
-                const indexBuilder = qb.schema.createIndex(`idx_${this.tableName}_${columnName}`).on(this.tableName).column(columnName).ifNotExists();
-                indexes.push(`${indexBuilder.compile().sql};`);
-                continue;
-            }
-
-            if (options.index === true) {
-                const sqlType = this.formatSqlType(String(options.type).toUpperCase(), options.length);
-                const { index } = this.buildVirtualColumn(propertyName, sqlType);
-                indexes.push(index);
-            }
+            addIfPresent(field.getPropertyName());
         }
 
-        return indexes;
+        return map;
     }
 
     private buildFullTextSearchFields(): FullTextSearchFieldSpec[] {
@@ -187,12 +137,81 @@ export class DefinitionBuilder {
         return fullTextSearchFields;
     }
 
+    private buildIndexes(): string[] {
+        const indexes: string[] = [];
+
+        for (const field of this.columnFields) {
+            const propertyName = field.getPropertyName();
+            const hasForeignKey = this.foreignKeyClauseByPropertyName.has(propertyName);
+            const options = field.getOptions<ColumnOptions>();
+
+            if (hasForeignKey) {
+                const columnName = snakeCase(propertyName);
+                // Use Kysely's CreateIndexBuilder for foreign key indexes
+                const indexBuilder = qb.schema
+                    .createIndex(`idx_${this.tableName}_${columnName}`)
+                    .on(this.tableName)
+                    .column(columnName)
+                    .ifNotExists();
+                indexes.push(`${indexBuilder.compile().sql};`);
+                continue;
+            }
+
+            if (options.index === true) {
+                const sqlType = this.formatSqlType(String(options.type).toUpperCase(), options.length);
+                const { index } = this.buildVirtualColumn(propertyName, sqlType);
+                indexes.push(index);
+            }
+        }
+
+        return indexes;
+    }
+
     private buildVirtualColumn(propertyName: string, sqlType: string): { column: string; index: string } {
         const columnName = snakeCase(propertyName);
         const column = `${columnName} ${sqlType} GENERATED ALWAYS AS (json_extract(data, '$.${propertyName}')) VIRTUAL`;
         // Use Kysely's CreateIndexBuilder for virtual column indexes
-        const indexBuilder = qb.schema.createIndex(`idx_${this.tableName}_${columnName}`).on(this.tableName).column(columnName).ifNotExists();
+        const indexBuilder = qb.schema
+            .createIndex(`idx_${this.tableName}_${columnName}`)
+            .on(this.tableName)
+            .column(columnName)
+            .ifNotExists();
         const index = `${indexBuilder.compile().sql};`;
         return { column, index };
+    }
+
+    /**
+     * Format SQL type string; uppercase and optionally include a length.
+     * SQLite ignores length, but keeping it matches our schema tests and
+     * doesn't hurt readability.
+     */
+    private formatSqlType(type: string, length?: number): string {
+        const upper = type.toUpperCase();
+        if (length != null && length > 0) {
+            return `${upper}(${length})`;
+        }
+        return upper;
+    }
+
+    private getForeignKeyReferencesClause(metadata: EntityMetadata, propertyName: string): string | null {
+        const options = metadata.getForeignKeyOptions(propertyName);
+        if (options == null) {
+            return null;
+        }
+        const referencedTable = metadata.getForeignKeyTargetTableName(propertyName);
+        if (referencedTable == null || referencedTable.trim() === '') {
+            throw new DatabaseException(
+                'ForeignKey target must be an @Entity class with tableName.',
+                'INVALID_FOREIGN_KEY_TARGET',
+                undefined,
+                {
+                    propertyName,
+                },
+            );
+        }
+        const referencedColumn = options.column ?? 'uuid';
+        const onDelete = options.onDelete ?? OnDeleteAction.Restrict;
+
+        return ` REFERENCES ${referencedTable}(${referencedColumn}) ON DELETE ${onDelete}`;
     }
 }

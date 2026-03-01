@@ -19,6 +19,12 @@ import type { LoggerInterface } from '../Service/Logger';
 export class HardwareGuard {
     // --- public ---
 
+    private readonly minRamBytes: number;
+
+    private readonly minSemverCoerced: semver.SemVer;
+
+    // --- private ---
+
     public constructor(
         private readonly log: LoggerInterface,
         minRamGigabytes: number,
@@ -27,7 +33,6 @@ export class HardwareGuard {
         this.minRamBytes = minRamGigabytes * 1024 ** 3;
         this.minSemverCoerced = this.validateVersion(minVersion);
     }
-
     /** Returns true if current device meets the constructor mins. */
     public isCompatible(): boolean {
         if (!this.isPhoneOrTablet()) {
@@ -37,36 +42,28 @@ export class HardwareGuard {
             return false;
         }
         const platformLabel = Device.osName ?? 'device';
-        return this.hasMinOsVersion(Device.osVersion, this.minSemverCoerced, platformLabel) && this.hasEnoughRam(this.minRamBytes);
+        return (
+            this.hasMinOsVersion(Device.osVersion, this.minSemverCoerced, platformLabel) &&
+            this.hasEnoughRam(this.minRamBytes)
+        );
     }
 
-    // --- private ---
-
-    private readonly minRamBytes: number;
-    private readonly minSemverCoerced: semver.SemVer;
-
-    private validateVersion(minVersion: string): semver.SemVer {
-        const coerced = semver.coerce(minVersion.trim());
-        if (!coerced) {
-            throw new HardwareGuardException(`minSemver is not parseable: "${minVersion}"`, HardwareGuardException.INVALID_MIN_VERSION, undefined, {
-                minSemver: minVersion,
-            });
-        }
-        return coerced;
-    }
-
-    /** True if Device.deviceType is PHONE or TABLET. */
-    private isPhoneOrTablet(): boolean {
-        const type = Device.deviceType;
-        if (type != null && type !== DeviceType.PHONE && type !== DeviceType.TABLET) {
-            this.log.warn('[HardwareGuard] Device type not supported', { deviceType: type });
+    /** True if Device.totalMemory >= minRamBytes. */
+    private hasEnoughRam(minRamBytes: number): boolean {
+        const total = Device.totalMemory;
+        if (total != null && total < minRamBytes) {
+            this.log.warn('[HardwareGuard] RAM below threshold', { totalMemory: total });
             return false;
         }
         return true;
     }
 
     /** True if osVersion (semver) >= coercedMin. */
-    private hasMinOsVersion(osVersion: string | null | undefined, coercedMin: semver.SemVer, platformLabel: string): boolean {
+    private hasMinOsVersion(
+        osVersion: string | null | undefined,
+        coercedMin: semver.SemVer,
+        platformLabel: string,
+    ): boolean {
         const actual = (osVersion ?? '').trim();
         const isParseableActual = !!semver.coerce(actual);
         if (!actual || !isParseableActual) {
@@ -88,24 +85,41 @@ export class HardwareGuard {
         return true;
     }
 
-    /** True if Device.totalMemory >= minRamBytes. */
-    private hasEnoughRam(minRamBytes: number): boolean {
-        const total = Device.totalMemory;
-        if (total != null && total < minRamBytes) {
-            this.log.warn('[HardwareGuard] RAM below threshold', { totalMemory: total });
-            return false;
-        }
-        return true;
-    }
-
     /** True if Device.supportedCpuArchitectures includes 64-bit (arm64 / x86_64). */
     private is64Bit(): boolean {
         const archs = Device.supportedCpuArchitectures ?? [];
-        const has = archs.some((a) => (a?.toLowerCase().includes('arm64') ?? false) || (a?.toLowerCase().includes('x86_64') ?? false));
+        const has = archs.some(
+            (a) => (a?.toLowerCase().includes('arm64') ?? false) || (a?.toLowerCase().includes('x86_64') ?? false),
+        );
         if (archs.length > 0 && !has) {
             this.log.warn('[HardwareGuard] No 64-bit CPU (arm64/x86_64)', { supportedCpuArchitectures: archs });
             return false;
         }
         return true;
+    }
+
+    /** True if Device.deviceType is PHONE or TABLET. */
+    private isPhoneOrTablet(): boolean {
+        const type = Device.deviceType;
+        if (type != null && type !== DeviceType.PHONE && type !== DeviceType.TABLET) {
+            this.log.warn('[HardwareGuard] Device type not supported', { deviceType: type });
+            return false;
+        }
+        return true;
+    }
+
+    private validateVersion(minVersion: string): semver.SemVer {
+        const coerced = semver.coerce(minVersion.trim());
+        if (!coerced) {
+            throw new HardwareGuardException(
+                `minSemver is not parseable: "${minVersion}"`,
+                HardwareGuardException.INVALID_MIN_VERSION,
+                undefined,
+                {
+                    minSemver: minVersion,
+                },
+            );
+        }
+        return coerced;
     }
 }

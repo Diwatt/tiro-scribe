@@ -28,6 +28,7 @@ export function TextInput<T extends FieldValues>({
     numericOnly,
 }: TextInputProps<T>): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
+
     return (
         <Controller
             name={name}
@@ -41,6 +42,7 @@ export function TextInput<T extends FieldValues>({
                         onChange(text);
                     }
                 };
+
                 return (
                     <>
                         <PaperTextInput

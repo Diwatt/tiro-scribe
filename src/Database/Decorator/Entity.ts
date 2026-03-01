@@ -15,7 +15,7 @@ import type { DecoratorMetadata, MetadataMap } from '../../Decorator/Type';
 import { DatabaseException } from '../../Exception';
 import type { AbstractEntity } from '../AbstractEntity';
 
-declare const __DEV__: boolean;
+declare const Dev: boolean;
 
 // Replaced by lodash helper – keep comment for context.
 
@@ -36,10 +36,14 @@ const ENTITY_OPTIONS_SCHEMA: OptionsSchema = {
 // enforces a pattern per user request.
 
 class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
-    public readonly schema = ENTITY_OPTIONS_SCHEMA;
     public readonly errorCode = 'INVALID_ENTITY_OPTIONS';
+    public readonly schema = ENTITY_OPTIONS_SCHEMA;
 
-    public decorate(target: typeof AbstractEntity, context: ClassDecoratorContext<typeof AbstractEntity>, options: EntityOptions): void {
+    public decorate(
+        target: typeof AbstractEntity,
+        context: ClassDecoratorContext<typeof AbstractEntity>,
+        options: EntityOptions,
+    ): void {
         // trim any user‑supplied whitespace so callers can accidentally pass
         // `'  foo  '` and still get a valid name.  SchemaValidator already
         // rejects blank/empty values but it does not mutate the string.
@@ -57,34 +61,15 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
         const primaryKeyProp = this.processMetadata(target, meta, normalized.tableName);
 
         if (primaryKeyProp === null) {
-            throw new DatabaseException(`Entity "${normalized.tableName}" must define a primary key with @PrimaryKey().`, 'PRIMARY_KEY_REQUIRED', undefined, {
-                tableName: normalized.tableName,
-            });
+            throw new DatabaseException(
+                `Entity "${normalized.tableName}" must define a primary key with @PrimaryKey().`,
+                'PRIMARY_KEY_REQUIRED',
+                undefined,
+                {
+                    tableName: normalized.tableName,
+                },
+            );
         }
-    }
-
-    private setEntityNameAndRegister(target: typeof AbstractEntity, options: EntityOptions): void {
-        (target as typeof target & { entityName: string }).entityName = options.tableName;
-        MetadataWriter.registerClass(target, options);
-    }
-
-    private processMetadata(target: typeof AbstractEntity, meta: MetadataMap | undefined, tableName: string): string | null {
-        // Hermes-only: Symbol.metadata is always available
-        if (!isPlainObject(meta)) {
-            if (__DEV__) {
-                throw new DatabaseException(
-                    `Entity "${tableName}" has no metadata available. This should not happen in Hermes with Stage 3 decorators.`,
-                    'METADATA_UNAVAILABLE',
-                    undefined,
-                    { tableName },
-                );
-            }
-            // In production, we cannot recover from missing metadata
-            return null;
-        }
-
-        // Standard path: metadata is available via Symbol.metadata
-        return this.findAndSetPrimaryKey(target, meta as MetadataMap);
     }
 
     private findAndSetPrimaryKey(_target: typeof AbstractEntity, metadata: MetadataMap): string | null {
@@ -119,6 +104,34 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
             return undefined;
         }
         return decorators.find((d) => d.decoratorName === name);
+    }
+
+    private processMetadata(
+        target: typeof AbstractEntity,
+        meta: MetadataMap | undefined,
+        tableName: string,
+    ): string | null {
+        // Hermes-only: Symbol.metadata is always available
+        if (!isPlainObject(meta)) {
+            if (Dev) {
+                throw new DatabaseException(
+                    `Entity "${tableName}" has no metadata available. This should not happen in Hermes with Stage 3 decorators.`,
+                    'METADATA_UNAVAILABLE',
+                    undefined,
+                    { tableName },
+                );
+            }
+            // In production, we cannot recover from missing metadata
+            return null;
+        }
+
+        // Standard path: metadata is available via Symbol.metadata
+        return this.findAndSetPrimaryKey(target, meta as MetadataMap);
+    }
+
+    private setEntityNameAndRegister(target: typeof AbstractEntity, options: EntityOptions): void {
+        (target as typeof target & { entityName: string }).entityName = options.tableName;
+        MetadataWriter.registerClass(target, options);
     }
 }
 

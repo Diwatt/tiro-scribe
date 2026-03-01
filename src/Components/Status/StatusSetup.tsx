@@ -13,7 +13,12 @@ interface StatusSetupProps {
     onPressAction?: () => void;
 }
 
-export function StatusSetup({ modelName, downloadProgress, downloadSize, onPressAction }: StatusSetupProps): React.JSX.Element {
+export function StatusSetup({
+    modelName,
+    downloadProgress,
+    downloadSize,
+    onPressAction,
+}: StatusSetupProps): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const statusColors = theme.colors.statusSetup;
     return (
@@ -24,19 +29,21 @@ export function StatusSetup({ modelName, downloadProgress, downloadSize, onPress
             state={StatusState.Setup}
         >
             {downloadProgress !== undefined && (
-                <View style={styles.progressContainer}>
-                    <View style={styles.rowBetween}>
-                        <Text style={[styles.progressLabel, { color: statusColors.text }]}>{downloadProgress}%</Text>
-                        {downloadSize && <Text style={[styles.progressLabel, { color: statusColors.text }]}>{downloadSize}</Text>}
+                <View style={STYLES.progressContainer}>
+                    <View style={STYLES.rowBetween}>
+                        <Text style={[STYLES.progressLabel, { color: statusColors.text }]}>{downloadProgress}%</Text>
+                        {Boolean(downloadSize) && (
+                            <Text style={[STYLES.progressLabel, { color: statusColors.text }]}>{downloadSize}</Text>
+                        )}
                     </View>
                     <ProgressBar
                         progress={downloadProgress / 100}
                         color={statusColors.accent}
-                        style={[styles.progressBar, { backgroundColor: 'rgba(255,255,255, 0.5)' }]}
+                        style={[STYLES.progressBar, { backgroundColor: 'rgba(255,255,255, 0.5)' }]}
                     />
                 </View>
             )}
-            <View style={styles.actionRow}>
+            <View style={STYLES.actionRow}>
                 <Button mode="text" textColor={statusColors.text} compact onPress={onPressAction}>
                     Pause
                 </Button>
@@ -45,7 +52,7 @@ export function StatusSetup({ modelName, downloadProgress, downloadSize, onPress
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     progressContainer: {
         marginTop: 8,
     },

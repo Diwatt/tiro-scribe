@@ -9,21 +9,12 @@ import { Column, Entity, PrimaryKey } from '../Decorator';
 
 @Entity({ tableName: 'therapists', repositoryClass: 'TherapistRepository' })
 export class Therapist extends AbstractEntity {
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    /** Projected-voice biocode (vector stored as JSON array). Set at calibration; same every encounter. */
+    @Column({ default: '[]', type: 'text', as: 'json' })
+    public biocode!: number[];
 
     @Column({ default: '', type: 'varchar' })
     public email!: string;
-
-    @Column({ default: null, type: 'varchar' })
-    public name!: string | null;
-
-    @Column({ default: '', type: 'text' })
-    public passwordHash!: string;
-
-    @Column({ default: null, type: 'varchar', length: 36 })
-    public localKeyId!: string | null;
 
     @Column({ default: '', type: 'text' })
     public encryptedMasterKeyPrimary!: string;
@@ -31,24 +22,33 @@ export class Therapist extends AbstractEntity {
     @Column({ default: '', type: 'text' })
     public encryptedMasterKeyRecovery!: string;
 
-    @Column({ default: '', type: 'text' })
-    public recoveryCodeHash!: string;
+    @Column({ default: '[]', type: 'text', as: 'json' })
+    public languages!: string[];
+
+    @Column({ default: null, type: 'varchar', length: 36 })
+    public localKeyId!: string | null;
 
     @Column({ default: '', type: 'text' })
     public masterKeyCheckHash!: string;
 
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public languages!: string[];
+    @Column({ default: null, type: 'varchar' })
+    public name!: string | null;
 
-    /** Projected-voice biocode (vector stored as JSON array). Set at calibration; same every encounter. */
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public biocode!: number[];
+    @Column({ default: '', type: 'text' })
+    public passwordHash!: string;
+
+    @Column({ default: null, type: 'varchar' })
+    public qualification!: string | null;
+
+    @Column({ default: '', type: 'text' })
+    public recoveryCodeHash!: string;
 
     @Column({ default: null, type: 'varchar' })
     public therapyMethod!: string | null;
 
-    @Column({ default: null, type: 'varchar' })
-    public qualification!: string | null;
+    @PrimaryKey()
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
+    public uuid!: string;
 
     @Column({ default: null, type: 'integer' })
     public yearsOfExperience!: number | null;
@@ -109,6 +109,10 @@ export class Therapist extends AbstractEntity {
         return this.yearsOfExperience;
     }
 
+    public isValidPassword(hash: string): boolean {
+        return this.passwordHash === hash;
+    }
+
     public setBiocode(value: number[]): void {
         this.biocode = value;
     }
@@ -163,9 +167,5 @@ export class Therapist extends AbstractEntity {
 
     public setYearsOfExperience(value: number | null): void {
         this.yearsOfExperience = value;
-    }
-
-    public isValidPassword(hash: string): boolean {
-        return this.passwordHash === hash;
     }
 }

@@ -12,17 +12,19 @@ export class PropertyDecorator<TOptions extends Record<string, unknown> = Record
         private readonly options: TOptions,
     ) {}
 
-    public getDecoratorName(): string {
-        return this.decoratorName;
-    }
-
     /** Name of the class this property belongs to. */
     public getClassName(): string {
         return this.className;
     }
 
-    public getPropertyName(): string {
-        return this.propertyName;
+    public getDecoratorName(): string {
+        return this.decoratorName;
+    }
+
+    /** Single option by name, resolved (e.g. getOption('default') for Column default: T | (() => T)). */
+    public getOption(optionName: string): unknown {
+        const raw = (this.options as Record<string, unknown>)[optionName];
+        return this.resolveOptionValue(raw);
     }
 
     /** All options with values resolved (factory → called, value → as-is). Specify TOptions when the decorator type is known (e.g. getOptions<ColumnOptions>()). */
@@ -39,13 +41,13 @@ export class PropertyDecorator<TOptions extends Record<string, unknown> = Record
      */
     public getOptions<T = TOptions>(): T {
         const opts: Record<string, unknown> = this.options ?? {};
-        return Object.fromEntries(Object.entries(opts).map(([key, value]) => [key, this.resolveOptionValue(value)])) as unknown as T;
+        return Object.fromEntries(
+            Object.entries(opts).map(([key, value]) => [key, this.resolveOptionValue(value)]),
+        ) as unknown as T;
     }
 
-    /** Single option by name, resolved (e.g. getOption('default') for Column default: T | (() => T)). */
-    public getOption(optionName: string): unknown {
-        const raw = (this.options as Record<string, unknown>)[optionName];
-        return this.resolveOptionValue(raw);
+    public getPropertyName(): string {
+        return this.propertyName;
     }
 
     private resolveOptionValue(value: unknown): unknown {

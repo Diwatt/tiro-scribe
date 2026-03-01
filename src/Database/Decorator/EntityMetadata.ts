@@ -54,6 +54,31 @@ export class EntityMetadata {
         return values != null && typeof values === 'object' ? values : {};
     }
 
+    /**
+     * SQL expression for a property in SELECT/WHERE/ORDER BY: table column name (pk or FK) or json_extract(data, '$.propertyName').
+     */
+    public getColumnExpression(propertyName: string): string {
+        if (propertyName === this.getPrimaryKeyField()) {
+            return this.getPrimaryKeyColumnName();
+        }
+        const fk = this.getForeignKeyColumns().find((c) => c.propertyName === propertyName);
+        if (fk != null) {
+            return fk.columnName;
+        }
+
+        return `json_extract(data, '$.${propertyName}')`;
+    }
+
+    /**
+     * Return the column decorator for a given property, if that property has
+     * an @Column decorator.  This is a thin convenience wrapper around
+     * `getColumnFields()` and saves callers from writing their own `.find`
+     * loops every time they want the metadata for a single column.
+     */
+    public getColumnField(propertyName: string): PropertyDecorator | undefined {
+        return this.getColumnFields().find((f) => f.getPropertyName() === propertyName);
+    }
+
     /** All @Column PropertyDecorator instances. Cached. Single source for column data. */
     public getColumnFields(): PropertyDecorator[] {
         return this.getOrCreate('columnFields', () => this.reader.getPropertiesByDecorator('Column'));
@@ -112,16 +137,6 @@ export class EntityMetadata {
         return targetClass.entityName;
     }
 
-    /**
-     * Return the column decorator for a given property, if that property has
-     * an @Column decorator.  This is a thin convenience wrapper around
-     * `getColumnFields()` and saves callers from writing their own `.find`
-     * loops every time they want the metadata for a single column.
-     */
-    public getColumnField(propertyName: string): PropertyDecorator | undefined {
-        return this.getColumnFields().find((f) => f.getPropertyName() === propertyName);
-    }
-
     /** Default ORDER BY column: created_at if @Column index on createdAt, else primary key column (snake_case). */
     public getOrderByColumnName(): string {
         return this.getOrCreate('orderByColumnName', () => {
@@ -141,6 +156,11 @@ export class EntityMetadata {
         return (value as PropertyDecorator | null) ?? undefined;
     }
 
+    /** Primary key column name (snake_case) for SQL. */
+    public getPrimaryKeyColumnName(): string {
+        return snakeCase(this.getPrimaryKeyField());
+    }
+
     /** Primary key property name. @Entity validates at definition time that exactly one @PrimaryKey exists. */
     public getPrimaryKeyField(): string {
         return this.getOrCreate('primaryKeyField', () => {
@@ -155,26 +175,6 @@ export class EntityMetadata {
                 { entityName: this.construct.name },
             );
         });
-    }
-
-    /** Primary key column name (snake_case) for SQL. */
-    public getPrimaryKeyColumnName(): string {
-        return snakeCase(this.getPrimaryKeyField());
-    }
-
-    /**
-     * SQL expression for a property in SELECT/WHERE/ORDER BY: table column name (pk or FK) or json_extract(data, '$.propertyName').
-     */
-    public getColumnExpression(propertyName: string): string {
-        if (propertyName === this.getPrimaryKeyField()) {
-            return this.getPrimaryKeyColumnName();
-        }
-        const fk = this.getForeignKeyColumns().find((c) => c.propertyName === propertyName);
-        if (fk != null) {
-            return fk.columnName;
-        }
-
-        return `json_extract(data, '$.${propertyName}')`;
     }
 
     /** Optional repository export name from @Entity({ repositoryClass }). Must be exported from @/Repository; Registry throws if missing. */

@@ -4,7 +4,7 @@
  */
 
 // Bypass root-level Jest mock for this module to test the real class
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { SecureRecorder } = jest.requireActual('../src/index');
 
 // Helpers: minimal native/event emitter fakes for constructor-only tests

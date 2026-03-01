@@ -20,34 +20,19 @@ export interface UseAppLanguageReturn {
 }
 
 export class AppLanguage {
-    public static readonly SUPPORTED_LOCALES: Locales[] = ['en', 'fr'];
-
     public static readonly DEFAULT_LOCALE: Locales = 'en';
 
-    private static readonly translationCache: Partial<Record<Locales, TranslationFunctions>> = AppLanguage.createEmptyTranslationCache();
-
     private static readonly dictionaries: Record<Locales, Translations> = INITIAL_DICTIONARIES;
+
+    public static readonly SUPPORTED_LOCALES: Locales[] = ['en', 'fr'];
+
+    private static readonly translationCache: Partial<Record<Locales, TranslationFunctions>> =
+        AppLanguage.createEmptyTranslationCache();
 
     private locale: Locales = AppLanguage.DEFAULT_LOCALE;
 
     private constructor() {
         this.locale = this.getDeviceLocale();
-    }
-
-    public getLocale(): Locales {
-        return this.locale;
-    }
-
-    public getTranslationFunctions(locale: Locales): TranslationFunctions {
-        const effectiveLocale = AppLanguage.isLocale(locale) ? locale : AppLanguage.DEFAULT_LOCALE;
-        const cached = AppLanguage.translationCache[effectiveLocale];
-        if (cached) {
-            return cached;
-        }
-        const translations = AppLanguage.dictionaries[effectiveLocale] ?? AppLanguage.dictionaries.en;
-        const built = AppLanguage.buildTranslationFunctions(translations);
-        AppLanguage.translationCache[effectiveLocale] = built;
-        return built;
     }
 
     public getDeviceLocale(): Locales {
@@ -75,16 +60,20 @@ export class AppLanguage {
         return AppLanguage.DEFAULT_LOCALE;
     }
 
-    private static createEmptyTranslationCache(): Partial<Record<Locales, TranslationFunctions>> {
-        return {};
+    public getLocale(): Locales {
+        return this.locale;
     }
 
-    private static isLocale(s: string): s is Locales {
-        return AppLanguage.SUPPORTED_LOCALES.includes(s as Locales);
-    }
-
-    private static createEmptyTranslationFunctions(): TranslationFunctions {
-        return {} as TranslationFunctions;
+    public getTranslationFunctions(locale: Locales): TranslationFunctions {
+        const effectiveLocale = AppLanguage.isLocale(locale) ? locale : AppLanguage.DEFAULT_LOCALE;
+        const cached = AppLanguage.translationCache[effectiveLocale];
+        if (cached) {
+            return cached;
+        }
+        const translations = AppLanguage.dictionaries[effectiveLocale] ?? AppLanguage.dictionaries.en;
+        const built = AppLanguage.buildTranslationFunctions(translations);
+        AppLanguage.translationCache[effectiveLocale] = built;
+        return built;
     }
 
     private static buildTranslationFunctions(translations: Translations): TranslationFunctions {
@@ -108,6 +97,14 @@ export class AppLanguage {
         return result;
     }
 
+    private static createEmptyTranslationCache(): Partial<Record<Locales, TranslationFunctions>> {
+        return {};
+    }
+
+    private static createEmptyTranslationFunctions(): TranslationFunctions {
+        return {} as TranslationFunctions;
+    }
+
     private static interpolate(template: string, params?: Record<string, unknown>): string {
         if (!params) {
             return template;
@@ -116,6 +113,10 @@ export class AppLanguage {
             const value = params[key];
             return value === undefined || value === null ? '' : String(value);
         });
+    }
+
+    private static isLocale(s: string): s is Locales {
+        return AppLanguage.SUPPORTED_LOCALES.includes(s as Locales);
     }
 }
 

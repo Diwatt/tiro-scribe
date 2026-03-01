@@ -68,15 +68,26 @@ export function WaveformBackground({ style, color: colorProp }: WaveformBackgrou
         }
     }, [color]);
     return (
-        <Svg height="100%" width="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={[styles.svg, style]}>
+        <Svg
+            height="100%"
+            width="100%"
+            viewBox={`0 0 ${width} ${height}`}
+            preserveAspectRatio="none"
+            style={[STYLES.svg, style]}
+        >
             {paths.map((d, index) => (
-                <Path key={d} d={d} stroke="none" fill={`rgba(${rgbBase}, ${WAVEFORM.opacityBase + index * WAVEFORM.opacityIncrement})`} />
+                <Path
+                    key={d}
+                    d={d}
+                    stroke="none"
+                    fill={`rgba(${rgbBase}, ${WAVEFORM.opacityBase + index * WAVEFORM.opacityIncrement})`}
+                />
             ))}
         </Svg>
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     svg: {
         position: 'absolute',
         width: '100%',

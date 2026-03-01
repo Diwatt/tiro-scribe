@@ -20,7 +20,8 @@ const fr: Translation = {
         back: 'Retour',
         creatingAccount: 'Création du compte…',
         accountReady: 'Compte prêt',
-        recoveryDesc: "Conservez ce code de récupération en lieu sûr. C'est le seul moyen de récupérer votre compte si vous perdez votre mot de passe.",
+        recoveryDesc:
+            "Conservez ce code de récupération en lieu sûr. C'est le seul moyen de récupérer votre compte si vous perdez votre mot de passe.",
         saveRecoveryKit: 'Sauvegarder mon Kit de Secours',
         recoveryKitPending: 'Génération en cours…',
         copyCode: 'Copier le code',

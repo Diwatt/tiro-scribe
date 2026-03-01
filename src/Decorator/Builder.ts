@@ -15,7 +15,7 @@ import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } fro
 // any database-specific dependencies.
 type ClassConstructor = abstract new (...args: unknown[]) => unknown;
 
-declare const __DEV__: boolean;
+declare const Dev: boolean;
 
 export type {
     ClassDecoratorConfig,
@@ -30,25 +30,6 @@ export type {
 // biome-ignore lint/complexity/noStaticOnlyClass: decorator builder with static schemaValidator
 export class Builder {
     private static readonly schemaValidator = new SchemaValidator();
-
-    /**
-     * Validates options in development mode.
-     * - If schema and errorCode are both provided, runs schema validation
-     * - If custom validate function is provided, calls it
-     */
-    private static validateOptions(config: { schema?: OptionsSchema; errorCode?: string; validate?: (opts: object) => void }, opts: object): void {
-        if (!__DEV__) {
-            return;
-        }
-
-        // Schema validation requires both schema and errorCode
-        if (config.schema != null && config.errorCode != null) {
-            Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
-        }
-
-        // Custom validation (optional)
-        config.validate?.(opts);
-    }
 
     /**
      * Builds a class decorator from a config implementing ClassDecoratorConfig.
@@ -68,9 +49,6 @@ export class Builder {
         };
     }
 
-    // backwards compatibility: previously buildEntity was the method name; use buildClass instead.
-    // (alias removed)
-
     /**
      * Builds a property decorator. Config: optional schema/errorCode (global validate), validate(options), before, initializer.
      * Options default to {} when not set; validate/before/initializer always receive an object.
@@ -82,9 +60,13 @@ export class Builder {
             const opts = options ?? {};
             Builder.validateOptions(config, opts);
             return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
-                if (__DEV__ && config.unique === true && config.decoratorName != null) {
+                if (Dev && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;
-                    Builder.schemaValidator.ensurePropertyDecoratorUniqueness(meta, String(context.name), config.decoratorName);
+                    Builder.schemaValidator.ensurePropertyDecoratorUniqueness(
+                        meta,
+                        String(context.name),
+                        config.decoratorName,
+                    );
                 }
                 if (config.before != null) {
                     config.before(context, opts);
@@ -94,6 +76,31 @@ export class Builder {
                 });
             };
         };
+    }
+
+    // backwards compatibility: previously buildEntity was the method name; use buildClass instead.
+    // (alias removed)
+
+    /**
+     * Validates options in development mode.
+     * - If schema and errorCode are both provided, runs schema validation
+     * - If custom validate function is provided, calls it
+     */
+    private static validateOptions(
+        config: { schema?: OptionsSchema; errorCode?: string; validate?: (opts: object) => void },
+        opts: object,
+    ): void {
+        if (!Dev) {
+            return;
+        }
+
+        // Schema validation requires both schema and errorCode
+        if (config.schema != null && config.errorCode != null) {
+            Builder.schemaValidator.validate(opts, config.schema, config.errorCode);
+        }
+
+        // Custom validation (optional)
+        config.validate?.(opts);
     }
 
     // previously buildField existed; use buildProperty

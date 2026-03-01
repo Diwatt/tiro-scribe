@@ -54,19 +54,79 @@ export class SchemaValidator {
         }
     }
 
-    private ensureRequired(key: string, isSet: boolean, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
+    private ensureNotBlank(
+        key: string,
+        value: unknown,
+        field: OptionPropertySchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
+        if (field.notBlank !== true || typeof value !== 'string') {
+            return;
+        }
+        if (value.trim() === '') {
+            throw new DatabaseException(`Option "${key}" must not be blank`, errorCode, undefined, { options, key });
+        }
+    }
+
+    private ensureNumberConstraints(
+        key: string,
+        value: unknown,
+        field: OptionPropertySchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
+        if (typeof value !== 'number') {
+            return;
+        }
+        if (field.integer === true && !Number.isInteger(value)) {
+            throw new DatabaseException(`Option "${key}" must be an integer`, errorCode, undefined, {
+                options,
+                key,
+                value,
+            });
+        }
+        if (field.min != null && value < field.min) {
+            throw new DatabaseException(`Option "${key}" must be >= ${field.min}`, errorCode, undefined, {
+                options,
+                key,
+                value,
+                min: field.min,
+            });
+        }
+    }
+
+    private ensureRequired(
+        key: string,
+        isSet: boolean,
+        field: OptionPropertySchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
         if (field.required === true && !isSet) {
             throw new DatabaseException(`Option "${key}" is required`, errorCode, undefined, { options });
         }
     }
 
-    private ensureType(key: string, value: unknown, isSet: boolean, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
+    private ensureType(
+        key: string,
+        value: unknown,
+        isSet: boolean,
+        field: OptionPropertySchema,
+        options: Record<string, unknown>,
+        errorCode: string,
+    ): void {
         if (!isSet) {
             return;
         }
         if (field.enum != null) {
             if (typeof value !== 'string' || !field.enum.includes(value)) {
-                throw new DatabaseException(`Option "${key}" must be one of [${field.enum.join(', ')}]`, errorCode, undefined, { options, key, value });
+                throw new DatabaseException(
+                    `Option "${key}" must be one of [${field.enum.join(', ')}]`,
+                    errorCode,
+                    undefined,
+                    { options, key, value },
+                );
             }
             return;
         }
@@ -76,7 +136,12 @@ export class SchemaValidator {
         const allowed = Array.isArray(field.type) ? [...field.type] : [field.type];
         const actual = this.getType(value);
         if (!allowed.includes(actual)) {
-            throw new DatabaseException(`Option "${key}" must be of type ${allowed.join(' | ')}`, errorCode, undefined, { options, key, actual });
+            throw new DatabaseException(
+                `Option "${key}" must be of type ${allowed.join(' | ')}`,
+                errorCode,
+                undefined,
+                { options, key, actual },
+            );
         }
     }
 
@@ -86,26 +151,5 @@ export class SchemaValidator {
             return t;
         }
         return 'object';
-    }
-
-    private ensureNotBlank(key: string, value: unknown, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
-        if (field.notBlank !== true || typeof value !== 'string') {
-            return;
-        }
-        if (value.trim() === '') {
-            throw new DatabaseException(`Option "${key}" must not be blank`, errorCode, undefined, { options, key });
-        }
-    }
-
-    private ensureNumberConstraints(key: string, value: unknown, field: OptionPropertySchema, options: Record<string, unknown>, errorCode: string): void {
-        if (typeof value !== 'number') {
-            return;
-        }
-        if (field.integer === true && !Number.isInteger(value)) {
-            throw new DatabaseException(`Option "${key}" must be an integer`, errorCode, undefined, { options, key, value });
-        }
-        if (field.min != null && value < field.min) {
-            throw new DatabaseException(`Option "${key}" must be >= ${field.min}`, errorCode, undefined, { options, key, value, min: field.min });
-        }
     }
 }

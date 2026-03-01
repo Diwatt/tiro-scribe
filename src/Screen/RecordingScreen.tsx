@@ -10,7 +10,7 @@ import { SecureSessionButton } from '@/Components';
 import { appLogger } from '@/Service/Logger';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
-const logger = appLogger;
+const LOGGER = appLogger;
 
 export const RecordingScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
@@ -21,35 +21,35 @@ export const RecordingScreen = observer((): React.JSX.Element => {
     const insets = useSafeAreaInsets();
 
     // Calculate button position: Home screen bottom (30) + tab bar height (~60) + safe area bottom
-    const TabBarHeight = 60;
-    const HomeButtonBottom = 30;
-    const buttonBottom = HomeButtonBottom + TabBarHeight + insets.bottom;
+    const tabBarHeight = 60;
+    const homeButtonBottom = 30;
+    const buttonBottom = homeButtonBottom + tabBarHeight + insets.bottom;
 
     // Auto-start recording if autoStart is true
     useEffect(() => {
         if (autoStart && !audioRecording.isRecording) {
-            logger.debug('🚀 [RecordingScreen] Auto-starting recording', { autoStart });
+            LOGGER.debug('🚀 [RecordingScreen] Auto-starting recording', { autoStart });
             audioRecording.startRecording().catch((err) => {
-                logger.error('❌ [RecordingScreen] Auto-start failed:', { error: err });
+                LOGGER.error('❌ [RecordingScreen] Auto-start failed:', { error: err });
             });
         }
     }, [autoStart, audioRecording]);
 
     const handleStop = async () => {
-        logger.debug('⏹️ [RecordingScreen] Stop recording requested');
+        LOGGER.debug('⏹️ [RecordingScreen] Stop recording requested');
         await audioRecording.stopRecording();
         router.back();
     };
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <View style={[styles.buttonContainer, { bottom: buttonBottom }]}>
+        <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
+            <View style={[STYLES.buttonContainer, { bottom: buttonBottom }]}>
                 <SecureSessionButton onPress={handleStop} isRecording={true} />
             </View>
         </View>
     );
 });
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         flex: 1,
     },

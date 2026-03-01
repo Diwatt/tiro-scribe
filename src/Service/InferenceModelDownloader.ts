@@ -9,15 +9,13 @@
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { DownloadQueueStatus } from '@/Entity/Type';
 import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
-import { InferenceModelConfigProvider, inferenceModelConfigProvider } from './InferenceModelConfigProvider';
+import { type InferenceModelConfigProvider, inferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ChecksumVerifier } from './InferenceModelDownload/ChecksumVerifier';
-import { DownloadTaskManager } from './InferenceModelDownload/DownloadTaskManager';
 import { DownloadTaskExecutor } from './InferenceModelDownload/DownloadTaskExecutor';
-import { FileDownloader } from './InferenceModelDownload/FileDownloader';
+import { DownloadTaskManager } from './InferenceModelDownload/DownloadTaskManager';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import { DownloadState } from './InferenceModelDownload/Type';
 import { appLogger, type LoggerInterface } from './Logger';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 
 // Re-export types from Type.ts
 export type { ModelConfig } from '@/Api';
@@ -28,35 +26,9 @@ export class InferenceModelDownloader {
         private readonly artifactStorage: ModelArtifactStorage,
         private readonly downloadTaskManager: DownloadTaskManager,
         private readonly configProvider: InferenceModelConfigProvider,
-    ) {
-    }
+    ) {}
 
     // Core operations
-
-    /**
-     * Enqueue a download task without performing the actual transfer.
-     *
-     * This method adds the capability (and optional language) to the queue and
-     * triggers the queue processor. It behaves like the former `download`
-     * implementation but does _not_ return a URI; callers requesting a path
-     * should use `download` instead.
-     *
-     * @param capability model capability to enqueue
-     * @param language optional language filter for config lookup
-     */
-    public async enqueueDownload(capability: string, language?: string): Promise<void> {
-        await this.configProvider.getConfig(capability, language); // validate config exists
-
-        // Add to queue using DownloadTaskManager
-        await this.downloadTaskManager.add(capability, language);
-        // Process queue using the new integrated queue processing
-        await this.downloadTaskManager.processQueue((cap: string, lang2?: string) =>
-            this.configProvider.getConfig(cap, lang2),
-        );
-    }
-
-
-    // Storage management
 
     public async delete(capability: string, version?: string): Promise<void> {
         const config = await this.getConfig(capability);
@@ -76,37 +48,16 @@ export class InferenceModelDownloader {
         // Remove from database queue if pending
         const queueItems = await this.downloadTaskManager.getByCapability(capability);
         for (const item of queueItems) {
-            if (item.getStatus() === DownloadQueueStatus.Pending || item.getStatus() === DownloadQueueStatus.Downloading) {
+            if (
+                item.getStatus() === DownloadQueueStatus.Pending ||
+                item.getStatus() === DownloadQueueStatus.Downloading
+            ) {
                 await this.downloadTaskManager.remove(item.getUuid());
             }
         }
     }
 
-    // State queries
-
-    public getLocalPath(capability: string, _version?: string): string | undefined {
-        // In a full implementation, this would resolve the actual file path
-        // For now, we use the existing method
-        const session = this.downloadTaskManager.getActiveSession(capability);
-        if (!session) {
-            return undefined;
-        }
-
-        // Return path to first file (simplified)
-        const file = session.config.files[0];
-        if (!file) {
-            return undefined;
-        }
-
-        return this.artifactStorage.resolvePath(session.config, file);
-    }
-
-    /** Path to a specific file in the model configuration. Relative under document dir. */
-    public getLocalPathForFile(config: ModelConfig, file: InferenceModelFile): string {
-        return this.artifactStorage.resolvePath(config, file);
-    }
-
-    // Convenience helpers
+    // Storage management
 
     /**
      * Download a model bundle for the given capability.
@@ -128,10 +79,7 @@ export class InferenceModelDownloader {
      *          configuration on the executor (`executor.config`) for any
      *          further processing.
      */
-    public async download(
-        capability: string,
-        appLanguage?: string,
-    ): Promise<DownloadTaskExecutor> {
+    public async download(capability: string, appLanguage?: string): Promise<DownloadTaskExecutor> {
         const config = await this.getConfig(capability, appLanguage);
 
         // Check if all files have been downloaded
@@ -168,11 +116,80 @@ export class InferenceModelDownloader {
         return executor;
     }
 
+    // State queries
 
-    // Configuration accessors
+    /**
+     * Enqueue a download task without performing the actual transfer.
+     *
+     * This method adds the capability (and optional language) to the queue and
+     * triggers the queue processor. It behaves like the former `download`
+     * implementation but does _not_ return a URI; callers requesting a path
+     * should use `download` instead.
+     *
+     * @param capability model capability to enqueue
+     * @param language optional language filter for config lookup
+     */
+    public async enqueueDownload(capability: string, language?: string): Promise<void> {
+        await this.configProvider.getConfig(capability, language); // validate config exists
+
+        // Add to queue using DownloadTaskManager
+        await this.downloadTaskManager.add(capability, language);
+        // Process queue using the new integrated queue processing
+        await this.downloadTaskManager.processQueue((cap: string, lang2?: string) =>
+            this.configProvider.getConfig(cap, lang2),
+        );
+    }
 
     public async getConfig(key: string, appLanguage?: string): Promise<ModelConfig> {
         return this.configProvider.getConfig(key, appLanguage);
+    }
+
+    // Convenience helpers
+
+    public async getConfigByLocalPath(localPath: string): Promise<ModelConfig | undefined> {
+        // Get all local configs
+        const localConfigs = await this.getLocalConfigs();
+
+        // Search through all configs to find one that matches the path
+        for (const config of Object.values(localConfigs)) {
+            // Check if any file in this config matches the local path
+            for (const file of config.files) {
+                const filePath = this.artifactStorage.resolvePath(config, file);
+                if (filePath === localPath || filePath.endsWith(localPath)) {
+                    return config;
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    // Configuration accessors
+
+    public async getConfigs(appLanguage?: string): Promise<Record<string, ModelConfig>> {
+        return this.configProvider.getConfigs(appLanguage);
+    }
+
+    public getLocalPath(capability: string, _version?: string): string | undefined {
+        // In a full implementation, this would resolve the actual file path
+        // For now, we use the existing method
+        const session = this.downloadTaskManager.getActiveSession(capability);
+        if (!session) {
+            return undefined;
+        }
+
+        // Return path to first file (simplified)
+        const file = session.config.files[0];
+        if (!file) {
+            return undefined;
+        }
+
+        return this.artifactStorage.resolvePath(session.config, file);
+    }
+
+    /** Path to a specific file in the model configuration. Relative under document dir. */
+    public getLocalPathForFile(config: ModelConfig, file: InferenceModelFile): string {
+        return this.artifactStorage.resolvePath(config, file);
     }
 
     /**
@@ -195,30 +212,8 @@ export class InferenceModelDownloader {
         return this.artifactStorage.getModelUri(config);
     }
 
-    public async getConfigs(appLanguage?: string): Promise<Record<string, ModelConfig>> {
-        return this.configProvider.getConfigs(appLanguage);
-    }
-
     public async getTotalSize(appLanguage?: string): Promise<number> {
         return this.configProvider.getTotalSize(appLanguage);
-    }
-
-    public async getConfigByLocalPath(localPath: string): Promise<ModelConfig | undefined> {
-        // Get all local configs
-        const localConfigs = await this.getLocalConfigs();
-
-        // Search through all configs to find one that matches the path
-        for (const config of Object.values(localConfigs)) {
-            // Check if any file in this config matches the local path
-            for (const file of config.files) {
-                const filePath = this.artifactStorage.resolvePath(config, file);
-                if (filePath === localPath || filePath.endsWith(localPath)) {
-                    return config;
-                }
-            }
-        }
-
-        return undefined;
     }
 
     private async getLocalConfigs(): Promise<Record<string, ModelConfig>> {
@@ -242,20 +237,20 @@ export class InferenceModelDownloader {
 // Default downloader instance wired with production dependencies.  Exported so
 // callers can simply import `inferenceModelDownloader` instead of constructing
 // everything themselves.
-const _defaultLogger = appLogger;
-const _defaultArtifactStorage = new ModelArtifactStorage(_defaultLogger);
-const _defaultChecksumVerifier = new ChecksumVerifier();
-const _defaultRepository = new DownloadQueueRepository();
-const _defaultDownloadTaskManager = new DownloadTaskManager(
-    _defaultLogger,
-    _defaultRepository,
-    _defaultChecksumVerifier,
-    _defaultArtifactStorage,
+const DefaultLogger = appLogger;
+const DefaultArtifactStorage = new ModelArtifactStorage(DefaultLogger);
+const DefaultChecksumVerifier = new ChecksumVerifier();
+const DefaultRepository = new DownloadQueueRepository();
+const DefaultDownloadTaskManager = new DownloadTaskManager(
+    DefaultLogger,
+    DefaultRepository,
+    DefaultChecksumVerifier,
+    DefaultArtifactStorage,
 );
 
 export const inferenceModelDownloader = new InferenceModelDownloader(
-    _defaultLogger,
-    _defaultArtifactStorage,
-    _defaultDownloadTaskManager,
+    DefaultLogger,
+    DefaultArtifactStorage,
+    DefaultDownloadTaskManager,
     inferenceModelConfigProvider,
 );

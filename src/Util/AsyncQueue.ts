@@ -8,8 +8,19 @@
  * callers need: a pushable queue, async dequeue, and an async iterator.
  */
 export class AsyncQueue<T> {
-    private items: T[] = [];
+    private readonly items: T[] = [];
     private waiter?: () => void;
+
+    public async dequeue(): Promise<T> {
+        while (this.items.length === 0) {
+            await new Promise<void>((r) => (this.waiter = r));
+        }
+        const item = this.items.shift();
+        if (item === undefined) {
+            throw new Error('Queue is empty');
+        }
+        return item;
+    }
 
     public enqueue(item: T): void {
         this.items.push(item);
@@ -18,13 +29,6 @@ export class AsyncQueue<T> {
             this.waiter = undefined;
             r();
         }
-    }
-
-    public async dequeue(): Promise<T> {
-        while (this.items.length === 0) {
-            await new Promise<void>((r) => (this.waiter = r));
-        }
-        return this.items.shift()!;
     }
 
     /**

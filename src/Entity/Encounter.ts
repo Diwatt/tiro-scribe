@@ -18,41 +18,51 @@ dayjs.extend(utc);
 
 @Entity({ tableName: 'encounters' })
 export class Encounter extends AbstractEntity {
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    /** UTC, stored as ISO string; use dayjs in UTC mode. */
+    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
+    public createdAt!: Dayjs;
+
+    /** File paths to encrypted audio chunks. */
+    @Column({ default: '[]', type: 'text', as: 'json' })
+    public encryptedAudioPaths!: string[];
+
+    /** Incognito (Bunker): when true, transcript is stored encrypted on the server. */
+    @Column({ default: false, type: 'boolean', index: true })
+    public isIncognito!: boolean;
+
+    @Column({ default: EncounterStatus.Recording, type: 'varchar', length: 16, index: true })
+    public status!: EncounterStatus;
+
+    /** UTC when this encounter was synced to cloud (null = not synced). */
+    @Column({ default: null, type: 'datetime', as: 'date' })
+    public syncedAt!: Dayjs | null;
 
     /** References Therapist (UUID). Real column for REFERENCES constraint. */
     @ForeignKey({ target: () => Therapist, onDelete: 'RESTRICT' })
     @Column({ default: '', type: 'varchar', length: 36 })
     public therapistId!: string;
 
-    /** File paths to encrypted audio chunks. */
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public encryptedAudioPaths!: string[];
-
     /** Duration in milliseconds (whole number). */
     @Column({ default: 0, type: 'integer' })
     public totalDuration!: number;
 
-    @Column({ default: EncounterStatus.Recording, type: 'varchar', length: 16, index: true })
-    public status!: EncounterStatus;
-
-    /** Incognito (Bunker): when true, transcript is stored encrypted on the server. */
-    @Column({ default: false, type: 'boolean', index: true })
-    public isIncognito!: boolean;
-
-    /** UTC when this encounter was synced to cloud (null = not synced). */
-    @Column({ default: null, type: 'datetime', as: 'date' })
-    public syncedAt!: Dayjs | null;
-
-    /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public createdAt!: Dayjs;
-
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     public updatedAt!: Dayjs;
+
+    @PrimaryKey()
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
+    public uuid!: string;
+
+    public addEncryptedAudioPath(path: string): void {
+        this.encryptedAudioPaths = [...this.encryptedAudioPaths, path];
+    }
+
+    /** Add an encrypted audio path and optionally update total duration. */
+    public addEncryptedAudioPathWithDuration(path: string, durationMs: number): void {
+        this.addEncryptedAudioPath(path);
+        this.totalDuration = this.totalDuration + durationMs;
+    }
 
     public getCreatedAt(): Dayjs {
         return this.createdAt;
@@ -90,6 +100,10 @@ export class Encounter extends AbstractEntity {
         return this.uuid;
     }
 
+    public removeEncryptedAudioPath(path: string): void {
+        this.encryptedAudioPaths = this.encryptedAudioPaths.filter((p) => p !== path);
+    }
+
     public setCreatedAt(value: Dayjs): void {
         this.createdAt = value;
     }
@@ -124,19 +138,5 @@ export class Encounter extends AbstractEntity {
 
     public setUuid(value: string): void {
         this.uuid = value;
-    }
-
-    public addEncryptedAudioPath(path: string): void {
-        this.encryptedAudioPaths = [...this.encryptedAudioPaths, path];
-    }
-
-    public removeEncryptedAudioPath(path: string): void {
-        this.encryptedAudioPaths = this.encryptedAudioPaths.filter((p) => p !== path);
-    }
-
-    /** Add an encrypted audio path and optionally update total duration. */
-    public addEncryptedAudioPathWithDuration(path: string, durationMs: number): void {
-        this.addEncryptedAudioPath(path);
-        this.totalDuration = this.totalDuration + durationMs;
     }
 }

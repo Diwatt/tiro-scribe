@@ -6,9 +6,9 @@
 
 export type { ColumnOptions, SqliteType } from './Column';
 export { Column } from './Column';
-export { EntityMetadata, type ForeignKeyColumnRef } from './EntityMetadata';
 export type { EntityOptions } from './Entity';
 export { Entity } from './Entity';
+export { EntityMetadata, type ForeignKeyColumnRef } from './EntityMetadata';
 export type { ForeignKeyOptions } from './ForeignKey';
 export { ForeignKey, OnDeleteAction } from './ForeignKey';
 export { PrimaryKey } from './PrimaryKey';

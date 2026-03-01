@@ -75,6 +75,10 @@ export class AppConfig {
         return this.config.STORYBOOK_ENABLED;
     }
 
+    public get projectionSalt(): string {
+        return this.config.EXPO_PUBLIC_PROJECTION_SALT;
+    }
+
     /**
      * When true, the app will delete and re‑create its local database on every
      * cold start. Intended for development and controlled via the
@@ -82,10 +86,6 @@ export class AppConfig {
      */
     public get shouldClearDbOnLaunch(): boolean {
         return this.config.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH;
-    }
-
-    public get projectionSalt(): string {
-        return this.config.EXPO_PUBLIC_PROJECTION_SALT;
     }
 
     private static parseEnv(): EnvConfig {

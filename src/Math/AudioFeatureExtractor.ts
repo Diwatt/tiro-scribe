@@ -1,9 +1,9 @@
 /**
  * AudioFeatureExtractor - Hand-rolled DSP for mel spectrogram extraction
- * 
+ *
  * Computes 80-dim log mel filterbank features from raw PCM audio
  * using naive DFT-based approach for compatibility with CAM++ speaker model.
- * 
+ *
  * TODO: Replace with native kaldi-native-fbank binding or sherpa-onnx
  * for guaranteed Kaldi compatibility. Current JS implementation is approximate.
  * See: https://github.com/csukuangfj/kaldi-native-fbank
@@ -20,8 +20,8 @@ export class AudioFeatureExtractor {
      */
     public constructor(
         private readonly sampleRate: number = 16000,
-        private readonly frameLength: number = 400,  // 25ms at 16kHz
-        private readonly frameStep: number = 160,    // 10ms at 16kHz
+        private readonly frameLength: number = 400, // 25ms at 16kHz
+        private readonly frameStep: number = 160, // 10ms at 16kHz
         private readonly fftLength: number = 512,
         private readonly numMelBins: number = 80,
         private readonly preEmphasisCoeff: number = 0.97,
@@ -59,6 +59,47 @@ export class AudioFeatureExtractor {
     }
 
     /**
+     * Apply Hamming window to reduce spectral leakage
+     */
+    private applyHammingWindowFunction(frame: Float32Array): Float32Array {
+        const windowed = new Float32Array(frame.length);
+        for (let i = 0; i < frame.length; i++) {
+            const hamming = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (frame.length - 1));
+            windowed[i] = frame[i] * hamming;
+        }
+
+        return windowed;
+    }
+
+    /**
+     * Log compression with numerical stability
+     */
+    private applyLogarithmicCompression(melSpec: Float32Array): Float32Array {
+        const logMel = new Float32Array(melSpec.length);
+        for (let i = 0; i < melSpec.length; i++) {
+            logMel[i] = Math.log(Math.max(melSpec[i], 1e-8));
+        }
+
+        return logMel;
+    }
+
+    /**
+     * Apply mel filter bank to power spectrum
+     */
+    private applyMelFilterBankMatrix(spectrum: Float32Array): Float32Array {
+        const melSpec = new Float32Array(this.numMelBins);
+        for (let m = 0; m < this.numMelBins; m++) {
+            let energy = 0;
+            for (let k = 0; k < spectrum.length; k++) {
+                energy += spectrum[k] * this.melFilterBank[m][k];
+            }
+            melSpec[m] = energy;
+        }
+
+        return melSpec;
+    }
+
+    /**
      * Apply pre-emphasis filter to high-pass filter the signal
      */
     private applyPreEmphasisFilter(pcm: Float32Array): Float32Array {
@@ -68,32 +109,6 @@ export class AudioFeatureExtractor {
             result[i] = pcm[i] - this.preEmphasisCoeff * pcm[i - 1];
         }
         return result;
-    }
-
-    /**
-     * Frame the signal into overlapping windows
-     */
-    private segmentSignalIntoFrames(signal: Float32Array): Float32Array[] {
-        const frames: Float32Array[] = [];
-        for (let i = 0; i + this.frameLength <= signal.length; i += this.frameStep) {
-            const frame = signal.subarray(i, i + this.frameLength);
-            frames.push(new Float32Array(frame));
-        }
-
-        return frames;
-    }
-
-    /**
-     * Apply Hamming window to reduce spectral leakage
-     */
-    private applyHammingWindowFunction(frame: Float32Array): Float32Array {
-        const windowed = new Float32Array(frame.length);
-        for (let i = 0; i < frame.length; i++) {
-            const hamming = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (frame.length - 1));
-            windowed[i] = frame[i] * hamming;
-        }
-
-        return windowed;
     }
 
     /**
@@ -122,63 +137,34 @@ export class AudioFeatureExtractor {
     }
 
     /**
-     * Apply mel filter bank to power spectrum
-     */
-    private applyMelFilterBankMatrix(spectrum: Float32Array): Float32Array {
-        const melSpec = new Float32Array(this.numMelBins);
-        for (let m = 0; m < this.numMelBins; m++) {
-            let energy = 0;
-            for (let k = 0; k < spectrum.length; k++) {
-                energy += spectrum[k] * this.melFilterBank[m][k];
-            }
-            melSpec[m] = energy;
-        }
-
-        return melSpec;
-    }
-
-    /**
-     * Log compression with numerical stability
-     */
-    private applyLogarithmicCompression(melSpec: Float32Array): Float32Array {
-        const logMel = new Float32Array(melSpec.length);
-        for (let i = 0; i < melSpec.length; i++) {
-            logMel[i] = Math.log(Math.max(melSpec[i], 1e-8));
-        }
-
-        return logMel;
-    }
-
-    /**
      * Create mel filter bank matrix
      */
     private generateMelFilterBankMatrix(): number[][] {
         const filterBank: number[][] = [];
-        
+
         // Convert Hz to mel scale
         const lowMel = this.hertzToMelScale(0);
         const highMel = this.hertzToMelScale(this.sampleRate / 2);
-        
+
         // Create evenly spaced mel points
         const melPoints: number[] = [];
         for (let i = 0; i < this.numMelBins + 2; i++) {
-            melPoints.push(lowMel + (highMel - lowMel) * i / (this.numMelBins + 1),
-            );
+            melPoints.push(lowMel + ((highMel - lowMel) * i) / (this.numMelBins + 1));
         }
-        
+
         // Convert back to Hz
-        const hzPoints = melPoints.map(mel => this.melScaleToHertz(mel));
-        
+        const hzPoints = melPoints.map((mel) => this.melScaleToHertz(mel));
+
         // Convert to FFT bin indices
-        const binPoints = hzPoints.map(hz => Math.floor(hz * this.fftLength / this.sampleRate));
-        
+        const binPoints = hzPoints.map((hz) => Math.floor((hz * this.fftLength) / this.sampleRate));
+
         // Create triangular filters
         for (let m = 1; m <= this.numMelBins; m++) {
             const filter = new Float32Array(this.fftLength / 2 + 1);
             const left = binPoints[m - 1];
             const center = binPoints[m];
             const right = binPoints[m + 1];
-            
+
             for (let k = left; k <= center; k++) {
                 if (k >= 0 && k < filter.length && center > left) {
                     filter[k] = (k - left) / (center - left);
@@ -190,10 +176,10 @@ export class AudioFeatureExtractor {
                     filter[k] = (right - k) / (right - center);
                 }
             }
-            
+
             filterBank.push(Array.from(filter));
         }
-        
+
         return filterBank;
     }
 
@@ -212,7 +198,19 @@ export class AudioFeatureExtractor {
      * @returns Frequency in Hz
      */
     private melScaleToHertz(mel: number): number {
-        return 700 * (Math.pow(10, mel / 2595) - 1);
+        return 700 * (10 ** (mel / 2595) - 1);
     }
 
+    /**
+     * Frame the signal into overlapping windows
+     */
+    private segmentSignalIntoFrames(signal: Float32Array): Float32Array[] {
+        const frames: Float32Array[] = [];
+        for (let i = 0; i + this.frameLength <= signal.length; i += this.frameStep) {
+            const frame = signal.subarray(i, i + this.frameLength);
+            frames.push(new Float32Array(frame));
+        }
+
+        return frames;
+    }
 }

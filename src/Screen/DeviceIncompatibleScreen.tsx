@@ -8,15 +8,17 @@ export function DeviceIncompatibleScreen(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Text style={[styles.title, { color: theme.colors.onBackground }]}>{LL.device.notSupported()}</Text>
-            <Text style={[styles.message, { color: theme.colors.onSurfaceVariant }]}>{LL.device.notSupportedMessage()}</Text>
-            <Text style={[styles.hint, { color: theme.colors.outline }]}>{LL.device.notSupportedHint()}</Text>
+        <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
+            <Text style={[STYLES.title, { color: theme.colors.onBackground }]}>{LL.device.notSupported()}</Text>
+            <Text style={[STYLES.message, { color: theme.colors.onSurfaceVariant }]}>
+                {LL.device.notSupportedMessage()}
+            </Text>
+            <Text style={[STYLES.hint, { color: theme.colors.outline }]}>{LL.device.notSupportedHint()}</Text>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',

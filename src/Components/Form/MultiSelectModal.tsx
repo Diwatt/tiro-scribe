@@ -8,7 +8,7 @@ import {
     type KeyboardEvent,
     Modal,
     Pressable,
-    TextInput as RNTextInput,
+    TextInput as RnTextInput,
     ScrollView,
     type StyleProp,
     StyleSheet,
@@ -35,7 +35,7 @@ export interface MultiSelectModalProps<T extends FieldValues> {
     triggerStyle?: StyleProp<ViewStyle>;
 }
 
-const styles = StyleSheet.create({
+const Styles = StyleSheet.create({
     label: { fontSize: 14, marginBottom: 8 },
     trigger: {
         flexDirection: 'row',
@@ -112,13 +112,15 @@ export function MultiSelectModal<T extends FieldValues>({
     }, []);
     const close = useCallback(() => setVisible(false), []);
 
-    const buildTriggerLabel = useCallback(
+    const _buildTriggerLabel = useCallback(
         (selected: string[]): string => {
             const count = selected.length;
             if (count === 0) {
                 return 'Select…';
             }
-            const selectedLabels = selected.map((v) => normalized.find((o) => o.value === v)?.label ?? v).filter(Boolean);
+            const selectedLabels = selected
+                .map((v) => normalized.find((o) => o.value === v)?.label ?? v)
+                .filter(Boolean);
             if (count <= 3) {
                 return selectedLabels.join(', ');
             }
@@ -131,18 +133,39 @@ export function MultiSelectModal<T extends FieldValues>({
         <Controller
             name={name}
             control={control}
-            render={({ field: { value, onChange }, fieldState: { error } }) => {
-                const selected = (value as string[]) ?? [];
+    const renderMultiSelect = useCallback((params: { field: { value: string[]; onChange: (value: string[]) => void }; fieldState: { error?: { message?: string } } }) => {
+                const selected = params.field.value ?? [];
                 const count = selected.length;
                 const triggerLabel = buildTriggerLabel(selected);
 
+                const handleOptionPress = useCallback((optionValue: string) => {
+                    const isSelected = selected.includes(optionValue);
+                    params.field.onChange(
+                        isSelected
+                            ? selected.filter((v) => v !== optionValue)
+                            : [...selected, optionValue],
+                    );
+                }, [selected, params.field.onChange]);
+
+                const renderRightIcon = useCallback((props: any) => (
+                    <List.Icon
+                        {...props}
+                        icon={selected.includes(option.value) ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                        color={selected.includes(option.value) ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                    />
+                ), [selected, theme.colors.primary, theme.colors.onSurfaceVariant]);
+
                 return (
-                    <>
-                        {label ? <Text style={[styles.label, labelStyle, { color: theme.colors.onSurfaceVariant }]}>{label}</Text> : null}
+                    
+                        {label ? (
+                            <Text style={[Styles.label, labelStyle, { color: theme.colors.onSurfaceVariant }]}>
+                                {label}
+                            </Text>
+                        ) : null}
                         <Pressable
                             onPress={open}
                             style={[
-                                styles.trigger,
+                                Styles.trigger,
                                 triggerStyle,
                                 {
                                     backgroundColor: theme.colors.surface,
@@ -150,16 +173,22 @@ export function MultiSelectModal<T extends FieldValues>({
                                 },
                             ]}
                         >
-                            <Text style={[styles.triggerText, { color: count === 0 ? theme.colors.onSurfaceVariant : theme.colors.primary }]} numberOfLines={2}>
+                            <Text
+                                style={[
+                                    Styles.triggerText,
+                                    { color: count === 0 ? theme.colors.onSurfaceVariant : theme.colors.primary },
+                                ]}
+                                numberOfLines={2}
+                            >
                                 {triggerLabel}
                             </Text>
                             <Text style={{ color: theme.colors.onSurfaceVariant }}>▼</Text>
                         </Pressable>
                         <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-                            <Pressable style={styles.modalBackdrop} onPress={close}>
+                            <Pressable style={Styles.modalBackdrop} onPress={close}>
                                 <Pressable
                                     style={[
-                                        styles.modalContent,
+                                        Styles.modalContent,
                                         {
                                             backgroundColor: theme.colors.surface,
                                             marginBottom: keyboardHeight,
@@ -172,14 +201,14 @@ export function MultiSelectModal<T extends FieldValues>({
                                     ]}
                                     onPress={() => undefined}
                                 >
-                                    <RNTextInput
+                                    <RnTextInput
                                         placeholder={placeholder}
                                         placeholderTextColor={theme.colors.onSurfaceVariant}
                                         value={search}
                                         onChangeText={setSearch}
                                         showSoftInputOnFocus
                                         style={[
-                                            styles.searchInput,
+                                            Styles.searchInput,
                                             {
                                                 backgroundColor: theme.colors.surface,
                                                 borderColor: theme.colors.outline,
@@ -187,30 +216,22 @@ export function MultiSelectModal<T extends FieldValues>({
                                             },
                                         ]}
                                     />
-                                    <View style={styles.listWrap}>
-                                        <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
+                                    <View style={Styles.listWrap}>
+                                        <ScrollView style={Styles.list} keyboardShouldPersistTaps="handled">
                                             {filtered.map((option) => {
-                                                const isSelected = selected.includes(option.value);
+                                                const _isSelected = selected.includes(option.value);
                                                 return (
                                                     <List.Item
                                                         key={option.value}
                                                         title={option.label}
-                                                        onPress={() => {
-                                                            onChange(isSelected ? selected.filter((v) => v !== option.value) : [...selected, option.value]);
-                                                        }}
-                                                        right={(props) => (
-                                                            <List.Icon
-                                                                {...props}
-                                                                icon={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                                                                color={isSelected ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                                                            />
-                                                        )}
+                                                        onPress={handleOptionPress}
+                                                        right={renderRightIcon}
                                                     />
                                                 );
                                             })}
                                         </ScrollView>
                                     </View>
-                                    <Button mode="contained" onPress={close} style={styles.doneButton}>
+                                    <Button mode="contained" onPress={close} style={Styles.doneButton}>
                                         Done
                                     </Button>
                                 </Pressable>
@@ -221,9 +242,9 @@ export function MultiSelectModal<T extends FieldValues>({
                                 {error.message}
                             </HelperText>
                         ) : null}
-                    </>
+                    
                 );
-            }}
+            }, [buildTriggerLabel, theme, close, filtered, label, labelStyle, open, triggerStyle]);
         />
     );
 }

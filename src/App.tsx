@@ -9,23 +9,26 @@ import type React from 'react';
 import { AppConfig } from '@/Config';
 import { appLogger } from './Service/Logger';
 
-let StorybookUIRoot: React.ComponentType | null = null;
-if (typeof __DEV__ !== 'undefined' && __DEV__ && AppConfig.isStorybookEnabled) {
-    try {
-        StorybookUIRoot = require('../.rnstorybook').default;
-    } catch (e) {
-        appLogger.warn('[TiroScribe] Failed to load Storybook:', {
-            error: e,
-            errorMessage: e instanceof Error ? e.message : String(e),
-        });
+let storybookUiRoot: React.ComponentType | null = null;
+(async () => {
+    if (typeof __DEV__ !== 'undefined' && __DEV__ && AppConfig.isStorybookEnabled) {
+        try {
+            storybookUiRoot = (await import('../.rnstorybook')).default;
+        } catch (e) {
+            appLogger.warn('[TiroScribe] Failed to load Storybook:', {
+                error: e,
+                errorMessage: e instanceof Error ? e.message : String(e),
+            });
+        }
     }
-}
+})();
 
 /** Used when App is mounted (e.g. tests). Otherwise use expo-router entry → app/_layout.tsx. */
-export function App(): React.JSX.Element {
-    if (StorybookUIRoot) {
-        return <StorybookUIRoot />;
+export async function App(): Promise<React.JSX.Element> {
+    if (storybookUiRoot) {
+        return <storybookUiRoot />;
     }
-    const RootLayout = require('../app/_layout').default;
-    return <RootLayout />;
+
+    const { default: rootLayout } = await import('../app/_layout');
+    return <rootLayout />;
 }

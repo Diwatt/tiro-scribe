@@ -21,7 +21,8 @@ export class MetadataReader {
      * typeof target === 'function' ? target : target.constructor)`.
      */
     public static forTarget(target: object | MetadataConstructor): MetadataReader {
-        const construct: MetadataConstructor = typeof target === 'function' ? target : ((target as object).constructor as MetadataConstructor);
+        const construct: MetadataConstructor =
+            typeof target === 'function' ? target : ((target as object).constructor as MetadataConstructor);
         return new MetadataReader(construct);
     }
 
@@ -37,13 +38,6 @@ export class MetadataReader {
     }
 
     /**
-     * Property decorator entries for one property: one per decorator on that property.
-     */
-    public getDecoratorsByProperty(propertyName: string): PropertyDecorator[] {
-        return this.getProperties().filter((f) => f.getPropertyName() === propertyName);
-    }
-
-    /**
      * Return the first decorator with the given name on the specified property,
      * or undefined if that property has none.  This is a common pattern so we
      * expose it as a helper rather than repeating `.find` everywhere.
@@ -53,12 +47,10 @@ export class MetadataReader {
     }
 
     /**
-     * Boolean check whether the given property has a decorator with the
-     * requested name.  Useful for simple presence tests without pulling the
-     * entire decorator object.
+     * Property decorator entries for one property: one per decorator on that property.
      */
-    public hasDecoratorOnProperty(propertyName: string, decoratorName: string): boolean {
-        return this.getDecoratorsByProperty(propertyName).some((f) => f.getDecoratorName() === decoratorName);
+    public getDecoratorsByProperty(propertyName: string): PropertyDecorator[] {
+        return this.getProperties().filter((f) => f.getPropertyName() === propertyName);
     }
 
     /**
@@ -100,7 +92,14 @@ export class MetadataReader {
             if (Array.isArray(decorators)) {
                 for (const d of decorators) {
                     // options originate as unknown, but PropertyDecorator expects a record
-                    out.push(new PropertyDecorator(d.decoratorName, className, propertyName, d.options as Record<string, unknown>));
+                    out.push(
+                        new PropertyDecorator(
+                            d.decoratorName,
+                            className,
+                            propertyName,
+                            d.options as Record<string, unknown>,
+                        ),
+                    );
                 }
             }
         }
@@ -122,6 +121,15 @@ export class MetadataReader {
      */
     public getProperty(decoratorName: string): PropertyDecorator | undefined {
         return this.getProperties().find((f) => f.getDecoratorName() === decoratorName);
+    }
+
+    /**
+     * Boolean check whether the given property has a decorator with the
+     * requested name.  Useful for simple presence tests without pulling the
+     * entire decorator object.
+     */
+    public hasDecoratorOnProperty(propertyName: string, decoratorName: string): boolean {
+        return this.getDecoratorsByProperty(propertyName).some((f) => f.getDecoratorName() === decoratorName);
     }
 
     private getSymbolMetadata(): MetadataMap | undefined {

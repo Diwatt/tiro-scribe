@@ -3,7 +3,16 @@ import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import { useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import {
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableWithoutFeedback,
+    View,
+} from 'react-native';
 import { ProgressBar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppLanguage } from '@/Localization';
@@ -19,7 +28,7 @@ export interface OnboardingScreenProps {
 }
 
 /** Step views in order (index 0 = step 1). */
-const stepViews = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
+const STEP_VIEWS = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
 
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
@@ -38,27 +47,30 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
         onboardingState.reset();
     }, []);
 
-    const StepView = stepViews[step - 1] ?? null;
+    const stepView = STEP_VIEWS[step - 1] ?? null;
 
     return (
         <FormProvider {...methods}>
-            <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top', 'left', 'right', 'bottom']}>
-                <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <SafeAreaView
+                style={[STYLES.container, { backgroundColor: theme.colors.background }]}
+                edges={['top', 'left', 'right', 'bottom']}
+            >
+                <KeyboardAvoidingView style={STYLES.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={styles.inner}>
-                            <ProgressBar progress={progress} color={theme.colors.tertiary} style={styles.progress} />
-                            <View style={styles.headerRow}>
-                                <Text style={[styles.stepLabel, { color: theme.colors.onSurfaceVariant }]}>
+                        <View style={STYLES.inner}>
+                            <ProgressBar progress={progress} color={theme.colors.tertiary} style={STYLES.progress} />
+                            <View style={STYLES.headerRow}>
+                                <Text style={[STYLES.stepLabel, { color: theme.colors.onSurfaceVariant }]}>
                                     {LL.onboarding.step({ current: step, total: ONBOARDING_STEPS })}
                                 </Text>
                             </View>
                             <ScrollView
-                                contentContainerStyle={styles.scrollContent}
+                                contentContainerStyle={STYLES.scrollContent}
                                 keyboardShouldPersistTaps="always"
                                 keyboardDismissMode="on-drag"
                                 showsVerticalScrollIndicator={false}
                             >
-                                {StepView && <StepView />}
+                                {stepView && <stepView />}
                             </ScrollView>
                         </View>
                     </TouchableWithoutFeedback>
@@ -68,7 +80,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
     );
 });
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: { flex: 1 },
     inner: {
         flex: 1,

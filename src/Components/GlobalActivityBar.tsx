@@ -1,4 +1,3 @@
-import { observer } from '@legendapp/state/react';
 import { AlertCircle, AlertTriangle, Check } from 'lucide-react-native';
 import type React from 'react';
 import { useEffect } from 'react';
@@ -6,9 +5,9 @@ import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Surface, Text, useTheme } from 'react-native-paper';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { StatusColors } from '@/Components/Status/Status';
-import { ActivityStatus, globalActivityStatus } from '@/State/GlobalActivityStatus';
+import { ActivityStatus } from '@/State/GlobalActivityStatus';
 import type { ExtendedTheme } from '@/theme/AppTheme';
+import { getStatusColors, readFromStore } from './GlobalActivityBar.utils';
 
 // layout/constants for the bar. grouped into one object to keep the
 // top of the file tidy and make it easier to tweak values together.
@@ -30,38 +29,12 @@ export interface GlobalActivityBarProps {
     icon?: React.ReactNode;
 }
 
-// coherent mappings for colours and default messages. using record lookups
-// means we avoid repetitive switch statements and the mappings stay in sync
-// (lint will warn when a case is missing).
-const COLOR_MAP: Partial<Record<ActivityStatus, (theme: ExtendedTheme) => StatusColors>> = {
-    [ActivityStatus.Pending]: (theme) => theme.colors.statusProcessing,
-    [ActivityStatus.Success]: (theme) => theme.colors.statusIdle,
-    [ActivityStatus.Warning]: (theme) => theme.colors.statusWarning,
-    [ActivityStatus.Error]: (theme) => theme.colors.statusError,
-};
-
-export function getStatusColors(theme: ExtendedTheme, status: ActivityStatus): StatusColors | null {
-    const getter = COLOR_MAP[status];
-    return getter ? getter(theme) : null;
-}
-
-// logic for reading highest-priority non-ready entry from the store
-export function readFromStore(): { status: ActivityStatus; message: string; icon?: React.ReactNode } {
-    const status = globalActivityStatus.getStatus();
-    const message = globalActivityStatus.getMessage() ?? '';
-    const icon = globalActivityStatus.getIcon();
-    return { status, message, icon };
-}
-
 export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Element {
     const { status: propStatus, message: propMessage, icon: propIcon } = props;
     const { status: storeStatus, message: storeMessage, icon: storeIcon } = readFromStore();
     const status = propStatus ?? storeStatus;
     const message = propMessage ?? storeMessage;
     const icon = propIcon ?? storeIcon;
-
-    // debug - log every render and the status/message being shown
-    console.log('[GlobalActivityBar] render', { status, message });
 
     const theme = useTheme<ExtendedTheme>();
     const insets = useSafeAreaInsets();
@@ -82,18 +55,44 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
     const statusColors = getStatusColors(theme, status);
     const displayMessage = message || '';
 
+    const getStatusIcon = () => {
+        if (icon) {
+            return icon;
+        }
+
+        switch (status) {
+            case ActivityStatus.Pending:
+                return <ActivityIndicator size="small" color={statusColors?.accent} />;
+            case ActivityStatus.Success:
+                return <Check size={16} color={statusColors?.text} />;
+            case ActivityStatus.Warning:
+                return <AlertTriangle size={16} color={statusColors?.text} />;
+            case ActivityStatus.Error:
+                return <AlertCircle size={16} color={statusColors?.text} />;
+            default:
+                return null;
+        }
+    };
+
     if (!statusColors) {
         return (
-            <Animated.View style={[styles.container, { paddingTop: insets.top, height: BAR_CONFIG.height + insets.top }, animatedStyle]} pointerEvents="none" />
+            <Animated.View
+                style={[
+                    STYLES.container,
+                    { paddingTop: insets.top, height: BAR_CONFIG.height + insets.top },
+                    animatedStyle,
+                ]}
+                pointerEvents="none"
+            />
         );
     }
 
-    const { background, text, accent, iconBackground, shadowColor } = statusColors;
+    const { background, text, iconBackground, shadowColor } = statusColors;
 
     return (
         <Animated.View
             style={[
-                styles.container,
+                STYLES.container,
                 {
                     paddingTop: insets.top,
                     height: BAR_CONFIG.height + insets.top,
@@ -105,7 +104,7 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
             {isVisible && (
                 <Surface
                     style={[
-                        styles.surface,
+                        STYLES.surface,
                         {
                             backgroundColor: background,
                             shadowColor,
@@ -113,21 +112,9 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
                     ]}
                     elevation={4}
                 >
-                    <View style={styles.content}>
-                        <View style={[styles.iconBox, { backgroundColor: iconBackground }]}>
-                            {icon ? (
-                                icon
-                            ) : status === ActivityStatus.Pending ? (
-                                <ActivityIndicator size="small" color={accent} />
-                            ) : status === ActivityStatus.Success ? (
-                                <Check size={16} color={text} />
-                            ) : status === ActivityStatus.Warning ? (
-                                <AlertTriangle size={16} color={text} />
-                            ) : status === ActivityStatus.Error ? (
-                                <AlertCircle size={16} color={text} />
-                            ) : null}
-                        </View>
-                        <Text style={[styles.message, { color: text }]} numberOfLines={1} variant="titleMedium">
+                    <View style={STYLES.content}>
+                        <View style={[STYLES.iconBox, { backgroundColor: iconBackground }]}>{getStatusIcon()}</View>
+                        <Text style={[STYLES.message, { color: text }]} numberOfLines={1} variant="titleMedium">
                             {displayMessage}
                         </Text>
                     </View>
@@ -137,10 +124,7 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
     );
 }
 
-// observer version wraps the component so it re-renders when the store changes
-export const ObservedGlobalActivityBar = observer(GlobalActivityBar);
-
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         position: 'absolute',
         top: 0,

@@ -16,24 +16,10 @@ export class Collection<T> implements Iterable<T> {
     }
 
     /**
-     * Get the number of items in the collection.
+     * Filter items in the collection using a predicate.
      */
-    public get length(): number {
-        return this.items.length;
-    }
-
-    /**
-     * Check if the collection is empty.
-     */
-    public isEmpty(): boolean {
-        return this.items.length === 0;
-    }
-
-    /**
-     * Get the underlying array of items.
-     */
-    public toArray(): T[] {
-        return [...this.items];
+    public filter(predicate: (item: T, index: number) => boolean): Collection<T> {
+        return new Collection(this.items.filter(predicate));
     }
 
     /**
@@ -44,10 +30,31 @@ export class Collection<T> implements Iterable<T> {
     }
 
     /**
+     * Create a Collection from an array (static factory).
+     */
+    public static from<T>(items: T[]): Collection<T> {
+        return new Collection(items);
+    }
+
+    /**
+     * Check if the collection is empty.
+     */
+    public isEmpty(): boolean {
+        return this.items.length === 0;
+    }
+
+    /**
      * Get the last item in the collection, or undefined if empty.
      */
     public last(): T | undefined {
         return this.items[this.items.length - 1];
+    }
+
+    /**
+     * Get the number of items in the collection.
+     */
+    public get length(): number {
+        return this.items.length;
     }
 
     /**
@@ -58,10 +65,17 @@ export class Collection<T> implements Iterable<T> {
     }
 
     /**
-     * Filter items in the collection using a predicate.
+     * Implement iterable interface for for...of loops.
      */
-    public filter(predicate: (item: T, index: number) => boolean): Collection<T> {
-        return new Collection(this.items.filter(predicate));
+    public [Symbol.iterator](): Iterator<T> {
+        return this.items[Symbol.iterator]();
+    }
+
+    /**
+     * Get the underlying array of items.
+     */
+    public toArray(): T[] {
+        return [...this.items];
     }
 
     /**
@@ -84,20 +98,8 @@ export class Collection<T> implements Iterable<T> {
         if (typeof (first as Record<string, unknown>).toDataObject !== 'function') {
             throw new Error('Collection items must have toDataObject method');
         }
-        return this.items.map((item) => (item as unknown as Entity).toDataObject()) as T extends Entity ? Record<string, unknown>[] : never;
-    }
-
-    /**
-     * Implement iterable interface for for...of loops.
-     */
-    public [Symbol.iterator](): Iterator<T> {
-        return this.items[Symbol.iterator]();
-    }
-
-    /**
-     * Create a Collection from an array (static factory).
-     */
-    public static from<T>(items: T[]): Collection<T> {
-        return new Collection(items);
+        return this.items.map((item) => (item as unknown as Entity).toDataObject()) as T extends Entity
+            ? Record<string, unknown>[]
+            : never;
     }
 }

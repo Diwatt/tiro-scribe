@@ -21,7 +21,7 @@ const MAX_BUFFER_SIZE = 200;
 
 /** Technical error log (last error on QueueItem). timestamp: Dayjs UTC. */
 export class QueueItemErrorEntry {
-    constructor(
+    public constructor(
         public timestamp: Dayjs,
         public stage: PipelineStage,
         public message: string,
@@ -31,54 +31,16 @@ export class QueueItemErrorEntry {
 type BufferEntry = QueueItemErrorEntry & { queueItemId?: string };
 
 export class QueueItemErrorLogger {
-    private static readonly _buffer: BufferEntry[] = [];
+    private static readonly buffer: BufferEntry[] = [];
 
-    private static _push(entry: BufferEntry): void {
-        QueueItemErrorLogger._buffer.push(entry);
-        if (QueueItemErrorLogger._buffer.length > MAX_BUFFER_SIZE) {
-            QueueItemErrorLogger._buffer.shift();
-        }
-    }
-
-    constructor(
+    public constructor(
         private readonly queueItem: QueueItem,
         private readonly appLog?: LoggerInterface,
     ) {}
 
-    /** Record error to app logger and in-memory buffer only (no DB). */
-    record(stage: PipelineStage, message: string): void {
-        const entry: BufferEntry = {
-            timestamp: dayjs.utc(),
-            stage,
-            message,
-            queueItemId: this.queueItem.uuid,
-        };
-        QueueItemErrorLogger._push(entry);
-        this.appLog?.warn(`[${stage}] ${message}`);
-    }
-
     /** No-op: logs are not in DB, so nothing to clear. Kept for API compatibility. */
-    clear(): void {
+    public clear(): void {
         /* no-op */
-    }
-
-    /** Format a single error entry as readable text. */
-    static formatOne(entry: QueueItemErrorEntry): string {
-        return `[${entry.timestamp.toISOString()}] ${entry.stage}: ${entry.message}`;
-    }
-
-    /** Format error entries as readable text (one line per entry). */
-    static format(entries: QueueItemErrorEntry[]): string {
-        return entries.map(QueueItemErrorLogger.formatOne).join('\n');
-    }
-
-    /**
-     * Get recent errors from the in-memory buffer, optionally for one queue item.
-     * Newest last. Use for UI ("last error for this item") or export.
-     */
-    static getRecentErrors(queueItemId?: string): QueueItemErrorEntry[] {
-        const list = queueItemId ? QueueItemErrorLogger._buffer.filter((e) => e.queueItemId === queueItemId) : [...QueueItemErrorLogger._buffer];
-        return list.map(({ queueItemId: _, ...entry }) => entry);
     }
 
     /**
@@ -86,10 +48,50 @@ export class QueueItemErrorLogger {
      * Optional queueItemId to include as header and/or filter to that item.
      * Contains only processing data (no private data).
      */
-    static exportForSupport(options?: { queueItemId?: string }): string {
+    public static exportForSupport(options?: { queueItemId?: string }): string {
         const entries = QueueItemErrorLogger.getRecentErrors(options?.queueItemId);
         const header = options?.queueItemId ? `QueueItem: ${options.queueItemId}\n` : '';
         const body = entries.length ? QueueItemErrorLogger.format(entries) : '(no errors recorded in this session)';
         return header + body;
+    }
+
+    /** Format error entries as readable text (one line per entry). */
+    public static format(entries: QueueItemErrorEntry[]): string {
+        return entries.map(QueueItemErrorLogger.formatOne).join('\n');
+    }
+
+    /** Format a single error entry as readable text. */
+    public static formatOne(entry: QueueItemErrorEntry): string {
+        return `[${entry.timestamp.toISOString()}] ${entry.stage}: ${entry.message}`;
+    }
+
+    /**
+     * Get recent errors from the in-memory buffer, optionally for one queue item.
+     * Newest last. Use for UI ("last error for this item") or export.
+     */
+    public static getRecentErrors(queueItemId?: string): QueueItemErrorEntry[] {
+        const list = queueItemId
+            ? QueueItemErrorLogger.buffer.filter((e) => e.queueItemId === queueItemId)
+            : [...QueueItemErrorLogger.buffer];
+        return list.map(({ queueItemId: _, ...entry }) => entry);
+    }
+
+    /** Record error to app logger and in-memory buffer only (no DB). */
+    public record(stage: PipelineStage, message: string): void {
+        const entry: BufferEntry = {
+            timestamp: dayjs.utc(),
+            stage,
+            message,
+            queueItemId: this.queueItem.uuid,
+        };
+        QueueItemErrorLogger.push(entry);
+        this.appLog?.warn(`[${stage}] ${message}`);
+    }
+
+    private static push(entry: BufferEntry): void {
+        QueueItemErrorLogger.buffer.push(entry);
+        if (QueueItemErrorLogger.buffer.length > MAX_BUFFER_SIZE) {
+            QueueItemErrorLogger.buffer.shift();
+        }
     }
 }

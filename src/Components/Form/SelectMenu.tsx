@@ -20,7 +20,14 @@ export interface SelectMenuProps<T extends FieldValues> {
     anchorTextStyle?: StyleProp<ViewStyle>;
 }
 
-export function SelectMenu<T extends FieldValues>({ control, name, label, options, anchorStyle, anchorTextStyle }: SelectMenuProps<T>): React.JSX.Element {
+export function SelectMenu<T extends FieldValues>({
+    control,
+    name,
+    label,
+    options,
+    anchorStyle,
+    anchorTextStyle,
+}: SelectMenuProps<T>): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const [visible, setVisible] = useState(false);
 
@@ -30,14 +37,26 @@ export function SelectMenu<T extends FieldValues>({ control, name, label, option
             control={control}
             render={({ field: { value, onChange }, fieldState: { error } }) => {
                 const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
+
+                const handleDismiss = () => setVisible(false);
+                const handlePress = () => setVisible(true);
+                const handleOptionPress = (optValue: string) => {
+                    onChange(optValue);
+                    setVisible(false);
+                };
+
                 return (
                     <>
-                        {label ? <Text style={{ fontSize: 14, marginBottom: 8, color: theme.colors.onSurfaceVariant }}>{label}</Text> : null}
+                        {label ? (
+                            <Text style={{ fontSize: 14, marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
+                                {label}
+                            </Text>
+                        ) : null}
                         <Menu
                             visible={visible}
-                            onDismiss={() => setVisible(false)}
+                            onDismiss={handleDismiss}
                             anchor={
-                                <Pressable onPress={() => setVisible(true)}>
+                                <Pressable onPress={handlePress}>
                                     <View
                                         style={[
                                             {
@@ -57,7 +76,11 @@ export function SelectMenu<T extends FieldValues>({ control, name, label, option
                                         ]}
                                         pointerEvents="box-only"
                                     >
-                                        <Text style={[{ fontSize: 16, color: theme.colors.onSurface }, anchorTextStyle]}>{selectedLabel}</Text>
+                                        <Text
+                                            style={[{ fontSize: 16, color: theme.colors.onSurface }, anchorTextStyle]}
+                                        >
+                                            {selectedLabel}
+                                        </Text>
                                         <Text style={{ color: theme.colors.onSurfaceVariant }}>▼</Text>
                                     </View>
                                 </Pressable>
@@ -66,10 +89,7 @@ export function SelectMenu<T extends FieldValues>({ control, name, label, option
                             {options.map((opt) => (
                                 <Menu.Item
                                     key={opt.value}
-                                    onPress={() => {
-                                        onChange(opt.value);
-                                        setVisible(false);
-                                    }}
+                                    onPress={() => handleOptionPress(opt.value)}
                                     title={opt.label}
                                 />
                             ))}

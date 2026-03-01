@@ -4,10 +4,10 @@
  * Response interceptor: throws ApiClientException on empty body. Error interceptor: wraps failures in ApiClientException.
  */
 
+import isEmpty from 'lodash/isEmpty';
 import { AppConfig } from '@/Config';
 import { ApiClientException } from '@/Exception';
 import { appLogger } from '@/Service/Logger';
-import isEmpty from 'lodash/isEmpty';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';
 import { client } from './generated/Client';
@@ -29,6 +29,17 @@ export class ApiClientRegistry {
         }
 
         return instance;
+    }
+
+    private createClient(model: ModelClass): ProfileAttributesClient | InferenceModelClient {
+        const httpClient = this.ensureClientConfigured();
+        if (model === ProfileAttributesClient) {
+            return new ProfileAttributesClient(httpClient);
+        }
+        if (model === InferenceModelClient) {
+            return new InferenceModelClient(httpClient);
+        }
+        throw new Error(`Unknown model: ${(model as ModelClass).name}`);
     }
 
     private ensureClientConfigured(): Client {
@@ -71,19 +82,8 @@ export class ApiClientRegistry {
 
         return response;
     }
-
-    private createClient(model: ModelClass): ProfileAttributesClient | InferenceModelClient {
-        const httpClient = this.ensureClientConfigured();
-        if (model === ProfileAttributesClient) {
-            return new ProfileAttributesClient(httpClient);
-        }
-        if (model === InferenceModelClient) {
-            return new InferenceModelClient(httpClient);
-        }
-        throw new Error(`Unknown model: ${(model as ModelClass).name}`);
-    }
 }
 
-export const apiClientRegistry = new ApiClientRegistry();
+export const API_CLIENT_REGISTRY = new ApiClientRegistry();
 export { InferenceModelClient } from './Client/InferenceModelClient';
 export { ProfileAttributesClient } from './Client/ProfileAttributesClient';

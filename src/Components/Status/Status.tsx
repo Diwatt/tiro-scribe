@@ -50,7 +50,7 @@ export function Status({ title, subtitle, icon, state, iconBgOverride, children 
     return (
         <Surface
             style={[
-                styles.container,
+                STYLES.container,
                 {
                     backgroundColor: statusColors.background,
                     shadowColor: statusColors.shadowColor,
@@ -58,15 +58,17 @@ export function Status({ title, subtitle, icon, state, iconBgOverride, children 
             ]}
             elevation={4}
         >
-            <View style={styles.contentWrapper}>
-                <View style={styles.headerRow}>
-                    <View style={[styles.iconBox, { backgroundColor: iconBgOverride ?? statusColors.iconBackground }]}>{icon}</View>
-                    <View style={styles.headerText}>
-                        <Text variant="titleMedium" style={[styles.title, { color: statusColors.text }]}>
+            <View style={STYLES.contentWrapper}>
+                <View style={STYLES.headerRow}>
+                    <View style={[STYLES.iconBox, { backgroundColor: iconBgOverride ?? statusColors.iconBackground }]}>
+                        {icon}
+                    </View>
+                    <View style={STYLES.headerText}>
+                        <Text variant="titleMedium" style={[STYLES.title, { color: statusColors.text }]}>
                             {title}
                         </Text>
-                        {subtitle && (
-                            <Text variant="bodySmall" style={[styles.subtitle, { color: statusColors.text }]}>
+                        {Boolean(subtitle) && (
+                            <Text variant="bodySmall" style={[STYLES.subtitle, { color: statusColors.text }]}>
                                 {subtitle}
                             </Text>
                         )}
@@ -78,7 +80,7 @@ export function Status({ title, subtitle, icon, state, iconBgOverride, children 
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         borderRadius: 24,
         marginBottom: 20,

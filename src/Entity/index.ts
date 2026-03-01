@@ -14,7 +14,15 @@ import { Transcription } from './Transcription';
  * Add new entity classes here when you create them.
  * The system will automatically extract table names from @Entity decorator metadata.
  */
-const ENTITY_CLASS_LIST = [Therapist, Encounter, Patient, QueueItem, DownloadQueue, Transcription, ProsodyMetrics] as const satisfies readonly EntityClass[];
+const ENTITY_CLASS_LIST = [
+    Therapist,
+    Encounter,
+    Patient,
+    QueueItem,
+    DownloadQueue,
+    Transcription,
+    ProsodyMetrics,
+] as const satisfies readonly EntityClass[];
 
 /**
  * Build ENTITY_TABLES dynamically from entity classes.
@@ -41,4 +49,12 @@ export const ENTITY_CLASSES: EntityClass[] = Array.from(ENTITY_CLASS_LIST);
 export { DownloadQueue, Encounter, Patient, ProsodyMetrics, QueueItem, Therapist, Transcription };
 export { VoiceFrame } from './ProsodyMetrics';
 export { Utterance } from './Transcription';
-export { DetectedSpeakerProfile, DownloadQueueStatus, EncounterStatus, EntityType, PipelineStage, QueueItemStatus, QueueItemType } from './Type';
+export {
+    DetectedSpeakerProfile,
+    DownloadQueueStatus,
+    EncounterStatus,
+    EntityType,
+    PipelineStage,
+    QueueItemStatus,
+    QueueItemType,
+} from './Type';

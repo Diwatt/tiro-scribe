@@ -2,11 +2,8 @@
  * VectorProjection - Immutable linear algebra operations for voice biocode projection
  */
 
-import {
-    InvalidDimensionError,
-    VectorLengthMismatchError,
-} from '../Exception';
 import { dot, multiply, sqrt } from 'mathjs';
+import { InvalidDimensionError, VectorLengthMismatchError } from '../Exception';
 
 export class VectorProjection {
     private readonly inputDim: number;
@@ -23,36 +20,15 @@ export class VectorProjection {
         for (let i = 0; i < projectionMatrix.length; i++) {
             if (projectionMatrix[i].length !== this.inputDim) {
                 throw new InvalidDimensionError(
-                    `Inconsistent matrix dimensions: row ${i} has length ${projectionMatrix[i].length}, expected ${this.inputDim}`
+                    `Inconsistent matrix dimensions: row ${i} has length ${projectionMatrix[i].length}, expected ${this.inputDim}`,
                 );
             }
         }
     }
 
-    public project(vector: number[]): number[] {
-        if (this.inputDim !== vector.length) {
-            throw new InvalidDimensionError(
-                `Vector dimension ${vector.length} does not match projection matrix input dimension ${this.inputDim}`
-            );
-        }
-
-        // Single matrix-vector multiply — replaces manual row-by-row loop
-        return multiply(this.projectionMatrix, vector);
-    }
-
-    public normalize(vector: number[]): number[] {
-        const magnitude = sqrt(dot(vector, vector)) as number;
-        if (magnitude === 0) {
-            return vector;
-        }
-        return multiply(vector, 1 / magnitude) as number[];
-    }
-
     public cosineSimilarity(v1: number[], v2: number[]): number {
         if (v1.length !== v2.length) {
-            throw new VectorLengthMismatchError(
-                `Vector lengths don't match: ${v1.length} vs ${v2.length}`,
-            );
+            throw new VectorLengthMismatchError(`Vector lengths don't match: ${v1.length} vs ${v2.length}`);
         }
 
         const dotProduct = dot(v1, v2) as number;
@@ -63,5 +39,24 @@ export class VectorProjection {
             return 0;
         }
         return dotProduct / (magnitude1 * magnitude2);
+    }
+
+    public normalize(vector: number[]): number[] {
+        const magnitude = sqrt(dot(vector, vector)) as number;
+        if (magnitude === 0) {
+            return vector;
+        }
+        return multiply(vector, 1 / magnitude) as number[];
+    }
+
+    public project(vector: number[]): number[] {
+        if (this.inputDim !== vector.length) {
+            throw new InvalidDimensionError(
+                `Vector dimension ${vector.length} does not match projection matrix input dimension ${this.inputDim}`,
+            );
+        }
+
+        // Single matrix-vector multiply — replaces manual row-by-row loop
+        return multiply(this.projectionMatrix, vector);
     }
 }

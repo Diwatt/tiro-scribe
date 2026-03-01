@@ -39,7 +39,9 @@ export class InferenceModelConfigProvider {
                 error: error instanceof Error ? error.message : String(error),
             });
             throw new InferenceModelDownloaderException(
-                error instanceof Error ? error.message : 'Model configs unavailable. Please check your connection and retry.',
+                error instanceof Error
+                    ? error.message
+                    : 'Model configs unavailable. Please check your connection and retry.',
                 error instanceof Error ? error : new Error(String(error)),
             );
         }
@@ -58,7 +60,9 @@ export class InferenceModelConfigProvider {
                 error: error instanceof Error ? error.message : String(error),
             });
             throw new InferenceModelDownloaderException(
-                error instanceof Error ? error.message : 'Model configs unavailable. Please check your connection and retry.',
+                error instanceof Error
+                    ? error.message
+                    : 'Model configs unavailable. Please check your connection and retry.',
                 error instanceof Error ? error : new Error(String(error)),
             );
         }

@@ -13,14 +13,14 @@ export class ClassDecorator {
         return this._name;
     }
 
-    public getOptions(): Record<string, unknown> {
-        return this._options;
-    }
-
     /** Single option by name (e.g. getOption('tableName')). */
     public getOption<K extends string>(optionName: K): unknown {
         // options are opaque at this level; database-specific decorators may
         // provide their own typed accessors if needed.
         return (this._options as Record<string, unknown>)[optionName];
+    }
+
+    public getOptions(): Record<string, unknown> {
+        return this._options;
     }
 }

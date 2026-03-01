@@ -19,23 +19,28 @@ export function TranscriptDetailScreen(): React.JSX.Element {
 
     // Mock data – id from route, optional query params
     const transcript =
-        params.transcript || 'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
+        params.transcript ||
+        'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
 
-    const biocode = params.biocode ? (Array.isArray(params.biocode) ? JSON.stringify(params.biocode) : params.biocode) : 'SUBJ-****-A3F2';
+    const biocode = params.biocode
+        ? Array.isArray(params.biocode)
+            ? JSON.stringify(params.biocode)
+            : params.biocode
+        : 'SUBJ-****-A3F2';
     const date = params.date || '2 hours ago';
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <Surface style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+        <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
+            <Surface style={[STYLES.header, { backgroundColor: theme.colors.surface }]}>
                 <IconButton icon={ArrowLeft} size={24} onPress={() => router.back()} />
-                <View style={styles.headerContent}>
-                    <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+                <View style={STYLES.headerContent}>
+                    <Text variant="titleMedium" style={[STYLES.title, { color: theme.colors.onSurface }]}>
                         {LL.transcript.title()}
                     </Text>
-                    <View style={styles.headerMeta}>
-                        <Chip mode="flat" compact style={styles.chip}>
+                    <View style={STYLES.headerMeta}>
+                        <Chip mode="flat" compact style={STYLES.chip}>
                             {biocode}
                         </Chip>
-                        <Text variant="bodySmall" style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
+                        <Text variant="bodySmall" style={[STYLES.date, { color: theme.colors.onSurfaceVariant }]}>
                             {date}
                         </Text>
                     </View>
@@ -56,9 +61,9 @@ export function TranscriptDetailScreen(): React.JSX.Element {
                 />
             </Surface>
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-                <Surface style={[styles.transcriptCard, { backgroundColor: theme.colors.surface }]}>
-                    <Text variant="bodyLarge" style={[styles.transcript, { color: theme.colors.onSurface }]}>
+            <ScrollView style={STYLES.scrollView} contentContainerStyle={STYLES.scrollContent}>
+                <Surface style={[STYLES.transcriptCard, { backgroundColor: theme.colors.surface }]}>
+                    <Text variant="bodyLarge" style={[STYLES.transcript, { color: theme.colors.onSurface }]}>
                         {transcript}
                     </Text>
                 </Surface>
@@ -67,7 +72,7 @@ export function TranscriptDetailScreen(): React.JSX.Element {
     );
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
     container: {
         flex: 1,
     },

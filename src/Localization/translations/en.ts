@@ -20,7 +20,8 @@ const en: BaseTranslation = {
         back: 'Back',
         creatingAccount: 'Creating account…',
         accountReady: 'Account ready',
-        recoveryDesc: 'Save this recovery code in a safe place. It is the only way to recover your account if you lose your password.',
+        recoveryDesc:
+            'Save this recovery code in a safe place. It is the only way to recover your account if you lose your password.',
         saveRecoveryKit: 'Save my Recovery Kit',
         recoveryKitPending: 'Generating…',
         copyCode: 'Copy code',

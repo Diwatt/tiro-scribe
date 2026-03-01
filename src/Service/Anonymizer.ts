@@ -48,10 +48,10 @@ export const ENTITY_TOKENS = {
 // Type definitions for ONNX Runtime (to be implemented with native module)
 interface OnnxRuntimeInterface {
     loadModel(modelPath: string): Promise<void>;
-    runInference(text: string): Promise<ONNXNERResult[]>;
+    runInference(text: string): Promise<OnnxnerResult[]>;
 }
 
-interface ONNXNERResult {
+interface OnnxnerResult {
     text: string;
     label: 'PER' | 'LOC' | 'ORG' | 'MISC';
     start: number;
@@ -60,31 +60,13 @@ interface ONNXNERResult {
 }
 
 export class Anonymizer {
-    private onnxRuntime: OnnxRuntimeInterface | null = null;
-    private sessionStartDate: Date | null = null;
-    private relationCounter: Map<string, number> = new Map();
     private loggerInstance: LoggerInterface;
+    private onnxRuntime: OnnxRuntimeInterface | null = null;
+    private relationCounter: Map<string, number> = new Map();
+    private sessionStartDate: Date | null = null;
 
     constructor(logger: LoggerInterface = appLogger) {
         this.loggerInstance = logger;
-    }
-
-    /**
-     * Initialize the Anonymizer with ONNX Runtime
-     * @param onnxModule - The native ONNX Runtime module instance
-     * @param modelPath - Path to the quantized BERT-NER model
-     */
-    async initialize(onnxModule: OnnxRuntimeInterface, modelPath: string): Promise<void> {
-        this.onnxRuntime = onnxModule;
-        await this.onnxRuntime.loadModel(modelPath);
-    }
-
-    /**
-     * Set the session start date for temporal fuzzing
-     * @param startDate - The start date/time of the session
-     */
-    setSessionStartDate(startDate: Date): void {
-        this.sessionStartDate = startDate;
     }
 
     /**
@@ -119,6 +101,168 @@ export class Anonymizer {
 
         const confidence = entities.length > 0 ? entities.reduce((sum, _e) => sum + 0.9, 0) / entities.length : 1.0;
         return new AnonymizationResult(cleanText, entities, Math.min(confidence, 1.0));
+    }
+
+    /**
+     * Initialize the Anonymizer with ONNX Runtime
+     * @param onnxModule - The native ONNX Runtime module instance
+     * @param modelPath - Path to the quantized BERT-NER model
+     */
+    async initialize(onnxModule: OnnxRuntimeInterface, modelPath: string): Promise<void> {
+        this.onnxRuntime = onnxModule;
+        await this.onnxRuntime.loadModel(modelPath);
+    }
+
+    /**
+     * Reset the relation counter (call at the start of each session)
+     */
+    reset(): void {
+        this.relationCounter.clear();
+        this.sessionStartDate = null;
+    }
+
+    /**
+     * Set the session start date for temporal fuzzing
+     * @param startDate - The start date/time of the session
+     */
+    setSessionStartDate(startDate: Date): void {
+        this.sessionStartDate = startDate;
+    }
+
+    /**
+     * Convert absolute date to relative date format
+     */
+    private convertToRelativeDate(dateString: string): string | null {
+        if (!this.sessionStartDate) {
+            return null;
+        }
+
+        try {
+            let parsedDate: Date | null = null;
+
+            // Try parsing various date formats (dayjs format syntax)
+            const formats = [
+                'MMMM D, YYYY', // "January 12, 2024"
+                'MM/DD/YYYY', // "01/12/2024"
+                'DD/MM/YYYY', // "12/01/2024"
+                'YYYY', // "2024"
+            ];
+
+            for (const fmt of formats) {
+                try {
+                    const parsed = dayjs(dateString, fmt, true);
+                    if (parsed.isValid()) {
+                        parsedDate = parsed.toDate();
+                        break;
+                    }
+                } catch {}
+            }
+
+            // Handle year-only patterns
+            const yearMatch = dateString.match(/\b(19|20)\d{2}\b/);
+            if (yearMatch && !parsedDate) {
+                const year = parseInt(yearMatch[0], 10);
+                parsedDate = new Date(year, 0, 1);
+            }
+
+            if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+                return null;
+            }
+
+            const daysDiff = dayjs(parsedDate).diff(dayjs(this.sessionStartDate), 'day');
+
+            if (daysDiff === 0) {
+                return '[SESSION_DAY]';
+            }
+            if (daysDiff > 0) {
+                return `[DAY_+${daysDiff}]`;
+            }
+            return `[DAY_${daysDiff}]`;
+        } catch (error) {
+            this.loggerInstance.error('Error converting date to relative:', {
+                error,
+                errorMessage: error instanceof Error ? error.message : String(error),
+            });
+            return '[DATE_FUZZED]';
+        }
+    }
+
+    /**
+     * Convert absolute time to relative time format
+     */
+    private convertToRelativeTime(timeString: string): string | null {
+        // For times, we preserve the time but remove specific context
+        // "3:30 PM" -> "[TIME_AFTERNOON]" or keep as "[TIME_FUZZED]"
+        const lowerTime = timeString.toLowerCase();
+
+        if (lowerTime.includes('yesterday')) {
+            return '[DAY_-1]';
+        }
+        if (lowerTime.includes('today')) {
+            return '[SESSION_DAY]';
+        }
+        if (lowerTime.includes('tomorrow')) {
+            return '[DAY_+1]';
+        }
+        // For specific times, just fuzz them
+        return '[TIME_FUZZED]';
+    }
+
+    /**
+     * Layer 3: Temporal fuzzing - detect and convert dates/times to relative
+     */
+    private detectAndFuzzTemporal(text: string, existingEntities: Redaction[]): Redaction[] {
+        const entities: Redaction[] = [];
+
+        if (!this.sessionStartDate) {
+            this.loggerInstance.warn('Session start date not set. Temporal fuzzing disabled.');
+            return entities;
+        }
+
+        const datePatterns = [
+            /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi,
+            /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/g,
+            /\b(19|20)\d{2}\b/g,
+        ];
+
+        const timePatterns = [/\b(\d{1,2}):(\d{2})\s*(AM|PM)?\b/gi, /\b(yesterday|today|tomorrow)\b/gi];
+
+        for (const pattern of datePatterns) {
+            let match: RegExpExecArray | null = pattern.exec(text);
+            while (match !== null) {
+                const m = match;
+                const isOverlapping = existingEntities.some(
+                    (e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length,
+                );
+
+                if (!isOverlapping) {
+                    const relativeDate = this.convertToRelativeDate(m[0]);
+                    if (relativeDate) {
+                        entities.push(new Redaction(m[0], relativeDate, EntityType.Date, m.index));
+                    }
+                }
+                match = pattern.exec(text);
+            }
+        }
+
+        for (const pattern of timePatterns) {
+            let match: RegExpExecArray | null = pattern.exec(text);
+            while (match !== null) {
+                const m = match;
+                const isOverlapping = existingEntities.some(
+                    (e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length,
+                );
+
+                if (!isOverlapping) {
+                    const relativeTime = this.convertToRelativeTime(m[0]);
+                    if (relativeTime) {
+                        entities.push(new Redaction(m[0], relativeTime, EntityType.Time, m.index));
+                    }
+                }
+                match = pattern.exec(text);
+            }
+        }
+        return entities;
     }
 
     /**
@@ -182,10 +326,14 @@ export class Anonymizer {
             let match: RegExpExecArray | null = pattern.exec(text);
             while (match !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
+                const isOverlapping = existingEntities.some(
+                    (e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length,
+                );
 
                 if (!isOverlapping) {
-                    entities.push(new Redaction(m[0], this.generateFamilyRelationToken(), EntityType.FamilyRelation, m.index));
+                    entities.push(
+                        new Redaction(m[0], this.generateFamilyRelationToken(), EntityType.FamilyRelation, m.index),
+                    );
                 }
                 match = pattern.exec(text);
             }
@@ -195,167 +343,19 @@ export class Anonymizer {
             let match: RegExpExecArray | null = pattern.exec(text);
             while (match !== null) {
                 const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
+                const isOverlapping = existingEntities.some(
+                    (e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length,
+                );
 
                 if (!isOverlapping) {
-                    entities.push(new Redaction(m[0], this.generateWorkRelationToken(), EntityType.WorkRelation, m.index));
+                    entities.push(
+                        new Redaction(m[0], this.generateWorkRelationToken(), EntityType.WorkRelation, m.index),
+                    );
                 }
                 match = pattern.exec(text);
             }
         }
         return entities;
-    }
-
-    /**
-     * Layer 3: Temporal fuzzing - detect and convert dates/times to relative
-     */
-    private detectAndFuzzTemporal(text: string, existingEntities: Redaction[]): Redaction[] {
-        const entities: Redaction[] = [];
-
-        if (!this.sessionStartDate) {
-            this.loggerInstance.warn('Session start date not set. Temporal fuzzing disabled.');
-            return entities;
-        }
-
-        const datePatterns = [
-            /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi,
-            /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/g,
-            /\b(19|20)\d{2}\b/g,
-        ];
-
-        const timePatterns = [
-            /\b(\d{1,2}):(\d{2})\s*(AM|PM)?\b/gi,
-            /\b(yesterday|today|tomorrow)\b/gi,
-        ];
-
-        for (const pattern of datePatterns) {
-            let match: RegExpExecArray | null = pattern.exec(text);
-            while (match !== null) {
-                const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
-
-                if (!isOverlapping) {
-                    const relativeDate = this.convertToRelativeDate(m[0]);
-                    if (relativeDate) {
-                        entities.push(new Redaction(m[0], relativeDate, EntityType.Date, m.index));
-                    }
-                }
-                match = pattern.exec(text);
-            }
-        }
-
-        for (const pattern of timePatterns) {
-            let match: RegExpExecArray | null = pattern.exec(text);
-            while (match !== null) {
-                const m = match;
-                const isOverlapping = existingEntities.some((e) => m.index >= e.index && m.index + m[0].length <= e.index + e.original.length);
-
-                if (!isOverlapping) {
-                    const relativeTime = this.convertToRelativeTime(m[0]);
-                    if (relativeTime) {
-                        entities.push(new Redaction(m[0], relativeTime, EntityType.Time, m.index));
-                    }
-                }
-                match = pattern.exec(text);
-            }
-        }
-        return entities;
-    }
-
-    /**
-     * Convert absolute date to relative date format
-     */
-    private convertToRelativeDate(dateString: string): string | null {
-        if (!this.sessionStartDate) {
-            return null;
-        }
-
-        try {
-            let parsedDate: Date | null = null;
-
-            // Try parsing various date formats (dayjs format syntax)
-            const formats = [
-                'MMMM D, YYYY', // "January 12, 2024"
-                'MM/DD/YYYY', // "01/12/2024"
-                'DD/MM/YYYY', // "12/01/2024"
-                'YYYY', // "2024"
-            ];
-
-            for (const fmt of formats) {
-                try {
-                    const parsed = dayjs(dateString, fmt, true);
-                    if (parsed.isValid()) {
-                        parsedDate = parsed.toDate();
-                        break;
-                    }
-                } catch {}
-            }
-
-            // Handle year-only patterns
-            const yearMatch = dateString.match(/\b(19|20)\d{2}\b/);
-            if (yearMatch && !parsedDate) {
-                const year = parseInt(yearMatch[0], 10);
-                parsedDate = new Date(year, 0, 1);
-            }
-
-            if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
-                return null;
-            }
-
-            const daysDiff = dayjs(parsedDate).diff(dayjs(this.sessionStartDate), 'day');
-
-            if (daysDiff === 0) {
-                return '[SESSION_DAY]';
-            } else if (daysDiff > 0) {
-                return `[DAY_+${daysDiff}]`;
-            } else {
-                return `[DAY_${daysDiff}]`;
-            }
-        } catch (error) {
-            this.loggerInstance.error('Error converting date to relative:', {
-                error,
-                errorMessage: error instanceof Error ? error.message : String(error),
-            });
-            return '[DATE_FUZZED]';
-        }
-    }
-
-    /**
-     * Convert absolute time to relative time format
-     */
-    private convertToRelativeTime(timeString: string): string | null {
-        // For times, we preserve the time but remove specific context
-        // "3:30 PM" -> "[TIME_AFTERNOON]" or keep as "[TIME_FUZZED]"
-        const lowerTime = timeString.toLowerCase();
-
-        if (lowerTime.includes('yesterday')) {
-            return '[DAY_-1]';
-        } else if (lowerTime.includes('today')) {
-            return '[SESSION_DAY]';
-        } else if (lowerTime.includes('tomorrow')) {
-            return '[DAY_+1]';
-        } else {
-            // For specific times, just fuzz them
-            return '[TIME_FUZZED]';
-        }
-    }
-
-    /**
-     * Generate anonymized token for persons
-     */
-    private generatePersonToken(): string {
-        const count = this.relationCounter.get(EntityType.Person) || 0;
-        this.relationCounter.set(EntityType.Person, count + 1);
-        return `[PERSON_${count + 1}]`;
-    }
-
-    /**
-     * Generate anonymized token for locations
-     */
-    private generateLocationToken(): string {
-        const count = this.relationCounter.get(EntityType.Location) || 0;
-        this.relationCounter.set(EntityType.Location, count + 1);
-        return `[LOCATION_${count + 1}]`;
     }
 
     /**
@@ -368,19 +368,29 @@ export class Anonymizer {
     }
 
     /**
+     * Generate anonymized token for locations
+     */
+    private generateLocationToken(): string {
+        const count = this.relationCounter.get(EntityType.Location) || 0;
+        this.relationCounter.set(EntityType.Location, count + 1);
+        return `[LOCATION_${count + 1}]`;
+    }
+
+    /**
+     * Generate anonymized token for persons
+     */
+    private generatePersonToken(): string {
+        const count = this.relationCounter.get(EntityType.Person) || 0;
+        this.relationCounter.set(EntityType.Person, count + 1);
+        return `[PERSON_${count + 1}]`;
+    }
+
+    /**
      * Generate anonymized token for work relations
      */
     private generateWorkRelationToken(): string {
         const count = this.relationCounter.get('WORK') || 0;
         this.relationCounter.set('WORK', count + 1);
         return `[RELATION_WORK_${count + 1}]`;
-    }
-
-    /**
-     * Reset the relation counter (call at the start of each session)
-     */
-    reset(): void {
-        this.relationCounter.clear();
-        this.sessionStartDate = null;
     }
 }

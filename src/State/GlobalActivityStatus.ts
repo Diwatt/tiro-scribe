@@ -14,7 +14,6 @@ export enum ActivityStatus {
     Error = 'error',
 }
 
-
 export type GlobalActivityState = {
     status: ActivityStatus;
     message: string;
@@ -35,8 +34,31 @@ export class GlobalActivityStatus {
         icon: undefined,
     });
 
+    public getIcon(): React.ReactNode | undefined {
+        return this.state$.get().icon;
+    }
+
+    public getMessage(): string | undefined {
+        return this.state$.get().message;
+    }
+
+    public getStatus(): ActivityStatus {
+        // reading the observable within an `observer` component will
+        // register the dependency, so callers don't need direct access to
+        // the observable itself.
+        return this.state$.get().status;
+    }
+
     public is(status: ActivityStatus): boolean {
         return this.getStatus() === status;
+    }
+
+    public reset(): void {
+        this.state$.set({
+            status: ActivityStatus.Ready,
+            message: '',
+            icon: undefined,
+        });
     }
 
     public setStatus(
@@ -52,29 +74,6 @@ export class GlobalActivityStatus {
                 this.reset();
             }, autoHideAfterMs);
         }
-    }
-
-    public getStatus(): ActivityStatus {
-        // reading the observable within an `observer` component will
-        // register the dependency, so callers don't need direct access to
-        // the observable itself.
-        return this.state$.get().status;
-    }
-
-    public getMessage(): string | undefined {
-        return this.state$.get().message;
-    }
-
-    public getIcon(): React.ReactNode | undefined {
-        return this.state$.get().icon;
-    }
-
-    public reset(): void {
-        this.state$.set({
-            status: ActivityStatus.Ready,
-            message: '',
-            icon: undefined,
-        });
     }
 }
 
