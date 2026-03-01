@@ -1,299 +1,186 @@
 /**
  * InMemoryAudioRecorder – captures microphone PCM directly into RAM via
- * react-native-nitro-sound, runs ONNX Cam++ speaker model, and returns an
- * embedding vector. No audio file is ever written to disk, satisfying the
- * strict privacy requirement. Used in Onboarding Step 3; model download is
- * handled by the inference model downloader as before.
- *
- * Simplified to use nitro-sound's built-in timeout, error handling, and
- * event management - reducing from 173 lines to ~30 lines.
+ * expo-audio, accumulates samples on the worklet thread, and returns a
+ * Float32Array. No audio file is ever written to disk.
  */
 
-import type { AudioSet } from 'react-native-nitro-sound';
-import { createSound } from 'react-native-nitro-sound';
+import {
+    AudioModule,
+    type AudioRecorder,
+    type AudioSample,
+    type RecordingOptions,
+    type RecordingStatus,
+    requestRecordingPermissionsAsync,
+    setAudioModeAsync,
+} from 'expo-audio';
+import type { EventSubscription } from 'expo-modules-core';
+import { makeShareable, runOnJS } from 'react-native-worklets';
 import { InMemoryAudioRecorderException } from '@/Exception';
 import { appLogger, type LoggerInterface } from './Logger';
 
-interface PendingCapture {
-    durationMs: number;
-    resolve: (data: Float32Array) => void;
-    reject: (error: InMemoryAudioRecorderException) => void;
-    autoStopTimer?: ReturnType<typeof setTimeout>;
-    safetyTimer?: ReturnType<typeof setTimeout>;
-    completed: boolean;
-    stopInitiated: boolean;
-}
-
-interface RecordEvent {
-    currentPosition: number;
-    audioData?: Float32Array | number[];
-}
-
 export class InMemoryAudioRecorder {
-    private static readonly CONFIG: AudioSet = {
-        // Match secure-recorder exactly: 16kHz, mono, 16-bit PCM
-        AudioSamplingRate: 16000,
-        AudioChannels: 1,
+    private static readonly SAMPLE_RATE = 16_000;
 
-        // iOS: Match secure-recorder's AVAudioFormat.pcmFormatInt16
-        AVEncodingOptionIOS: 'lpcm',
-        AVLinearPCMBitDepthKeyIOS: 16,
-        AVLinearPCMIsFloatKeyIOS: false,
-        AVLinearPCMIsBigEndianKeyIOS: false,
-        AVLinearPCMIsNonInterleavedIOS: false,
-
-        // Android: Match secure-recorder's AudioRecord.ENCODING_PCM_16BIT
-        AudioSourceAndroid: 6, // VOICE_RECOGNITION (unprocessed)
+    private static readonly DEFAULT_OPTIONS: Partial<RecordingOptions> = {
+        sampleRate: InMemoryAudioRecorder.SAMPLE_RATE,
+        numberOfChannels: 1,
+        ios: {
+            audioQuality: 0,
+            linearPCMBitDepth: 16,
+            linearPCMIsBigEndian: false,
+            linearPCMIsFloat: true,
+            outputFormat: 'LINEARPCM',
+        },
+        android: {
+            audioEncoder: 'aac',
+            outputFormat: 'default',
+        },
+        extension: '.wav',
+        bitRate: 128_000,
     };
 
-    private static readonly SAFETY_MARGIN_MS = 250;
+    /** Safety margin added to durationMs before we consider the capture timed out. */
+    private static readonly TIMEOUT_MARGIN_MS = 2_000;
 
-    private readonly pendingCaptures = new Set<PendingCapture>();
-    private sound: ReturnType<typeof createSound> | null;
-    private listenerAttached = false;
-    private readonly recordBackHandler: (event: RecordEvent) => void;
-    private isRecording = false;
-    private pendingStartErrorMessage: string | null = null;
+    private recorder: AudioRecorder | null = null;
+    private subscription: EventSubscription | null = null;
+    private timeoutId: ReturnType<typeof setTimeout> | null = null;
+    private isCapturing = false;
 
-    public constructor(private readonly logger: LoggerInterface = appLogger) {
-        this.sound = createSound();
-        this.recordBackHandler = (event: RecordEvent) => this.onRecordBack(event);
-    }
+    private resolveCapture: ((data: Float32Array) => void) | null = null;
+    private rejectCapture: ((error: Error) => void) | null = null;
+
+    public constructor(private readonly logger: LoggerInterface = appLogger) {}
 
     /**
-     * Capture audio for specified duration and return the PCM samples as Float32Array.
-     * Supports multiple concurrent capture calls: all pending promises resolve when
-     * the recorder reports that their requested duration has been reached.
+     * Capture `durationMs` of 16 kHz mono PCM into memory and return it.
+     * Rejects if a capture is already running, permissions are denied,
+     * or the hardware doesn't deliver enough samples in time.
      */
     public async capture(durationMs: number): Promise<Float32Array> {
-        if (this.pendingStartErrorMessage) {
-            const message = this.pendingStartErrorMessage;
-            this.pendingStartErrorMessage = null;
-            this.logger.error(`Recording failed: ${message}`);
-            throw new InMemoryAudioRecorderException(message, 'RECORDING_ERROR');
+        if (this.isCapturing) {
+            throw new InMemoryAudioRecorderException('A capture is already in progress', 'CONCURRENT_CAPTURE');
         }
 
-        this.logger.debug(`Starting audio capture for ${durationMs}ms`);
-        const sound = this.ensureSound();
+        await this.ensurePermissions();
+        this.isCapturing = true;
+        this.recorder = new AudioModule.AudioRecorder(InMemoryAudioRecorder.DEFAULT_OPTIONS);
 
-        if (!this.listenerAttached) {
-            sound.addRecordBackListener(this.recordBackHandler);
-            this.listenerAttached = true;
+        return new Promise<Float32Array>((resolve, reject) => {
+            this.resolveCapture = resolve;
+            this.rejectCapture = reject;
+
+            this.setupAudioListener(durationMs);
+            this.startRecording(durationMs);
+        });
+    }
+
+    // ---------------------------------------------------------------- private
+
+    private async ensurePermissions(): Promise<void> {
+        const { granted } = await requestRecordingPermissionsAsync();
+        if (!granted) {
+            throw new InMemoryAudioRecorderException('Microphone permission denied', 'PERMISSION_DENIED');
+        }
+        await setAudioModeAsync({ allowsRecording: true });
+    }
+
+    private setupAudioListener(durationMs: number): void {
+        const requiredSamples = (durationMs / 1_000) * InMemoryAudioRecorder.SAMPLE_RATE;
+
+        const sharedState = makeShareable({
+            writePosition: 0,
+            buffer: new Float32Array(requiredSamples),
+        });
+
+        const onComplete = this.handleCaptureComplete;
+
+        // If no samples are needed, complete immediately
+        if (requiredSamples === 0) {
+            runOnJS(onComplete)(sharedState.buffer);
+            return;
         }
 
-        const pending: PendingCapture = {
-            durationMs,
-            resolve: () => {},
-            reject: () => {},
-            completed: false,
-            stopInitiated: false,
+        const accumulate = (incoming: Float32Array) => {
+            'worklet';
+            if (sharedState.writePosition >= requiredSamples) {
+                return;
+            }
+
+            const remaining = requiredSamples - sharedState.writePosition;
+            const count = Math.min(remaining, incoming.length);
+            sharedState.buffer.set(incoming.subarray(0, count), sharedState.writePosition);
+            sharedState.writePosition += count;
+
+            if (sharedState.writePosition >= requiredSamples) {
+                runOnJS(onComplete)(sharedState.buffer);
+            }
         };
 
-        const capturePromise = new Promise<Float32Array>((resolve, reject) => {
-            pending.resolve = (data) => {
-                pending.completed = true;
-                resolve(data);
-            };
-            pending.reject = (error) => {
-                pending.completed = true;
-                reject(error);
-            };
+        this.subscription = this.recorder!.addListener('recordingStatusUpdate', (status: RecordingStatus & { audioSample?: AudioSample }) => {
+            const frames = status.audioSample?.channels?.[0]?.frames;
+            if (frames) {
+                accumulate(new Float32Array(frames));
+            }
         });
-
-        this.pendingCaptures.add(pending);
-        const startPromise = this.isRecording
-            ? Promise.resolve()
-            : sound.startRecorder(undefined, InMemoryAudioRecorder.CONFIG).then(() => {
-                  this.isRecording = true;
-              });
-
-        // Auto-stop after requested duration to mirror previous behaviour.
-        pending.autoStopTimer = setTimeout(() => {
-            if (pending.completed) {
-                return;
-            }
-            this.logger.debug('Auto-stopping recorder after requested duration');
-            this.stopRecorderSafely(pending);
-        }, durationMs);
-
-        // Safety timer ensures promises do not hang indefinitely even if callbacks never fire.
-        pending.safetyTimer = setTimeout(() => {
-            if (pending.completed) {
-                return;
-            }
-
-            this.logger.warn('Recording safety timeout triggered');
-            this.failCapture(pending, new InMemoryAudioRecorderException('Recording timed out.', 'RECORDING_TIMEOUT'));
-        }, durationMs + InMemoryAudioRecorder.SAFETY_MARGIN_MS);
-
-        let capturedData: Float32Array | undefined;
-
-        try {
-            this.logger.info('Starting recorder with 16-bit PCM configuration');
-            await startPromise;
-
-            capturedData = await capturePromise;
-            this.logger.debug(`Audio capture successful, captured ${capturedData.length} samples`);
-            return capturedData;
-        } catch (error) {
-            if (error instanceof InMemoryAudioRecorderException) {
-                this.logger.error(`Recording failed: ${error.message}`);
-                throw error;
-            }
-
-            const message = error instanceof Error ? error.message : String(error);
-            this.logger.error(`Recording failed: ${message}`);
-
-            if (!pending.completed) {
-                const wrapped = new InMemoryAudioRecorderException(message, 'RECORDING_ERROR');
-                this.pendingStartErrorMessage = message;
-                this.failCapture(pending, wrapped);
-                try {
-                    await capturePromise;
-                } catch {
-                    // Ignore – failure already handled.
-                }
-                throw wrapped;
-            }
-            this.pendingStartErrorMessage = message;
-            throw error;
-        } finally {
-            this.cleanupCapture(pending);
-        }
     }
 
-    private onRecordBack(event: RecordEvent): void {
-        const { currentPosition, audioData } = event;
-
-        if (typeof currentPosition !== 'number') {
-            return;
-        }
-
-        const completed: PendingCapture[] = [];
-        for (const pending of this.pendingCaptures) {
-            if (currentPosition >= pending.durationMs) {
-                completed.push(pending);
-            }
-        }
-
-        if (completed.length === 0) {
-            return;
-        }
-
-        const samples = this.normalizeAudioData(audioData);
-
-        for (const pending of completed) {
-            this.logger.debug(`Recording completed for ${pending.durationMs}ms request at ${currentPosition}ms`);
-            this.pendingCaptures.delete(pending);
-            this.finishCapture(pending, samples);
-        }
+    private startRecording(durationMs: number): void {
+        this.recorder!.prepareToRecordAsync()
+            .then(() => {
+                this.recorder!.record();
+                this.logger.debug(`Started capturing for ${durationMs}ms`);
+                this.timeoutId = setTimeout(this.handleTimeout, durationMs + InMemoryAudioRecorder.TIMEOUT_MARGIN_MS);
+            })
+            .catch(this.handleError);
     }
 
-    private finishCapture(pending: PendingCapture, data: Float32Array): void {
-        this.clearTimers(pending);
-        this.stopRecorderSafely(pending);
-        pending.resolve(data);
+    private handleCaptureComplete = (buffer: Float32Array): void => {
+        this.logger.debug('Capture complete');
+        this.cleanup();
+        this.resolveCapture?.(buffer);
+        this.clearPromisePointers();
+    };
+
+    private handleTimeout = (): void => {
+        this.logger.warn('Capture timed out');
+        this.cleanup();
+        this.rejectCapture?.(new InMemoryAudioRecorderException('Recording timed out', 'RECORDING_TIMEOUT'));
+        this.clearPromisePointers();
+    };
+
+    private handleError = (error: unknown): void => {
+        const wrapped = error instanceof Error ? error : new Error(String(error));
+        this.logger.error('Error during capture', { error: wrapped });
+        this.cleanup();
+        this.rejectCapture?.(wrapped);
+        this.clearPromisePointers();
+    };
+
+    private clearPromisePointers(): void {
+        this.resolveCapture = null;
+        this.rejectCapture = null;
     }
 
-    private failCapture(pending: PendingCapture, error: InMemoryAudioRecorderException): void {
-        if (pending.completed) {
-            return;
+    private cleanup(): void {
+        this.isCapturing = false;
+
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
         }
 
-        this.pendingCaptures.delete(pending);
-        this.clearTimers(pending);
-        this.stopRecorderSafely(pending);
-        pending.reject(error);
-    }
-
-    private cleanupCapture(pending: PendingCapture): void {
-        this.clearTimers(pending);
-        if (this.pendingCaptures.size === 0) {
-            this.detachListener();
-            this.disposeSound();
-            this.isRecording = false;
-        }
-    }
-
-    private stopRecorderSafely(pending: PendingCapture): void {
-        if (pending.stopInitiated) {
-            return;
+        if (this.subscription) {
+            this.subscription.remove();
+            this.subscription = null;
         }
 
-        pending.stopInitiated = true;
-
-        if (!this.sound) {
-            return;
+        if (this.recorder) {
+            this.recorder.stop().catch((e) => {
+                this.logger.warn(`Error stopping recorder: ${e instanceof Error ? e.message : String(e)}`);
+            });
+            this.recorder = null;
         }
-
-        // If other captures are still pending, don't stop the hardware recorder.
-        // We count how many *other* captures are in the set.
-        let otherActive = 0;
-        for (const p of this.pendingCaptures) {
-            if (p !== pending) {
-                otherActive++;
-            }
-        }
-
-        if (otherActive > 0) {
-            return;
-        }
-
-        void this.sound.stopRecorder().catch((error) => {
-            this.logger.warn(`stopRecorder failed: ${error instanceof Error ? error.message : String(error)}`);
-        });
-        this.isRecording = false;
-    }
-
-    private clearTimers(pending: PendingCapture): void {
-        if (pending.autoStopTimer) {
-            clearTimeout(pending.autoStopTimer);
-            pending.autoStopTimer = undefined;
-        }
-        if (pending.safetyTimer) {
-            clearTimeout(pending.safetyTimer);
-            pending.safetyTimer = undefined;
-        }
-    }
-
-    private detachListener(): void {
-        if (!this.listenerAttached) {
-            return;
-        }
-
-        this.sound?.removeRecordBackListener();
-        this.listenerAttached = false;
-    }
-
-    private disposeSound(): void {
-        if (!this.sound) {
-            return;
-        }
-
-        this.sound.dispose();
-        this.logger.debug('Disposing sound instance');
-        this.sound = null;
-    }
-
-    private ensureSound(): ReturnType<typeof createSound> {
-        if (this.sound == null) {
-            this.sound = createSound();
-            this.listenerAttached = false;
-        }
-
-        return this.sound;
-    }
-
-    private normalizeAudioData(raw: RecordEvent['audioData']): Float32Array {
-        if (raw instanceof Float32Array) {
-            return raw;
-        }
-
-        if (Array.isArray(raw)) {
-            return Float32Array.from(raw);
-        }
-
-        return new Float32Array(0);
     }
 }
 
