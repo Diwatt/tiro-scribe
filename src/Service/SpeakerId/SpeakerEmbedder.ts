@@ -52,8 +52,8 @@ export class SpeakerEmbedder {
             // Step 3: Normalize the embedding vector
             const normalizedEmbedding = this.normalizeVector(rawEmbedding);
 
-            // Confidence = scaled raw vector magnitude (clamped to 1)
-            const confidence = Math.min(1, rawMagnitude / 30);
+            // Confidence = raw vector magnitude clamped to [0, 1]
+            const confidence = Math.min(1, Math.max(0, rawMagnitude));
 
             return new SpeakerVector(normalizedEmbedding, confidence);
         } catch (error) {

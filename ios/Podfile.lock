@@ -286,6 +286,30 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - NitroSound (0.2.10):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - onnxruntime-c (1.24.2)
   - onnxruntime-react-native (1.24.2):
     - hermes-engine
@@ -2439,6 +2463,7 @@ DEPENDENCIES:
   - "FBLazyVector (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._eea90957baa797d70d22cd9841a8e7a2/node_modules/react-native/Libraries/FBLazyVector`)"
   - "hermes-engine (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._eea90957baa797d70d22cd9841a8e7a2/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)"
   - "NitroModules (from `../node_modules/.pnpm/react-native-nitro-modules@0.33.8_react-native@0.81.5_@babel+core@7.29.0_@react-native-_3f4d5622e0e89c8bcf4236d0acd66c9a/node_modules/react-native-nitro-modules`)"
+  - "NitroSound (from `../node_modules/.pnpm/react-native-nitro-sound@0.2.10_react-native-nitro-modules@0.33.8_react-native@0.81.5_@_13348c0aa3165b44186706760c3f9052/node_modules/react-native-nitro-sound`)"
   - "onnxruntime-react-native (from `../node_modules/.pnpm/onnxruntime-react-native@1.24.2_react-native@0.81.5_@babel+core@7.29.0_@react-native-co_db68502fa0bec38b28c038de5d5ecdfc/node_modules/onnxruntime-react-native`)"
   - "QuickCrypto (from `../node_modules/.pnpm/react-native-quick-crypto@1.0.14_expo-build-properties@1.0.10_expo@54.0.33__expo@54.0.3_29971334a0213a817075cbfa7a186e1a/node_modules/react-native-quick-crypto`)"
   - "RCTDeprecation (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._eea90957baa797d70d22cd9841a8e7a2/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)"
@@ -2584,6 +2609,8 @@ EXTERNAL SOURCES:
     :tag: hermes-2025-07-07-RNv0.81.0-e0fc67142ec0763c6b6153ca2bf96df815539782
   NitroModules:
     :path: "../node_modules/.pnpm/react-native-nitro-modules@0.33.8_react-native@0.81.5_@babel+core@7.29.0_@react-native-_3f4d5622e0e89c8bcf4236d0acd66c9a/node_modules/react-native-nitro-modules"
+  NitroSound:
+    :path: "../node_modules/.pnpm/react-native-nitro-sound@0.2.10_react-native-nitro-modules@0.33.8_react-native@0.81.5_@_13348c0aa3165b44186706760c3f9052/node_modules/react-native-nitro-sound"
   onnxruntime-react-native:
     :path: "../node_modules/.pnpm/onnxruntime-react-native@1.24.2_react-native@0.81.5_@babel+core@7.29.0_@react-native-co_db68502fa0bec38b28c038de5d5ecdfc/node_modules/onnxruntime-react-native"
   QuickCrypto:
@@ -2773,6 +2800,7 @@ SPEC CHECKSUMS:
   FBLazyVector: e95a291ad2dadb88e42b06e0c5fb8262de53ec12
   hermes-engine: 9f4dfe93326146a1c99eb535b1cb0b857a3cd172
   NitroModules: 597e254be8b2bb5396e55ae10fda1c0e197f3b76
+  NitroSound: d606e7028e65565cd9ab3de9fc42fd8ab264fa8c
   onnxruntime-c: b58bafbc58707d165404665e46a7467a16e8e0e4
   onnxruntime-react-native: 9194dfa33733fa203a7a5fe2878c42a37c567623
   QuickCrypto: ae2e5a0ef6867ae86339fed1a9f5e1a16e6495ea
