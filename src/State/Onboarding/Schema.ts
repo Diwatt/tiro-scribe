@@ -4,6 +4,8 @@
 
 import { z } from 'zod';
 
+const PASSWORD_MIN_LENGTH = 8;
+
 export class Schema {
     public static readonly defaults: z.infer<typeof Schema.form> = {
         languages: ['fr'],
@@ -25,12 +27,8 @@ export class Schema {
             .transform((s) => s.trim())
             .refine((v) => /^\d+$/.test(v), 'Enter a number.'),
         methods: z.array(z.string()).min(1, 'Please select at least one method.'),
-        email: z
-            .string()
-            .min(1, 'Please enter your email.')
-            .transform((s) => s.trim())
-            .pipe(z.string().email('Invalid email address.')),
-        password: z.string().min(8, 'Password must be at least 8 characters.'),
+        email: z.string().trim().min(1, 'Please enter your email.').email('Invalid email address.'),
+        password: z.string().min(PASSWORD_MIN_LENGTH, 'Password must be at least 8 characters.'),
         confirmPassword: z.string(),
         recoveryCodeSaveConfirmed: z.boolean().optional(),
     });

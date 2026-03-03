@@ -4,6 +4,7 @@
  */
 
 import * as Localization from 'expo-localization';
+import { Container } from '@/Container';
 import type { Locales, TranslationFunctions, Translations } from './i18n-types';
 import { en } from './translations/en';
 import { fr } from './translations/fr';
@@ -31,7 +32,7 @@ export class AppLanguage {
 
     private locale: Locales = AppLanguage.DEFAULT_LOCALE;
 
-    private constructor() {
+    public constructor() {
         this.locale = this.getDeviceLocale();
     }
 
@@ -121,16 +122,10 @@ export class AppLanguage {
 }
 
 /**
- * Shared singleton instance; creating it at module load time ensures the device
- * locale is resolved early and avoids the need for consumers to call a factory.
- */
-export const appLanguage = new AppLanguage();
-
-/**
  * React hook: current locale and translation functions (returned as LL for usage: LL.onboarding.aboutYou()).
  */
 export function useAppLanguage(): UseAppLanguageReturn {
-    const locale = appLanguage.getLocale();
-    const LL = appLanguage.getTranslationFunctions(locale);
+    const locale = Container.appLanguage.getLocale();
+    const LL = Container.appLanguage.getTranslationFunctions(locale);
     return { locale, LL };
 }

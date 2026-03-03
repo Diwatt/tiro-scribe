@@ -33,7 +33,7 @@
         "type-check": "tsc --noEmit",
         "format": "biome format --write .",
         "format:check": "biome format .",
-        "lint": "biome lint .",
+        "lint": "biome lint . --diagnostic-level=error",
         "lint:fix": "biome lint --write .",
         "check": "biome check .",
         "check:fix": "biome check --write .",

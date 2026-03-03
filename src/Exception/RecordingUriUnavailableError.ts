@@ -5,7 +5,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class RecordingUriUnavailableError extends TiroScribeException {
-    constructor(originalError?: Error) {
+    public constructor(originalError?: Error) {
         super('Recording URI not available', 'RECORDING_URI_UNAVAILABLE', originalError);
         this.name = 'RecordingUriUnavailableError';
     }

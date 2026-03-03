@@ -1,7 +1,3 @@
-// Set global __DEV__ variable for tests
-// @ts-expect-error allow setting global for test
-global.__DEV__ = true;
-
 // Define Symbol.metadata for Stage 3 decorator tests
 if (typeof Symbol !== 'undefined' && !Symbol.metadata) {
     // @ts-expect-error polyfill for test environment
@@ -15,7 +11,7 @@ import type { MetadataConstructor, MetadataMap } from '@/Decorator/Type';
 import { vi, describe, it, expect } from 'vitest';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),

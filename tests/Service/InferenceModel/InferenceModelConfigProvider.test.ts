@@ -7,8 +7,7 @@
 import { vi } from 'vitest';
 import { InferenceModelConfigProvider } from '@/Service/InferenceModelConfigProvider';
 import { apiClientRegistry, InferenceModelClient } from '@/Api';
-import { ApiClientException } from '@/Exception';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
+import { ApiClientException, InferenceModelDownloaderException } from '@/Exception';
 import type { ModelConfig } from '@/Api';
 
 // Mock dependencies
@@ -20,7 +19,7 @@ vi.mock('@/Api', () => ({
 }));
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),

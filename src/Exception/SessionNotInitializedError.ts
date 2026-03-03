@@ -6,7 +6,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class SessionNotInitializedError extends TiroScribeException {
-    constructor(message?: string) {
+    public constructor(message?: string) {
         super(message ?? 'Session not initialized', 'SESSION_NOT_INITIALIZED');
         this.name = 'SessionNotInitializedError';
     }

@@ -6,7 +6,7 @@
 
 import { vi } from 'vitest';
 import { ChecksumVerifier } from '@/Service/InferenceModelDownload/ChecksumVerifier';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
+import { InferenceModelDownloaderException } from '@/Exception';
 
 // Create mock instances
 const mockHashInstance = {

@@ -5,11 +5,12 @@ import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card, ProgressBar, useTheme } from 'react-native-paper';
 import { SecureSessionButton, StatusReady } from '@/Components';
+import { Container } from '@/Container';
 import { useAppLanguage } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
-import { inferenceManager, useArtifactDownloadProgress } from '../Service/InferenceManager';
+import { useArtifactDownloadProgress } from '../Service/InferenceManager';
 
 export const Home = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
@@ -26,7 +27,7 @@ export const Home = observer((): React.JSX.Element => {
                 return;
             }
             const current = therapists.first() ?? null;
-            inferenceManager.downloadMissingArtifacts(current);
+            Container.inferenceManager.downloadMissingArtifacts(current);
         })();
         return () => {
             cancelled = true;
@@ -39,7 +40,7 @@ export const Home = observer((): React.JSX.Element => {
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
             <ScrollView contentContainerStyle={STYLES.scrollContent} showsVerticalScrollIndicator={false}>
-                {isDownloading && (
+                {!!isDownloading && (
                     <Card style={[STYLES.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
                         <Card.Content>
                             <Text style={[STYLES.bannerTitle, { color: theme.colors.onSurface }]}>
@@ -62,7 +63,7 @@ export const Home = observer((): React.JSX.Element => {
 
             <View style={STYLES.buttonContainer}>
                 <SecureSessionButton onPress={handlePress} isRecording={false} disabled={isDownloading} />
-                {isDownloading && (
+                {!!isDownloading && (
                     <Text style={[STYLES.warning, { color: theme.colors.statusWarning.text }]}>
                         {LL.home.processingDelayed()}
                     </Text>

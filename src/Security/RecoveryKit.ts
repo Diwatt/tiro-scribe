@@ -5,11 +5,11 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { appLogger } from '../Service/Logger';
+import { Container } from '../Container';
 import { RECOVERY_KIT_HTML } from './RecoveryKitTemplate';
 
 export class RecoveryKit {
-    private readonly logger = appLogger;
+    private readonly logger = Container.logger;
 
     /**
      * Copies the recovery code to the system clipboard.
@@ -41,6 +41,7 @@ export class RecoveryKit {
             throw new Error('Sharing is not available on this device.');
         }
         await Sharing.shareAsync(uri, {
+            // biome-ignore lint/style/useNamingConvention: <third party>
             UTI: '.pdf',
             mimeType: 'application/pdf',
         });

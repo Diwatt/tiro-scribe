@@ -79,5 +79,3 @@ export class Registry {
         return repository as unknown as R;
     }
 }
-
-export const registry = new Registry();

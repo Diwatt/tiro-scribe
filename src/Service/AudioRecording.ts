@@ -6,8 +6,9 @@
 
 import { computed, type Observable, type ObservableComputed, observable } from '@legendapp/state';
 import { v4 as uuidv4 } from 'uuid';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
 import { RecorderState, SecureRecorder } from '../../modules/secure-recorder/src/index';
-import { appLogger, type LoggerInterface } from './Logger';
 
 export interface AudioRecordingState {
     state: RecorderState;
@@ -20,11 +21,12 @@ export interface AudioRecordingState {
  * AudioRecording - Singleton class for managing audio recording
  *
  * Uses Legend-State observables for reactive state management
- * with an OOP interface
+ * with an OOP interface.
+ * 🚧 WIP: Streaming hooks + persistence integration are still evolving.
  */
 const DURATION_TICK_MS = 100;
 
-class AudioRecording {
+export class AudioRecording {
     private _isRecording$: ObservableComputed<boolean>;
     private durationIntervalId: ReturnType<typeof setInterval> | null = null;
     private loggerInstance: LoggerInterface;
@@ -32,7 +34,7 @@ class AudioRecording {
     private recordingStartTime: number | null = null;
     private state$: Observable<AudioRecordingState>;
 
-    constructor(logger: LoggerInterface = appLogger) {
+    constructor(logger: LoggerInterface = Container.logger) {
         this.loggerInstance = logger;
         this.state$ = observable<AudioRecordingState>({
             state: RecorderState.INACTIVE,
@@ -317,9 +319,6 @@ class AudioRecording {
     }
 }
 
-// Export singleton instance
-export const audioRecording = new AudioRecording();
-
 /**
  * Hook for audio recording management
  *
@@ -337,5 +336,5 @@ export const audioRecording = new AudioRecording();
  * ```
  */
 export function useAudioRecording(): AudioRecording {
-    return audioRecording;
+    return Container.audioRecording;
 }

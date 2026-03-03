@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import { ProgressBar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Container } from '@/Container';
 import { useAppLanguage } from '@/Localization';
-import { ONBOARDING_STEPS, type OnboardingFormData, onboardingState, Schema } from '@/State/Onboarding';
+import { ONBOARDING_STEPS, type OnboardingFormData, Schema } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { StepAccount } from './StepAccount';
 import { StepProfile } from './StepProfile';
@@ -33,7 +34,7 @@ const STEP_VIEWS = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useAppLanguage();
-    const rawStep = onboardingState?.state$?.step?.get() ?? 1;
+    const rawStep = Container.onboardingState?.state?.step?.get() ?? 1;
     const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
     const progress = step / ONBOARDING_STEPS;
 
@@ -44,10 +45,10 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
     });
 
     useEffect(() => {
-        onboardingState.reset();
+        Container.onboardingState.reset();
     }, []);
 
-    const stepView = STEP_VIEWS[step - 1] ?? null;
+    const stepComponent = STEP_VIEWS[step - 1] ?? null;
 
     return (
         <FormProvider {...methods}>
@@ -70,7 +71,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
                                 keyboardDismissMode="on-drag"
                                 showsVerticalScrollIndicator={false}
                             >
-                                {stepView && <stepView />}
+                                {stepComponent ? <stepComponent /> : null}
                             </ScrollView>
                         </View>
                     </TouchableWithoutFeedback>

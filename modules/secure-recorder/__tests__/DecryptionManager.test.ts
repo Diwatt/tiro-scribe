@@ -43,7 +43,7 @@ describe('DecryptionManager', () => {
             // Native module might reject or throw with null path
             mockNativeModule.stream.mockRejectedValue(new Error('Invalid path'));
             await expect(decryptionManager.stream(null as any)).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
             });
         });
 
@@ -52,7 +52,7 @@ describe('DecryptionManager', () => {
             // If native module rejects with undefined, it should be normalized
             mockNativeModule.stream.mockRejectedValue(undefined);
             await expect(decryptionManager.stream(undefined as any)).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
             });
         });
 
@@ -202,7 +202,7 @@ describe('DecryptionManager', () => {
             const error = new Error('Decryption failed');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'Decryption failed',
                 details: error,
             });
@@ -221,7 +221,7 @@ describe('DecryptionManager', () => {
             const error = new Error('Native decryption error');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'Native decryption error',
                 details: error,
             });
@@ -231,7 +231,7 @@ describe('DecryptionManager', () => {
             const error = new Error('File not found');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/nonexistent.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'File not found',
             });
         });
@@ -248,7 +248,7 @@ describe('DecryptionManager', () => {
             const error = new Error('Decryption error');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'Decryption error',
                 details: error,
             });
@@ -257,7 +257,7 @@ describe('DecryptionManager', () => {
         it('stream should handle string error from native module', async () => {
             mockNativeModule.stream.mockRejectedValue('String error');
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'String error',
             });
         });
@@ -265,14 +265,14 @@ describe('DecryptionManager', () => {
         it('stream should handle null error from native module', async () => {
             mockNativeModule.stream.mockRejectedValue(null);
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
             });
         });
 
         it('stream should handle undefined error from native module', async () => {
             mockNativeModule.stream.mockRejectedValue(undefined);
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
             });
         });
 
@@ -282,7 +282,7 @@ describe('DecryptionManager', () => {
             // DecryptionManager uses createError which does: error instanceof Error ? error.message : String(error)
             // Since error is a plain object, String(error) becomes "[object Object]"
             await expect(decryptionManager.stream('/path.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: '[object Object]', // Plain objects are stringified
             });
         });
@@ -291,7 +291,7 @@ describe('DecryptionManager', () => {
             const error = new Error('File not found: /nonexistent.dat');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/nonexistent.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'File not found: /nonexistent.dat',
             });
         });
@@ -300,7 +300,7 @@ describe('DecryptionManager', () => {
             const error = new Error('Invalid encryption format');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/corrupted.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'Invalid encryption format',
             });
         });
@@ -309,7 +309,7 @@ describe('DecryptionManager', () => {
             const error = new Error('Permission denied: cannot read file');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/protected.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'Permission denied: cannot read file',
             });
         });
@@ -318,7 +318,7 @@ describe('DecryptionManager', () => {
             const error = new Error('Decryption timeout');
             mockNativeModule.stream.mockRejectedValue(error);
             await expect(decryptionManager.stream('/large.dat')).rejects.toMatchObject({
-                code: ErrorCode.DECRYPTION_FAILED,
+                code: ErrorCode.DecryptionFailed,
                 message: 'Decryption timeout',
             });
         });

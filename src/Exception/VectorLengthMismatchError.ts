@@ -6,7 +6,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class VectorLengthMismatchError extends TiroScribeException {
-    constructor(message?: string) {
+    public constructor(message?: string) {
         super(message ?? 'Vectors must have the same length', 'VECTOR_LENGTH_MISMATCH');
         this.name = 'VectorLengthMismatchError';
     }

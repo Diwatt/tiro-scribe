@@ -50,7 +50,7 @@ export enum EntityType {
 
 /** Speaker profile detected during the session. */
 export class DetectedSpeakerProfile {
-    constructor(
+    public constructor(
         public label: string,
         public embedding: number[],
         public identifiedParticipantUuid: string | null,

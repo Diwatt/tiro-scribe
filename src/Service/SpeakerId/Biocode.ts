@@ -5,13 +5,13 @@ import { dot, sqrt } from 'mathjs';
 dayjs.extend(utc);
 
 export class Biocode {
-    constructor(
+    public constructor(
         /** The projected speaker vector. Persist as JSON numeric array. */
         public readonly projectedVector: number[],
         /** Confidence from the speaker extraction model (0–1). */
-        readonly confidence: number,
+        public readonly confidence: number,
         /** UTC timestamp of biocode creation. */
-        readonly createdAt: dayjs.Dayjs,
+        public readonly createdAt: dayjs.Dayjs,
     ) {}
 
     /**
@@ -19,7 +19,7 @@ export class Biocode {
      * @param other - Biocode to compare against
      * @param threshold - Cosine similarity threshold (default 0.85)
      */
-    matches(other: Biocode, threshold: number = 0.85): boolean {
+    public matches(other: Biocode, threshold = 0.85): boolean {
         return this.similarityTo(other) >= threshold;
     }
 
@@ -27,7 +27,7 @@ export class Biocode {
      * Cosine similarity to another Biocode.
      * @returns similarity score in [-1, 1] (in practice 0–1 for normalized vectors)
      */
-    similarityTo(other: Biocode): number {
+    public similarityTo(other: Biocode): number {
         const v1 = this.projectedVector;
         const v2 = other.projectedVector;
 

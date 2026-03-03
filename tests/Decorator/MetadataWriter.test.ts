@@ -1,7 +1,3 @@
-// Set global __DEV__ variable for tests
-// @ts-expect-error allow setting global for test
-global.__DEV__ = true;
-
 import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import { MetadataReader } from '@/Decorator/MetadataReader';
@@ -9,7 +5,7 @@ import type { MetadataMap } from '@/Decorator/Type';
 import { vi, describe, it, expect } from 'vitest';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),

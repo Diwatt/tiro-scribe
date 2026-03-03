@@ -1,5 +1,5 @@
 import type { File } from 'expo-file-system';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
+import { InferenceModelDownloaderException } from '@/Exception';
 
 /**
  * StreamWriter – Wrapper for WritableStreamDefaultWriter with lifecycle management.

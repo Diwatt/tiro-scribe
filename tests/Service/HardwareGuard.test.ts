@@ -8,10 +8,10 @@ import { vi } from 'vitest';
 import { HardwareGuardException } from '@/Exception';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { HardwareGuard } from '@/Security/HardwareGuard';
-import { appLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
@@ -63,12 +63,12 @@ describe('HardwareGuard', () => {
 
     describe('constructor', () => {
         it('succeeds with logger and mins', () => {
-            expect(() => new HardwareGuard(appLogger, 3.8, '12.0.0')).not.toThrow();
+            expect(() => new HardwareGuard(AppLogger, 3.8, '12.0.0')).not.toThrow();
         });
 
         it('throws HardwareGuardException when minVersion is not parseable', () => {
-            expect(() => new HardwareGuard(appLogger, 3.8, '')).toThrow(HardwareGuardException);
-            expect(() => new HardwareGuard(appLogger, 3.8, 'invalid')).toThrow(/minSemver is not parseable/);
+            expect(() => new HardwareGuard(AppLogger, 3.8, '')).toThrow(HardwareGuardException);
+            expect(() => new HardwareGuard(AppLogger, 3.8, 'invalid')).toThrow(/minSemver is not parseable/);
         });
     });
 
@@ -83,7 +83,7 @@ describe('HardwareGuard', () => {
 
     describe('isCompatible', () => {
         it('returns true on iOS when version, RAM and 64-bit are satisfied (iOS matrix)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.osVersion = '15.0';
             mockDevice.totalMemory = 4 * 1024 ** 3;
@@ -92,21 +92,21 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on iOS when CPU is 32-bit only', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.supportedCpuArchitectures = ['armv7'];
             expect(guard.isCompatible()).toBe(false);
         });
 
         it('returns true on iOS when supportedCpuArchitectures includes x86_64 (simulator)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.supportedCpuArchitectures = ['x86_64'];
             expect(guard.isCompatible()).toBe(true);
         });
 
         it('returns true on Android when version (>=9.0.0), totalMemory (>=6GB) and 64-bit are satisfied (Android matrix)', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '14';
@@ -116,7 +116,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on Android when CPU is 32-bit only', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '14';
@@ -126,7 +126,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on Android when OS version is below minimum (9.0.0)', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '8.0';
@@ -136,7 +136,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on Android when totalMemory is below minimum (6GB)', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '14';
@@ -146,28 +146,28 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on iOS when OS version is below minimum (12.0.0)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.osVersion = '11.0';
             expect(guard.isCompatible()).toBe(false);
         });
 
         it('returns false on iOS when OS version is empty or unavailable', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.osVersion = '';
             expect(guard.isCompatible()).toBe(false);
         });
 
         it('returns false on iOS when totalMemory is below minimum (3.8GB)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.totalMemory = 2 * 1024 ** 3;
             expect(guard.isCompatible()).toBe(false);
         });
 
         it('returns true on iOS when OS version is exactly at minimum (12.0.0)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.osVersion = '12.0.0';
             mockDevice.totalMemory = 4 * 1024 ** 3;
@@ -176,7 +176,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns true on Android when OS version is exactly at minimum (9.0.0)', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '9.0.0';
@@ -186,7 +186,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns true when deviceType is TABLET (iOS)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.deviceType = DeviceType.TABLET;
             mockDevice.osVersion = '15.0';
@@ -196,7 +196,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns true when deviceType is TABLET (Android)', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.deviceType = DeviceType.TABLET;
             mockDevice.osName = 'Android';
@@ -207,21 +207,21 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false when deviceType is DESKTOP', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.deviceType = DeviceType.DESKTOP;
             expect(guard.isCompatible()).toBe(false);
         });
 
         it('returns false when deviceType is TV', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.deviceType = DeviceType.TV;
             expect(guard.isCompatible()).toBe(false);
         });
 
         it('returns false on Android when OS version is empty or unavailable', () => {
-            guard = new HardwareGuard(appLogger, 6, '9.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '9.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '';
@@ -231,7 +231,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns true when supportedCpuArchitectures is empty (no 32-bit-only check)', () => {
-            guard = new HardwareGuard(appLogger, 3.8, '12.0.0');
+            guard = new HardwareGuard(AppLogger, 3.8, '12.0.0');
             setPlatform('ios');
             mockDevice.supportedCpuArchitectures = [];
             mockDevice.osVersion = '15.0';
@@ -240,7 +240,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns true when custom mins are passed (lower bar)', () => {
-            guard = new HardwareGuard(appLogger, 2, '11.0.0');
+            guard = new HardwareGuard(AppLogger, 2, '11.0.0');
             setPlatform('ios');
             mockDevice.osVersion = '11.0';
             mockDevice.totalMemory = 2.5 * 1024 ** 3;
@@ -249,7 +249,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on iOS when version below passed minimum', () => {
-            guard = new HardwareGuard(appLogger, 6, '14.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '14.0.0');
             setPlatform('ios');
             mockDevice.osVersion = '13.0';
             mockDevice.totalMemory = 6 * 1024 ** 3;
@@ -258,7 +258,7 @@ describe('HardwareGuard', () => {
         });
 
         it('returns false on Android when version below passed minimum', () => {
-            guard = new HardwareGuard(appLogger, 6, '14.0.0');
+            guard = new HardwareGuard(AppLogger, 6, '14.0.0');
             setPlatform('android');
             mockDevice.osName = 'Android';
             mockDevice.osVersion = '13.0';
@@ -272,13 +272,13 @@ describe('HardwareGuard', () => {
 describe('DeviceCompatibilityGate', () => {
     it('throws HardwareGuardException when ios minSemver is not parseable (on isCompatible)', () => {
         setPlatform('ios');
-        const gate = new DeviceCompatibilityGate(appLogger, {
+        const gate = new DeviceCompatibilityGate(AppLogger, {
             ios: { minRamGigabytes: 3.8, minSemver: '' },
             android: { minRamGigabytes: 6, minSemver: '9.0.0' },
         });
         expect(() => gate.isCompatible()).toThrow(HardwareGuardException);
         setPlatform('ios');
-        const gateInvalid = new DeviceCompatibilityGate(appLogger, {
+        const gateInvalid = new DeviceCompatibilityGate(AppLogger, {
             ios: { minRamGigabytes: 3.8, minSemver: 'invalid' },
             android: { minRamGigabytes: 6, minSemver: '9.0.0' },
         });
@@ -291,12 +291,12 @@ describe('DeviceCompatibilityGate', () => {
         mockDevice.osVersion = '14';
         mockDevice.totalMemory = 6 * 1024 ** 3;
         mockDevice.supportedCpuArchitectures = ['arm64-v8a'];
-        const gate = new DeviceCompatibilityGate(appLogger, {
+        const gate = new DeviceCompatibilityGate(AppLogger, {
             ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
             android: { minRamGigabytes: 6, minSemver: '' },
         });
         expect(() => gate.isCompatible()).toThrow(HardwareGuardException);
-        const gateBad = new DeviceCompatibilityGate(appLogger, {
+        const gateBad = new DeviceCompatibilityGate(AppLogger, {
             ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
             android: { minRamGigabytes: 6, minSemver: 'bad' },
         });
@@ -304,6 +304,6 @@ describe('DeviceCompatibilityGate', () => {
     });
 
     it('succeeds with default matrix', () => {
-        expect(() => new DeviceCompatibilityGate(appLogger)).not.toThrow();
+        expect(() => new DeviceCompatibilityGate(AppLogger)).not.toThrow();
     });
 });

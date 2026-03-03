@@ -9,7 +9,7 @@ export const mockExpoCrypto = {
     getRandomBytes: vi.fn((n: number) => new Uint8Array(n).fill(0)),
     getRandomValues: vi.fn((arr: Uint8Array) => {
         for (let i = 0; i < arr.length; i++) {
-            arr[i] = Math.floor(Math.random() * 256);
+            arr[i] = (i * 7 + 13) % 256; // deterministic pseudo-random values
         }
         return arr;
     }),

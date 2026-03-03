@@ -5,19 +5,28 @@
 
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
-import { appLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 import { DatabaseException } from '@/Exception';
+import { AppConfig } from '@/Config/AppConfig';
 import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
     },
+}));
+
+vi.mock('@/Config/AppConfig', () => ({
+    AppConfig: vi.fn().mockImplementation(function () {
+        return {
+            isDev: false,
+        };
+    }),
 }));
 
 function createMockDb(execute?: (sql: string, params?: readonly unknown[]) => Promise<{ rows?: unknown[] } | undefined>) {
@@ -253,17 +262,20 @@ describe('DefinitionLanguageWriter', () => {
         });
 
         it('addColumnOrWarn logs a warning and continues when adding a virtual column fails in dev', async () => {
-            // simulate dev environment
-            // @ts-expect-error allow setting global for test
-            global.__DEV__ = true;
+            // simulate dev environment by mocking AppConfig to return isDev: true
+            vi.mocked(AppConfig).mockImplementation(function () {
+                return {
+                    isDev: true,
+                };
+            });
             const definition = createMinimalDefinition({
                 columns: [
                     'uuid VARCHAR(36) PRIMARY KEY',
                     'data TEXT NOT NULL',
-                    'vcol TEXT GENERATED ALWAYS AS (json_extract(data, \"$.x\")) VIRTUAL',
+                    'vcol TEXT GENERATED ALWAYS AS (json_extract(data, "$.x")) VIRTUAL',
                 ],
             });
-            const logger = appLogger;
+            const logger = AppLogger;
             const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('vcol')) {
@@ -279,8 +291,12 @@ describe('DefinitionLanguageWriter', () => {
             expect(warnSpy).toHaveBeenCalledTimes(1);
             expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual\/generated column/);
             warnSpy.mockRestore();
-            // @ts-expect-error cleanup
-            delete global.__DEV__;
+            // reset AppConfig mock to default
+            vi.mocked(AppConfig).mockImplementation(function () {
+                return {
+                    isDev: false,
+                };
+            });
         });
 
         it('ignores duplicate-column errors from ALTER TABLE without warning', async () => {
@@ -291,7 +307,7 @@ describe('DefinitionLanguageWriter', () => {
                     'extra INTEGER',
                 ],
             });
-            const logger = appLogger;
+            const logger = AppLogger;
             const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('extra')) {
@@ -482,19 +498,27 @@ describe('DefinitionLanguageWriter', () => {
         });
 
         it('does not warn for non-virtual column add failures and rethrows', async () => {
-            // @ts-expect-error allow setting global for test
-            global.__DEV__ = true;
+            // simulate dev environment by mocking AppConfig to return isDev: true
+            vi.mocked(AppConfig).mockImplementation(function () {
+                return {
+                    isDev: true,
+                };
+            });
             const definition = createMinimalDefinition({
                 columns: [
                     'uuid VARCHAR(36) PRIMARY KEY',
                     'data TEXT NOT NULL',
-                    'plain INTEGER',
+                    'badcol TEXT',
                 ],
             });
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const logger = AppLogger;
+            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
-                if (sql.startsWith('ALTER TABLE') && sql.includes('plain')) {
+                if (sql.startsWith('ALTER TABLE') && sql.includes('badcol')) {
                     throw new Error('cannot add');
+                }
+                if (sql.includes('PRAGMA table_info')) {
+                    return { rows: [{ name: 'uuid' }, { name: 'data' }] };
                 }
                 return Promise.resolve();
             });
@@ -502,8 +526,12 @@ describe('DefinitionLanguageWriter', () => {
             await expect(writer.write(definition)).rejects.toThrow('cannot add');
             expect(warnSpy).not.toHaveBeenCalled();
             warnSpy.mockRestore();
-            // @ts-expect-error cleanup
-            delete global.__DEV__;
+            // reset AppConfig mock to default
+            vi.mocked(AppConfig).mockImplementation(function () {
+                return {
+                    isDev: false,
+                };
+            });
         });
 
         it('handles PRAGMA returning object with rows undefined by treating as empty', async () => {

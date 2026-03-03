@@ -61,12 +61,7 @@ export class GlobalActivityStatus {
         });
     }
 
-    public setStatus(
-        status: ActivityStatus,
-        message: string,
-        icon?: React.ReactNode,
-        autoHideAfterMs: number = 0,
-    ): void {
+    public setStatus(status: ActivityStatus, message: string, icon?: React.ReactNode, autoHideAfterMs = 0): void {
         this.state$.set({ status, message, icon });
 
         if (autoHideAfterMs > 0) {
@@ -76,5 +71,3 @@ export class GlobalActivityStatus {
         }
     }
 }
-
-export const globalActivityStatus = new GlobalActivityStatus();

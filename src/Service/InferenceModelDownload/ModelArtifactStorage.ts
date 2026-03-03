@@ -11,11 +11,12 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { AppConfig } from '@/Config';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { appLogger, type LoggerInterface } from '@/Service/Logger';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
+import { InferenceModelDownloaderException } from '@/Exception';
 
 export class ModelArtifactStorage {
-    public constructor(private readonly logger: LoggerInterface = appLogger) {}
+    public constructor(private readonly logger: LoggerInterface = Container.logger) {}
 
     /**
      * Calculates the total size of all cached model artifacts.

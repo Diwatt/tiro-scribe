@@ -7,9 +7,9 @@
 import { observable } from '@legendapp/state';
 import { useSelector } from '@legendapp/state/react';
 import { Directory, File, Paths } from 'expo-file-system';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
 import type { Therapist } from '../Entity/Therapist';
-import type { LoggerInterface } from './Logger';
-import { appLogger } from './Logger';
 
 export interface ArtifactSpec {
     key: string;
@@ -59,7 +59,7 @@ export class InferenceManager {
         isDownloading: false,
     });
 
-    public constructor(logger: LoggerInterface = appLogger) {
+    public constructor(logger: LoggerInterface = Container.logger) {
         this.log = logger;
     }
 
@@ -180,19 +180,15 @@ export class InferenceManager {
     }
 }
 
-const inferenceManager = new InferenceManager();
-
 /**
  * Hook: returns { progress, isReady, isDownloading }. Updates when InferenceManager state changes.
  * Component using this hook should be wrapped with observer() so it re-renders on progress updates.
  */
 export function useArtifactDownloadProgress(): ArtifactDownloadProgressState {
-    const state = inferenceManager.getState$();
+    const state = Container.inferenceManager.getState$();
     return useSelector(() => ({
         progress: state.progress.get(),
         isReady: state.isReady.get(),
         isDownloading: state.isDownloading.get(),
     }));
 }
-
-export { inferenceManager };

@@ -7,15 +7,14 @@
  */
 
 import { Platform } from 'react-native';
-import type { LoggerInterface } from '../Service/Logger';
-import { appLogger } from '../Service/Logger';
+import type { LoggerInterface } from '../Container';
 import { HardwareGuard } from './HardwareGuard';
 
 /** Native platforms we run hardware checks for. RN Platform.OS and expo-device (Device.osName) use strings only; no OS enum. */
-const OS = { IOS: 'ios', ANDROID: 'android' } as const;
-type NativeOs = (typeof OS)[keyof typeof OS];
+const NATIVE_OS_VALUES = ['ios', 'android'] as const;
+type NativeOs = (typeof NATIVE_OS_VALUES)[number];
 
-const NATIVE_OS: readonly NativeOs[] = [OS.IOS, OS.ANDROID];
+const NATIVE_OS: readonly NativeOs[] = [...NATIVE_OS_VALUES];
 
 export type PlatformRequirements = {
     minRamGigabytes: number;
@@ -61,5 +60,3 @@ export class DeviceCompatibilityGate {
         return this.activeGuard;
     }
 }
-
-export const deviceCompatibilityGate = new DeviceCompatibilityGate(appLogger, DEFAULT_MATRIX);

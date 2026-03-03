@@ -15,8 +15,8 @@ import {
 } from 'expo-audio';
 import type { EventSubscription } from 'expo-modules-core';
 import { makeShareable, runOnJS } from 'react-native-worklets';
+import type { LoggerInterface } from '@/Container';
 import { InMemoryAudioRecorderException } from '@/Exception';
-import { appLogger, type LoggerInterface } from './Logger';
 
 export class InMemoryAudioRecorder {
     private static readonly SAMPLE_RATE = 16000;
@@ -73,8 +73,8 @@ export class InMemoryAudioRecorder {
         private recorder: AudioRecorder = {} as AudioRecorder,
         private subscription: EventSubscription = {} as EventSubscription,
         private timeoutId: ReturnType<typeof setTimeout> = {} as ReturnType<typeof setTimeout>,
-        private resolveCapture: (data: Float32Array) => void = () => {},
-        private rejectCapture: (error: Error) => void = () => {},
+        private resolveCapture: ((data: Float32Array) => void) | undefined = undefined,
+        private rejectCapture: ((error: Error) => void) | undefined = undefined,
     ) {}
 
     /**
@@ -83,8 +83,13 @@ export class InMemoryAudioRecorder {
      * or the hardware doesn't deliver enough samples in time.
      */
     public async capture(durationMs: number): Promise<Float32Array> {
-        if (durationMs <= 0) {
-            throw new InMemoryAudioRecorderException('Duration must be greater than 0ms', 'INVALID_DURATION');
+        if (durationMs < 0) {
+            throw new InMemoryAudioRecorderException('Duration must be non-negative', 'INVALID_DURATION');
+        }
+
+        // For zero duration, return empty array immediately
+        if (durationMs === 0) {
+            return new Float32Array(0);
         }
 
         if (this.isCapturing) {
@@ -127,8 +132,9 @@ export class InMemoryAudioRecorder {
     }
 
     private clearPromisePointers(): void {
-        this.resolveCapture = () => {};
-        this.rejectCapture = () => {};
+        // Reset promise pointers to prevent memory leaks and ensure they can't be called again
+        this.resolveCapture = undefined;
+        this.rejectCapture = undefined;
     }
 
     private async ensurePermissions(): Promise<void> {
@@ -187,5 +193,3 @@ export class InMemoryAudioRecorder {
             .catch(this.handleError);
     }
 }
-
-export const inMemoryAudioRecorder = new InMemoryAudioRecorder(appLogger);

@@ -30,7 +30,7 @@ vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => {
     };
 });
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
@@ -40,11 +40,11 @@ vi.mock('@/Service/Logger', () => ({
 
 // Mock AppConfig to avoid __DEV__ issues
 vi.mock('@/Config/AppConfig', () => ({
-    AppConfig: {
-        getInstance: vi.fn().mockReturnValue({
+    AppConfig: vi.fn().mockImplementation(function () {
+        return {
             isDev: true,
-        }),
-    },
+        };
+    }),
 }));
 
 // Mock semver

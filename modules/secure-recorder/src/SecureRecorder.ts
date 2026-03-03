@@ -20,6 +20,7 @@ export type { DecryptedChunkEvent } from './SecureRecorderModule';
  * @example
  * ```typescript
  * const recorder = new SecureRecorder('session-123');
+ * await recorder.init();
  *
  * recorder.onstatuschange = (event) => {
  *   console.log('State:', event.state);
@@ -35,13 +36,13 @@ export type { DecryptedChunkEvent } from './SecureRecorderModule';
  * ```
  */
 export class SecureRecorder {
-    private errorNormalizer: ErrorNormalizer;
+    private readonly errorNormalizer: ErrorNormalizer;
     private eventSubscription: EventSubscription | null = null;
     private readonly _sessionId: string;
-    private _state: RecorderState = RecorderState.INACTIVE;
+    private _state: RecorderState = RecorderState.Inactive;
     private _filePath: string | null = null;
-    private nativeModule: NativeRecorderModule;
-    private eventEmitter: EventEmitter;
+    private readonly nativeModule: NativeRecorderModule;
+    private readonly eventEmitter: EventEmitter;
 
     private static permissionManager: PermissionManager | null = null;
     private static decryptionManager: DecryptionManager | null = null;
@@ -80,7 +81,7 @@ export class SecureRecorder {
 
         // Validate session ID
         if (!sessionId || sessionId.trim().length === 0) {
-            throw this.createError(ErrorCode.INVALID_SESSION_ID, 'Session ID cannot be empty');
+            throw this.createError(ErrorCode.InvalidSessionId, 'Session ID cannot be empty');
         }
 
         this._sessionId = sessionId;
@@ -89,12 +90,23 @@ export class SecureRecorder {
         this.eventSubscription = this.eventEmitter.addListener(
             'onRecordingStatusChanged',
             (status: RecordingStatus) => {
-                this._updateStateFromStatus(status);
+                this.updateStateFromStatus(status);
             },
         ) as EventSubscription;
+    }
 
-        // Initialize state from native module
-        this._syncState();
+    /**
+     * Initializes the recorder by synchronizing state with the native module.
+     * Call this method after creating a new SecureRecorder instance.
+     *
+     * @example
+     * ```typescript
+     * const recorder = new SecureRecorder('session-123');
+     * await recorder.init();
+     * ```
+     */
+    public async init(): Promise<void> {
+        await this.syncState();
     }
 
     /**
@@ -112,7 +124,7 @@ export class SecureRecorder {
      * Computed from state property.
      */
     public get recording(): boolean {
-        return this.state === RecorderState.RECORDING;
+        return this.state === RecorderState.Recording;
     }
 
     /**
@@ -137,13 +149,13 @@ export class SecureRecorder {
     public async start(): Promise<void> {
         const currentState = this.state;
 
-        if (currentState === RecorderState.RECORDING) {
-            throw this.createError(ErrorCode.RECORDING_IN_PROGRESS, 'Recording is already in progress');
+        if (currentState === RecorderState.Recording) {
+            throw this.createError(ErrorCode.RecordingInProgress, 'Recording is already in progress');
         }
 
-        if (currentState === RecorderState.STOPPED) {
+        if (currentState === RecorderState.Stopped) {
             throw this.createError(
-                ErrorCode.RECORDER_STOPPED,
+                ErrorCode.RecorderStopped,
                 'Recorder has been stopped. Create a new instance to record again.',
             );
         }
@@ -154,7 +166,7 @@ export class SecureRecorder {
             // State will be updated via event listener
         } catch (error) {
             const normalizedError = this.errorNormalizer.normalize(error);
-            this._handleError(normalizedError);
+            this.handleError(normalizedError);
             throw normalizedError;
         }
     }
@@ -166,8 +178,8 @@ export class SecureRecorder {
      * @throws {SecureRecorderError} If no recording is active or stopping fails
      */
     public async stop(): Promise<string> {
-        if (this.state !== RecorderState.RECORDING) {
-            throw this.createError(ErrorCode.NO_RECORDING_IN_PROGRESS, 'No recording is currently in progress');
+        if (this.state !== RecorderState.Recording) {
+            throw this.createError(ErrorCode.NoRecordingInProgress, 'No recording is currently in progress');
         }
 
         try {
@@ -176,7 +188,7 @@ export class SecureRecorder {
             return filePath;
         } catch (error) {
             const normalizedError = this.errorNormalizer.normalize(error);
-            this._handleError(normalizedError);
+            this.handleError(normalizedError);
             throw normalizedError;
         }
     }
@@ -231,7 +243,7 @@ export class SecureRecorder {
      * await SecureRecorder.stream(filePath);
      */
     public static addDecryptionListener(listener: (event: DecryptedChunkEvent) => void): EventSubscription {
-        return SecureRecorderModule.addListener(SecureRecorderModule.EVENT_AUDIO_CHUNK_DECRYPTED, listener);
+        return SecureRecorderModule.addListener(SecureRecorderModule.eventAudioChunkDecrypted, listener);
     }
 
     /**
@@ -260,16 +272,12 @@ export class SecureRecorder {
         return await SecureRecorder.getDecryptionManager().stream(encryptedPath);
     }
 
-    private async _syncState(): Promise<void> {
-        try {
-            const status = await this.nativeModule.getStatus();
-            this._updateStateFromStatus(status);
-        } catch {
-            // Ignore errors during initial sync
-        }
+    private async syncState(): Promise<void> {
+        const status = await this.nativeModule.getStatus();
+        this.updateStateFromStatus(status);
     }
 
-    private _updateStateFromStatus(status: RecordingStatus): void {
+    private updateStateFromStatus(status: RecordingStatus): void {
         const previousState = this._state;
 
         // Native code now returns state directly, no conversion needed
@@ -287,7 +295,7 @@ export class SecureRecorder {
         }
     }
 
-    private _handleError(error: SecureRecorderError): void {
+    private handleError(error: SecureRecorderError): void {
         if (this.onerror) {
             this.onerror(error);
         }
@@ -299,20 +307,18 @@ export class SecureRecorder {
 
     // Static factory for PermissionManager (for backward compatibility)
     private static getPermissionManager(): PermissionManager {
-        if (!SecureRecorder.permissionManager) {
-            SecureRecorder.permissionManager = new PermissionManager(
-                SecureRecorderModule,
-                requestRecordingPermissionsAsync,
-            );
-        }
+        SecureRecorder.permissionManager ??= new PermissionManager(
+            SecureRecorderModule,
+            requestRecordingPermissionsAsync,
+        );
+
         return SecureRecorder.permissionManager;
     }
 
     // Static factory for DecryptionManager (for backward compatibility)
     private static getDecryptionManager(): DecryptionManager {
-        if (!SecureRecorder.decryptionManager) {
-            SecureRecorder.decryptionManager = new DecryptionManager(SecureRecorderModule);
-        }
+        SecureRecorder.decryptionManager ??= new DecryptionManager(SecureRecorderModule);
+
         return SecureRecorder.decryptionManager;
     }
 }

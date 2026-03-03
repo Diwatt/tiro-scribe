@@ -11,7 +11,7 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { StreamWriter } from '@/Service/InferenceModelDownload/StreamWriter';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
+import { InferenceModelDownloaderException } from '@/Exception';
 
 describe('StreamWriter', () => {
     let mockWriter: any;

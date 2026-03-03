@@ -1,5 +1,6 @@
 import type { StatusColors } from '@/Components/Status/Status';
-import { ActivityStatus, globalActivityStatus } from '@/State/GlobalActivityStatus';
+import { Container } from '@/Container';
+import { ActivityStatus } from '@/State/GlobalActivityStatus';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 // coherent mappings for colours and default messages. using record lookups
@@ -19,8 +20,8 @@ export function getStatusColors(theme: ExtendedTheme, status: ActivityStatus): S
 
 // logic for reading highest-priority non-ready entry from the store
 export function readFromStore(): { status: ActivityStatus; message: string; icon?: React.ReactNode } {
-    const status = globalActivityStatus.getStatus();
-    const message = globalActivityStatus.getMessage() ?? '';
-    const icon = globalActivityStatus.getIcon();
+    const status = Container.globalActivityStatus.getStatus();
+    const message = Container.globalActivityStatus.getMessage() ?? '';
+    const icon = Container.globalActivityStatus.getIcon();
     return { status, message, icon };
 }

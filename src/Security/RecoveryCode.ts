@@ -25,7 +25,7 @@ export class RecoveryCode {
         for (let i = 0; i < RecoveryCode.TOTAL_CHARS; i += 4) {
             let part = '';
             for (let j = 0; j < 4; j++) {
-                const idx = bytes[i + j]! % RecoveryCode.CHARSET_SIZE;
+                const idx = bytes[i + j] % RecoveryCode.CHARSET_SIZE;
                 part += RecoveryCode.CHARS.charAt(idx);
             }
             parts.push(part);

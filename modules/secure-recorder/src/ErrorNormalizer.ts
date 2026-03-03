@@ -33,7 +33,7 @@ export class ErrorNormalizer {
 
         // Fallback to UNKNOWN_ERROR
         return {
-            code: ErrorCode.UNKNOWN_ERROR,
+            code: ErrorCode.UnknownError,
             message: error instanceof Error ? error.message : String(error),
             details: error,
         };
@@ -43,30 +43,30 @@ export class ErrorNormalizer {
      * Mapping from native exception class name patterns to error codes.
      * Used as fallback when native code doesn't expose code property directly.
      */
-    private static readonly ERROR_NAME_MAPPINGS: ReadonlyArray<{
+    private static readonly errorNameMappings: ReadonlyArray<{
         patterns: string[];
         code: ErrorCode;
     }> = [
-        { patterns: ['RecordingInProgressException', 'RecordingInProgress'], code: ErrorCode.RECORDING_IN_PROGRESS },
-        { patterns: ['NoRecordingException', 'NoRecording'], code: ErrorCode.NO_RECORDING_IN_PROGRESS },
-        { patterns: ['PermissionDeniedException', 'PermissionDenied'], code: ErrorCode.PERMISSION_DENIED },
-        { patterns: ['InitializationException', 'Initialization'], code: ErrorCode.INITIALIZATION_FAILED },
-        { patterns: ['KeyStoreException', 'KeyStore'], code: ErrorCode.KEYCHAIN_ERROR },
+        { patterns: ['RecordingInProgressException', 'RecordingInProgress'], code: ErrorCode.RecordingInProgress },
+        { patterns: ['NoRecordingException', 'NoRecording'], code: ErrorCode.NoRecordingInProgress },
+        { patterns: ['PermissionDeniedException', 'PermissionDenied'], code: ErrorCode.PermissionDenied },
+        { patterns: ['InitializationException', 'Initialization'], code: ErrorCode.InitializationFailed },
+        { patterns: ['KeyStoreException', 'KeyStore'], code: ErrorCode.KeychainError },
     ];
 
     /**
      * Mapping from error message patterns to error codes.
      * Used for iOS SecureRecorderError enum cases.
      */
-    private static readonly ERROR_MESSAGE_MAPPINGS: ReadonlyArray<{
+    private static readonly errorMessageMappings: ReadonlyArray<{
         patterns: string[];
         code: ErrorCode;
     }> = [
-        { patterns: ['already in progress'], code: ErrorCode.RECORDING_IN_PROGRESS },
-        { patterns: ['No recording'], code: ErrorCode.NO_RECORDING_IN_PROGRESS },
-        { patterns: ['permission'], code: ErrorCode.PERMISSION_DENIED },
-        { patterns: ['Initialization'], code: ErrorCode.INITIALIZATION_FAILED },
-        { patterns: ['Keychain', 'KeyStore'], code: ErrorCode.KEYCHAIN_ERROR },
+        { patterns: ['already in progress'], code: ErrorCode.RecordingInProgress },
+        { patterns: ['No recording'], code: ErrorCode.NoRecordingInProgress },
+        { patterns: ['permission'], code: ErrorCode.PermissionDenied },
+        { patterns: ['Initialization'], code: ErrorCode.InitializationFailed },
+        { patterns: ['Keychain', 'KeyStore'], code: ErrorCode.KeychainError },
     ];
 
     /**
@@ -75,7 +75,7 @@ export class ErrorNormalizer {
      */
     private extractCodeFromErrorName(errorName: string, message?: string): ErrorCode | null {
         // Check Android exception class name patterns
-        for (const mapping of ErrorNormalizer.ERROR_NAME_MAPPINGS) {
+        for (const mapping of ErrorNormalizer.errorNameMappings) {
             if (mapping.patterns.some((pattern) => errorName.includes(pattern))) {
                 return mapping.code;
             }
@@ -84,7 +84,7 @@ export class ErrorNormalizer {
         // Check iOS error enum cases (if converted to Error with name)
         if (errorName.includes('SecureRecorderError') && message) {
             const lowerMessage = message.toLowerCase();
-            for (const mapping of ErrorNormalizer.ERROR_MESSAGE_MAPPINGS) {
+            for (const mapping of ErrorNormalizer.errorMessageMappings) {
                 if (mapping.patterns.some((pattern) => lowerMessage.includes(pattern.toLowerCase()))) {
                     return mapping.code;
                 }

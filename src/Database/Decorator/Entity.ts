@@ -15,7 +15,7 @@ import type { DecoratorMetadata, MetadataMap } from '../../Decorator/Type';
 import { DatabaseException } from '../../Exception';
 import type { AbstractEntity } from '../AbstractEntity';
 
-declare const Dev: boolean;
+declare const DEV: boolean;
 
 // Replaced by lodash helper – keep comment for context.
 
@@ -113,7 +113,7 @@ class EntityDecorator implements ClassDecoratorConfig<EntityOptions> {
     ): string | null {
         // Hermes-only: Symbol.metadata is always available
         if (!isPlainObject(meta)) {
-            if (Dev) {
+            if (DEV) {
                 throw new DatabaseException(
                     `Entity "${tableName}" has no metadata available. This should not happen in Hermes with Stage 3 decorators.`,
                     'METADATA_UNAVAILABLE',

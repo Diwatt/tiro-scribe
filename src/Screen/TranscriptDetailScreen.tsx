@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Download, Share2 } from 'lucide-react-native';
 import type React from 'react';
+import { useCallback } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import { useAppLanguage } from '@/Localization';
@@ -28,10 +29,22 @@ export function TranscriptDetailScreen(): React.JSX.Element {
             : params.biocode
         : 'SUBJ-****-A3F2';
     const date = params.date || '2 hours ago';
+
+    const handleBackPress = useCallback(() => {
+        router.back();
+    }, [router]);
+
+    const handleDownloadPress = useCallback(() => {
+        /* TODO: implement download */
+    }, []);
+
+    const handleSharePress = useCallback(() => {
+        /* TODO: implement share */
+    }, []);
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
             <Surface style={[STYLES.header, { backgroundColor: theme.colors.surface }]}>
-                <IconButton icon={ArrowLeft} size={24} onPress={() => router.back()} />
+                <IconButton icon={ArrowLeft} size={24} onPress={handleBackPress} />
                 <View style={STYLES.headerContent}>
                     <Text variant="titleMedium" style={[STYLES.title, { color: theme.colors.onSurface }]}>
                         {LL.transcript.title()}
@@ -45,20 +58,8 @@ export function TranscriptDetailScreen(): React.JSX.Element {
                         </Text>
                     </View>
                 </View>
-                <IconButton
-                    icon={Download}
-                    size={24}
-                    onPress={() => {
-                        /* TODO: implement download */
-                    }}
-                />
-                <IconButton
-                    icon={Share2}
-                    size={24}
-                    onPress={() => {
-                        /* TODO: implement share */
-                    }}
-                />
+                <IconButton icon={Download} size={24} onPress={handleDownloadPress} />
+                <IconButton icon={Share2} size={24} onPress={handleSharePress} />
             </Surface>
 
             <ScrollView style={STYLES.scrollView} contentContainerStyle={STYLES.scrollContent}>

@@ -6,7 +6,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class TranscriptionNotImplementedError extends TiroScribeException {
-    constructor(message?: string) {
+    public constructor(message?: string) {
         super(
             message ?? 'Transcription not yet implemented. Please implement transcribeWithONNX() method.',
             'TRANSCRIPTION_NOT_IMPLEMENTED',

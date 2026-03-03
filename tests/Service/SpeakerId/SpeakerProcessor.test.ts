@@ -27,8 +27,8 @@ describe('SpeakerProcessor', () => {
         speakerProcessor = new SpeakerProcessor(mockBiocodeFactory, mockSpeakerEmbedder);
     });
 
-    it('creates biocode from audio path', async () => {
-        const audioPath = '/path/to/audio.wav';
+    it('creates biocode from PCM buffer', async () => {
+        const pcmData = new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
         const projectionMatrix = [
             [1, 0, 0, 0, 0],
             [0, 1, 0, 0, 0],
@@ -37,7 +37,7 @@ describe('SpeakerProcessor', () => {
             [0, 0, 0, 0, 1],
         ];
 
-        const biocode = await speakerProcessor.processAudio(audioPath, projectionMatrix);
+        const biocode = await speakerProcessor.processAudio(pcmData, projectionMatrix);
 
         expect(biocode).toBeDefined();
         expect(biocode.projectedVector).toEqual([0.1, 0.2, 0.3, 0.4, 0.5]);
@@ -46,10 +46,10 @@ describe('SpeakerProcessor', () => {
         expect(biocode.createdAt.isUTC()).toBe(true);
     });
 
-    it('extracts speaker vector from audio', async () => {
-        const audioPath = '/path/to/audio.wav';
+    it('extracts speaker vector from PCM buffer', async () => {
+        const pcmData = new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
 
-        const speakerVector = await speakerProcessor.extractSpeakerVector(audioPath);
+        const speakerVector = await speakerProcessor.extractSpeakerVector(pcmData);
 
         expect(speakerVector).toBeDefined();
         expect(speakerVector.vector).toEqual([0.1, 0.2, 0.3, 0.4, 0.5]);
@@ -71,11 +71,10 @@ describe('SpeakerProcessor', () => {
         expect(biocode.createdAt).toBeDefined();
     });
 
-    it('loads audio file as PCM for testing', async () => {
-        const audioPath = '/path/to/audio.wav';
+    it('processes in-memory PCM buffers without touching disk', async () => {
+        const pcmData = new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
 
-        // This should not throw an error
-        const speakerVector = await speakerProcessor.extractSpeakerVector(audioPath);
+        const speakerVector = await speakerProcessor.extractSpeakerVector(pcmData);
 
         expect(speakerVector).toBeDefined();
         expect(speakerVector.vector).toEqual([0.1, 0.2, 0.3, 0.4, 0.5]);

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getStatusColors, readFromStore } from '@/Components/GlobalActivityBar';
+import { getStatusColors, readFromStore } from '@/Components/GlobalActivityBar.utils';
+import { Container } from '@/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
-import { ActivityStatus, globalActivityStatus } from '@/State/GlobalActivityStatus';
+import { ActivityStatus } from '@/State/GlobalActivityStatus';
 import { Text } from 'react-native';
 
 // minimal fake theme containing the required color sections
@@ -47,7 +48,7 @@ describe('GlobalActivityBar helpers', () => {
 
 describe('GlobalActivityBar component', () => {
     beforeEach(() => {
-        globalActivityStatus.reset();
+        Container.globalActivityStatus.reset();
     });
 
     it('renders hidden bar when store has no active status', () => {
@@ -58,14 +59,14 @@ describe('GlobalActivityBar component', () => {
     });
 
     it('renders message from store when status present', () => {
-        globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading');
+        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading');
         const { status, message } = readFromStore();
         expect(status).toBe(ActivityStatus.Pending);
         expect(message).toBe('Downloading');
     });
 
     it('renders custom icon from store when provided', () => {
-        globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading', <Text>⭐</Text>);
+        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading', <Text>⭐</Text>);
         const { icon } = readFromStore();
         expect(icon).toEqual(<Text>⭐</Text>);
     });

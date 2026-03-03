@@ -11,7 +11,7 @@ import type { MetadataConstructor, MetadataMap } from './Type';
 export class MetadataReader {
     private cachedProperties?: PropertyDecorator[];
 
-    constructor(private readonly construct: MetadataConstructor) {}
+    public constructor(private readonly construct: MetadataConstructor) {}
 
     /**
      * Return a reader instance for the given target (constructor or object).

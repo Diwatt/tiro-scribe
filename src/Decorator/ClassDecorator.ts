@@ -4,7 +4,7 @@
  * Database/Decorator/Entity.EntityDecorator implementation.
  */
 export class ClassDecorator {
-    constructor(
+    public constructor(
         private readonly _name: string,
         private readonly _options: Record<string, unknown>,
     ) {}

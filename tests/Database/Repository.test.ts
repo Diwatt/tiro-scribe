@@ -13,7 +13,7 @@ import { createMockEncounterConstructor } from '../helpers/mockEntity';
 import { ensureTestTable, clearTestTable } from '../../vitest/mocks/kysely';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),

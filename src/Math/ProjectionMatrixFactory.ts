@@ -22,7 +22,7 @@ export class ProjectionMatrixFactory {
     /**
      * Create an orthonormal projection matrix from a master key
      */
-    public create(masterKey: string, inputDim: number = 192, outputDim: number = 128): number[][] {
+    public create(masterKey: string, inputDim = 192, outputDim = 128): number[][] {
         const rows = Math.floor(outputDim);
         const cols = Math.floor(inputDim);
         const flat = this.convertBytesToFloats(masterKey, rows * cols);

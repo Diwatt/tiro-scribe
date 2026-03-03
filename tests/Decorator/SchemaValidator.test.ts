@@ -1,8 +1,6 @@
 import { SchemaValidator } from '@/Decorator/SchemaValidator';
 import type { OptionsSchema } from '@/Decorator/Type';
-import { MULTIPLE_DECORATORS_NOT_SUPPORTED } from '@/Exception';
-import { DatabaseException } from '@/Exception/DatabaseException';
-import { DecoratorException } from '@/Exception/DecoratorException';
+import { DatabaseException, DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from '@/Exception';
 
 describe('SchemaValidator', () => {
     const validator = new SchemaValidator();

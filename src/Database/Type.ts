@@ -59,4 +59,6 @@ export type DatabaseSchema = SchemaFromTables<EntityTablesType>;
  */
 /** Constructor type accepted by registry and repositories: any class extending
  * AbstractEntity with a static `entityName` string. */
-export type EntityClass = (new (...args: unknown[]) => Entity) & { entityName: string };
+export type EntityClass<TEntity extends Entity = Entity> = (new (
+    ...args: unknown[]
+) => TEntity) & { entityName: string };

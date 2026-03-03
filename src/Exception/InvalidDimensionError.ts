@@ -6,7 +6,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class InvalidDimensionError extends TiroScribeException {
-    constructor(message?: string) {
+    public constructor(message?: string) {
         super(message ?? 'Invalid dimension', 'INVALID_DIMENSION');
         this.name = 'InvalidDimensionError';
     }

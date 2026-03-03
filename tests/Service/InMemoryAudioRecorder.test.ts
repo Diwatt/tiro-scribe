@@ -12,7 +12,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { appLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 import { InMemoryAudioRecorderException } from '@/Exception';
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ import { InMemoryAudioRecorderException } from '@/Exception';
 // ---------------------------------------------------------------------------
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         warn: vi.fn(),
         error: vi.fn(),
         info: vi.fn(),
@@ -91,7 +91,7 @@ describe('InMemoryAudioRecorder - ZOMBIE Tests', () => {
         vi.clearAllMocks();
         vi.useRealTimers();
         (globalThis as any).lastStatusCallback = null;
-        recorder = new InMemoryAudioRecorder(appLogger);
+        recorder = new InMemoryAudioRecorder(AppLogger);
     });
 
     afterEach(() => {

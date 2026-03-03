@@ -288,8 +288,8 @@ describe('SecureRecorderModule', () => {
             expect(mockNativeModule.removeAllListeners).toHaveBeenCalled();
         });
 
-        it('EVENT_AUDIO_CHUNK_DECRYPTED should be defined', () => {
-            expect(SecureRecorderModule.EVENT_AUDIO_CHUNK_DECRYPTED).toBe('onAudioChunkDecrypted');
+        it('eventAudioChunkDecrypted should be defined', () => {
+            expect(SecureRecorderModule.eventAudioChunkDecrypted).toBe('onAudioChunkDecrypted');
         });
     });
 

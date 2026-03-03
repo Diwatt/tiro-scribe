@@ -1,42 +1,56 @@
 /**
- * Logger configuration for Tiro Scribe
+ * Logger service - wrapper around react-native-logs
  *
- * Provides structured logging with different levels and environment-based configuration
+ * Provides a consistent logging interface throughout the application.
+ * This service wraps the Container.logger to provide the AppLogger interface
+ * that tests and other components expect.
  */
 
-import { consoleTransport, logger as reactNativeLogger } from 'react-native-logs';
-
-/**
- * Logger instance type from react-native-logs
- */
-type ReactNativeLogger = ReturnType<typeof reactNativeLogger.createLogger>;
+import type { LoggerInterface } from '../Container';
+import { Container } from '../Container';
 
 /**
- * `appLogger` - shared logger instance for application logging
- *
- * Created once at module load time and reused across the entire app.
+ * AppLogger - main logger interface used throughout the app
  */
-// `appLogger` is created eagerly at module load. The configuration logic from
-// the old `getInstance` method is preserved here, but callers no longer need to
-// invoke a factory – they can simply import the constant and use it directly.
-export const appLogger: ReactNativeLogger = reactNativeLogger.createLogger({
-    severity: __DEV__ ? 'debug' : 'error',
-    transport: consoleTransport,
-    transportOptions: {
-        colors: {
-            info: 'blueBright',
-            warn: 'yellowBright',
-            error: 'redBright',
-            debug: 'whiteBright',
-        } as const,
-    },
-    dateFormat: 'time',
-    printLevel: true,
-    printDate: true,
-});
+export class AppLogger {
+    private readonly logger: LoggerInterface;
 
-/**
- * Logger interface type for dependency injection
- * Extracted from the logger instance type
- */
-export type LoggerInterface = typeof appLogger;
+    public constructor(logger?: LoggerInterface) {
+        this.logger = logger || Container.logger;
+    }
+
+    public debug(message: string, meta?: Record<string, unknown>): void {
+        if (meta) {
+            this.logger.debug(message, meta);
+        } else {
+            this.logger.debug(message);
+        }
+    }
+
+    public error(message: string, meta?: Record<string, unknown>): void {
+        if (meta) {
+            this.logger.error(message, meta);
+        } else {
+            this.logger.error(message);
+        }
+    }
+
+    public info(message: string, meta?: Record<string, unknown>): void {
+        if (meta) {
+            this.logger.info(message, meta);
+        } else {
+            this.logger.info(message);
+        }
+    }
+
+    public warn(message: string, meta?: Record<string, unknown>): void {
+        if (meta) {
+            this.logger.warn(message, meta);
+        } else {
+            this.logger.warn(message);
+        }
+    }
+}
+
+// Export a singleton instance for convenience
+export const LOGGER = new AppLogger();

@@ -2,16 +2,16 @@ import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, Button, HelperText, useTheme } from 'react-native-paper';
+import { Container } from '@/Container';
 import { useAppLanguage } from '@/Localization';
-import { onboardingState } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     const actions = theme.colors.actions;
-    const error = onboardingState.state$.error.get();
-    const isBusy = onboardingState.state$.isBusy.get();
+    const error = Container.onboardingState.state.error.get();
+    const isBusy = Container.onboardingState.state.isBusy.get();
 
     return (
         <View style={STYLES.stepRoot}>
@@ -34,7 +34,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                 <>
                     <Button
                         mode="contained"
-                        onPress={() => onboardingState.calibrateVoice()}
+                        onPress={() => Container.onboardingState.calibrateVoice()}
                         style={[STYLES.primaryButton, { backgroundColor: actions.primary.background }]}
                         contentStyle={STYLES.primaryButtonContent}
                     >
@@ -42,7 +42,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                     </Button>
                     <Button
                         mode="text"
-                        onPress={() => onboardingState.reset()}
+                        onPress={() => Container.onboardingState.reset()}
                         style={STYLES.backButton}
                         contentStyle={STYLES.primaryButtonContent}
                     >

@@ -4,10 +4,10 @@
 
 import semver from 'semver';
 import type { ModelConfig } from '@/Api';
-import { type InferenceModelConfigProvider, inferenceModelConfigProvider } from './InferenceModelConfigProvider';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
+import type { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
-import type { LoggerInterface } from './Logger';
-import { appLogger } from './Logger';
 
 /** Information about available updates */
 export interface UpdateInfo {
@@ -87,8 +87,8 @@ export class InferenceModelVersionManager {
     }
 
     public static createDefaultInstance(): InferenceModelVersionManager {
-        const logger = appLogger;
-        const configProvider = inferenceModelConfigProvider;
+        const logger = Container.logger;
+        const configProvider = Container.inferenceModelConfigProvider;
         const artifactStorage = new ModelArtifactStorage(logger);
 
         return new InferenceModelVersionManager(logger, configProvider, artifactStorage);
@@ -158,7 +158,3 @@ export class InferenceModelVersionManager {
         return semver.gt(remoteVersion, localVersion);
     }
 }
-
-// Export a default manager wired with production dependencies. Tests may
-// instantiate separate instances when they need to isolate behavior.
-export const inferenceModelVersionManager = InferenceModelVersionManager.createDefaultInstance();

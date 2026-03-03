@@ -4,12 +4,12 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { Container } from '@/Container';
 import { useAppLanguage } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { RecorderState } from '../../../modules/secure-recorder/src';
-import { appLogger } from '../../Service/Logger';
 
-const LOGGER = appLogger;
+const LOGGER = Container.logger;
 
 /**
  * Button constants

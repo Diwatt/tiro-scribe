@@ -5,26 +5,27 @@
  * speaker embeddings from raw PCM audio data.
  */
 
+import type * as Ort from 'onnxruntime-react-native';
 import type { ModelConfig } from '@/Api';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
 import { InvalidAudioFormatError, SessionNotInitializedError, SpeakerVectorExtractionError } from '../../Exception';
 import { AudioFeatureExtractor } from '../../Math/AudioFeatureExtractor';
 import { getOnnxRuntime } from '../../Util/OnnxRuntime';
-import { inferenceModelDownloader } from '../InferenceModelDownloader';
-import { appLogger, type LoggerInterface } from '../Logger';
 import { SpeakerVector } from './SpeakerVector';
 
 export class SpeakerEmbedder {
     private readonly audioFeatureExtractor: AudioFeatureExtractor;
     private readonly logger: LoggerInterface;
-    private speakerSession: any | null = null;
+    private speakerSession: Ort.InferenceSession | null = null;
 
     /**
      * @param audioFeatureExtractor - audio feature extraction utility
      * @param logger - optional logger instance
      */
-    constructor(
+    public constructor(
         audioFeatureExtractor: AudioFeatureExtractor = new AudioFeatureExtractor(),
-        logger: LoggerInterface = appLogger,
+        logger: LoggerInterface = Container.logger,
     ) {
         this.audioFeatureExtractor = audioFeatureExtractor;
         this.logger = logger;
@@ -35,7 +36,7 @@ export class SpeakerEmbedder {
      * @param pcm - Raw PCM buffer (16kHz mono, normalized to [-1,1]).
      * @returns Speaker vector with confidence score
      */
-    async extract(pcm: Float32Array): Promise<SpeakerVector> {
+    public async extract(pcm: Float32Array): Promise<SpeakerVector> {
         if (!this.speakerSession) {
             throw new SessionNotInitializedError('SpeakerEmbedder not initialized. Call initialize() first.');
         }
@@ -45,13 +46,14 @@ export class SpeakerEmbedder {
             const audioFeatures: Float32Array = this.audioFeatureExtractor.extract(pcm);
 
             // Step 2: Run inference with ONNX Runtime
-            const embedding = await this.runSpeakerInference(audioFeatures);
+            const rawEmbedding = await this.runSpeakerInference(audioFeatures);
+            const rawMagnitude = Math.sqrt(rawEmbedding.reduce((sum, v) => sum + v * v, 0));
 
             // Step 3: Normalize the embedding vector
-            const normalizedEmbedding = this.normalizeVector(embedding);
+            const normalizedEmbedding = this.normalizeVector(rawEmbedding);
 
-            // Confidence = vector magnitude (clamped to 1)
-            const confidence = Math.min(1.0, Math.sqrt(normalizedEmbedding.reduce((sum, val) => sum + val * val, 0)));
+            // Confidence = scaled raw vector magnitude (clamped to 1)
+            const confidence = Math.min(1, rawMagnitude / 30);
 
             return new SpeakerVector(normalizedEmbedding, confidence);
         } catch (error) {
@@ -66,7 +68,7 @@ export class SpeakerEmbedder {
      * Initialize the SpeakerEmbedder with ONNX Runtime and speaker recognition model
      * @param modelPath - Path to the Sherpa-ONNX speaker recognition model (.onnx file)
      */
-    async initialize(modelPath: string): Promise<void> {
+    public async initialize(modelPath: string): Promise<void> {
         try {
             const ort = await getOnnxRuntime();
             // Resolve the model path (handle both local and bundled assets)
@@ -127,9 +129,9 @@ export class SpeakerEmbedder {
         }
 
         // Otherwise, ask the inferenceDownloader for a config and download if needed
-        const config = await inferenceModelDownloader.getConfigByLocalPath(modelPath);
+        const config = await Container.inferenceModelDownloader.getConfigByLocalPath(modelPath);
         if (config != null) {
-            const executor = await inferenceModelDownloader.download(config.capability);
+            const executor = await Container.inferenceModelDownloader.download(config.capability);
             // Get the URI from the config through the executor's config property
             return this.getModelUriFromConfig(executor.config);
         }
@@ -165,6 +167,3 @@ export class SpeakerEmbedder {
         return Array.from(outputTensor.data as Float32Array);
     }
 }
-
-// Module-level convenience instance
-export const speakerEmbedder = new SpeakerEmbedder();

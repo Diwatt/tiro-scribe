@@ -10,7 +10,7 @@ export class TiroScribeException extends Error {
     public readonly context?: Record<string, unknown>;
     public readonly originalError?: Error;
 
-    constructor(message: string, code: string, originalError?: Error, context?: Record<string, unknown>) {
+    public constructor(message: string, code: string, originalError?: Error, context?: Record<string, unknown>) {
         super(message);
         this.name = 'TiroScribeException';
         this.code = code;

@@ -8,9 +8,9 @@ import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import type { ModelConfig } from '@/Api';
+import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
-import type { LoggerInterface } from '@/Service/Logger';
+import type { LoggerInterface } from '../../Container';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { FileDownloader } from './FileDownloader';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
@@ -19,7 +19,7 @@ import { DownloadState } from './Type';
 export class DownloadTaskExecutor {
     /** Error message used to identify user‑cancelled downloads */
     private static readonly CANCELLATION_ERROR_MESSAGE = 'Download cancelled by user';
-    private readonly _completedAt$ = observable<Dayjs | undefined>(undefined);
+    private readonly _completedAt$ = observable<Dayjs | undefined>();
     private readonly _error$: Observable<string | undefined>;
     private readonly _progress$: Observable<number>;
     private readonly _startedAt: Dayjs;
@@ -100,6 +100,7 @@ export class DownloadTaskExecutor {
         executor.setState(DownloadState.Completed);
         executor.setProgress(100);
         executor.setCompletedAt(dayjs());
+
         return executor;
     }
 
@@ -135,6 +136,7 @@ export class DownloadTaskExecutor {
      */
     public isDownloading(): boolean {
         const currentState = this.getState();
+
         return currentState === DownloadState.Downloading;
     }
 
@@ -144,10 +146,6 @@ export class DownloadTaskExecutor {
     public get progress$(): Observable<number> {
         return this._progress$;
     }
-
-    // ------------------------------------------------------------------
-    // Internal setters (use instead of mutating observables directly)
-    // ------------------------------------------------------------------
 
     /**
      * Start the download process.
@@ -165,32 +163,8 @@ export class DownloadTaskExecutor {
             this.setState(DownloadState.Downloading);
             this.logger.debug('[DownloadTaskExecutor] Starting download task execution');
 
-            for (let i = 0; i < this.modelConfig.files.length; i++) {
-                const file = this.modelConfig.files[i];
-                const destination = this.artifactStorage.getFile(this.modelConfig, file);
-
-                // Create downloader for this file and download with progress tracking
-                const downloader = new FileDownloader(destination, this.logger);
-                for await (const chunkProgress of downloader.download(file.url)) {
-                    // chunkProgress is 0‑1, convert to overall progress
-                    const fileProgress = chunkProgress;
-                    const overallProgress = (totalDownloaded + fileProgress) / totalFiles;
-                    const progressPercent = overallProgress * 100;
-
-                    // Update progress observable (0‑100)
-                    this.setProgress(progressPercent);
-
-                    // Call progress callback if provided
-                    if (this.onProgress) {
-                        this.onProgress(progressPercent);
-                    }
-                }
-
-                // Verify hash if provided
-                if (file.hash) {
-                    await this.checksumVerifier.verify(destination, file.hash);
-                }
-
+            for (const file of this.modelConfig.files) {
+                await this.downloadFile(file, totalDownloaded, totalFiles);
                 totalDownloaded += 1;
                 const progressAfterFile = (totalDownloaded / totalFiles) * 100;
                 // Update progress after each file
@@ -241,6 +215,33 @@ export class DownloadTaskExecutor {
      */
     public get state$(): Observable<DownloadState> {
         return this._state$;
+    }
+
+    /**
+     * Download a single file with progress tracking and hash verification.
+     */
+    private async downloadFile(file: InferenceModelFile, totalDownloaded: number, totalFiles: number): Promise<void> {
+        const destination = this.artifactStorage.getFile(this.modelConfig, file);
+
+        // Create downloader for this file and download with progress tracking
+        const downloader = new FileDownloader(destination, this.logger);
+        for await (const chunkProgress of downloader.download(file.url)) {
+            // chunkProgress is 0‑1, convert to overall progress
+            const fileProgress = chunkProgress;
+            const overallProgress = (totalDownloaded + fileProgress) / totalFiles;
+            const progressPercent = overallProgress * 100;
+
+            // Update progress observable (0‑100)
+            this.setProgress(progressPercent);
+
+            // Call progress callback if provided
+            if (this.onProgress) {
+                this.onProgress(progressPercent);
+            }
+        }
+
+        // Verify file hash
+        await this.checksumVerifier.verify(destination, file.hash);
     }
 
     /**

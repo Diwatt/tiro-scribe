@@ -6,7 +6,7 @@ import { Therapist } from '@/Entity/Therapist';
 import { vi, describe, it, expect } from 'vitest';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),

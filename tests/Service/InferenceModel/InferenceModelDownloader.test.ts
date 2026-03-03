@@ -40,7 +40,7 @@ vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
     ModelArtifactStorage: vi.fn(),
 }));
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
@@ -50,18 +50,15 @@ vi.mock('@/Service/Logger', () => ({
 
 // Mock AppConfig to avoid __DEV__ issues
 vi.mock('@/Config/AppConfig', () => ({
-    appConfig: {
-        config: {
-            EXPO_PUBLIC_API_BASE_URL: 'https://test-api.example.com',
-            EXPO_PUBLIC_DATABASE_NAME: 'test-database.sqlite',
-            STORYBOOK_ENABLED: false,
-            EXPO_PUBLIC_ARTIFACT_STORAGE_SUBDIR: 'artifacts',
-        },
-        apiHost: 'https://test-api.example.com',
-        artifactStorageDirName: 'artifacts',
-        databaseName: 'test-database.sqlite',
-        isStorybookEnabled: false,
-    },
+    AppConfig: vi.fn().mockImplementation(function () {
+        return {
+            isDev: true,
+            apiHost: 'https://test-api.example.com',
+            databaseName: 'test-database.sqlite',
+            isStorybookEnabled: false,
+            artifactStorageDirName: 'artifacts',
+        };
+    }),
 }));
 
 // Mock expo-file-system

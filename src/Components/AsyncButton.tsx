@@ -2,7 +2,8 @@ import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 import { Button, type ButtonProps, useTheme } from 'react-native-paper';
-import { ActivityStatus, globalActivityStatus } from '../State/GlobalActivityStatus';
+import { Container } from '@/Container';
+import { ActivityStatus } from '../State/GlobalActivityStatus';
 import type { ExtendedTheme } from '../theme/AppTheme';
 import { getLabel } from './AsyncButtonUtils';
 
@@ -16,7 +17,7 @@ export interface AsyncButtonProps extends Omit<ButtonProps, 'loading' | 'disable
     readonly contentStyle?: React.ComponentProps<typeof Button>['contentStyle'];
 }
 
-export function AsyncButtonInner(props: AsyncButtonProps): React.JSX.Element {
+export function AsyncButtonInner(props: Readonly<AsyncButtonProps>): React.JSX.Element {
     const {
         status: statusProp,
         idleLabel,
@@ -34,7 +35,7 @@ export function AsyncButtonInner(props: AsyncButtonProps): React.JSX.Element {
     const actions = theme.colors.actions;
 
     // if caller passed an explicit status use it; otherwise fall back to the single global status
-    const status = statusProp ?? globalActivityStatus.getStatus() ?? ActivityStatus.Ready;
+    const status = statusProp ?? Container.globalActivityStatus.getStatus() ?? ActivityStatus.Ready;
 
     const pending = status === ActivityStatus.Pending;
     const success = status === ActivityStatus.Success;
@@ -60,4 +61,10 @@ export function AsyncButtonInner(props: AsyncButtonProps): React.JSX.Element {
     );
 }
 
-export const AsyncButton = observer(AsyncButtonInner);
+const OBSERVED_ASYNC_BUTTON = observer(AsyncButtonInner);
+
+export function AsyncButton(props: Readonly<AsyncButtonProps>): React.JSX.Element {
+    return <OBSERVED_ASYNC_BUTTON {...props} />;
+}
+
+export { getLabel } from './AsyncButtonUtils';

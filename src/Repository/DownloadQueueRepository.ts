@@ -52,7 +52,10 @@ export class DownloadQueueRepository extends Repository<DownloadQueue> {
         }
         return items
             .toArray()
-            .reduce((oldest, current) => (current.getCreatedAt().isBefore(oldest.getCreatedAt()) ? current : oldest));
+            .reduce(
+                (oldest, current) => (current.getCreatedAt().isBefore(oldest.getCreatedAt()) ? current : oldest),
+                items.toArray()[0],
+            );
     }
 
     /**

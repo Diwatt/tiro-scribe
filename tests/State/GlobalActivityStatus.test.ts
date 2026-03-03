@@ -1,11 +1,12 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { globalActivityStatus, ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
+import { Container } from '@/Container';
+import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 
 
 describe('GlobalActivityStatus', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        globalActivityStatus.reset();
+        Container.globalActivityStatus.reset();
     });
 
 
@@ -15,7 +16,7 @@ describe('GlobalActivityStatus', () => {
     });
 
     it('state$ observable should update when set directly', () => {
-        const obs = globalActivityStatus.state$;
+        const obs = Container.globalActivityStatus.state$;
         obs.set({ status: ActivityStatus.Pending, message: '', icon: undefined });
         expect(obs.get().status).toBe(ActivityStatus.Pending);
         // restore
@@ -37,19 +38,19 @@ describe('GlobalActivityStatus', () => {
     });
 
     it('auto-hides pending status when autoHideAfterMs is provided', async () => {
-        globalActivityStatus.setStatus(ActivityStatus.Pending, 'working', undefined, 1000);
+        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, 'working', undefined, 1000);
         // allow any microtask/timer used by the observable to complete
         await Promise.resolve();
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
         vi.advanceTimersByTime(1000);
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
     });
 
     it('auto-hides success status when autoHideAfterMs is provided', async () => {
-        globalActivityStatus.setStatus(ActivityStatus.Success, 'done', undefined, 2000);
+        Container.globalActivityStatus.setStatus(ActivityStatus.Success, 'done', undefined, 2000);
         await Promise.resolve();
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Success);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Success);
         vi.advanceTimersByTime(2000);
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
     });
 });

@@ -7,6 +7,7 @@
  * The only generic (T in buildClass) preserves the decorated class type so static members (e.g. entityName) stay typed.
  */
 
+import { AppConfig } from '@/Config/AppConfig';
 import { SchemaValidator } from './SchemaValidator';
 import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } from './Type';
 
@@ -15,7 +16,7 @@ import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } fro
 // any database-specific dependencies.
 type ClassConstructor = abstract new (...args: unknown[]) => unknown;
 
-declare const Dev: boolean;
+declare const _DEV: boolean;
 
 export type {
     ClassDecoratorConfig,
@@ -27,7 +28,6 @@ export type {
     PropertyDecoratorConfig,
 } from './Type';
 
-// biome-ignore lint/complexity/noStaticOnlyClass: decorator builder with static schemaValidator
 export class Builder {
     private static readonly schemaValidator = new SchemaValidator();
 
@@ -60,7 +60,7 @@ export class Builder {
             const opts = options ?? {};
             Builder.validateOptions(config, opts);
             return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
-                if (Dev && config.unique === true && config.decoratorName != null) {
+                if (new AppConfig().isDev && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;
                     Builder.schemaValidator.ensurePropertyDecoratorUniqueness(
                         meta,
@@ -90,7 +90,7 @@ export class Builder {
         config: { schema?: OptionsSchema; errorCode?: string; validate?: (opts: object) => void },
         opts: object,
     ): void {
-        if (!Dev) {
+        if (!new AppConfig().isDev) {
             return;
         }
 

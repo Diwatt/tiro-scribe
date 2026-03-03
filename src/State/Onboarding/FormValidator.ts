@@ -37,5 +37,3 @@ export class FormValidator {
         return { success: false, errors: result.error.flatten() };
     }
 }
-
-export const formValidator = new FormValidator();

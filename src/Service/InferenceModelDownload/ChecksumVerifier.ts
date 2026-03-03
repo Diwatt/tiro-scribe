@@ -5,7 +5,7 @@
 
 import type { File } from 'expo-file-system';
 import { createHash } from 'react-native-quick-crypto';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
+import { InferenceModelDownloaderException } from '@/Exception';
 
 export class ChecksumVerifier {
     /**

@@ -4,19 +4,11 @@ import type { NativeSecureRecorderModule, RecordingStatus } from './Type';
 export type { DecryptedChunkEvent, RecordingStatus } from './Type';
 
 class NativeSecureRecorder implements NativeSecureRecorderModule {
-    public readonly EVENT_AUDIO_CHUNK_DECRYPTED = 'onAudioChunkDecrypted';
+    public readonly eventAudioChunkDecrypted = 'onAudioChunkDecrypted';
     private _nativeModule: NativeSecureRecorderModule | null = null;
 
     private get nativeModule(): NativeSecureRecorderModule {
-        if (!this._nativeModule) {
-            try {
-                this._nativeModule = requireNativeModule('SecureRecorder');
-            } catch (_error) {
-                throw new Error(
-                    'SecureRecorder is a custom native module and is not available in Expo Go. Use a dev build: npx expo run:ios (or npx expo run:android). Rebuild and fully restart the app after adding the module.',
-                );
-            }
-        }
+        this._nativeModule ??= requireNativeModule('SecureRecorder');
 
         if (!this._nativeModule) {
             throw new Error('SecureRecorder native module initialization failed unexpectedly.');

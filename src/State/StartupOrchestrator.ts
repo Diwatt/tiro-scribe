@@ -5,15 +5,11 @@
 
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
+import { Container } from '@/Container';
 import type { TherapistRepository } from '@/Repository';
-import { appLogger } from '@/Service/Logger';
-import { registry } from '../Database/Registry';
 import { Therapist } from '../Entity/Therapist';
-import { appLanguage } from '../Localization/AppLanguage';
-import { deviceCompatibilityGate } from '../Security/DeviceCompatibilityGate';
 import { DownloadState } from '../Service/InferenceModelDownload/Type';
-import { inferenceModelDownloader } from '../Service/InferenceModelDownloader';
-import { ActivityStatus, globalActivityStatus } from './GlobalActivityStatus';
+import { ActivityStatus } from './GlobalActivityStatus';
 
 /** Initial state → hardware check → auth check → routing. */
 export enum StartupState {
@@ -41,10 +37,15 @@ export class StartupOrchestrator {
 
         // show an initial pending status during app boot; hide it after 5 seconds
         const startupDelayMs = 5000;
-        const ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
-        globalActivityStatus.setStatus(ActivityStatus.Pending, ll.activity.starting(), undefined, startupDelayMs);
+        const ll = Container.appLanguage.getTranslationFunctions(Container.appLanguage.getLocale());
+        Container.globalActivityStatus.setStatus(
+            ActivityStatus.Pending,
+            ll.activity.starting(),
+            undefined,
+            startupDelayMs,
+        );
 
-        const compatible = deviceCompatibilityGate.isCompatible();
+        const compatible = Container.deviceCompatibilityGate.isCompatible();
         if (!compatible) {
             this.state.set(StartupState.HardwareRejected);
             return;
@@ -52,7 +53,7 @@ export class StartupOrchestrator {
 
         // provide explicit generic parameter so caller receives the
         // specialized interface with autocomplete support.
-        const repo = await registry.getRepository<TherapistRepository>(Therapist);
+        const repo = await Container.registry.getRepository<TherapistRepository>(Therapist);
         const hasSession = await repo.hasActiveSession();
         if (hasSession) {
             this.state.set(StartupState.Ready);
@@ -72,19 +73,19 @@ export class StartupOrchestrator {
     private async downloadSpeakerId(bootStart: number): Promise<void> {
         const autoHideDelayMs = 3000; // 3 seconds
         const startupDelayMs = 5000;
-        const ll = appLanguage.getTranslationFunctions(appLanguage.getLocale());
+        const ll = Container.appLanguage.getTranslationFunctions(Container.appLanguage.getLocale());
 
         // initial pending status; progress will update it
-        globalActivityStatus.setStatus(ActivityStatus.Pending, ll.download.speakerModel());
+        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, ll.download.speakerModel());
 
         try {
-            const executor = await inferenceModelDownloader.download('speaker_id');
+            const executor = await Container.inferenceModelDownloader.download('speaker_id');
 
             // update UI as progress events arrive
             executor.progress$.onChange(({ value: progress }) => {
                 const percentage = Math.round(progress);
                 const message = `${ll.download.speakerModel()} ${percentage}%`;
-                globalActivityStatus.setStatus(ActivityStatus.Pending, message);
+                Container.globalActivityStatus.setStatus(ActivityStatus.Pending, message);
             });
 
             // watch state changes to surface success or error
@@ -92,7 +93,7 @@ export class StartupOrchestrator {
                 const elapsed = Date.now() - bootStart;
                 const remainingStartup = Math.max(0, startupDelayMs - elapsed);
                 const successFn = () => {
-                    globalActivityStatus.setStatus(
+                    Container.globalActivityStatus.setStatus(
                         ActivityStatus.Success,
                         ll.download.speakerModelSuccess(),
                         undefined,
@@ -111,10 +112,10 @@ export class StartupOrchestrator {
                 if (state === DownloadState.Completed) {
                     showSuccess();
                 } else if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
-                    appLogger.error('Speaker model download failed', {
+                    Container.logger.error('Speaker model download failed', {
                         error: executor.getError(),
                     });
-                    globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
+                    Container.globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
                 }
             });
 
@@ -124,18 +125,16 @@ export class StartupOrchestrator {
             if (initialState === DownloadState.Completed) {
                 showSuccess();
             } else if (initialState === DownloadState.Failed || initialState === DownloadState.Cancelled) {
-                appLogger.error('Speaker model download failed', {
+                Container.logger.error('Speaker model download failed', {
                     error: executor.getError(),
                 });
-                globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
+                Container.globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
             }
         } catch (err) {
             // any problem starting or observing download
-            appLogger.error('Speaker model download failed', { error: err });
-            globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
+            Container.logger.error('Speaker model download failed', { error: err });
+            Container.globalActivityStatus.setStatus(ActivityStatus.Error, ll.download.speakerModelError());
             return;
         }
     }
 }
-
-export const STARTUP_ORCHESTRATOR = new StartupOrchestrator();

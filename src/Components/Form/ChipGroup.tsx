@@ -62,6 +62,12 @@ function ChipGroupRender({
         [onChange, value],
     );
 
+    const chipPressHandlers = useMemo(() => {
+        return Object.fromEntries(
+            options.map((option) => [option.value, () => handleChipPress(option.value)]),
+        ) as Record<string, () => void>;
+    }, [options, handleChipPress]);
+
     return (
         <>
             {label ? (
@@ -84,12 +90,12 @@ function ChipGroupRender({
                                 key={`${option.value}-${index}`}
                                 style={STYLES.chip}
                                 selected={value?.includes(option.value) ?? false}
-                                onPress={() => handleChipPress(option.value)}
+                                onPress={chipPressHandlers[option.value]}
                             >
                                 {option.label}
                             </Chip>
                         )),
-                    [options, value, handleChipPress],
+                    [chipPressHandlers, options, value],
                 )}
             </View>
             {error ? (

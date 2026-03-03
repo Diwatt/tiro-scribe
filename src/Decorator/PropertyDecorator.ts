@@ -5,7 +5,7 @@
 import isFunction from 'lodash/isFunction';
 
 export class PropertyDecorator<TOptions extends Record<string, unknown> = Record<string, unknown>> {
-    constructor(
+    public constructor(
         private readonly decoratorName: string,
         private readonly className: string,
         private readonly propertyName: string,

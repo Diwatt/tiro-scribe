@@ -43,6 +43,11 @@ globs: "src/**/*.ts,src/**/*.tsx"
 - **Service Naming:** Use capability names (e.g. `VoiceCalibration`), NEVER append `*Service`.
 - **Dependency Injection:** Inject via constructor using Interfaces/Types. Never instantiate inside a class.
 - **No Object Literals in Classes:** Use a `const INITIAL_STATE` or static factory instead.
+- **No standalone `const` object literals as module-level exports.**
+  Use `export class X` with `public static readonly` members instead.
+  NEVER write `export const Schema = { ... } as const`.
+  ALWAYS write `export class Schema { public static readonly ... }`.
+- **No "Utils" / Standalone Functions:** Logic belongs to a class.
 
 ---
 
@@ -81,9 +86,14 @@ The following conventions require human judgment:
 
 | Target | Convention | Example |
 |--------|-----------|---------|
+| Classes, Interfaces, Types | PascalCase | `ConsoleLogger`, `UserRepositoryInterface` |
+| Methods, Variables, Params | camelCase | `getUserById`, `primaryKeyColumnName` |
+| Primitive constants | SCREAMING_SNAKE_CASE | `MAX_LENGTH`, `PASSWORD_MIN_LENGTH` |
+| Singleton instances | `Container.camelCase` | `Container.logger`, `Container.recoveryKit` |
+| Enum members | PascalCase | `RecorderState.Recording` |
 | Abstract Classes | `Abstract` prefix | `AbstractEntity` |
 | Exceptions | `Exception` suffix | `ValidationException` |
-| Services | Capability name, no `*Service` suffix | `VoiceCalibration` |
+| Private backing fields | `_camelCase` | `_state` (behind `get state()`) |
 
 - No abbreviations (`pk`, `fk`). Use full words. Exceptions: `id`, `uid`.
 - Do not repeat the folder name in identifiers (e.g. in `Entity/`, use `primaryKey` not `entityPrimaryKey`).
@@ -104,7 +114,20 @@ The following conventions require human judgment:
 
 ---
 
-## 9. Documentation — Symfony Style
+## 9. Service Container
+
+All runtime singleton instances live in `src/Container.ts` as static properties of the `Container` class.
+
+- **Access**: `Container.logger`, `Container.recoveryKit`, etc.
+- **No `export const` singletons**: Never export a singleton as a module-level `const`. Use Container.
+- **Primitive constants stay in domain files**: `MAX_LENGTH`, `PASSWORD_MIN_LENGTH`, etc. remain as `CONSTANT_CASE` in their own files.
+- **Constructor injection preferred**: For testability, classes should receive dependencies via constructor params. `Container` is used at the edges (screens, entry points) to wire things together.
+- **No methods on Container**: It is a passive holder. No `init()`, no `dispose()`, no factories.
+- **Property naming**: camelCase, no prefixes. `logger` not `appLogger`.
+
+---
+
+## 10. Documentation — Symfony Style
 
 - **No JSDoc** for self-explanatory methods, constructors, or properties.
 - Use JSDoc **only** for: class-level purpose, complex business logic, `@throws`, public API boundaries.

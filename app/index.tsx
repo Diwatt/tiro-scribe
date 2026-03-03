@@ -36,9 +36,10 @@ export default observer(function GateScreen(): React.JSX.Element | null {
 
         (async () => {
             // optionally clear DB on launch when explicitly enabled via env.
-            // fallback to __DEV__ only for safety; the flag gives developers control
+            // fallback to AppConfig.isDev only for safety; the flag gives developers control
             // without having to rebuild the binary.
-            if (__DEV__ && AppConfig.shouldClearDbOnLaunch) {
+            const appConfig = new AppConfig();
+            if (appConfig.isDev && appConfig.shouldClearDbOnLaunch) {
                 try {
                     await Database.reset();
                 } catch (_error_) {

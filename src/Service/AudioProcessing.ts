@@ -19,9 +19,10 @@ async function getOrt(): Promise<typeof Ort> {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
 import { TranscriptionNotImplementedError } from '../Exception/TranscriptionNotImplementedError';
 import type { Anonymizer } from './Anonymizer';
-import { appLogger, type LoggerInterface } from './Logger';
 
 dayjs.extend(utc);
 
@@ -61,6 +62,9 @@ const CONFIDENCE = {
     AVERAGE_DIVISOR: 2,
 } as const;
 
+/**
+ * 🚧 WIP: Full ONNX transcription + anonymization orchestration is under active development.
+ */
 export class AudioProcessing {
     private readonly anonymizerService: Anonymizer;
     private readonly loggerInstance: LoggerInterface;
@@ -69,7 +73,7 @@ export class AudioProcessing {
     constructor(
         speakerProcessor: SpeakerProcessor,
         anonymizerService: Anonymizer,
-        logger: LoggerInterface = appLogger,
+        logger: LoggerInterface = Container.logger,
     ) {
         this.speakerProcessor = speakerProcessor;
         this.anonymizerService = anonymizerService;

@@ -9,10 +9,9 @@ import type { ModelConfig } from '@/Api';
 import { Criteria } from '@/Database/Criteria';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
 import { DownloadQueueStatus } from '@/Entity/Type';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
-import type { LoggerInterface } from '@/Service/Logger';
-import { appLogger } from '@/Service/Logger';
+import { InferenceModelDownloaderException } from '@/Exception';
+import type { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
+import type { LoggerInterface } from '../../Container';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { DownloadTaskExecutor } from './DownloadTaskExecutor';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
@@ -20,39 +19,27 @@ import type { QueueStats } from './Type';
 
 export class DownloadTaskManager {
     private readonly activeSessions: Map<string, DownloadTaskExecutor> = new Map();
-    private readonly artifactStorage: ModelArtifactStorage;
-    private readonly checksumVerifier: ChecksumVerifier;
-    private isPaused: boolean = false;
-    // Private properties
-    private readonly logger: LoggerInterface;
-    private maxConcurrentDownloads: number = 2;
-    private readonly repository: DownloadQueueRepository;
+    private isPaused = false;
 
     public constructor(
-        logger: LoggerInterface = appLogger,
-        repository: DownloadQueueRepository = new DownloadQueueRepository(),
-        checksumVerifier: ChecksumVerifier,
-        artifactStorage: ModelArtifactStorage,
-        maxConcurrentDownloads: number = 2,
-    ) {
-        this.logger = logger;
-        this.repository = repository;
-        this.checksumVerifier = checksumVerifier;
-        this.artifactStorage = artifactStorage;
-        this.maxConcurrentDownloads = maxConcurrentDownloads;
-    }
+        private readonly logger: LoggerInterface,
+        private readonly repository: DownloadQueueRepository,
+        private readonly checksumVerifier: ChecksumVerifier,
+        private readonly artifactStorage: ModelArtifactStorage,
+        private readonly maxConcurrentDownloads = 2,
+    ) {}
 
     /**
      * Add a new download task to the queue.
      */
-    public async add(capability: string, language?: string, maxRetries: number = 3): Promise<DownloadQueue> {
+    public async add(capability: string, language?: string, maxRetries = 3): Promise<DownloadQueue> {
         try {
             // Validate inputs
             if (!capability || capability.trim() === '') {
                 throw new InferenceModelDownloaderException('Capability is required');
             }
 
-            if (language && language.trim() === '') {
+            if (language?.trim() === '') {
                 throw new InferenceModelDownloaderException('Language cannot be empty string');
             }
 

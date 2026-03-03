@@ -36,4 +36,4 @@ export class MasterKeyVault implements MasterKeyVaultInterface {
     }
 }
 
-export const masterKeyVault = new MasterKeyVault();
+export type { MasterKeyVaultInterface };

@@ -5,9 +5,8 @@
  */
 
 import isEmpty from 'lodash/isEmpty';
-import { AppConfig } from '@/Config';
+import { Container } from '@/Container';
 import { ApiClientException } from '@/Exception';
-import { appLogger } from '@/Service/Logger';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';
 import { client } from './generated/Client';
@@ -44,8 +43,8 @@ export class ApiClientRegistry {
 
     private ensureClientConfigured(): Client {
         if (!this.isConfigured) {
-            const base = AppConfig.apiHost;
-            const logger = appLogger;
+            const base = Container.appConfig.apiHost;
+            const logger = Container.logger;
 
             // Add request interceptor to log URLs
             client.interceptors.request.use((request: Request, options: ResolvedRequestOptions) => {
@@ -84,6 +83,5 @@ export class ApiClientRegistry {
     }
 }
 
-export const API_CLIENT_REGISTRY = new ApiClientRegistry();
 export { InferenceModelClient } from './Client/InferenceModelClient';
 export { ProfileAttributesClient } from './Client/ProfileAttributesClient';

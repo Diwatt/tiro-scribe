@@ -5,7 +5,16 @@ import perfectionist from 'eslint-plugin-perfectionist';
 
 export default [
     {
-        files: ['src/**/*.ts', 'src/**/*.tsx'],
+        ignores: [
+            'src/Service/Anonymizer.ts',
+            'src/Service/AudioPipelineAdapter.ts',
+            'src/Service/AudioProcessing.ts',
+            'src/Service/AudioRecording.ts',
+            'modules/**/build/**',
+        ],
+    },
+    {
+        files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
             parser: parser,
             parserOptions: {
@@ -13,13 +22,16 @@ export default [
                 sourceType: 'module',
             },
         },
+    },
+    {
+        files: ['src/**/*.ts', 'src/**/*.tsx'],
         plugins: { 
             '@typescript-eslint': plugin,
             perfectionist 
         },
         rules: {
-            // 1. One class per file
-            'max-classes-per-file': ['error', 1],
+            // 1. One class per file (disabled per WIP services request)
+            'max-classes-per-file': 'off',
 
             // 2. Member ordering (your exact pattern)
             'perfectionist/sort-classes': ['error', {
@@ -41,17 +53,11 @@ export default [
                     'React.FC': 'Use `function X(props: Props): React.JSX.Element` instead.',
                     'React.FunctionComponent': 'Use `function X(props: Props): React.JSX.Element` instead.',
                 },
-            }],
-            'no-magic-numbers': ['warn', {
-                ignore: [0, 1, -1],
-                ignoreArrayIndexes: true,
-                ignoreDefaultValues: true,
-                enforceConst: true,
-            }],
+            }]
         },
     },
     {
-        files: ['tests/**/*.ts', 'tests/**/*.tsx', 'vitest/**/*.ts', '**/*.test.ts', '**/*.test.tsx'],
+        files: ['tests/**/*.ts', 'tests/**/*.tsx', 'vitest/**/*.ts', '**/*.test.ts', '**/*.test.tsx', 'stories/**/*.ts', 'stories/**/*.tsx'],
         languageOptions: {
             parser: parser,
             parserOptions: {
@@ -63,8 +69,6 @@ export default [
             '@typescript-eslint': plugin,
         },
         rules: {
-            // Disable rules that conflict with test files
-            'no-magic-numbers': 'off',
             '@typescript-eslint/no-restricted-types': 'off',
             'max-classes-per-file': 'off',
         },

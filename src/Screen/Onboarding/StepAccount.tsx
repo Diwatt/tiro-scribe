@@ -2,14 +2,14 @@ import { observer } from '@legendapp/state/react';
 import type { Result } from 'check-password-strength';
 import { passwordStrength as checkPasswordStrength } from 'check-password-strength';
 import type React from 'react';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, ProgressBar, useTheme } from 'react-native-paper';
 import { TextInput } from '@/Components/Form';
+import { Container } from '@/Container';
 import { useAppLanguage } from '@/Localization';
 import type { OnboardingFormData } from '@/State/Onboarding';
-import { onboardingState } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 /** High-contrast colors for password strength so Too weak / Weak / Strong are clearly distinguishable. */
@@ -19,12 +19,12 @@ const STRENGTH_COLORS = {
     mediumOrStrong: '#059669',
 } as const;
 
-export const StepAccount = observer(function stepAccount(): React.JSX.Element {
+export const StepAccount = observer(function StepAccountComponent(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     const { control, handleSubmit, watch, clearErrors } = useFormContext<OnboardingFormData>();
-    const error = onboardingState.state$.error.get();
-    const isBusy = onboardingState.state$.isBusy.get();
+    const error = Container.onboardingState.state.error.get();
+    const isBusy = Container.onboardingState.state.isBusy.get();
 
     const password = watch('password');
     const confirmPassword = watch('confirmPassword');
@@ -32,6 +32,14 @@ export const StepAccount = observer(function stepAccount(): React.JSX.Element {
         () => (password ? checkPasswordStrength(password) : null),
         [password],
     );
+
+    const handleBackPress = useCallback(() => {
+        Container.onboardingState.goToStep(1);
+    }, []);
+
+    const onSubmit = useCallback((formData: OnboardingFormData) => {
+        Container.onboardingState.submit(formData);
+    }, []);
 
     useEffect(() => {
         if (password && confirmPassword && password === confirmPassword) {
@@ -112,7 +120,7 @@ export const StepAccount = observer(function stepAccount(): React.JSX.Element {
             <View style={STYLES.buttonRow}>
                 <Button
                     mode="contained"
-                    onPress={() => onboardingState.goToStep(1)}
+                    onPress={handleBackPress}
                     buttonColor={theme.colors.secondary}
                     textColor={theme.colors.onSecondary}
                     style={STYLES.buttonHalf}
@@ -124,7 +132,7 @@ export const StepAccount = observer(function stepAccount(): React.JSX.Element {
                     mode="contained"
                     loading={isBusy}
                     disabled={isBusy}
-                    onPress={handleSubmit((data) => onboardingState.submit(data))}
+                    onPress={handleSubmit(onSubmit)}
                     style={STYLES.buttonHalf}
                     contentStyle={STYLES.primaryButtonContent}
                 >

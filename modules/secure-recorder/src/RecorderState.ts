@@ -1,5 +1,5 @@
 export enum RecorderState {
-    INACTIVE = 'inactive',
-    RECORDING = 'recording',
-    STOPPED = 'stopped',
+    Inactive = 'inactive',
+    Recording = 'recording',
+    Stopped = 'stopped',
 }

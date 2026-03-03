@@ -11,7 +11,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { VectorProjection } from '../../src/Math/VectorProjection';
-import { InvalidDimensionError, VectorLengthMismatchError } from '../../src/Exception';
+import { InvalidDimensionError, VectorLengthMismatchError } from '@/Exception';
 
 describe('VectorProjection - ZOMBIE Tests', () => {
     let projection: VectorProjection;

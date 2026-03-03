@@ -13,7 +13,7 @@ import { Encounter } from './Encounter';
 
 /** One speech unit; raw Whisper (or ASR) output. startTime/endTime in milliseconds from recording start. */
 export class Utterance {
-    constructor(
+    public constructor(
         public id: string,
         public startTime: number,
         public endTime: number,

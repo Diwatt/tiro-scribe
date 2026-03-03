@@ -1,15 +1,14 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { STARTUP_ORCHESTRATOR, StartupState } from '@/State/StartupOrchestrator';
-import { globalActivityStatus, ActivityStatus } from '@/State/GlobalActivityStatus';
-import { InferenceModelDownloader, inferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import { Container } from '@/Container';
+import { StartupState } from '@/State/StartupOrchestrator';
+import { ActivityStatus } from '@/State/GlobalActivityStatus';
+import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import { DownloadState } from '@/Service/InferenceModelDownload/Type';
-import { registry } from '@/Database/Registry';
 import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '@/Entity/Therapist';
-import { appLanguage } from '@/Localization/AppLanguage';
 
 vi.mock('@/Service/Logger', () => ({
-    appLogger: {
+    AppLogger: {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
@@ -22,27 +21,29 @@ describe('StartupOrchestrator', () => {
         vi.useFakeTimers();
 
         // clear any previous activity
-        globalActivityStatus.reset();
+        Container.globalActivityStatus.reset();
 
         // stub registry so we don't hit a real database
-        vi.spyOn(registry, 'getRepository').mockImplementation(async () => {
+        vi.spyOn(Container.registry, 'getRepository').mockImplementation(async () => {
             // return minimal repo satisfying the interface
             return ({
                 hasActiveSession: vi.fn().mockResolvedValue(false),
             } as unknown) as TherapistRepository;
         });
 
-        // stub downloader behaviour; simulate instant completion by
-        // returning a fake executor already in the Completed state.
-        vi.spyOn(inferenceModelDownloader, 'download').mockResolvedValue({
-            state$: { onChange: (cb: any) => cb({ value: DownloadState.Completed }) },
+        // stub downloader behaviour; simulate downloading state initially
+        vi.spyOn(Container.inferenceModelDownloader, 'download').mockResolvedValue({
+            state$: { onChange: (cb: any) => {
+                // Initially in downloading state
+                setTimeout(() => cb({ value: DownloadState.Completed }), 100);
+            }},
             progress$: { onChange: () => {} },
-            getState: () => DownloadState.Completed,
+            getState: () => DownloadState.Downloading,
             getError: () => undefined,
         } as any);
 
         // ensure the language subsystem returns predictable strings
-        appLanguage.getTranslationFunctions('en');
+        Container.appLanguage.getTranslationFunctions('en');
     });
 
     afterEach(() => {
@@ -51,34 +52,34 @@ describe('StartupOrchestrator', () => {
     });
 
     it('shows a pending startup status and hides it after 5 seconds', async () => {
-        await STARTUP_ORCHESTRATOR.run();
+        await Container.startupOrchestrator.run();
 
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
         // download progress may override the initial start message in our stub
-        expect(globalActivityStatus.getMessage()).toMatch(/Starting|Downloading/);
+        expect(Container.globalActivityStatus.getMessage()).toMatch(/Starting|Downloading/);
 
         // fast-forward the auto-hide delay
         vi.advanceTimersByTime(5000);
         // after the delay the bar should no longer be pending; depending on
         // whether the download finished success may be shown otherwise the
         // reset will have hidden the bar entirely.
-        expect(globalActivityStatus.getStatus()).not.toBe(ActivityStatus.Pending);
+        expect(Container.globalActivityStatus.getStatus()).not.toBe(ActivityStatus.Pending);
     });
 
     it('triggers speaker model download and shows success after boot timer', async () => {
-        await STARTUP_ORCHESTRATOR.run();
+        await Container.startupOrchestrator.run();
 
         // download begins immediately; we should see a pending state (shared slot)
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
 
         // advance past the startup notification (5s) – at that moment the
         // success message should be shown and auto-hide scheduled for 3s later
         vi.advanceTimersByTime(5000);
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Success);
-        expect(globalActivityStatus.getMessage()).toMatch(/Speaker model downloaded/);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Success);
+        expect(Container.globalActivityStatus.getMessage()).toMatch(/Speaker model downloaded/);
 
         vi.advanceTimersByTime(3000);
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
     });
 
     it('shows success immediately if download completes after boot delay', async () => {
@@ -87,7 +88,7 @@ describe('StartupOrchestrator', () => {
         // we can simulate progress later if needed.
         let stateCb: ((arg: { value: DownloadState }) => void) | undefined;
         let currentState = DownloadState.Downloading;
-        vi.spyOn(inferenceModelDownloader, 'download').mockResolvedValue({
+        vi.spyOn(Container.inferenceModelDownloader, 'download').mockResolvedValue({
             state$: { onChange: (cb: any) => { stateCb = cb; } },
             progress$: { onChange: () => {} },
             getState: () => currentState,
@@ -102,14 +103,14 @@ describe('StartupOrchestrator', () => {
         // expose helper for the test body
         (global as any).completeDownload = completeDownload;
 
-        await STARTUP_ORCHESTRATOR.run();
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
+        await Container.startupOrchestrator.run();
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Pending);
 
         // move past the booting interval
         vi.advanceTimersByTime(5000);
         // since the download promise hasn't resolved yet, the initial
         // auto-hide timer will reset the status to ready.
-        expect(globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
+        expect(Container.globalActivityStatus.getStatus()).toBe(ActivityStatus.Ready);
 
         // now complete the download
         (global as any).completeDownload();
@@ -118,21 +119,21 @@ describe('StartupOrchestrator', () => {
 
         // after download completes the status should no longer be pending
         // (the bar may already have auto-hidden back to ready)
-        expect(globalActivityStatus.getStatus()).not.toBe(ActivityStatus.Pending);
+        expect(Container.globalActivityStatus.getStatus()).not.toBe(ActivityStatus.Pending);
     });
 
     it('updates state$ to Onboarding when no active session exists', async () => {
-        await STARTUP_ORCHESTRATOR.run();
-        expect(STARTUP_ORCHESTRATOR.stateObservable.get()).toBe(StartupState.Onboarding);
+        await Container.startupOrchestrator.run();
+        expect(Container.startupOrchestrator.stateObservable.get()).toBe(StartupState.Onboarding);
     });
 
     it('sets Ready state when a session already exists', async () => {
         // override repository to simulate an active session
-        (registry.getRepository as any).mockResolvedValue({
+        (Container.registry.getRepository as any).mockResolvedValue({
             hasActiveSession: vi.fn().mockResolvedValue(true),
         });
 
-        await STARTUP_ORCHESTRATOR.run();
-        expect(STARTUP_ORCHESTRATOR.stateObservable.get()).toBe(StartupState.Ready);
+        await Container.startupOrchestrator.run();
+        expect(Container.startupOrchestrator.stateObservable.get()).toBe(StartupState.Ready);
     });
 });

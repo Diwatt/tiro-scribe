@@ -16,3 +16,7 @@ coverage/
 **/*.map
 **/__snapshots__/
 .DS_Store
+eslint.config.js
+biome.json
+pnpm-lock.yaml
+.gitignore

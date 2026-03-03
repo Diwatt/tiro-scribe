@@ -5,17 +5,16 @@
 
 import type { ModelConfig } from '@/Api';
 import { apiClientRegistry, InferenceModelClient } from '@/Api';
-import { ApiClientException } from '@/Exception';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { appLogger, type LoggerInterface } from './Logger';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
+import { ApiClientException, InferenceModelDownloaderException } from '@/Exception';
 
-/** Error codes used by InferenceModelConfigProvider */
-const ERROR_CODES = {
-    UNKNOWN_CAPABILITY: 'UNKNOWN_CAPABILITY',
-} as const;
+enum ErrorCodes {
+    UnknownCapability = 'UNKNOWN_CAPABILITY',
+}
 
 export class InferenceModelConfigProvider {
-    public constructor(private readonly logger: LoggerInterface = appLogger) {}
+    public constructor(private readonly logger: LoggerInterface = Container.logger) {}
 
     /**
      * Get a single model configuration by capability key.
@@ -29,7 +28,7 @@ export class InferenceModelConfigProvider {
             const resolved = await apiClientRegistry.get(InferenceModelClient).getInferenceModels(appLanguage);
             const one = resolved[key];
             if (one == null) {
-                throw new ApiClientException(`Unknown capability: ${key}`, ERROR_CODES.UNKNOWN_CAPABILITY);
+                throw new ApiClientException(`Unknown capability: ${key}`, ErrorCodes.UnknownCapability);
             }
 
             return one;
@@ -87,7 +86,3 @@ export class InferenceModelConfigProvider {
         return totalSize;
     }
 }
-
-// Default singleton instance used by most callers. Tests can still create their
-// own `new InferenceModelConfigProvider(...)` if isolation is required.
-export const inferenceModelConfigProvider = new InferenceModelConfigProvider();

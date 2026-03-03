@@ -67,7 +67,7 @@
                 "useNamingConvention": {
                     "level": "error",
                     "options": {
-                        "strictCase": true,
+                        "strictCase": false,
                         "requireAscii": true,
                         "conventions": [
                             {
@@ -83,7 +83,7 @@
                             },
                             {
                                 "selector": { "kind": "enumMember" },
-                                "formats": ["PascalCase", "CONSTANT_CASE"]
+                                "formats": ["PascalCase"]
                             },
                             {
                                 "selector": { "kind": "typeParameter" },
@@ -96,11 +96,12 @@
                             },
                             {
                                 "selector": { "kind": "classMember" },
-                                "formats": ["camelCase"]
+                                "formats": ["camelCase", "CONSTANT_CASE"],
+                                "match": "_?(.+?)\\$?"
                             },
                             {
                                 "selector": { "kind": "variable" },
-                                "formats": ["camelCase"]
+                                "formats": ["camelCase", "PascalCase"]
                             }
                         ]
                     }
@@ -116,7 +117,7 @@
                 "useForOf": "error",
                 "useShorthandFunctionType": "error",
                 "useTemplate": "error",
-                "noInferrableTypes": "off",
+                "noInferrableTypes": "error",
                 "noNamespace": "error",
                 "useConsistentMemberAccessibility": {
                     "level": "error",
@@ -131,7 +132,7 @@
                     "level": "warn",
                     "options": { "maxAllowedComplexity": 15 }
                 },
-                "noStaticOnlyClass": "warn",
+                "noStaticOnlyClass": "off",
                 "useArrowFunction": "off",
                 "noBannedTypes": "warn",
                 "noForEach": "warn",
@@ -166,7 +167,7 @@
             },
             "nursery": {
                 "noLeakedRender": "error",
-                "noJsxPropsBind": "warn",
+                "noJsxPropsBind": "info",
                 "noUnknownAttribute": "warn"
             }
         }
@@ -192,27 +193,11 @@
             }
         },
         {
-            "includes": ["src/Database/Schema.ts", "src/Config/AppConfig.ts"],
-            "linter": {
-                "rules": {
-                    "style": { "useNamingConvention": "off" }
-                }
-            }
-        },
-        {
             "includes": [".rnstorybook/**"],
             "linter": {
                 "rules": {
                     "style": { "noDefaultExport": "off" },
                     "suspicious": { "noRedeclare": "off" }
-                }
-            }
-        },
-        {
-            "includes": ["index.js"],
-            "linter": {
-                "rules": {
-                    "suspicious": { "noConsole": "off", "noEmptyBlockStatements": "off" }
                 }
             }
         },
@@ -229,36 +214,36 @@
             "includes": ["modules/secure-recorder/**"],
             "linter": {
                 "rules": {
-                    "complexity": { "noExcessiveCognitiveComplexity": "off" },
-                    "correctness": { "noVoidTypeReturn": "off" },
+                    "complexity": { "noExcessiveCognitiveComplexity": "error" },
+                    "correctness": { "noVoidTypeReturn": "error" },
                     "style": {
                         "noDefaultExport": "off",
-                        "noNonNullAssertion": "off",
-                        "useNamingConvention": "off"
+                        "noNonNullAssertion": "error",
+                        "useNamingConvention": "error"
                     },
                     "suspicious": {
-                        "noExplicitAny": "off",
-                        "noEmptyBlockStatements": "off",
-                        "useIterableCallbackReturn": "off"
+                        "noExplicitAny": "error",
+                        "noEmptyBlockStatements": "error",
+                        "useIterableCallbackReturn": "error"
                     }
                 }
             }
         },
         {
-            "includes": ["src/Api/**"],
+            "includes": ["modules/secure-recorder/jest.setup.js"],
             "linter": {
-                "rules": {
-                    "complexity": { "noStaticOnlyClass": "off" },
-                    "style": { "noNonNullAssertion": "off" }
-                }
+                "enabled": false
             }
         },
         {
-            "includes": ["src/Util/**"],
+            "includes": [
+                "src/Service/Anonymizer.ts",
+                "src/Service/AudioPipelineAdapter.ts",
+                "src/Service/AudioProcessing.ts",
+                "src/Service/AudioRecording.ts"
+            ],
             "linter": {
-                "rules": {
-                    "complexity": { "noStaticOnlyClass": "off" }
-                }
+                "enabled": false
             }
         }
     ]

@@ -31,7 +31,7 @@ export class TherapistForge {
      * @param crypto - cryptographic utilities (key derivation, encrypt/decrypt, hashing)
      * @param recovery - recovery-code implementation for generating/verifying codes
      */
-    constructor(crypto: CryptoEngine, recovery: RecoveryCode) {
+    public constructor(crypto: CryptoEngine, recovery: RecoveryCode) {
         this.crypto = crypto;
         this.recovery = recovery;
     }

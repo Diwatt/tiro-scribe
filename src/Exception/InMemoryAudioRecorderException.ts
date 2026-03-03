@@ -8,7 +8,7 @@
 import { TiroScribeException } from './TiroScribeException';
 
 export class InMemoryAudioRecorderException extends TiroScribeException {
-    constructor(message: string, code: string = 'IN_MEMORY_AUDIO_RECORDER') {
+    public constructor(message: string, code = 'IN_MEMORY_AUDIO_RECORDER') {
         super(message, code);
         this.name = 'InMemoryAudioRecorderException';
     }

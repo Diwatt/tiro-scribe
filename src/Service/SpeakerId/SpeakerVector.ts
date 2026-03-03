@@ -1,6 +1,6 @@
 /** Extracted speaker vector from audio (e.g. Sherpa-ONNX). */
 export class SpeakerVector {
-    constructor(
+    public constructor(
         public vector: number[],
         public confidence: number,
     ) {}

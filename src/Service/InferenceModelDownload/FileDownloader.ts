@@ -5,14 +5,15 @@
 
 import { fetch } from 'expo/fetch';
 import type { File } from 'expo-file-system';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
-import { appLogger, type LoggerInterface } from '@/Service/Logger';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
+import { InferenceModelDownloaderException } from '@/Exception';
 import { StreamWriter } from './StreamWriter';
 
 export class FileDownloader {
     public constructor(
         private readonly destinationFile: File,
-        private readonly logger: LoggerInterface = appLogger,
+        private readonly logger: LoggerInterface = Container.logger,
     ) {}
 
     /**
@@ -34,30 +35,18 @@ export class FileDownloader {
 
         const streamWriter = new StreamWriter(this.destinationFile);
 
-        // make sure destination file exists before we try to open a stream;
-        // this mirrors the previous behaviour that lived in StreamWriter.
-        if (!this.destinationFile.exists) {
-            try {
-                this.destinationFile.create();
-            } catch (err) {
-                throw new InferenceModelDownloaderException(
-                    `Failed to create output file ${this.destinationFile.uri}`,
-                    err instanceof Error ? err : new Error(String(err)),
-                );
-            }
-        }
+        this.ensureDestinationFileExists();
 
         try {
             yield 0;
 
             // Start the fetch request
             const response = await fetch(url);
-
             if (!response.ok) {
                 throw new InferenceModelDownloaderException(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const totalBytes = Math.max(0, parseInt(response.headers.get('content-length') || '0', 10));
+            const totalBytes = Math.max(0, Number.parseInt(response.headers.get('content-length') || '0', 10));
 
             // Initialize stream writer
             await streamWriter.initialize();
@@ -91,7 +80,7 @@ export class FileDownloader {
             await streamWriter.close();
 
             if (totalBytes <= 0) {
-                yield 1.0;
+                yield 1;
             }
 
             this.logger.debug(`Download completed: ${url} -> ${this.destinationFile.uri}`);
@@ -104,6 +93,21 @@ export class FileDownloader {
         } finally {
             // Release writer lock
             await streamWriter.release();
+        }
+    }
+
+    private ensureDestinationFileExists(): void {
+        // make sure destination file exists before we try to open a stream;
+        // this mirrors the previous behaviour that lived in StreamWriter.
+        if (!this.destinationFile.exists) {
+            try {
+                this.destinationFile.create();
+            } catch (err) {
+                throw new InferenceModelDownloaderException(
+                    `Failed to create output file ${this.destinationFile.uri}`,
+                    err instanceof Error ? err : new Error(String(err)),
+                );
+            }
         }
     }
 }

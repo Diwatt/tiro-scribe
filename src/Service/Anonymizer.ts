@@ -9,14 +9,15 @@
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
 import { EntityType } from '@/Entity';
-import { appLogger, type LoggerInterface } from './Logger';
 
 dayjs.extend(customParseFormat);
 
 /** Represents a redacted span. */
 export class Redaction {
-    constructor(
+    public constructor(
         public original: string,
         public replacement: string,
         public type: EntityType,
@@ -26,7 +27,7 @@ export class Redaction {
 
 /** Result of anonymize(): clean text, redactions, confidence. */
 export class AnonymizationResult {
-    constructor(
+    public constructor(
         public cleanText: string,
         public entities: Redaction[],
         public confidence: number,
@@ -59,13 +60,16 @@ interface OnnxnerResult {
     confidence: number;
 }
 
+/**
+ * 🚧 WIP: The full ONNX-backed anonymization pipeline is still under construction.
+ */
 export class Anonymizer {
     private loggerInstance: LoggerInterface;
     private onnxRuntime: OnnxRuntimeInterface | null = null;
     private relationCounter: Map<string, number> = new Map();
     private sessionStartDate: Date | null = null;
 
-    constructor(logger: LoggerInterface = appLogger) {
+    constructor(logger: LoggerInterface = Container.logger) {
         this.loggerInstance = logger;
     }
 

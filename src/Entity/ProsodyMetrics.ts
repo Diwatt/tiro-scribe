@@ -15,7 +15,7 @@ import { Encounter } from './Encounter';
 
 /** One frame of raw signal metrics (F0, RMS, stability, timbre, periodicity). No derived/semantic fields. */
 export class VoiceFrame {
-    constructor(
+    public constructor(
         public startTime: number,
         public duration: number,
         public pitch: number,

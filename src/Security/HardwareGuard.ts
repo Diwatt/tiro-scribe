@@ -13,8 +13,8 @@
 import * as Device from 'expo-device';
 import { DeviceType } from 'expo-device';
 import semver from 'semver';
+import type { LoggerInterface } from '../Container';
 import { HardwareGuardException } from '../Exception';
-import type { LoggerInterface } from '../Service/Logger';
 
 export class HardwareGuard {
     // --- public ---
@@ -113,7 +113,7 @@ export class HardwareGuard {
         if (!coerced) {
             throw new HardwareGuardException(
                 `minSemver is not parseable: "${minVersion}"`,
-                HardwareGuardException.INVALID_MIN_VERSION,
+                HardwareGuardException.invalidMinVersion,
                 undefined,
                 {
                     minSemver: minVersion,

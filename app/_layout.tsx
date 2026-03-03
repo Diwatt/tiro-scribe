@@ -20,7 +20,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
 import { AppToast } from '@/Components/AppToast';
 import { ObservedGlobalActivityBar } from '@/Components/GlobalActivityBar';
-import { ServicesProvider } from '@/Context/ServicesContext';
+import { ServicesProvider } from '@/Context/ServicesProvider';
 import { initAppLocale } from '@/Localization';
 import { AppTheme } from '@/theme/AppTheme';
 
