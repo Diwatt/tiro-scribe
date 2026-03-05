@@ -4,7 +4,7 @@ import type React from 'react';
 import { useCallback } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, IconButton, Surface, Text, useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export function TranscriptDetailScreen(): React.JSX.Element {

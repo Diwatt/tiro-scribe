@@ -12,14 +12,20 @@ import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
+vi.mock('@/Service/Logger', () => {
+    const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
-    },
-}));
+    };
+    return {
+        AppLogger: {
+            getInstance: vi.fn(() => mockLogger),
+            ...mockLogger,
+        },
+    };
+});
 
 vi.mock('@/Config/AppConfig', () => ({
     AppConfig: vi.fn().mockImplementation(function () {

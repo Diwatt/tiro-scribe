@@ -9,7 +9,7 @@ import { Container } from '../Container';
 import { RECOVERY_KIT_HTML } from './RecoveryKitTemplate';
 
 export class RecoveryKit {
-    private readonly logger = Container.logger;
+    private readonly logger = AppLogger.getInstance();
 
     /**
      * Copies the recovery code to the system clipboard.

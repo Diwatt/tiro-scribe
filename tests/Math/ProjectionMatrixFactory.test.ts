@@ -15,13 +15,14 @@ import { VectorProjection } from '../../src/Math/VectorProjection';
 import { CryptoEngine } from '../../src/Security/CryptoEngine';
 import { AppConfig } from '../../src/Config';
 
-vi.mock('../../src/Config/AppConfig', () => ({
-    AppConfig: vi.fn().mockImplementation(function () {
-        return {
-            projectionSalt: 'biocode_projection',
-        };
-    }),
-}));
+vi.mock('../../src/Config/AppConfig', () => {
+    const instance = { projectionSalt: 'biocode_projection' };
+    return {
+        AppConfig: {
+            getInstance: vi.fn(() => instance),
+        },
+    };
+});
 
 describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
     let crypto: CryptoEngine;
@@ -206,7 +207,7 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
         });
 
         it('should use default configuration salt', () => {
-            const appConfig = new AppConfig();
+                const appConfig = AppConfig.getInstance();
             const defaultFactory = new ProjectionMatrixFactory(crypto);
             const customFactory = new ProjectionMatrixFactory(crypto, appConfig.projectionSalt);
             

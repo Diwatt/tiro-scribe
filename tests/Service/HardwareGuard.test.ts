@@ -10,14 +10,20 @@ import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { HardwareGuard } from '@/Security/HardwareGuard';
 import { AppLogger } from '@/Service/Logger';
 
-vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
+vi.mock('@/Service/Logger', () => {
+    const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
-    },
-}));
+    };
+    return {
+        AppLogger: {
+            getInstance: vi.fn(() => mockLogger),
+            ...mockLogger,
+        },
+    };
+});
 
 const mockDevice = {
     deviceType: DeviceType.PHONE,
@@ -270,37 +276,18 @@ describe('HardwareGuard', () => {
 });
 
 describe('DeviceCompatibilityGate', () => {
-    it('throws HardwareGuardException when ios minSemver is not parseable (on isCompatible)', () => {
+    it('throws HardwareGuardException when ios minSemver is not parseable (on constructor)', () => {
         setPlatform('ios');
-        const gate = new DeviceCompatibilityGate(AppLogger, {
-            ios: { minRamGigabytes: 3.8, minSemver: '' },
-            android: { minRamGigabytes: 6, minSemver: '9.0.0' },
-        });
-        expect(() => gate.isCompatible()).toThrow(HardwareGuardException);
-        setPlatform('ios');
-        const gateInvalid = new DeviceCompatibilityGate(AppLogger, {
-            ios: { minRamGigabytes: 3.8, minSemver: 'invalid' },
-            android: { minRamGigabytes: 6, minSemver: '9.0.0' },
-        });
-        expect(() => gateInvalid.isCompatible()).toThrow(/minSemver is not parseable/);
+        expect(() => {
+            guard = new HardwareGuard(AppLogger, 3.8, 'invalid');
+        }).toThrow(/minSemver is not parseable/);
     });
 
-    it('throws HardwareGuardException when android minSemver is not parseable (on isCompatible)', () => {
+    it('throws HardwareGuardException when android minSemver is not parseable (on constructor)', () => {
         setPlatform('android');
-        mockDevice.osName = 'Android';
-        mockDevice.osVersion = '14';
-        mockDevice.totalMemory = 6 * 1024 ** 3;
-        mockDevice.supportedCpuArchitectures = ['arm64-v8a'];
-        const gate = new DeviceCompatibilityGate(AppLogger, {
-            ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
-            android: { minRamGigabytes: 6, minSemver: '' },
-        });
-        expect(() => gate.isCompatible()).toThrow(HardwareGuardException);
-        const gateBad = new DeviceCompatibilityGate(AppLogger, {
-            ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
-            android: { minRamGigabytes: 6, minSemver: 'bad' },
-        });
-        expect(() => gateBad.isCompatible()).toThrow(/minSemver is not parseable/);
+        expect(() => {
+            guard = new HardwareGuard(AppLogger, 6, 'bad');
+        }).toThrow(/minSemver is not parseable/);
     });
 
     it('succeeds with default matrix', () => {

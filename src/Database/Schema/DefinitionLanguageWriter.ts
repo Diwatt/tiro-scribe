@@ -9,8 +9,7 @@
 import { CompiledQuery, type Kysely } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
 import type { DatabaseSchema } from '@/Database/Type';
-import type { LoggerInterface } from '../../Container';
-import { Container } from '../../Container';
+import { AppLogger, type LoggerInterface } from '../../Service/Logger';
 
 import type { TableDefinition } from './TableDefinition';
 
@@ -22,7 +21,7 @@ export class DefinitionLanguageWriter {
     private readonly db: Kysely<DatabaseSchema>;
     private readonly logger: LoggerInterface;
 
-    public constructor(db: Kysely<DatabaseSchema>, logger: LoggerInterface = Container.logger) {
+    public constructor(db: Kysely<DatabaseSchema>, logger: LoggerInterface = AppLogger.getInstance()) {
         this.db = db;
         this.logger = logger;
     }

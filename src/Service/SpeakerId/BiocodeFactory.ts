@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { Container } from '@/Container';
 import { VectorProjection } from '@/Math/VectorProjection';
 import { Biocode } from './Biocode';
 import type { SpeakerVector } from './SpeakerVector';
@@ -30,3 +31,5 @@ export class BiocodeFactory {
         return new Biocode(projected, speakerVector.confidence, dayjs.utc());
     }
 }
+
+Container.register(BiocodeFactory);

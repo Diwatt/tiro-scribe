@@ -8,7 +8,7 @@ import { Button, HelperText, Snackbar, useTheme } from 'react-native-paper';
 import { AsyncButton } from '@/Components';
 import { Checkbox } from '@/Components/Form';
 import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { OnboardingFormData } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
@@ -19,16 +19,16 @@ export const StepRecovery = observer(function stepRecovery(): React.JSX.Element 
     const { LL } = useAppLanguage();
     const { control, getValues } = useFormContext<OnboardingFormData>();
     const actions = theme.colors.actions;
-    const error = Container.onboardingState.state.error.get();
-    const recoveryCode = Container.onboardingState.state.recoveryCode.get();
+    const error = Container.get(OnboardingState).state.error.get();
+    const recoveryCode = Container.get(OnboardingState).state.recoveryCode.get();
 
     const [recoveryCodeCopied, setRecoveryCodeCopied] = useState(false);
     const handleCopyRecoveryCode = useCallback(async () => {
-        await Container.onboardingState.copyRecoveryCodeToClipboard();
+        await Container.get(OnboardingState).copyRecoveryCodeToClipboard();
         setRecoveryCodeCopied(true);
         setTimeout(() => setRecoveryCodeCopied(false), RECOVERY_CODE_COPIED_DURATION_MS);
     }, []);
-    const handleSaveRecoveryKit = useCallback(() => Container.onboardingState.generateAndShareRecoveryKit(), []);
+    const handleSaveRecoveryKit = useCallback(() => Container.get(OnboardingState).generateAndShareRecoveryKit(), []);
 
     return (
         <View style={STYLES.stepRoot}>
@@ -91,7 +91,7 @@ export const StepRecovery = observer(function stepRecovery(): React.JSX.Element 
             <View style={STYLES.stepSpacer} />
             <Button
                 mode="contained"
-                onPress={() => Container.onboardingState.finalize(!!getValues('recoveryCodeSaveConfirmed'))}
+                onPress={() => Container.get(OnboardingState).finalize(!!getValues('recoveryCodeSaveConfirmed'))}
                 style={[STYLES.primaryButton, { backgroundColor: actions.success.background }]}
                 contentStyle={STYLES.primaryButtonContent}
             >

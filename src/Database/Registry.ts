@@ -6,7 +6,8 @@
  * Custom repository: @Entity({ repositoryClass: 'TherapistRepository' }) — must be exported from @/Repository.
  */
 
-import * as Repositories from '@/Repository';
+import { Container } from '@/Container';
+import { TherapistRepository } from '@/Repository/TherapistRepository';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
 import { EntityMetadata } from './Decorator';
@@ -61,7 +62,7 @@ export class Registry {
             // perform a typed lookup on the Repositories export object – we
             // alias it via RepoCtor above so that we don't have to repeat the
             // cast at the call site or resort to `any`.
-            const repoLookup = Repositories as unknown as Record<string, RepoCtor>;
+            const repoLookup: Record<string, RepoCtor> = { TherapistRepository: TherapistRepository as RepoCtor };
             const repoClass = repoLookup[repositoryClassName];
             if (repoClass == null) {
                 throw new DatabaseException(
@@ -79,3 +80,5 @@ export class Registry {
         return repository as unknown as R;
     }
 }
+
+Container.register(Registry);

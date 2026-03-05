@@ -1,8 +1,6 @@
 ---
-trigger: glob
-globs: "**/*"
+applyTo: "**/*"
 ---
-
 # Tech Stack & Architectural Layers
 
 ## 1. Foundation Layer

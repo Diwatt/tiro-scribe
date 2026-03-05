@@ -19,7 +19,7 @@ export class TherapistRepository extends Repository<Therapist> {
     private readonly vault: MasterKeyVaultInterface;
 
     public constructor(
-        vault: MasterKeyVaultInterface = Container.masterKeyVault,
+        vault: MasterKeyVaultInterface = Container.get(MasterKeyVault),
         db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>,
     ) {
         super(Therapist, Therapist.entityName, db);

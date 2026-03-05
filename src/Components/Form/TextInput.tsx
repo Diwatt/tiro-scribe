@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import type { TextInputProps as PaperTextInputProps } from 'react-native-paper';
@@ -29,28 +29,20 @@ export function TextInput<T extends FieldValues>({
     numericOnly,
 }: TextInputProps<T>): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const [currentFieldOnChange, setCurrentFieldOnChange] = useState<((text: string) => void) | null>(null);
-
-    const handleChange = useCallback(
-        (text: string) => {
-            if (currentFieldOnChange) {
-                if (numericOnly) {
-                    const filtered = text.replaceAll(/\D/g, '');
-                    currentFieldOnChange(filtered);
-                } else {
-                    currentFieldOnChange(text);
-                }
-            }
-        },
-        [currentFieldOnChange, numericOnly],
-    );
 
     const renderTextInput = useCallback(
         (params: {
             field: { onChange: (text: string) => void; onBlur: () => void; value: string };
             fieldState: { error?: { message?: string } };
         }) => {
-            setCurrentFieldOnChange(() => params.field.onChange);
+            const handleChange = (text: string) => {
+                if (numericOnly) {
+                    const filtered = text.replaceAll(/\D/g, '');
+                    params.field.onChange(filtered);
+                } else {
+                    params.field.onChange(text);
+                }
+            };
 
             return (
                 <>
@@ -76,7 +68,7 @@ export function TextInput<T extends FieldValues>({
                 </>
             );
         },
-        [theme, label, secureTextEntry, keyboardType, autoCapitalize, style, handleChange],
+        [theme, label, secureTextEntry, keyboardType, autoCapitalize, style, numericOnly],
     );
 
     return <Controller name={name} control={control} render={renderTextInput} />;

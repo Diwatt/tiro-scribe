@@ -30,7 +30,7 @@ export class AppLanguage {
     private static readonly translationCache: Partial<Record<Locales, TranslationFunctions>> =
         AppLanguage.createEmptyTranslationCache();
 
-    private locale: Locales = AppLanguage.DEFAULT_LOCALE;
+    private readonly locale: Locales = AppLanguage.DEFAULT_LOCALE;
 
     public constructor() {
         this.locale = this.getDeviceLocale();
@@ -110,7 +110,7 @@ export class AppLanguage {
         if (!params) {
             return template;
         }
-        return template.replace(/\{(\w+)\}/g, (_match, key: string) => {
+        return template.replaceAll(/\{(\w+)\}/g, (_match, key: string) => {
             const value = params[key];
             return value === undefined || value === null ? '' : String(value);
         });
@@ -121,11 +121,14 @@ export class AppLanguage {
     }
 }
 
+Container.register(AppLanguage);
+
 /**
  * React hook: current locale and translation functions (returned as LL for usage: LL.onboarding.aboutYou()).
  */
 export function useAppLanguage(): UseAppLanguageReturn {
-    const locale = Container.appLanguage.getLocale();
-    const LL = Container.appLanguage.getTranslationFunctions(locale);
+    const appLanguage = Container.get(AppLanguage);
+    const locale = appLanguage.getLocale();
+    const LL = appLanguage.getTranslationFunctions(locale);
     return { locale, LL };
 }

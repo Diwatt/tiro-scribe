@@ -6,7 +6,8 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, useTheme } from 'react-native-paper';
 import { useProfileAttributes } from '@/Api';
 import { ChipGroup, MultiSelectModal, TextInput } from '@/Components/Form';
-import { useAppLanguage } from '@/Localization';
+import { Container } from '@/Container';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { OnboardingFormData, ProfileStepData } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
@@ -19,7 +20,7 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useAppLanguage();
     const { control, getValues, setError } = useFormContext<OnboardingFormData>();
-    const error = Container.onboardingState.state.error.get();
+    const error = Container.get(OnboardingState).state.error.get();
 
     const profileAttributesQuery = useProfileAttributes({
         ...PROFILE_ATTRIBUTES_QUERY_OPTIONS,
@@ -31,7 +32,7 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
 
     const handleContinue = useCallback(() => {
         const data = getValues() as ProfileStepData;
-        const result = Container.onboardingState.getProfileStepValidation(data);
+        const result = Container.get(OnboardingState).getProfileStepValidation(data);
         if (!result.success) {
             const { formErrors, fieldErrors } = result.errors;
             for (const [field, messages] of Object.entries(fieldErrors)) {
@@ -41,12 +42,12 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
                 }
             }
             if (formErrors[0]) {
-                Container.onboardingState.state.error.set(formErrors[0]);
+                Container.get(OnboardingState).state.error.set(formErrors[0]);
             }
             return;
         }
-        Container.onboardingState.state.practiceLanguages.set([...data.languages]);
-        Container.onboardingState.goToStep(2);
+        Container.get(OnboardingState).state.practiceLanguages.set([...data.languages]);
+        Container.get(OnboardingState).goToStep(2);
     }, [getValues, setError]);
 
     if (isLoading) {

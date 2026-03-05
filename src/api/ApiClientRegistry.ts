@@ -6,17 +6,24 @@
 
 import isEmpty from 'lodash/isEmpty';
 import { Container } from '@/Container';
-import { ApiClientException } from '@/Exception';
+import { AppLogger } from '@/Service/Logger';
+import { AppConfig } from '../Config';
+import { ApiClientException } from '../Exception';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';
 import { client } from './generated/Client';
-import type { Client, ResolvedRequestOptions } from './generated/client/Index';
+import type { ResolvedRequestOptions } from './generated/client/Index';
 
 type ModelClass = typeof ProfileAttributesClient | typeof InferenceModelClient;
 
 export class ApiClientRegistry {
     private readonly clientsByModel = new Map<ModelClass, ProfileAttributesClient | InferenceModelClient>();
     private isConfigured = false;
+
+    public constructor(
+        private readonly appConfig: AppConfig,
+        private readonly logger: AppLogger,
+    ) {}
 
     public get(model: typeof ProfileAttributesClient): ProfileAttributesClient;
     public get(model: typeof InferenceModelClient): InferenceModelClient;
@@ -38,17 +45,16 @@ export class ApiClientRegistry {
         if (model === InferenceModelClient) {
             return new InferenceModelClient(httpClient);
         }
-        throw new Error(`Unknown model: ${(model as ModelClass).name}`);
+        throw new Error(`Unknown model: ${model.name}`);
     }
 
-    private ensureClientConfigured(): Client {
+    private ensureClientConfigured() {
         if (!this.isConfigured) {
-            const base = Container.appConfig.apiHost;
-            const logger = Container.logger;
+            const base = this.appConfig.apiHost;
 
             // Add request interceptor to log URLs
             client.interceptors.request.use((request: Request, options: ResolvedRequestOptions) => {
-                logger.debug('[ApiClient] Request URL:', {
+                this.logger.debug('[ApiClient] Request URL:', {
                     url: request.url,
                     method: request.method,
                     path: options?.path,
@@ -62,7 +68,7 @@ export class ApiClientRegistry {
             this.isConfigured = true;
         }
 
-        return client as Client;
+        return client;
     }
 
     private async validateResponse(response: Response): Promise<Response> {
@@ -83,5 +89,4 @@ export class ApiClientRegistry {
     }
 }
 
-export { InferenceModelClient } from './Client/InferenceModelClient';
-export { ProfileAttributesClient } from './Client/ProfileAttributesClient';
+Container.register(ApiClientRegistry, () => new ApiClientRegistry(Container.get(AppConfig), Container.get(AppLogger)));

@@ -1,5 +1,8 @@
 import { AppConfig } from '@/Config/AppConfig';
+import { vi } from 'vitest';
 
+// Unmock AppConfig for this test file since we're testing the actual class
+vi.unmock('@/Config/AppConfig');
 
 describe('AppConfig', () => {
     let originalEnv: NodeJS.ProcessEnv;

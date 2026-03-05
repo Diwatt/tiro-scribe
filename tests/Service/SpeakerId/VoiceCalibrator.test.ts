@@ -30,6 +30,18 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/Container', () => ({
     Container: {
+        register: vi.fn(),
+        get: vi.fn((token: any) => {
+            // Handle InMemoryAudioRecorder
+            if (token && token.name === 'InMemoryAudioRecorder') {
+                return mocks.recorder;
+            }
+            // Handle InferenceModelDownloader
+            if (token && token.name === 'InferenceModelDownloader') {
+                return mocks.downloader;
+            }
+            return undefined;
+        }),
         logger: mocks.logger,
         inMemoryAudioRecorder: mocks.recorder,
         inferenceModelDownloader: mocks.downloader,

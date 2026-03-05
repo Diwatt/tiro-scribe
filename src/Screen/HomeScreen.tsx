@@ -6,9 +6,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card, ProgressBar, useTheme } from 'react-native-paper';
 import { SecureSessionButton, StatusReady } from '@/Components';
 import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization';
-import type { ExtendedTheme } from '@/theme/AppTheme';
-import { registry } from '../Database/Registry';
+import { Registry } from '@/Database/Registry';
+import { useAppLanguage } from '@/Localization/AppLanguage';
+import { InferenceManager } from '@/Service/InferenceManager';
 import { Therapist } from '../Entity/Therapist';
 import { useArtifactDownloadProgress } from '../Service/InferenceManager';
 
@@ -21,13 +21,13 @@ export const Home = observer((): React.JSX.Element => {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            const repo = await registry.getRepository(Therapist);
+            const repo = await Container.get(Registry).getRepository(Therapist);
             const therapists = await repo.findAll();
             if (cancelled) {
                 return;
             }
             const current = therapists.first() ?? null;
-            Container.inferenceManager.downloadMissingArtifacts(current);
+            Container.get(InferenceManager).downloadMissingArtifacts(current);
         })();
         return () => {
             cancelled = true;

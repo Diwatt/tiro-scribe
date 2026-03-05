@@ -7,8 +7,9 @@
 
 import type * as Ort from 'onnxruntime-react-native';
 import type { ModelConfig } from '@/Api';
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 import { InvalidAudioFormatError, SessionNotInitializedError, SpeakerVectorExtractionError } from '../../Exception';
 import { AudioFeatureExtractor } from '../../Math/AudioFeatureExtractor';
 import { getOnnxRuntime } from '../../Util/OnnxRuntime';
@@ -25,7 +26,7 @@ export class SpeakerEmbedder {
      */
     public constructor(
         audioFeatureExtractor: AudioFeatureExtractor = new AudioFeatureExtractor(),
-        logger: LoggerInterface = Container.logger,
+        logger: LoggerInterface = AppLogger.getInstance(),
     ) {
         this.audioFeatureExtractor = audioFeatureExtractor;
         this.logger = logger;
@@ -167,3 +168,5 @@ export class SpeakerEmbedder {
         return Array.from(outputTensor.data as Float32Array);
     }
 }
+
+Container.register(SpeakerEmbedder, () => new SpeakerEmbedder(undefined, Container.logger));

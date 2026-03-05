@@ -4,17 +4,18 @@
  */
 
 import type { ModelConfig } from '@/Api';
-import { apiClientRegistry, InferenceModelClient } from '@/Api';
-import type { LoggerInterface } from '@/Container';
+import { InferenceModelClient } from '@/Api';
+import { ApiClientRegistry } from '@/Api/ApiClientRegistry';
 import { Container } from '@/Container';
 import { ApiClientException, InferenceModelDownloaderException } from '@/Exception';
+import { AppLogger, type LoggerInterface } from '@/Service/Logger';
 
 enum ErrorCodes {
     UnknownCapability = 'UNKNOWN_CAPABILITY',
 }
 
 export class InferenceModelConfigProvider {
-    public constructor(private readonly logger: LoggerInterface = Container.logger) {}
+    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
 
     /**
      * Get a single model configuration by capability key.
@@ -25,12 +26,16 @@ export class InferenceModelConfigProvider {
      */
     public async getConfig(key: string, appLanguage?: string): Promise<ModelConfig> {
         try {
-            const resolved = await apiClientRegistry.get(InferenceModelClient).getInferenceModels(appLanguage);
+            const resolved = await Container.get(ApiClientRegistry)
+                .get(InferenceModelClient)
+                .getInferenceModels(appLanguage);
+            if (!resolved || typeof resolved !== 'object') {
+                throw new ApiClientException('Configs unavailable or not an object', ErrorCodes.UnknownCapability);
+            }
             const one = resolved[key];
             if (one == null) {
                 throw new ApiClientException(`Unknown capability: ${key}`, ErrorCodes.UnknownCapability);
             }
-
             return one;
         } catch (error) {
             this.logger.warn('[InferenceModelConfigProvider] getConfig failed', {
@@ -53,7 +58,12 @@ export class InferenceModelConfigProvider {
      */
     public async getConfigs(appLanguage?: string): Promise<Record<string, ModelConfig>> {
         try {
-            return await apiClientRegistry.get(InferenceModelClient).getInferenceModels(appLanguage);
+            const apiClient = Container.get(ApiClientRegistry).get(InferenceModelClient);
+            const configs = await apiClient.getInferenceModels(appLanguage);
+            if (!configs || typeof configs !== 'object') {
+                return {};
+            }
+            return configs;
         } catch (error) {
             this.logger.warn('[InferenceModelConfigProvider] getInferenceModels failed', {
                 error: error instanceof Error ? error.message : String(error),
@@ -76,9 +86,10 @@ export class InferenceModelConfigProvider {
         let totalSize = 0;
 
         for (const config of Object.values(configs)) {
-            if (config.files && config.files.length > 0) {
+            if (Array.isArray(config.files) && config.files.length > 0) {
                 for (const file of config.files) {
-                    totalSize += file.sizeBytes;
+                    const size = typeof file.sizeBytes === 'number' ? file.sizeBytes : 0;
+                    totalSize += size;
                 }
             }
         }
@@ -86,3 +97,5 @@ export class InferenceModelConfigProvider {
         return totalSize;
     }
 }
+
+Container.register(InferenceModelConfigProvider, () => new InferenceModelConfigProvider(AppLogger.getInstance()));

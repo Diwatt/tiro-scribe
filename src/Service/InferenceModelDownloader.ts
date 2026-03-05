@@ -6,27 +6,26 @@
  * `DownloadTaskManager`.
  */
 
-import type { InferenceModelFile, ModelConfig } from '@/Api';
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
-import { DownloadQueueStatus } from '@/Entity/Type';
-import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
-import type { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
+import { AppLogger, type LoggerInterface } from '@/Service/Logger';
+import type { InferenceModelFile, ModelConfig } from '../Api';
+import { DownloadQueueStatus } from '../Entity';
+import { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ChecksumVerifier } from './InferenceModelDownload/ChecksumVerifier';
 import { DownloadTaskExecutor } from './InferenceModelDownload/DownloadTaskExecutor';
-import { DownloadTaskManager } from './InferenceModelDownload/DownloadTaskManager';
-import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
+import type { DownloadTaskManager } from './InferenceModelDownload/DownloadTaskManager';
+import type { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import { DownloadState } from './InferenceModelDownload/Type';
 
 // Re-export types from Type.ts
-export type { ModelConfig } from '@/Api';
+export type { ModelConfig } from '../Api';
 
 export class InferenceModelDownloader {
     public constructor(
-        private readonly logger: LoggerInterface,
+        private readonly logger: LoggerInterface = AppLogger.getInstance(),
         private readonly artifactStorage: ModelArtifactStorage,
         private readonly downloadTaskManager: DownloadTaskManager,
-        private readonly configProvider: InferenceModelConfigProvider,
+        private readonly configProvider: InferenceModelConfigProvider = Container.get(InferenceModelConfigProvider),
     ) {}
 
     // Core operations
@@ -235,16 +234,13 @@ export class InferenceModelDownloader {
     }
 }
 
-// Default downloader instance wired with production dependencies.  Exported so
-// callers can simply import `inferenceModelDownloader` instead of constructing
-// everything themselves.
-const DEFAULT_LOGGER = Container.logger;
-const DEFAULT_ARTIFACT_STORAGE = new ModelArtifactStorage(DEFAULT_LOGGER);
-const DEFAULT_CHECKSUM_VERIFIER = new ChecksumVerifier();
-const DEFAULT_REPOSITORY = new DownloadQueueRepository();
-const _DEFAULT_DOWNLOAD_TASK_MANAGER = new DownloadTaskManager(
-    DEFAULT_LOGGER,
-    DEFAULT_REPOSITORY,
-    DEFAULT_CHECKSUM_VERIFIER,
-    DEFAULT_ARTIFACT_STORAGE,
+Container.register(
+    InferenceModelDownloader,
+    () =>
+        new InferenceModelDownloader(
+            AppLogger.getInstance(),
+            {} as ModelArtifactStorage, // These will need proper DI setup
+            {} as DownloadTaskManager,
+            Container.get(InferenceModelConfigProvider),
+        ),
 );

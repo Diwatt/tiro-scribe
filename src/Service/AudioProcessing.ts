@@ -19,8 +19,9 @@ async function getOrt(): Promise<typeof Ort> {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 import { TranscriptionNotImplementedError } from '../Exception/TranscriptionNotImplementedError';
 import type { Anonymizer } from './Anonymizer';
 
@@ -73,7 +74,7 @@ export class AudioProcessing {
     constructor(
         speakerProcessor: SpeakerProcessor,
         anonymizerService: Anonymizer,
-        logger: LoggerInterface = Container.logger,
+        logger: LoggerInterface = AppLogger.getInstance(),
     ) {
         this.speakerProcessor = speakerProcessor;
         this.anonymizerService = anonymizerService;

@@ -4,12 +4,12 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
+import { AppLogger } from '@/Service/Logger';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { RecorderState } from '../../../modules/secure-recorder/src';
 
-const LOGGER = Container.logger;
+const LOGGER = AppLogger.getInstance();
 
 /**
  * Button constants
@@ -43,7 +43,7 @@ export const SecureSessionButton = observer(
 
         // useSelector must be called unconditionally (hooks rules)
         const state = audioRecording.getState();
-        const fromStore = useSelector(() => state.state.get() === RecorderState.RECORDING);
+        const fromStore = useSelector(() => state.state.get() === RecorderState.Recording);
         const isRecording = externalIsRecording !== undefined ? externalIsRecording : fromStore;
 
         // Log state changes
@@ -51,7 +51,7 @@ export const SecureSessionButton = observer(
             LOGGER.debug('🔄 [SecureSessionButton] isRecording changed', {
                 isRecording,
                 externalIsRecording,
-                audioRecordingIsRecording: state.state.get() === RecorderState.RECORDING,
+                audioRecordingIsRecording: state.state.get() === RecorderState.Recording,
             });
         }, [isRecording, externalIsRecording, state]);
 
@@ -66,12 +66,12 @@ export const SecureSessionButton = observer(
             const currentIsRecording =
                 externalIsRecording !== undefined
                     ? externalIsRecording
-                    : currentState.state.get() === RecorderState.RECORDING;
+                    : currentState.state.get() === RecorderState.Recording;
 
             LOGGER.debug('👆 [SecureSessionButton] Button pressed', {
                 currentIsRecording,
                 externalIsRecording,
-                audioRecordingIsRecording: currentState.state.get() === RecorderState.RECORDING,
+                audioRecordingIsRecording: currentState.state.get() === RecorderState.Recording,
                 hasExternalOnPress: !!externalOnPress,
             });
 
@@ -86,14 +86,14 @@ export const SecureSessionButton = observer(
                     await audioRecording.stopRecording();
                     onRecordingChange?.(false);
                     LOGGER.debug('✅ [SecureSessionButton] stopRecording completed', {
-                        newIsRecording: audioRecording.getState().state.get() === RecorderState.RECORDING,
+                        newIsRecording: audioRecording.getState().state.get() === RecorderState.Recording,
                     });
                 } else {
                     LOGGER.debug('▶️ [SecureSessionButton] Calling startRecording');
                     await audioRecording.startRecording();
                     onRecordingChange?.(true);
                     LOGGER.debug('✅ [SecureSessionButton] startRecording completed', {
-                        newIsRecording: audioRecording.getState().state.get() === RecorderState.RECORDING,
+                        newIsRecording: audioRecording.getState().state.get() === RecorderState.Recording,
                     });
                 }
             } catch (error) {

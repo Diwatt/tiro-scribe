@@ -7,14 +7,20 @@ import { DownloadState } from '@/Service/InferenceModelDownload/Type';
 import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '@/Entity/Therapist';
 
-vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
+vi.mock('@/Service/Logger', () => {
+    const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
-    },
-}));
+    };
+    return {
+        AppLogger: {
+            getInstance: vi.fn(() => mockLogger),
+            ...mockLogger,
+        },
+    };
+});
 
 describe('StartupOrchestrator', () => {
     beforeEach(() => {

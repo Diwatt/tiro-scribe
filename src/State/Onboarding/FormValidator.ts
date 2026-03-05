@@ -3,6 +3,7 @@
  */
 
 import type { ZodType } from 'zod';
+import { Container } from '@/Container';
 import type { OnboardingFormData } from './Schema';
 import { Schema } from './Schema';
 import type { ValidationResult } from './Types';
@@ -37,3 +38,5 @@ export class FormValidator {
         return { success: false, errors: result.error.flatten() };
     }
 }
+
+Container.register(FormValidator);

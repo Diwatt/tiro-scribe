@@ -9,10 +9,12 @@ import { CompiledQuery, type Kysely } from 'kysely';
 import { Container } from '../Container';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
+import { AppLogger } from '../Service/Logger';
 import type { AbstractEntity } from './AbstractEntity';
 import { Collection } from './Collection';
 import { Criteria } from './Criteria';
 import { EntityMetadata } from './Decorator';
+import { QueryBuilder } from './QueryBuilder';
 import { QueryCompiler, type QueryOptions } from './QueryCompiler';
 import type { DatabaseSchema, EntityClass } from './Type';
 
@@ -30,7 +32,7 @@ interface RealForeignKeyColumn {
     columnName: string;
 }
 
-export class Repository<TEntity extends AbstractEntity> {
+export class Repository<TEntity extends AbstractEntity = AbstractEntity> {
     private readonly allowedKeys: ReadonlySet<string>;
     private readonly db: Kysely<DatabaseSchema>;
     private readonly entityClass: EntityClass<TEntity>;
@@ -45,7 +47,7 @@ export class Repository<TEntity extends AbstractEntity> {
     protected constructor(entityClass: EntityClass<TEntity>, tableName: string, db?: Kysely<DatabaseSchema>) {
         this.entityClass = entityClass;
         this.tableName = tableName;
-        this.db = db ?? Container.queryBuilder;
+        this.db = db ?? Container.get(QueryBuilder);
         this.metadata = EntityMetadata.for(entityClass as MetadataConstructor);
         this.primaryKeyField = this.metadata.getPrimaryKeyField();
         this.realForeignKeyColumns = this.metadata.getForeignKeyColumns() as RealForeignKeyColumn[];
@@ -129,7 +131,7 @@ export class Repository<TEntity extends AbstractEntity> {
      * Real foreign key columns are written so REFERENCES constraints are satisfied.
      */
     public async persist(entity: TEntity): Promise<TEntity> {
-        const logger = Container.logger;
+        const logger = AppLogger.getInstance();
         const primaryKey = entity.primaryKey;
 
         // Validate primary key is not empty or whitespace-only
@@ -280,7 +282,7 @@ export class Repository<TEntity extends AbstractEntity> {
         data: Partial<Record<string, unknown>>,
         storedRecord?: Record<string, unknown>,
     ): Record<string, unknown> {
-        const logger = Container.logger;
+        const logger = AppLogger.getInstance();
         const defaults = this.metadata.getColumnDefaults();
 
         logger.debug('[Repository] mergeForPersist:', {

@@ -3,8 +3,9 @@
  * Adapter to connect Queue with AudioProcessing
  */
 
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 import { InvalidAudioFormatError } from '../Exception/InvalidAudioFormatError';
 import type { AudioProcessing, ProcessingPayload } from './AudioProcessing';
 
@@ -33,7 +34,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
         encounterUuid: string,
         sessionStartDate: Date,
         projectionMatrix: number[][],
-        logger: LoggerInterface = Container.logger,
+        logger: LoggerInterface = AppLogger.getInstance(),
     ) {
         this.audioProcessingService = audioProcessingService;
         this.encounterUuid = encounterUuid;
@@ -72,7 +73,7 @@ export class AudioPipelineAdapter implements AudioPipeline {
 export class MockAudioPipeline implements AudioPipeline {
     private loggerInstance: LoggerInterface;
 
-    constructor(logger: LoggerInterface = Container.logger) {
+    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.loggerInstance = logger;
     }
 

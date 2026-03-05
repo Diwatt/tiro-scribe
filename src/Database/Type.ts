@@ -2,8 +2,13 @@
  * Database types and constants. Single place for type definitions (entity, repository, schema row).
  */
 
-import type { DownloadQueue, Encounter, Patient, ProsodyMetrics, QueueItem, Therapist, Transcription } from '@/Entity';
-import type { Entity } from './Entity';
+import type { DownloadQueue } from '@/Entity/DownloadQueue';
+import type { Encounter } from '@/Entity/Encounter';
+import type { Patient } from '@/Entity/Patient';
+import type { ProsodyMetrics } from '@/Entity/ProsodyMetrics';
+import type { QueueItem } from '@/Entity/QueueItem';
+import type { Therapist } from '@/Entity/Therapist';
+import type { Transcription } from '@/Entity/Transcription';
 
 /** Inserts an underscore before each capital letter (for camelCase → snake_case). */
 type InsertUnderscoreBeforeCap<S extends string> = S extends `${infer A}${infer B}`
@@ -59,6 +64,6 @@ export type DatabaseSchema = SchemaFromTables<EntityTablesType>;
  */
 /** Constructor type accepted by registry and repositories: any class extending
  * AbstractEntity with a static `entityName` string. */
-export type EntityClass<TEntity extends Entity = Entity> = (new (
+export type EntityClass<TEntity extends AbstractEntity = AbstractEntity> = (new (
     ...args: unknown[]
 ) => TEntity) & { entityName: string };

@@ -33,10 +33,9 @@ export default [
             // 1. One class per file (disabled per WIP services request)
             'max-classes-per-file': 'off',
 
-            // 2. Member ordering (your exact pattern)
+            // 2. Member ordering (grouping only, no alphabetical sorting)
             'perfectionist/sort-classes': ['error', {
-                type: 'alphabetical',
-                order: 'asc',
+                type: 'unsorted',
                 groups: [
                     'static-property',
                     'property',

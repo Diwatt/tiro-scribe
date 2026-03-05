@@ -1,106 +1,64 @@
-// src/Container.ts
-
-import { Kysely } from 'kysely';
-import { ExpoDialect } from 'kysely-expo';
-import { consoleTransport, logger as reactNativeLogger } from 'react-native-logs';
-import { ApiClientRegistry } from './Api/ApiClientRegistry';
-import { AppConfig } from './Config/AppConfig';
-import { Registry } from './Database/Registry';
-import type { DatabaseSchema } from './Database/Type';
-import { AppLanguage } from './Localization/AppLanguage';
-import { DownloadQueueRepository } from './Repository/DownloadQueueRepository';
-import { DEFAULT_MATRIX, DeviceCompatibilityGate } from './Security/DeviceCompatibilityGate';
-import { MasterKeyVault } from './Security/MasterKeyVault';
-import { RecoveryKit } from './Security/RecoveryKit';
-import { AudioRecording } from './Service/AudioRecording';
-import { InferenceManager } from './Service/InferenceManager';
-import { InferenceModelConfigProvider } from './Service/InferenceModelConfigProvider';
-import { ChecksumVerifier } from './Service/InferenceModelDownload/ChecksumVerifier';
-import { DownloadTaskManager } from './Service/InferenceModelDownload/DownloadTaskManager';
-import { ModelArtifactStorage } from './Service/InferenceModelDownload/ModelArtifactStorage';
-import { InferenceModelDownloader } from './Service/InferenceModelDownloader';
-import { InferenceModelVersionManager } from './Service/InferenceModelVersionManager';
-import { InMemoryAudioRecorder } from './Service/InMemoryAudioRecorder';
-import { BiocodeFactory } from './Service/SpeakerId/BiocodeFactory';
-import { SpeakerEmbedder } from './Service/SpeakerId/SpeakerEmbedder';
-import { VoiceCalibrator } from './Service/SpeakerId/VoiceCalibrator';
-import { GlobalActivityStatus } from './State/GlobalActivityStatus';
-import { FormValidator } from './State/Onboarding/FormValidator';
-import { OnboardingState } from './State/Onboarding/State';
-import { StartupOrchestrator } from './State/StartupOrchestrator';
+// src/Container.ts - Enhanced version with class-based keys
 
 /**
- * Logger instance type from react-native-logs
+ * Type representing a constructor function that might accept arbitrary arguments.
  */
-type ReactNativeLogger = ReturnType<typeof reactNativeLogger.createLogger>;
+type ClassType<T = unknown> = new (...args: any[]) => T; // biome-ignore lint: no-explicit-any constructor must accept arbitrary args for compatibility
 
 /**
- * Container — Composition root for all singleton instances.
+ * Enhanced Container with class-based keys for better type safety
  *
- * Access services via `Container.logger`, `Container.recoveryKit`, etc.
- * Primitive constants (MAX_LENGTH, PASSWORD_MIN_LENGTH) stay in their domain files.
+ * Usage examples:
+ * Container.register(AppConfig)                           // No-args constructor
+ * Container.register(AppLogger, () => new AppLogger())     // Custom factory
+ * Container.register(AppLogger, () => new AppLogger(Container.get(AppConfig))) // With dependencies
+ *
+ * const appConfig = Container.get(AppConfig)              // Get instance
+ * const logger = Container.get(AppLogger)                // Get instance
  */
 export class Container {
-    // Infrastructure Services
-    public static readonly apiClientRegistry: ApiClientRegistry = new ApiClientRegistry();
-    public static readonly appConfig: AppConfig = new AppConfig();
-    public static readonly appLanguage: AppLanguage = new AppLanguage();
-    public static readonly audioRecording: AudioRecording = new AudioRecording();
-    public static readonly biocodeFactory: BiocodeFactory = new BiocodeFactory();
-    public static readonly logger: ReactNativeLogger = reactNativeLogger.createLogger({
-        severity: Container.appConfig.isDev ? 'debug' : 'error',
-        transport: consoleTransport,
-        transportOptions: {
-            colors: {
-                info: 'blueBright',
-                warn: 'yellowBright',
-                error: 'redBright',
-                debug: 'whiteBright',
-            } as const,
-        },
-        dateFormat: 'time',
-        printLevel: true,
-        printDate: true,
-    });
+    private static readonly dependencies = new Map<ClassType | symbol, unknown>();
+    private static readonly factories = new Map<ClassType | symbol, () => unknown>();
 
-    public static readonly deviceCompatibilityGate: DeviceCompatibilityGate = new DeviceCompatibilityGate(
-        Container.logger,
-        DEFAULT_MATRIX,
-    );
-    public static readonly formValidator: FormValidator = new FormValidator();
-    public static readonly globalActivityStatus: GlobalActivityStatus = new GlobalActivityStatus();
-    public static readonly inferenceManager: InferenceManager = new InferenceManager(Container.logger);
-    public static readonly inferenceModelConfigProvider: InferenceModelConfigProvider =
-        new InferenceModelConfigProvider();
-    public static readonly inferenceModelDownloader: InferenceModelDownloader = new InferenceModelDownloader(
-        Container.logger,
-        new ModelArtifactStorage(Container.logger),
-        new DownloadTaskManager(
-            Container.logger,
-            new DownloadQueueRepository(),
-            new ChecksumVerifier(),
-            new ModelArtifactStorage(Container.logger),
-        ),
-        Container.inferenceModelConfigProvider,
-    );
-    public static readonly inferenceModelVersionManager: InferenceModelVersionManager =
-        InferenceModelVersionManager.createDefaultInstance();
-    public static readonly inMemoryAudioRecorder: InMemoryAudioRecorder = new InMemoryAudioRecorder(Container.logger);
-    public static readonly masterKeyVault: MasterKeyVault = new MasterKeyVault();
-    public static readonly onboardingState: OnboardingState = new OnboardingState(new RecoveryKit());
-    public static readonly queryBuilder = new Kysely<DatabaseSchema>({
-        dialect: new ExpoDialect({
-            database: Container.appConfig.databaseName,
-        }),
-    });
-    public static readonly registry: Registry = new Registry();
-    public static readonly speakerEmbedder: SpeakerEmbedder = new SpeakerEmbedder();
-    public static readonly startupOrchestrator: StartupOrchestrator = new StartupOrchestrator();
-    public static readonly voiceCalibrator: VoiceCalibrator = new VoiceCalibrator(
-        Container.speakerEmbedder,
-        Container.biocodeFactory,
-        Container.logger,
-    );
+    public static register<T>(cls: ClassType<T>): void;
+    public static register<T>(cls: ClassType<T>, factory: () => T): void;
+    public static register<T>(token: symbol, factory: () => T): void;
+    public static register<T>(cls: ClassType<T>, factory?: () => T): void;
+    public static register<T>(token: ClassType<T> | symbol, factory?: () => T): void {
+        if (factory) {
+            Container.factories.set(token, factory);
+        } else if (typeof token === 'symbol') {
+            throw new Error('Symbol tokens require a factory function');
+        } else {
+            Container.factories.set(token, () => new token());
+        }
+    }
+
+    public static get<T>(cls: ClassType<T>): T;
+    public static get<T>(token: symbol): T;
+    public static get<T>(cls: ClassType<T> | symbol): T {
+        let instance = Container.dependencies.get(cls) as T;
+        if (!instance) {
+            const factory = Container.factories.get(cls);
+            if (!factory) {
+                const tokenName = typeof cls === 'symbol' ? cls.toString() : cls.name;
+                throw new Error(`Dependency '${tokenName}' not registered`);
+            }
+            instance = factory() as T;
+            Container.dependencies.set(cls, instance);
+        }
+        return instance;
+    }
+
+    public static getProxy<T extends object>(cls: ClassType<T>): T {
+        return new Proxy({} as T, {
+            get: (_target, prop) => {
+                const instance = Container.get(cls) as any;
+                const value = instance[prop];
+                return typeof value === 'function' ? value.bind(instance) : value;
+            },
+        });
+    }
 }
 
-export type LoggerInterface = typeof Container.logger;
+export type { LoggerInterface } from './Service/Logger';

@@ -11,12 +11,15 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { AppConfig } from '@/Config';
-import type { LoggerInterface } from '@/Container';
-import { Container } from '@/Container';
 import { InferenceModelDownloaderException } from '@/Exception';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 
 export class ModelArtifactStorage {
-    public constructor(private readonly logger: LoggerInterface = Container.logger) {}
+    public constructor(
+        private readonly logger: LoggerInterface = AppLogger.getInstance(),
+        private readonly appConfig: AppConfig = AppConfig.getInstance(),
+    ) {}
 
     /**
      * Calculates the total size of all cached model artifacts.
@@ -45,7 +48,7 @@ export class ModelArtifactStorage {
      * @throws {Error} If file deletion fails
      */
     public async deleteModelConfig(config: ModelConfig): Promise<void> {
-        const configDir = new Directory(Paths.document, AppConfig.artifactStorageDirName, config.id);
+        const configDir = new Directory(Paths.document, this.appConfig.artifactStorageDirName, config.id);
         if (configDir.exists) {
             for (const file of config.files) {
                 const artifactFile = this.getFile(config, file);
@@ -64,16 +67,16 @@ export class ModelArtifactStorage {
      * @param config - The model configuration
      */
     public async ensureDirectories(config: ModelConfig): Promise<void> {
-        const subdir = AppConfig.artifactStorageDirName;
+        const subdir = this.appConfig.artifactStorageDirName;
         const modelsDir = new Directory(Paths.document, subdir);
         if (!modelsDir.exists) {
-            await modelsDir.create({ intermediates: true, idempotent: true });
+            modelsDir.create({ intermediates: true, idempotent: true });
             this.logger.debug(`Created artifact storage directory: ${modelsDir.uri}`);
         }
 
         const configDir = new Directory(Paths.document, subdir, config.id);
         if (!configDir.exists) {
-            await configDir.create({ intermediates: true, idempotent: true });
+            configDir.create({ intermediates: true, idempotent: true });
             this.logger.debug(`Created model config directory: ${configDir.uri}`);
         }
     }
@@ -87,7 +90,21 @@ export class ModelArtifactStorage {
      */
     public getFile(config: ModelConfig, file: InferenceModelFile): File {
         const filename = this.extractFilenameFromUrl(file.url);
-        return new File(Paths.document, AppConfig.artifactStorageDirName, config.id, filename);
+
+        // Defensive check to ensure all path components are defined
+        if (!config.id) {
+            throw new InferenceModelDownloaderException(
+                `Model configuration for capability '${config.capability}' has no id. This may indicate an API response issue.`,
+            );
+        }
+
+        if (!filename) {
+            throw new InferenceModelDownloaderException(
+                `Failed to extract filename from URL '${file.url}' for capability '${config.capability}'`,
+            );
+        }
+
+        return new File(Paths.document, this.appConfig.artifactStorageDirName, config.id, filename);
     }
 
     /**
@@ -162,7 +179,7 @@ export class ModelArtifactStorage {
      * @returns The local file system path (e.g., "artifacts/{configId}/{filename}")
      */
     public resolvePath(config: ModelConfig, file: InferenceModelFile): string {
-        return `${AppConfig.artifactStorageDirName}/${config.id}/${this.extractFilenameFromUrl(file.url)}`;
+        return `${this.appConfig.artifactStorageDirName}/${config.id}/${this.extractFilenameFromUrl(file.url)}`;
     }
 
     /**

@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { observer } from '@legendapp/state/react';
-import type React from 'react';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import {
     Keyboard,
@@ -16,7 +15,7 @@ import {
 import { ProgressBar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import { ONBOARDING_STEPS, type OnboardingFormData, Schema } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { StepAccount } from './StepAccount';
@@ -34,7 +33,7 @@ const STEP_VIEWS = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useAppLanguage();
-    const rawStep = Container.onboardingState?.state?.step?.get() ?? 1;
+    const rawStep = Container.get(OnboardingState).state.step.get() ?? 1;
     const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
     const progress = step / ONBOARDING_STEPS;
 
@@ -45,7 +44,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
     });
 
     useEffect(() => {
-        Container.onboardingState.reset();
+        Container.get(OnboardingState).reset();
     }, []);
 
     const stepComponent = STEP_VIEWS[step - 1] ?? null;
@@ -71,7 +70,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
                                 keyboardDismissMode="on-drag"
                                 showsVerticalScrollIndicator={false}
                             >
-                                {stepComponent ? <stepComponent /> : null}
+                                {stepComponent ? React.createElement(stepComponent) : null}
                             </ScrollView>
                         </View>
                     </TouchableWithoutFeedback>

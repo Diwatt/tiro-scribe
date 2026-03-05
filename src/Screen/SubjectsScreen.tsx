@@ -2,7 +2,7 @@ import { User } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Avatar, Card, Searchbar, Text, useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 // Mock data for subjects (uuid for offline/sync)

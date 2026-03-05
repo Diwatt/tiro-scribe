@@ -13,8 +13,8 @@
 import * as Device from 'expo-device';
 import { DeviceType } from 'expo-device';
 import semver from 'semver';
-import type { LoggerInterface } from '../Container';
 import { HardwareGuardException } from '../Exception';
+import type { LoggerInterface } from '../Service/Logger';
 
 export class HardwareGuard {
     // --- public ---
@@ -73,7 +73,14 @@ export class HardwareGuard {
             });
             return false;
         }
-        const coercedActual = semver.coerce(actual)!;
+        const coercedActual = semver.coerce(actual);
+        if (!coercedActual) {
+            this.log.warn(`[HardwareGuard] ${platformLabel} OS version unavailable or unparseable`, {
+                osName: Device.osName,
+                osVersion: osVersion ?? null,
+            });
+            return false;
+        }
         if (!semver.gte(coercedActual, coercedMin)) {
             this.log.warn(`[HardwareGuard] ${platformLabel} OS below minimum version`, {
                 osName: Device.osName,
@@ -109,8 +116,22 @@ export class HardwareGuard {
     }
 
     private validateVersion(minVersion: string): semver.SemVer {
+        if (!minVersion || typeof minVersion !== 'string') {
+            throw new HardwareGuardException(
+                `minSemver is not a valid string: "${minVersion}"`,
+                HardwareGuardException.invalidMinVersion,
+                undefined,
+                {
+                    minSemver: minVersion,
+                },
+            );
+        }
+
         const coerced = semver.coerce(minVersion.trim());
         if (!coerced) {
+            this.log.error('[HardwareGuard] Failed to parse minVersion', {
+                minVersion,
+            });
             throw new HardwareGuardException(
                 `minSemver is not parseable: "${minVersion}"`,
                 HardwareGuardException.invalidMinVersion,

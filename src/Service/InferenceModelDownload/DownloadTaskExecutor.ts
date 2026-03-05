@@ -10,7 +10,7 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
-import type { LoggerInterface } from '../../Container';
+import type { LoggerInterface } from '../../Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { FileDownloader } from './FileDownloader';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
@@ -222,7 +222,7 @@ export class DownloadTaskExecutor {
      */
     private async downloadFile(file: InferenceModelFile, totalDownloaded: number, totalFiles: number): Promise<void> {
         const destination = this.artifactStorage.getFile(this.modelConfig, file);
-
+        this.logger.info('test2');
         // Create downloader for this file and download with progress tracking
         const downloader = new FileDownloader(destination, this.logger);
         for await (const chunkProgress of downloader.download(file.url)) {

@@ -6,7 +6,7 @@
  */
 
 import { qr, reshape, transpose } from 'mathjs';
-import { AppConfig } from '../Config';
+import { AppConfig } from '@/Config';
 import type { CryptoEngine } from '../Security/CryptoEngine';
 
 /**
@@ -16,7 +16,7 @@ import type { CryptoEngine } from '../Security/CryptoEngine';
 export class ProjectionMatrixFactory {
     public constructor(
         private readonly crypto: CryptoEngine,
-        private readonly projectionSalt: string = AppConfig.projectionSalt,
+        private readonly projectionSalt: string = AppConfig.getInstance().projectionSalt,
     ) {}
 
     /**

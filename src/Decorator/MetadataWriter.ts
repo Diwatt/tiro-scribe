@@ -1,7 +1,6 @@
 // MetadataWriter writes decorator metadata (class and property options)
 // to a shared WeakMap. Readers use MetadataReader to access that data.
 
-import { Container } from '../Container';
 import type { MetadataMap } from './Type';
 
 // internal storage for class metadata to avoid mutating constructors
@@ -16,11 +15,6 @@ export class MetadataWriter {
 
     /** Called by class decorators to store their options. */
     public static registerClass(construct: object, options: object): void {
-        const logger = Container.logger;
-        // `name` is often available on constructor functions, but we don't
-        // require it in the type so cast to unknown for the log.
-        logger.debug('[MetadataWriter] Registering class', (construct as { name?: string } | undefined)?.name);
-
         // store raw options in weak map; reader will wrap when needed
         MetadataWriter.classMetadataMap.set(construct, options as Record<string, unknown>);
     }
@@ -32,12 +26,9 @@ export class MetadataWriter {
         decoratorName: string,
         options: unknown,
     ): void {
-        const logger = Container.logger;
         if (meta == null || typeof meta !== 'object') {
-            logger.debug('[MetadataWriter] invalid metadata object');
             return;
         }
-
         const m = meta as MetadataMap;
         if (!m[propertyName]) {
             m[propertyName] = { decorators: [] };

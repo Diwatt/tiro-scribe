@@ -8,7 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, ProgressBar, useTheme } from 'react-native-paper';
 import { TextInput } from '@/Components/Form';
 import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { OnboardingFormData } from '@/State/Onboarding';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
@@ -23,8 +23,8 @@ export const StepAccount = observer(function StepAccountComponent(): React.JSX.E
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     const { control, handleSubmit, watch, clearErrors } = useFormContext<OnboardingFormData>();
-    const error = Container.onboardingState.state.error.get();
-    const isBusy = Container.onboardingState.state.isBusy.get();
+    const error = Container.get(OnboardingState).state.error.get();
+    const isBusy = Container.get(OnboardingState).state.isBusy.get();
 
     const password = watch('password');
     const confirmPassword = watch('confirmPassword');
@@ -34,11 +34,11 @@ export const StepAccount = observer(function StepAccountComponent(): React.JSX.E
     );
 
     const handleBackPress = useCallback(() => {
-        Container.onboardingState.goToStep(1);
+        Container.get(OnboardingState).goToStep(1);
     }, []);
 
     const onSubmit = useCallback((formData: OnboardingFormData) => {
-        Container.onboardingState.submit(formData);
+        Container.get(OnboardingState).submit(formData);
     }, []);
 
     useEffect(() => {

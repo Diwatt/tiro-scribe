@@ -15,9 +15,10 @@ import {
 } from 'expo-audio';
 import type { EventSubscription } from 'expo-modules-core';
 import { makeShareable, runOnJS } from 'react-native-worklets';
-import type { LoggerInterface } from '@/Container';
+import { Container } from '@/Container';
 import { InMemoryAudioRecorderException } from '@/Exception';
-
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 export class InMemoryAudioRecorder {
     private static readonly SAMPLE_RATE = 16000;
 
@@ -69,7 +70,7 @@ export class InMemoryAudioRecorder {
     private isCapturing = false;
 
     public constructor(
-        private readonly logger: LoggerInterface,
+        private readonly logger: LoggerInterface = AppLogger.getInstance(),
         private recorder: AudioRecorder = {} as AudioRecorder,
         private subscription: EventSubscription = {} as EventSubscription,
         private timeoutId: ReturnType<typeof setTimeout> = {} as ReturnType<typeof setTimeout>,
@@ -193,3 +194,5 @@ export class InMemoryAudioRecorder {
             .catch(this.handleError);
     }
 }
+
+Container.register(InMemoryAudioRecorder, () => new InMemoryAudioRecorder(AppLogger.getInstance()));

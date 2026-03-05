@@ -7,7 +7,8 @@
  */
 
 import { Platform } from 'react-native';
-import type { LoggerInterface } from '../Container';
+import { Container } from '@/Container';
+import type { LoggerInterface } from '../Service/Logger';
 import { HardwareGuard } from './HardwareGuard';
 
 /** Native platforms we run hardware checks for. RN Platform.OS and expo-device (Device.osName) use strings only; no OS enum. */
@@ -37,8 +38,8 @@ export class DeviceCompatibilityGate {
     private activeGuard: HardwareGuard | null = null;
 
     public constructor(
-        private readonly logger: LoggerInterface,
         private readonly matrix: CompatibilityMatrix = DEFAULT_MATRIX,
+        private readonly logger: LoggerInterface,
     ) {}
 
     // --- private ---
@@ -60,3 +61,5 @@ export class DeviceCompatibilityGate {
         return this.activeGuard;
     }
 }
+
+Container.register(DeviceCompatibilityGate, () => new DeviceCompatibilityGate(DEFAULT_MATRIX, AppLogger.getInstance()));

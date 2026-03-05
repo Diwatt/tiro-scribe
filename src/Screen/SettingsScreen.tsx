@@ -2,7 +2,7 @@ import { Bell, Moon, Settings, Shield, User } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Divider, List, Surface, Switch, useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export function SettingsScreen(): React.JSX.Element {

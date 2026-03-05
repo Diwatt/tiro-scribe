@@ -3,7 +3,7 @@ import type React from 'react';
 import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 import { Button, type ButtonProps, useTheme } from 'react-native-paper';
 import { Container } from '@/Container';
-import { ActivityStatus } from '../State/GlobalActivityStatus';
+import { ActivityStatus, GlobalActivityStatus } from '../State/GlobalActivityStatus';
 import type { ExtendedTheme } from '../theme/AppTheme';
 import { getLabel } from './AsyncButtonUtils';
 
@@ -35,7 +35,7 @@ export function AsyncButtonInner(props: Readonly<AsyncButtonProps>): React.JSX.E
     const actions = theme.colors.actions;
 
     // if caller passed an explicit status use it; otherwise fall back to the single global status
-    const status = statusProp ?? Container.globalActivityStatus.getStatus() ?? ActivityStatus.Ready;
+    const status = statusProp ?? Container.get(GlobalActivityStatus).getStatus() ?? ActivityStatus.Ready;
 
     const pending = status === ActivityStatus.Pending;
     const success = status === ActivityStatus.Success;

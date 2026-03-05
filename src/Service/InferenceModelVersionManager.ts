@@ -4,9 +4,10 @@
 
 import semver from 'semver';
 import type { ModelConfig } from '@/Api';
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
-import type { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
+import { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 
 /** Information about available updates */
@@ -87,8 +88,8 @@ export class InferenceModelVersionManager {
     }
 
     public static createDefaultInstance(): InferenceModelVersionManager {
-        const logger = Container.logger;
-        const configProvider = Container.inferenceModelConfigProvider;
+        const logger = AppLogger.getInstance();
+        const configProvider = Container.get(InferenceModelConfigProvider);
         const artifactStorage = new ModelArtifactStorage(logger);
 
         return new InferenceModelVersionManager(logger, configProvider, artifactStorage);
@@ -158,3 +159,13 @@ export class InferenceModelVersionManager {
         return semver.gt(remoteVersion, localVersion);
     }
 }
+
+Container.register(
+    InferenceModelVersionManager,
+    () =>
+        new InferenceModelVersionManager(
+            AppLogger.getInstance(),
+            Container.get(InferenceModelConfigProvider),
+            new ModelArtifactStorage(AppLogger.getInstance()),
+        ),
+);

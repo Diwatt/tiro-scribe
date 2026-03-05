@@ -11,6 +11,7 @@ import { DatabaseException } from '@/Exception';
 import { Container } from '../../Container';
 import type { ColumnOptions, EntityMetadata } from '../Decorator';
 import { OnDeleteAction } from '../Decorator';
+import { QueryBuilder } from '../QueryBuilder';
 import type { FullTextSearchFieldSpec } from './TableDefinition';
 import { TableDefinition } from './TableDefinition';
 
@@ -75,7 +76,7 @@ export class DefinitionBuilder {
 
         // Use Kysely's sql template for primary key column
         const primaryKeyColumn = sql`${sql.raw(this.primaryKeyColumn.columnName)} ${sql.raw(primaryKeySqlType)}${sql.raw(primaryKeyFk)} PRIMARY KEY`;
-        columns.push(primaryKeyColumn.compile(Container.queryBuilder).sql);
+        columns.push(primaryKeyColumn.compile(Container.get(QueryBuilder)).sql);
 
         columns.push('data TEXT NOT NULL');
 
@@ -90,7 +91,7 @@ export class DefinitionBuilder {
                 const columnName = snakeCase(propertyName);
                 // Use Kysely's sql template for foreign key columns
                 const column = sql`${sql.raw(columnName)} ${sql.raw(sqlType)}${sql.raw(foreignKeyClause)}`;
-                columns.push(column.compile(Container.queryBuilder).sql);
+                columns.push(column.compile(Container.get(QueryBuilder)).sql);
                 continue;
             }
 
@@ -148,8 +149,8 @@ export class DefinitionBuilder {
             if (hasForeignKey) {
                 const columnName = snakeCase(propertyName);
                 // Use Kysely's CreateIndexBuilder for foreign key indexes
-                const indexBuilder = Container.queryBuilder.schema
-                    .createIndex(`idx_${this.tableName}_${columnName}`)
+                const indexBuilder = Container.get(QueryBuilder)
+                    .schema.createIndex(`idx_${this.tableName}_${columnName}`)
                     .on(this.tableName)
                     .column(columnName)
                     .ifNotExists();
@@ -171,8 +172,8 @@ export class DefinitionBuilder {
         const columnName = snakeCase(propertyName);
         const column = `${columnName} ${sqlType} GENERATED ALWAYS AS (json_extract(data, '$.${propertyName}')) VIRTUAL`;
         // Use Kysely's CreateIndexBuilder for virtual column indexes
-        const indexBuilder = Container.queryBuilder.schema
-            .createIndex(`idx_${this.tableName}_${columnName}`)
+        const indexBuilder = Container.get(QueryBuilder)
+            .schema.createIndex(`idx_${this.tableName}_${columnName}`)
             .on(this.tableName)
             .column(columnName)
             .ifNotExists();

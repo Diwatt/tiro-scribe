@@ -39,27 +39,36 @@ vi.mock('@/Service/InferenceModelDownload/FileDownloader', () => ({
 vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
     ModelArtifactStorage: vi.fn(),
 }));
-vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
+vi.mock('@/Service/Logger', () => {
+    const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
-    },
-}));
+    };
+    return {
+        AppLogger: {
+            getInstance: vi.fn(() => mockLogger),
+            ...mockLogger,
+        },
+    };
+});
 
 // Mock AppConfig to avoid __DEV__ issues
-vi.mock('@/Config/AppConfig', () => ({
-    AppConfig: vi.fn().mockImplementation(function () {
-        return {
-            isDev: true,
-            apiHost: 'https://test-api.example.com',
-            databaseName: 'test-database.sqlite',
-            isStorybookEnabled: false,
-            artifactStorageDirName: 'artifacts',
-        };
-    }),
-}));
+vi.mock('@/Config/AppConfig', () => {
+    const instance = {
+        isDev: true,
+        apiHost: 'https://test-api.example.com',
+        databaseName: 'test-database.sqlite',
+        isStorybookEnabled: false,
+        artifactStorageDirName: 'artifacts',
+    };
+    return {
+        AppConfig: {
+            getInstance: vi.fn(() => instance),
+        },
+    };
+});
 
 // Mock expo-file-system
 vi.mock('expo-file-system', () => ({}));

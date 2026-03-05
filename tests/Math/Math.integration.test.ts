@@ -272,7 +272,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
     });
 
     describe('I - Interface Tests', () => {
-        it.skip('should maintain type consistency across pipeline', () => {
+        it('should maintain type consistency across pipeline', () => {
             const audio = new Float32Array(1600).fill(0.1);
             const features = audioExtractor.extract(audio);
             const matrix = projectionFactory.create(masterKey, features.length, 32);
@@ -286,7 +286,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             expect(result.every(val => typeof val === 'number')).toBe(true);
         });
 
-        it.skip('should maintain immutability across pipeline', () => {
+        it('should maintain immutability across pipeline', () => {
             const audio = new Float32Array(1600).fill(0.1);
             const originalAudio = new Float32Array(audio);
             const features = audioExtractor.extract(audio);
@@ -304,7 +304,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             expect(matrix).toEqual(originalMatrix);
         });
 
-        it.skip('should provide deterministic results across pipeline', () => {
+        it('should provide deterministic results across pipeline', () => {
             const audio = new Float32Array(1600);
             for (let i = 0; i < audio.length; i++) {
                 audio[i] = Math.sin(2 * Math.PI * 440 * i / 16000) * 0.1;
@@ -322,7 +322,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             expect(result1).toEqual(result2);
         });
 
-        it.skip('should handle different extractor configurations', () => {
+        it('should handle different extractor configurations', () => {
             const audio = new Float32Array(1600).fill(0.1);
             
             const extractors = [
@@ -350,14 +350,14 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
     });
 
     describe('E - Exception Tests', () => {
-        it.skip('should handle audio too short for a frame gracefully', () => {
+        it('should handle audio too short for a frame gracefully', () => {
             const invalidAudio = new Float32Array(100); // Shorter than frameLength (400)
             const result = audioExtractor.extract(invalidAudio);
             expect(result).toBeInstanceOf(Float32Array);
             expect(result.length).toBe(0); // No frames extracted, no error
         });
 
-        it.skip('should handle projection dimension mismatch', () => {
+        it('should handle projection dimension mismatch', () => {
             const audio = new Float32Array(1600).fill(0.1);
             const features = audioExtractor.extract(audio);
             
@@ -367,7 +367,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             expect(() => projection.project(Array.from(features))).toThrow();
         });
 
-        it.skip('should handle corrupted audio data', () => {
+        it('should handle corrupted audio data', () => {
             const corruptedAudio = new Float32Array(1600);
             for (let i = 0; i < corruptedAudio.length; i++) {
                 corruptedAudio[i] = i % 10 === 0 ? Number.NaN : 0.1;
@@ -377,6 +377,8 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
         });
 
         it.skip('should handle extreme pipeline configurations', () => {
+            // TODO: Large projection dimensions (1000) cause multiplyScalar errors.
+            // This needs investigation into vector/matrix math limits.
             const audio = new Float32Array(1600).fill(0.1);
             const features = audioExtractor.extract(audio);
             
@@ -391,7 +393,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             expect(() => smallProjection.project(Array.from(features))).not.toThrow();
         });
 
-        it.skip('should handle large audio through pipeline gracefully', () => {
+        it('should handle large audio through pipeline gracefully', () => {
             // Use a reasonable audio length to avoid QR decomposition on huge matrices
             const audio = new Float32Array(1600);
             for (let i = 0; i < audio.length; i++) {
@@ -409,6 +411,8 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
 
     describe('Pipeline Performance Tests', () => {
         it.skip('should complete full pipeline within reasonable time', () => {
+            // TODO: Performance timeout - takes ~2700ms instead of <1000ms.
+            // May need optimization or different performance thresholds.
             const audio = new Float32Array(1600);
             for (let i = 0; i < audio.length; i++) {
                 audio[i] = Math.sin(2 * Math.PI * 440 * i / 16000) * 0.1;
@@ -428,6 +432,8 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
         });
 
         it.skip('should handle multiple pipeline executions efficiently', () => {
+            // TODO: Vector dimension mismatch (240 vs 80).
+            // Needs investigation into feature dimension consistency.
             const audio = new Float32Array(800);
             for (let i = 0; i < audio.length; i++) {
                 audio[i] = Math.sin(2 * Math.PI * 440 * i / 16000) * 0.1;
@@ -450,7 +456,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
     });
 
     describe('Mathematical Consistency Tests', () => {
-        it.skip('should maintain orthonormality in projection pipeline', () => {
+        it('should maintain orthonormality in projection pipeline', () => {
             const audio = new Float32Array(1600).fill(0.1);
             const features = audioExtractor.extract(audio);
             
@@ -469,7 +475,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             }
         });
 
-        it.skip('should preserve similarity relationships through projection', () => {
+        it('should preserve similarity relationships through projection', () => {
             const audio1 = new Float32Array(800);
             const audio2 = new Float32Array(800);
             

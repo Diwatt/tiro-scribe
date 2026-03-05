@@ -19,15 +19,19 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
 import { AppToast } from '@/Components/AppToast';
-import { ObservedGlobalActivityBar } from '@/Components/GlobalActivityBar';
+import { ObservedGlobalActivityBar } from '@/Components/GlobalActivityBar.observed';
+import { Container } from '@/Container';
 import { ServicesProvider } from '@/Context/ServicesProvider';
 import { initAppLocale } from '@/Localization';
-import { AppTheme } from '@/theme/AppTheme';
+import { APP_THEME } from '@/theme/AppTheme';
+
+// 1. BOOTSTRAP DI CONTAINER FIRST
+Container.initialize();
 
 const queryClient = new QueryClient();
 
 const services = {
-    biocodeService: null,
+    speakerProcessor: null,
     anonymizerService: null,
     audioProcessingService: null,
 };
@@ -42,7 +46,7 @@ export default function RootLayout(): React.JSX.Element {
             <AppErrorBoundary>
                 <SafeAreaProvider>
                     <QueryClientProvider client={queryClient}>
-                        <PaperProvider theme={AppTheme}>
+                        <PaperProvider theme={APP_THEME}>
                             <ServicesProvider services={services}>
                                 <View style={{ flex: 1 }}>
                                     <Slot />

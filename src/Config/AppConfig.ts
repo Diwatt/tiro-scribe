@@ -7,6 +7,7 @@
 
 import { Platform } from 'react-native';
 import { z } from 'zod';
+import { Container } from '@/Container';
 
 const ENV_SCHEMA = z.object({
     // biome-ignore lint/style/useNamingConvention: environment variable name
@@ -52,10 +53,17 @@ const ENV_SCHEMA = z.object({
 type EnvConfig = z.output<typeof ENV_SCHEMA>;
 
 export class AppConfig {
+    private static instance: AppConfig | null = null;
+
     private readonly config: EnvConfig;
 
     public constructor() {
         this.config = AppConfig.parseEnv();
+    }
+
+    public static getInstance(): AppConfig {
+        AppConfig.instance ??= new AppConfig();
+        return AppConfig.instance;
     }
 
     public get apiHost(): string {
@@ -112,3 +120,5 @@ export class AppConfig {
         };
     }
 }
+
+Container.register(AppConfig);

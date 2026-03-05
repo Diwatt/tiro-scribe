@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react-native';
 import type React from 'react';
 import { useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { Status } from './Status';
 import { StatusState } from './StatusTypes';

@@ -4,14 +4,20 @@
  */
 
 import { observable } from '@legendapp/state';
-import { Container } from '@/Container';
+import { Container, type LoggerInterface } from '@/Container';
+import { Registry } from '@/Database/Registry';
+import { AppLanguage } from '@/Localization/AppLanguage';
 import { ProjectionMatrixFactory } from '@/Math/ProjectionMatrixFactory';
+import { MasterKeyVault } from '@/Security/MasterKeyVault';
+import { VoiceCalibrator } from '@/Service';
+import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
+import { StartupOrchestrator } from '@/State/StartupOrchestrator';
 import { Therapist } from '../../Entity/Therapist';
 import { CryptoEngine, RecoveryCode, type RecoveryKit } from '../../Security';
 import type { CreateTherapistInput } from '../../Security/TherapistForge';
 import { TherapistForge } from '../../Security/TherapistForge';
 import { ActivityStatus } from '../GlobalActivityStatus';
-import type { ProfileStepData } from './FormValidator';
+import { FormValidator, type ProfileStepData } from './FormValidator';
 import type { OnboardingFormData } from './Schema';
 import type { ValidationResult } from './Types';
 
@@ -20,8 +26,6 @@ export type { ValidationResult } from './Types';
 
 /** Number of steps in the onboarding wizard (progress UI). */
 export const ONBOARDING_STEPS = 4;
-
-const LOGGER = Container.logger;
 
 export type OnboardingStateShape = {
     step: number;
@@ -34,21 +38,24 @@ export type OnboardingStateShape = {
 export class OnboardingState {
     private pendingTherapist: Therapist | null = null;
 
-    private readonly recoveryKit: RecoveryKit;
     public readonly state = observable<OnboardingStateShape>({
         step: 1,
         isBusy: false,
         error: undefined,
         recoveryCode: '',
-        practiceLanguages: [Container.appLanguage.getLocale()],
+        practiceLanguages: [], // Will be set in constructor
     });
 
-    public constructor(recoveryKit: RecoveryKit) {
-        this.recoveryKit = recoveryKit;
+    public constructor(
+        private readonly recoveryKit: RecoveryKit,
+        private readonly logger: LoggerInterface,
+    ) {
+        // Initialize practiceLanguages here where Container is safe to access
+        this.state.practiceLanguages.set([Container.get(AppLanguage).getLocale()]);
     }
 
     public async calibrateVoice(): Promise<void> {
-        LOGGER.debug('[OnboardingState] calibrateVoice', { hasPendingTherapist: this.pendingTherapist != null });
+        this.logger.debug('[OnboardingState] calibrateVoice', { hasPendingTherapist: this.pendingTherapist != null });
         await this.runAsyncAction(
             async () => {
                 const therapist = this.pendingTherapist;
@@ -56,17 +63,17 @@ export class OnboardingState {
                     throw new Error('Pending therapist missing during calibration');
                 }
 
-                const masterKey = await Container.masterKeyVault.load(therapist.uuid);
+                const masterKey = await Container.get(MasterKeyVault).load(therapist.uuid);
                 const projectionFactory = new ProjectionMatrixFactory(new CryptoEngine());
                 const projectionMatrix = projectionFactory.create(masterKey);
-                const biocode = await Container.voiceCalibrator.run(projectionMatrix);
+                const biocode = await Container.get(VoiceCalibrator).run(projectionMatrix);
 
                 therapist.biocode = biocode.projectedVector;
                 this.state.step.set(4);
-                LOGGER.debug('[OnboardingState] calibrateVoice success', { step: 4 });
+                this.logger.debug('[OnboardingState] calibrateVoice success', { step: 4 });
             },
             () => {
-                const ll = Container.appLanguage.getTranslationFunctions(Container.appLanguage.getLocale());
+                const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
                 return ll.onboarding.errorVoiceCalibration();
             },
         );
@@ -74,7 +81,7 @@ export class OnboardingState {
 
     public async copyRecoveryCodeToClipboard(): Promise<void> {
         const code = this.state.recoveryCode.get();
-        LOGGER.debug('[OnboardingState] copyRecoveryCodeToClipboard', {
+        this.logger.debug('[OnboardingState] copyRecoveryCodeToClipboard', {
             hasCode: !!code,
             codeLength: code?.length ?? 0,
         });
@@ -85,30 +92,30 @@ export class OnboardingState {
     }
 
     public async finalize(recoveryCodeSaveConfirmed: boolean): Promise<void> {
-        LOGGER.debug('[OnboardingState] finalize', {
+        this.logger.debug('[OnboardingState] finalize', {
             recoveryCodeSaveConfirmed,
             hasPendingTherapist: this.pendingTherapist != null,
         });
-        const ll = Container.appLanguage.getTranslationFunctions(Container.appLanguage.getLocale());
+        const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
         this.state.error.set(undefined);
         if (!recoveryCodeSaveConfirmed) {
             this.state.error.set(ll.onboarding.errorConfirmSaveCode());
-            LOGGER.debug('[OnboardingState] finalize aborted', { reason: 'recoveryCodeSaveConfirmed false' });
+            this.logger.debug('[OnboardingState] finalize aborted', { reason: 'recoveryCodeSaveConfirmed false' });
             return;
         }
         const therapist = this.pendingTherapist;
         if (!therapist) {
             this.state.error.set(ll.onboarding.errorSessionLost());
-            LOGGER.debug('[OnboardingState] finalize aborted', { reason: 'no pendingTherapist' });
+            this.logger.debug('[OnboardingState] finalize aborted', { reason: 'no pendingTherapist' });
             return;
         }
         try {
-            const repo = await Container.registry.getRepository(Therapist);
+            const repo = await Container.get(Registry).getRepository(Therapist);
             await repo.persist(therapist);
-            Container.startupOrchestrator.run();
-            LOGGER.debug('[OnboardingState] finalize success');
+            Container.get(StartupOrchestrator).run();
+            this.logger.debug('[OnboardingState] finalize success');
         } catch (error: unknown) {
-            LOGGER.debug('[OnboardingState] finalize persist failed', {
+            this.logger.debug('[OnboardingState] finalize persist failed', {
                 error: error instanceof Error ? error.message : String(error),
             });
             this.state.error.set(error instanceof Error ? error.message : ll.onboarding.errorSaveAccount());
@@ -117,32 +124,32 @@ export class OnboardingState {
 
     public async generateAndShareRecoveryKit(): Promise<void> {
         const code = this.state.recoveryCode.get();
-        LOGGER.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
-        const ll = Container.appLanguage.getTranslationFunctions(Container.appLanguage.getLocale());
+        this.logger.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
+        const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
         this.state.error.set(undefined);
-        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, ll.recoveryKit.generatingPdf());
+        Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Pending, ll.recoveryKit.generatingPdf());
         if (!code) {
             this.state.error.set(ll.onboarding.errorNoRecoveryCode());
-            Container.globalActivityStatus.reset('recoveryKit');
+            Container.get(GlobalActivityStatus).reset('recoveryKit');
             return;
         }
         try {
             const uri = await this.recoveryKit.generatePdf(code);
             await this.recoveryKit.share(uri);
-            Container.globalActivityStatus.setStatus(ActivityStatus.Success, ll.recoveryKit.saved());
-            LOGGER.debug('[OnboardingState] generateAndShareRecoveryKit success');
-            Container.globalActivityStatus.reset('recoveryKit');
+            Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Success, ll.recoveryKit.saved());
+            this.logger.debug('[OnboardingState] generateAndShareRecoveryKit success');
+            Container.get(GlobalActivityStatus).reset('recoveryKit');
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : ll.recoveryKit.errorGeneric();
-            LOGGER.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
+            this.logger.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
             this.state.error.set(message);
-            Container.globalActivityStatus.setStatus(ActivityStatus.Error, message);
+            Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Error, message);
         }
     }
 
     public getProfileStepValidation(data: ProfileStepData): ValidationResult {
-        const result = Container.formValidator.validateProfile(data);
-        LOGGER.debug('[OnboardingState] getProfileStepValidation', {
+        const result = Container.get(FormValidator).validateProfile(data);
+        this.logger.debug('[OnboardingState] getProfileStepValidation', {
             success: result.success,
             ...(result.success === false && { errorKeys: Object.keys(result.errors.fieldErrors) }),
         });
@@ -150,24 +157,24 @@ export class OnboardingState {
     }
 
     public goToStep(step: number): void {
-        LOGGER.debug('[OnboardingState] goToStep', { step, stepBefore: this.state.step.get() });
+        this.logger.debug('[OnboardingState] goToStep', { step, stepBefore: this.state.step.get() });
         this.state.error.set(undefined);
         this.state.step.set(step);
     }
 
     public reset(): void {
-        LOGGER.debug('[OnboardingState] reset', { stepBefore: this.state.step.get() });
+        this.logger.debug('[OnboardingState] reset', { stepBefore: this.state.step.get() });
         this.state.step.set(1);
         this.state.error.set(undefined);
         this.state.recoveryCode.set('');
         this.state.isBusy.set(false);
-        this.state.practiceLanguages.set([Container.appLanguage.getLocale()]);
-        Container.globalActivityStatus.reset('recoveryKit');
+        this.state.practiceLanguages.set([Container.get(AppLanguage).getLocale()]);
+        Container.get(GlobalActivityStatus).reset('recoveryKit');
         this.pendingTherapist = null;
     }
 
     public async submit(data: OnboardingFormData): Promise<void> {
-        LOGGER.debug('[OnboardingState] submit', { stepBefore: this.state.step.get(), data });
+        this.logger.debug('[OnboardingState] submit', { stepBefore: this.state.step.get(), data });
         const practiceLanguages = this.state.practiceLanguages.get() ?? [];
         await this.runAsyncAction(
             async () => {
@@ -176,17 +183,17 @@ export class OnboardingState {
                 const recovery = new RecoveryCode();
                 const forge = new TherapistForge(crypto, recovery);
                 const { therapist, artifacts } = forge.create(input);
-                await Container.masterKeyVault.save(therapist.uuid, artifacts.masterKey);
+                await Container.get(MasterKeyVault).save(therapist.uuid, artifacts.masterKey);
                 this.pendingTherapist = therapist;
                 this.state.recoveryCode.set(artifacts.recoveryCode);
                 this.state.step.set(3);
-                LOGGER.debug('[OnboardingState] submit success', {
+                this.logger.debug('[OnboardingState] submit success', {
                     step: 3,
                     recoveryCodeLength: artifacts.recoveryCode?.length ?? 0,
                 });
             },
             () => {
-                const ll = Container.appLanguage.getTranslationFunctions(Container.appLanguage.getLocale());
+                const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
                 return ll.onboarding.errorAccountCreation();
             },
         );
@@ -218,7 +225,7 @@ export class OnboardingState {
         try {
             await action();
         } catch (error: unknown) {
-            LOGGER.debug('[OnboardingState] runAsyncAction caught', {
+            this.logger.debug('[OnboardingState] runAsyncAction caught', {
                 error: error instanceof Error ? error.message : String(error),
                 stack: error instanceof Error ? error.stack : undefined,
             });
@@ -233,3 +240,5 @@ export class OnboardingState {
         }
     }
 }
+
+Container.register(OnboardingState, () => new OnboardingState(Container.get(MasterKeyVault), AppLogger.getInstance()));

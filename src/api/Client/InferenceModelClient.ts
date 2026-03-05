@@ -22,7 +22,7 @@ export class InferenceModelClient extends AbstractClient {
      * Resolves one model configuration per capability. Pass app locale from AppLanguage.getLocale() (primary tag: en, fr) to match API variant.language (same format).
      */
     public async getInferenceModels(appLanguage?: string): Promise<Record<string, ModelConfig>> {
-        const list = await this.fetchDataWithName<InferenceModel[]>(
+        const list = await this.fetchWithCachedData<InferenceModel[]>(
             () => getInferenceModels({ client: this.client, throwOnError: true }),
             InferenceModelClient.cacheKeyInferenceModels,
         );
@@ -32,6 +32,14 @@ export class InferenceModelClient extends AbstractClient {
             const variant = this.resolveVariant(model.variants, appLanguage);
             if (variant != null) {
                 const { id, version, files, minAppVersion } = variant;
+
+                // Defensive check to ensure variant has required fields
+                if (!id) {
+                    throw new Error(
+                        `Model variant for capability '${model.capability}' has no id. This may indicate an API response issue.`,
+                    );
+                }
+
                 result[model.capability] = {
                     capability: model.capability,
                     id,

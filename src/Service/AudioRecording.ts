@@ -6,8 +6,9 @@
 
 import { computed, type Observable, type ObservableComputed, observable } from '@legendapp/state';
 import { v4 as uuidv4 } from 'uuid';
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 import { RecorderState, SecureRecorder } from '../../modules/secure-recorder/src/index';
 
 export interface AudioRecordingState {
@@ -34,7 +35,7 @@ export class AudioRecording {
     private recordingStartTime: number | null = null;
     private state$: Observable<AudioRecordingState>;
 
-    constructor(logger: LoggerInterface = Container.logger) {
+    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
         this.loggerInstance = logger;
         this.state$ = observable<AudioRecordingState>({
             state: RecorderState.INACTIVE,
@@ -335,6 +336,8 @@ export class AudioRecording {
  * }, []);
  * ```
  */
+Container.register(AudioRecording, () => new AudioRecording(AppLogger.getInstance()));
+
 export function useAudioRecording(): AudioRecording {
-    return Container.audioRecording;
+    return Container.get(AudioRecording);
 }

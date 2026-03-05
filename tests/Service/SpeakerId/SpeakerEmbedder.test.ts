@@ -8,7 +8,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exception';
 import { SpeakerEmbedder } from '@/Service/SpeakerId/SpeakerEmbedder';
 import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
-import { Container } from '@/Container';
 
 // Mock onnxruntime-react-native
 const mockInferenceSession = {
@@ -47,12 +46,16 @@ vi.mock('@/Math/AudioFeatureExtractor', () => {
 });
 
 // Mock Logger
+const mockLoggerInstance = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 vi.mock('@/Service/Logger', () => ({
     AppLogger: {
-        debug: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
+        getInstance: () => mockLoggerInstance,
     },
 }));
 
@@ -103,7 +106,7 @@ describe('SpeakerEmbedder', () => {
                 '/mock/model/path.onnx',
                 { executionProviders: ['cpu'] }
             );
-            expect(Container.logger.info).toHaveBeenCalledWith('SpeakerEmbedder initialized successfully');
+            expect(mockLoggerInstance.info).toHaveBeenCalledWith('SpeakerEmbedder initialized successfully');
         });
 
         it('handles absolute file paths directly', async () => {

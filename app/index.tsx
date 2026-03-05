@@ -7,12 +7,12 @@
 import { observer } from '@legendapp/state/react';
 import { useRouter } from 'expo-router';
 import type React from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { AppConfig } from '@/Config';
 import { Database } from '@/Database/Database';
-import { STARTUP_ORCHESTRATOR, StartupState } from '@/State/StartupOrchestrator';
+import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
 
 async function hideSplash(): Promise<void> {
     try {
@@ -27,6 +27,7 @@ export default observer(function GateScreen(): React.JSX.Element | null {
     const theme = useTheme();
     const router = useRouter();
     const bootStarted = useRef(false);
+    const startupOrchestrator = useMemo(() => new StartupOrchestrator(), []);
 
     useEffect(() => {
         if (bootStarted.current) {
@@ -38,7 +39,7 @@ export default observer(function GateScreen(): React.JSX.Element | null {
             // optionally clear DB on launch when explicitly enabled via env.
             // fallback to AppConfig.isDev only for safety; the flag gives developers control
             // without having to rebuild the binary.
-            const appConfig = new AppConfig();
+            const appConfig = AppConfig.getInstance();
             if (appConfig.isDev && appConfig.shouldClearDbOnLaunch) {
                 try {
                     await Database.reset();
@@ -48,11 +49,11 @@ export default observer(function GateScreen(): React.JSX.Element | null {
             }
 
             await Database.initialize();
-            await STARTUP_ORCHESTRATOR.run();
+            await startupOrchestrator.run();
         })();
-    }, []);
+    }, [startupOrchestrator.run]);
 
-    const state = STARTUP_ORCHESTRATOR.stateObservable.get();
+    const state = startupOrchestrator.stateObservable.get();
 
     useEffect(() => {
         if (state === StartupState.Booting) {

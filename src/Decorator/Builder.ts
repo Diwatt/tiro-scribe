@@ -60,7 +60,7 @@ export class Builder {
             const opts = options ?? {};
             Builder.validateOptions(config, opts);
             return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
-                if (new AppConfig().isDev && config.unique === true && config.decoratorName != null) {
+                if (AppConfig.getInstance().isDev && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;
                     Builder.schemaValidator.ensurePropertyDecoratorUniqueness(
                         meta,
@@ -90,7 +90,7 @@ export class Builder {
         config: { schema?: OptionsSchema; errorCode?: string; validate?: (opts: object) => void },
         opts: object,
     ): void {
-        if (!new AppConfig().isDev) {
+        if (!AppConfig.getInstance().isDev) {
             return;
         }
 

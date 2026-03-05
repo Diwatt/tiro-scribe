@@ -6,22 +6,24 @@
  * handled by the inference model downloader as before.
  */
 
-import type { LoggerInterface } from '@/Container';
 import { Container } from '@/Container';
-
+import { InMemoryAudioRecorder } from '@/Service';
+import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import type { LoggerInterface } from '@/Service/Logger';
+import { AppLogger } from '@/Service/Logger';
 // InMemoryAudioRecorder provides a privacy‑preserving in‑RAM capture
 // worklet logic; the recorder now encapsulates that behaviour so the service
 // itself remains lean and free from any react-native-worklets dependency.
 import type { Biocode } from './Biocode';
-import type { BiocodeFactory } from './BiocodeFactory';
-import type { SpeakerEmbedder } from './SpeakerEmbedder';
+import { BiocodeFactory } from './BiocodeFactory';
+import { SpeakerEmbedder } from './SpeakerEmbedder';
 import type { SpeakerVector } from './SpeakerVector';
 
 export class VoiceCalibrator {
     public constructor(
-        private readonly _speakerEmbedder: SpeakerEmbedder,
-        private readonly biocodeFactory: BiocodeFactory,
-        private readonly logger: LoggerInterface,
+        private readonly _speakerEmbedder: SpeakerEmbedder = Container.get(SpeakerEmbedder),
+        private readonly biocodeFactory: BiocodeFactory = Container.get(BiocodeFactory),
+        private readonly logger: LoggerInterface = AppLogger.getInstance(),
         private readonly calibrationDurationMs: number = 5000,
     ) {}
 
@@ -36,7 +38,7 @@ export class VoiceCalibrator {
         let pcm: Float32Array;
 
         try {
-            pcm = await Container.inMemoryAudioRecorder.capture(this.calibrationDurationMs);
+            pcm = await Container.get(InMemoryAudioRecorder).capture(this.calibrationDurationMs);
         } catch (err: unknown) {
             this.logger.error('[VoiceCalibrator] audio capture failed', {
                 error: err instanceof Error ? err.message : String(err),
@@ -56,10 +58,10 @@ export class VoiceCalibrator {
      */
     private async extractSpeakerVectorFromBuffer(pcm: Float32Array): Promise<SpeakerVector> {
         try {
-            const executor = await Container.inferenceModelDownloader.download('speaker_id');
-            let artifactPath = Container.inferenceModelDownloader.getLocalPath('speaker_id');
+            const executor = await Container.get(InferenceModelDownloader).download('speaker_id');
+            let artifactPath = Container.get(InferenceModelDownloader).getLocalPath('speaker_id');
             if (!artifactPath && executor.config && executor.config.files.length > 0) {
-                artifactPath = Container.inferenceModelDownloader.getLocalPathForFile(
+                artifactPath = Container.get(InferenceModelDownloader).getLocalPathForFile(
                     executor.config,
                     executor.config.files[0],
                 );
@@ -80,3 +82,8 @@ export class VoiceCalibrator {
         }
     }
 }
+
+Container.register(
+    VoiceCalibrator,
+    () => new VoiceCalibrator(Container.get(SpeakerEmbedder), Container.get(BiocodeFactory), AppLogger.getInstance()),
+);

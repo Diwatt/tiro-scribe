@@ -11,7 +11,7 @@ import { DownloadQueue } from '@/Entity/DownloadQueue';
 import { DownloadQueueStatus } from '@/Entity/Type';
 import { InferenceModelDownloaderException } from '@/Exception';
 import type { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
-import type { LoggerInterface } from '../../Container';
+import type { LoggerInterface } from '../../Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { DownloadTaskExecutor } from './DownloadTaskExecutor';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';

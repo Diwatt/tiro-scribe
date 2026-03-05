@@ -3,15 +3,16 @@ import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, Button, HelperText, useTheme } from 'react-native-paper';
 import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization';
+import { useAppLanguage } from '@/Localization/AppLanguage';
+import { OnboardingState } from '@/State/Onboarding/State';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useAppLanguage();
     const actions = theme.colors.actions;
-    const error = Container.onboardingState.state.error.get();
-    const isBusy = Container.onboardingState.state.isBusy.get();
+    const error = Container.get(OnboardingState).state.error.get();
+    const isBusy = Container.get(OnboardingState).state.isBusy.get();
 
     return (
         <View style={STYLES.stepRoot}>
@@ -34,7 +35,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                 <>
                     <Button
                         mode="contained"
-                        onPress={() => Container.onboardingState.calibrateVoice()}
+                        onPress={() => Container.get(OnboardingState).calibrateVoice()}
                         style={[STYLES.primaryButton, { backgroundColor: actions.primary.background }]}
                         contentStyle={STYLES.primaryButtonContent}
                     >
@@ -42,7 +43,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                     </Button>
                     <Button
                         mode="text"
-                        onPress={() => Container.onboardingState.reset()}
+                        onPress={() => Container.get(OnboardingState).reset()}
                         style={STYLES.backButton}
                         contentStyle={STYLES.primaryButtonContent}
                     >
