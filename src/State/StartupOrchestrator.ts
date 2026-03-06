@@ -5,13 +5,13 @@
 
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
-import { Container } from '@/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { Registry } from '@/Database/Registry';
-import { AppLanguage } from '@/Localization/AppLanguage';
+import { Localization } from '@/Localization';
 import type { TherapistRepository } from '@/Repository/TherapistRepository';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
-import { AppLogger } from '@/Service/Logger';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { Therapist } from '../Entity/Therapist';
 import { DownloadState } from '../Service/InferenceModelDownload/Type';
@@ -42,7 +42,8 @@ export class StartupOrchestrator {
 
         // show an initial pending status during app boot; hide it after 5 seconds
         const startupDelayMs = 5000;
-        const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
+        const l11n = Container.get(Localization);
+        const ll = l11n.getTranslationFunctions(l11n.getLocale());
         Container.get(GlobalActivityStatus).setStatus(
             ActivityStatus.Pending,
             ll.activity.starting(),
@@ -78,7 +79,8 @@ export class StartupOrchestrator {
     private async downloadSpeakerId(bootStart: number): Promise<void> {
         const autoHideDelayMs = 3000; // 3 seconds
         const startupDelayMs = 5000;
-        const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
+        const l11n = Container.get(Localization);
+        const ll = l11n.getTranslationFunctions(l11n.getLocale());
 
         // initial pending status; progress will update it
         Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Pending, ll.download.speakerModel());
@@ -117,7 +119,7 @@ export class StartupOrchestrator {
                 if (state === DownloadState.Completed) {
                     showSuccess();
                 } else if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
-                    AppLogger.getInstance().error('Speaker model download failed', {
+                    Container.get(AppLogger).error('Speaker model download failed', {
                         error: executor.getError(),
                     });
                     Container.get(GlobalActivityStatus).setStatus(
@@ -133,7 +135,7 @@ export class StartupOrchestrator {
             if (initialState === DownloadState.Completed) {
                 showSuccess();
             } else if (initialState === DownloadState.Failed || initialState === DownloadState.Cancelled) {
-                AppLogger.getInstance().error('Speaker model download failed', {
+                Container.get(AppLogger).error('Speaker model download failed', {
                     error: executor.getError(),
                 });
                 Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Error, ll.download.speakerModelError());
@@ -141,7 +143,7 @@ export class StartupOrchestrator {
         } catch (err) {
             // any problem starting or observing download
             const errorMessage = err instanceof Error ? err.message : String(err);
-            AppLogger.getInstance().error('Speaker model download failed', {
+            Container.get(AppLogger).error('Speaker model download failed', {
                 error: errorMessage,
                 errorDetails: err instanceof Error ? err.stack : undefined,
             });
@@ -150,5 +152,3 @@ export class StartupOrchestrator {
         }
     }
 }
-
-Container.register(StartupOrchestrator);

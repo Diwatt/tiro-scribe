@@ -10,15 +10,14 @@
 
 import { Directory, File, Paths } from 'expo-file-system';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
-import { AppConfig } from '@/Config';
+import type { AppConfig } from '@/Core/AppConfig';
+import type { AppLogger } from '@/Core/AppLogger';
 import { InferenceModelDownloaderException } from '@/Exception';
-import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
 
 export class ModelArtifactStorage {
     public constructor(
-        private readonly logger: LoggerInterface = AppLogger.getInstance(),
-        private readonly appConfig: AppConfig = AppConfig.getInstance(),
+        private readonly logger: AppLogger,
+        private readonly appConfig: AppConfig,
     ) {}
 
     /**

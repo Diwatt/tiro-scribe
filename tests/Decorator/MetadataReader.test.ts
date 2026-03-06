@@ -10,7 +10,7 @@ import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import type { MetadataConstructor, MetadataMap } from '@/Decorator/Type';
 import { vi, describe, it, expect } from 'vitest';
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),

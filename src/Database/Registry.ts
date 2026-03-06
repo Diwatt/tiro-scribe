@@ -6,8 +6,8 @@
  * Custom repository: @Entity({ repositoryClass: 'TherapistRepository' }) — must be exported from @/Repository.
  */
 
-import { Container } from '@/Container';
-import { TherapistRepository } from '@/Repository/TherapistRepository';
+import { Container } from '@/Core/Container';
+import * as RepositoriesModule from '@/Repository';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
 import { EntityMetadata } from './Decorator';
@@ -17,9 +17,6 @@ import type { EntityClass } from './Type';
 // constructor signature for any custom repository class; arguments are
 // intentionally loose because some repos take parameters (e.g. vault/db).
 type RepoCtor = new (...args: unknown[]) => Repository;
-
-// we cast the auto-generated `Repositories` object to this shape once below
-// so that the lookup code is clean and readable.
 
 const ERROR_CODES = {
     entityNameRequired: 'ENTITY_NAME_REQUIRED',
@@ -33,11 +30,11 @@ export class Registry {
      * Return a repository for the given entity class.
      *
      * A generic type parameter may be supplied to obtain autocompletion in
-     * callers (e.g. `await registry.getRepository<TherapistRepository>(Therapist)`),
+     * callers (e.g. `registry.getRepository<TherapistRepository>(Therapist)`),
      * but it is not enforced at runtime.
      */
     // generic parameter is purely for caller autocomplete; no runtime guarantee
-    public async getRepository<R = Repository>(EntityClass: EntityClass): Promise<R> {
+    public getRepository<R = Repository>(EntityClass: EntityClass): R {
         const entityName = EntityClass.entityName;
         if (!entityName) {
             throw new DatabaseException(
@@ -59,11 +56,10 @@ export class Registry {
         const repositoryClassName = meta.getRepositoryClassName();
         let customClass: RepoCtor | undefined;
         if (repositoryClassName) {
-            // perform a typed lookup on the Repositories export object – we
-            // alias it via RepoCtor above so that we don't have to repeat the
-            // cast at the call site or resort to `any`.
-            const repoLookup: Record<string, RepoCtor> = { TherapistRepository: TherapistRepository as RepoCtor };
-            const repoClass = repoLookup[repositoryClassName];
+            // Dynamically lookup any repository exported from @/Repository
+            const repoClass = (RepositoriesModule as Record<string, unknown>)[repositoryClassName] as
+                | RepoCtor
+                | undefined;
             if (repoClass == null) {
                 throw new DatabaseException(
                     `Custom repository '${repositoryClassName}' is not exported from @/Repository. Add it to src/Repository/index.ts.`,
@@ -81,4 +77,4 @@ export class Registry {
     }
 }
 
-Container.register(Registry);
+Container.register(Registry, () => new Registry()); // Register Registry with a factory to ensure it's initialized properly

@@ -8,9 +8,8 @@
 
 import { CompiledQuery, type Kysely } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
+import type { AppLogger } from '@/Core/AppLogger';
 import type { DatabaseSchema } from '@/Database/Type';
-import { AppLogger, type LoggerInterface } from '../../Service/Logger';
-
 import type { TableDefinition } from './TableDefinition';
 
 /** Row shape returned by PRAGMA table_info(table). Keys match SQLite (e.g. "name"). */
@@ -19,9 +18,9 @@ type TableInfoRow = Record<string, unknown> & { name?: string };
 /** Executes schema SQL (Data Definition Language: CREATE TABLE, ADD COLUMN for missing columns, CREATE INDEX, full-text search table, triggers). */
 export class DefinitionLanguageWriter {
     private readonly db: Kysely<DatabaseSchema>;
-    private readonly logger: LoggerInterface;
+    private readonly logger: AppLogger;
 
-    public constructor(db: Kysely<DatabaseSchema>, logger: LoggerInterface = AppLogger.getInstance()) {
+    public constructor(db: Kysely<DatabaseSchema>, logger: AppLogger) {
         this.db = db;
         this.logger = logger;
     }

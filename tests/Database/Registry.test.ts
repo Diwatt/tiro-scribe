@@ -3,11 +3,11 @@
  * SUT: Registry (getRepository). Repository creation is exercised; DB may be required for full stack.
  */
 
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
 import { vi, describe, it, expect } from 'vitest';
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),

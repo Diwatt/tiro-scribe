@@ -6,11 +6,10 @@
  * handled by the inference model downloader as before.
  */
 
-import { Container } from '@/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { InMemoryAudioRecorder } from '@/Service';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
-import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
 // InMemoryAudioRecorder provides a privacy‑preserving in‑RAM capture
 // worklet logic; the recorder now encapsulates that behaviour so the service
 // itself remains lean and free from any react-native-worklets dependency.
@@ -23,7 +22,7 @@ export class VoiceCalibrator {
     public constructor(
         private readonly _speakerEmbedder: SpeakerEmbedder = Container.get(SpeakerEmbedder),
         private readonly biocodeFactory: BiocodeFactory = Container.get(BiocodeFactory),
-        private readonly logger: LoggerInterface = AppLogger.getInstance(),
+        private readonly logger: AppLogger,
         private readonly calibrationDurationMs: number = 5000,
     ) {}
 
@@ -85,5 +84,5 @@ export class VoiceCalibrator {
 
 Container.register(
     VoiceCalibrator,
-    () => new VoiceCalibrator(Container.get(SpeakerEmbedder), Container.get(BiocodeFactory), AppLogger.getInstance()),
+    () => new VoiceCalibrator(Container.get(SpeakerEmbedder), Container.get(BiocodeFactory), Container.get(AppLogger)),
 );

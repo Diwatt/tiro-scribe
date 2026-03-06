@@ -310,7 +310,7 @@ const mockLogger = {
     error: vi.fn(),
 };
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         info: vi.fn(),
         debug: vi.fn(),
@@ -542,28 +542,45 @@ vi.mock('@/Container', () => {
         error: vi.fn(),
     };
 
-    const Container = {
+    const Container: any = {
         register: vi.fn(),
-        get: vi.fn((token: any) => {
-            // Handle QueryBuilder symbol
-            if (token && typeof token === 'symbol' && token.toString().includes('Kysely')) {
-                return testKysely;
+        get: vi.fn(),
+        // ... other properties will be added below
+    };
+    
+    // Set up the actual get function that references Container after it's created
+    Container.get = vi.fn((token: any) => {
+        // Handle QueryBuilder class token or symbol
+        if (token && (token.name === 'QueryBuilder' || (typeof token === 'symbol' && token.toString().includes('Kysely')))) {
+            return testKysely;
+        }
+        // Handle AppLogger class
+        if (token && token.name === 'AppLogger') {
+            return mockLogger;
+        }
+        // Handle AppConfig class
+        if (token && token.name === 'AppConfig') {
+            return {
+                isDev: true,
+                databaseName: 'test-database.sqlite',
+                projectionSalt: 'test-salt',
+            };
+        }
+        // Handle other classes by looking them up in the Container mock itself
+        if (token && typeof token === 'function' && token.name) {
+            const tokenName = token.name;
+            // Convert class name to camelCase property name (e.g., InferenceModelDownloader -> inferenceModelDownloader)
+            const propertyName = tokenName.charAt(0).toLowerCase() + tokenName.slice(1);
+            if (propertyName in Container) {
+                return Container[propertyName];
             }
-            // Handle AppLogger class
-            if (token && token.name === 'AppLogger') {
-                return { loggerInstance: mockLogger };
-            }
-            // Handle AppConfig class
-            if (token && token.name === 'AppConfig') {
-                return {
-                    isDev: true,
-                    databaseName: 'test-database.sqlite',
-                    projectionSalt: 'test-salt',
-                };
-            }
-            // Default: return undefined
-            return undefined;
-        }),
+        }
+        // Default: return undefined
+        return undefined;
+    });
+    
+    // Assign remaining properties to Container
+    Object.assign(Container, {
         logger: mockLogger,
         apiClientRegistry: {
             get: vi.fn().mockReturnValue({
@@ -580,6 +597,15 @@ vi.mock('@/Container', () => {
             }))
         },
         appLanguage: { getTranslationFunctions: vi.fn() },
+        localization: { 
+            getTranslationFunctions: vi.fn().mockReturnValue({
+                COMMON: {
+                    LOADING: "Loading...",
+                },
+            }),
+            getDeviceLocale: vi.fn().mockReturnValue("en"),
+            getLocale: vi.fn().mockReturnValue("en"),
+        },
         audioRecording: {},
         deviceCompatibilityGate: {},
         formValidator: {},
@@ -715,7 +741,7 @@ vi.mock('@/Container', () => {
             }
         },
         voiceCalibrator: {},
-    };
+    });
 
     return {
         Container,
@@ -730,28 +756,45 @@ vi.mock('@/Container-enhanced', () => {
         error: vi.fn(),
     };
 
-    const Container = {
+    const Container: any = {
         register: vi.fn(),
-        get: vi.fn((token: any) => {
-            // Handle QueryBuilder symbol
-            if (token && typeof token === 'symbol' && token.toString().includes('Kysely')) {
-                return testKysely;
+        get: vi.fn(),
+        // ... other properties will be added below
+    };
+    
+    // Set up the actual get function that references Container after it's created
+    Container.get = vi.fn((token: any) => {
+        // Handle QueryBuilder class token or symbol
+        if (token && (token.name === 'QueryBuilder' || (typeof token === 'symbol' && token.toString().includes('Kysely')))) {
+            return testKysely;
+        }
+        // Handle AppLogger class
+        if (token && token.name === 'AppLogger') {
+            return mockLogger;
+        }
+        // Handle AppConfig class
+        if (token && token.name === 'AppConfig') {
+            return {
+                isDev: true,
+                databaseName: 'test-database.sqlite',
+                projectionSalt: 'test-salt',
+            };
+        }
+        // Handle other classes by looking them up in the Container mock itself
+        if (token && typeof token === 'function' && token.name) {
+            const tokenName = token.name;
+            // Convert class name to camelCase property name (e.g., InferenceModelDownloader -> inferenceModelDownloader)
+            const propertyName = tokenName.charAt(0).toLowerCase() + tokenName.slice(1);
+            if (propertyName in Container) {
+                return Container[propertyName];
             }
-            // Handle AppLogger class
-            if (token && token.name === 'AppLogger') {
-                return { loggerInstance: mockLogger };
-            }
-            // Handle AppConfig class
-            if (token && token.name === 'AppConfig') {
-                return {
-                    isDev: true,
-                    databaseName: 'test-database.sqlite',
-                    projectionSalt: 'test-salt',
-                };
-            }
-            // Default: return undefined
-            return undefined;
-        }),
+        }
+        // Default: return undefined
+        return undefined;
+    });
+    
+    // Assign remaining properties to Container
+    Object.assign(Container, {
         logger: mockLogger,
         apiClientRegistry: {
             get: vi.fn().mockReturnValue({
@@ -910,7 +953,7 @@ vi.mock('@/Container-enhanced', () => {
             }
         },
         voiceCalibrator: {},
-    };
+    });
 
     return {
         Container,
@@ -937,6 +980,13 @@ vi.mock('expo-audio', () => ({
         isRecording: false,
     })),
 }));
+
+// Mock @/App/Container by aliasing it to the @/Container mock
+vi.mock('@/App/Container', async () => {
+    // Import the actual @/Container mock that was already set up above
+    const containerMock = await vi.importMock('@/Container');
+    return containerMock;
+});
 
 vi.mock('uuid', () => ({
     v4: vi.fn(() => 'mock-uuid-v4'),

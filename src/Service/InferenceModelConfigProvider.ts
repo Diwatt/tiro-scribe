@@ -6,16 +6,16 @@
 import type { ModelConfig } from '@/Api';
 import { InferenceModelClient } from '@/Api';
 import { ApiClientRegistry } from '@/Api/ApiClientRegistry';
-import { Container } from '@/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { ApiClientException, InferenceModelDownloaderException } from '@/Exception';
-import { AppLogger, type LoggerInterface } from '@/Service/Logger';
 
 enum ErrorCodes {
     UnknownCapability = 'UNKNOWN_CAPABILITY',
 }
 
 export class InferenceModelConfigProvider {
-    public constructor(private readonly logger: LoggerInterface = AppLogger.getInstance()) {}
+    public constructor(private readonly logger: AppLogger) {}
 
     /**
      * Get a single model configuration by capability key.
@@ -98,4 +98,4 @@ export class InferenceModelConfigProvider {
     }
 }
 
-Container.register(InferenceModelConfigProvider, () => new InferenceModelConfigProvider(AppLogger.getInstance()));
+Container.register(InferenceModelConfigProvider, () => new InferenceModelConfigProvider(Container.get(AppLogger)));

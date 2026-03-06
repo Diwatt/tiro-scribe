@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock AppConfig FIRST - before any imports that use decorators
-vi.mock('@/Config/AppConfig', () => ({
+vi.mock('@/App/AppConfig', () => ({
     AppConfig: {
         getInstance: vi.fn(() => ({
             databaseName: 'test-database.sqlite',
@@ -11,7 +11,7 @@ vi.mock('@/Config/AppConfig', () => ({
 }));
 
 // Then mock other dependencies
-vi.mock('@/Service/Logger', () => ({
+vi.mock('@/App/AppLogger', () => ({
     AppLogger: {
         getInstance: vi.fn(() => ({
             debug: vi.fn(),
@@ -36,9 +36,9 @@ vi.mock('kysely-expo', () => ({
 // NOW import Database and other modules after mocks are set up
 import { Database } from '@/Database/Database';
 import { deleteDatabaseAsync } from 'expo-sqlite';
-import { AppLogger } from '@/Service/Logger';
-import { AppConfig } from '@/Config/AppConfig';
-import { Container } from '@/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { AppConfig } from '@/Core/AppConfig';
+import { Container } from '@/Core/Container';
 
 // Mock only the transaction executor adapter check, use real testKysely for everything else
 vi.mock('kysely', async (importOriginal) => {
@@ -81,6 +81,17 @@ describe('Database utility methods', () => {
             isDev: false,
         };
         vi.mocked(AppConfig.getInstance).mockReturnValue(appConfigMock);
+        
+        // Mock Container.get to return the mocked instances
+        vi.spyOn(Container, 'get').mockImplementation((cls: any) => {
+            if (cls === AppLogger) {
+                return loggerMock;
+            }
+            if (cls === AppConfig) {
+                return appConfigMock;
+            }
+            return undefined;
+        });
         
         // Ensure any leftover singleton is cleared so tests don't interfere
         (Database as any).instance = null;

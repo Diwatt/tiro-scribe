@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectionMatrixFactory } from '../../src/Math/ProjectionMatrixFactory';
 import { VectorProjection } from '../../src/Math/VectorProjection';
 import { CryptoEngine } from '../../src/Security/CryptoEngine';
-import { AppConfig } from '../../src/Config';
+import { AppConfig } from '@/Core/AppConfig';
 
 vi.mock('../../src/Config/AppConfig', () => {
     const instance = { projectionSalt: 'biocode_projection' };

@@ -5,11 +5,10 @@
  */
 
 import { computed, type Observable, type ObservableComputed, observable } from '@legendapp/state';
+import { RecorderState, SecureRecorder } from 'secure-recorder';
 import { v4 as uuidv4 } from 'uuid';
-import { Container } from '@/Container';
-import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
-import { RecorderState, SecureRecorder } from '../../modules/secure-recorder/src/index';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 
 export interface AudioRecordingState {
     state: RecorderState;
@@ -30,21 +29,21 @@ const DURATION_TICK_MS = 100;
 export class AudioRecording {
     private _isRecording$: ObservableComputed<boolean>;
     private durationIntervalId: ReturnType<typeof setInterval> | null = null;
-    private loggerInstance: LoggerInterface;
+    private loggerInstance: AppLogger;
     private recorder: SecureRecorder | null = null;
     private recordingStartTime: number | null = null;
     private state$: Observable<AudioRecordingState>;
 
-    constructor(logger: LoggerInterface = AppLogger.getInstance()) {
+    constructor(logger: AppLogger) {
         this.loggerInstance = logger;
         this.state$ = observable<AudioRecordingState>({
-            state: RecorderState.INACTIVE,
+            state: RecorderState.Inactive,
             filePath: null,
             durationMs: 0,
         });
         // Create computed observable once - it will track state changes
         this._isRecording$ = computed((): boolean => {
-            return this.state$.state.get() === RecorderState.RECORDING;
+            return this.state$.state.get() === RecorderState.Recording;
         });
     }
 
@@ -85,7 +84,7 @@ export class AudioRecording {
      * Get snapshot of whether currently recording
      */
     get isRecording(): boolean {
-        return this.state$.state.get() === RecorderState.RECORDING;
+        return this.state$.state.get() === RecorderState.Recording;
     }
 
     /**
@@ -128,7 +127,7 @@ export class AudioRecording {
 
             this.state$.state.set(newState);
             this.state$.filePath.set(newFilePath);
-            if (newState === RecorderState.RECORDING) {
+            if (newState === RecorderState.Recording) {
                 this.startDurationTicker();
             }
         } catch (error) {
@@ -227,7 +226,7 @@ export class AudioRecording {
      * Ensure recorder exists, creating it if needed
      */
     private async ensureRecorder(): Promise<void> {
-        if (this.recorder?.state === RecorderState.STOPPED) {
+        if (this.recorder?.state === RecorderState.Stopped) {
             this.loggerInstance.debug('🔄 [AudioRecording] Recorder is STOPPED, creating new instance');
             // Dispose old recorder to remove event listeners
             this.recorder.dispose();
@@ -274,7 +273,7 @@ export class AudioRecording {
                 reason: event.reason,
             });
 
-            const wasRecording = this.state$.state.get() === RecorderState.RECORDING;
+            const wasRecording = this.state$.state.get() === RecorderState.Recording;
 
             // Event handlers automatically update observable state
             this.state$.state.set(event.state);
@@ -283,7 +282,7 @@ export class AudioRecording {
             }
 
             // Start/stop duration timer with recording state
-            if (event.state === RecorderState.RECORDING) {
+            if (event.state === RecorderState.Recording) {
                 this.startDurationTicker();
             } else if (wasRecording) {
                 this.stopDurationTicker();
@@ -336,7 +335,7 @@ export class AudioRecording {
  * }, []);
  * ```
  */
-Container.register(AudioRecording, () => new AudioRecording(AppLogger.getInstance()));
+Container.register(AudioRecording, () => new AudioRecording(Container.get(AppLogger)));
 
 export function useAudioRecording(): AudioRecording {
     return Container.get(AudioRecording);

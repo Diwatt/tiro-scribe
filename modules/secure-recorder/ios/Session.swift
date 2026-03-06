@@ -121,7 +121,7 @@ class Session {
     let queue = DispatchQueue(label: "com.tiroscribe.secure-recorder.pipeline", qos: .userInitiated)
     recordingQueue = queue
     
-    queue.async { [weak pipelineRef, weak self] in
+    queue.async { [weak pipelineRef] in
       pipelineRef?.process()
       // Pipeline loop completed (limit reached or error)
       // EventHandler will handle cleanup via onLimitReached/onError

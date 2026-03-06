@@ -10,7 +10,7 @@ import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { AppConfig } from '@/Config';
+import { AppConfig } from '@/Core/AppConfig';
 import { Database } from '@/Database/Database';
 import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
 

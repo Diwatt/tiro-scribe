@@ -6,7 +6,7 @@
  */
 
 import { qr, reshape, transpose } from 'mathjs';
-import { AppConfig } from '@/Config';
+import { AppConfig } from '@/Core/AppConfig';
 import type { CryptoEngine } from '../Security/CryptoEngine';
 
 /**

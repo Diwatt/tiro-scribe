@@ -16,15 +16,13 @@ export type ModelConfig = Pick<InferenceModelVariant, 'id' | 'version' | 'files'
 export type InferenceModelMap = Record<string, InferenceModel>;
 
 export class InferenceModelClient extends AbstractClient {
-    private static readonly cacheKeyInferenceModels = 'inference-models';
-
     /**
-     * Resolves one model configuration per capability. Pass app locale from AppLanguage.getLocale() (primary tag: en, fr) to match API variant.language (same format).
+     * Resolves one model configuration per capability. Pass app locale from Localization.getLocale() (primary tag: en, fr) to match API variant.language (same format).
      */
     public async getInferenceModels(appLanguage?: string): Promise<Record<string, ModelConfig>> {
         const list = await this.fetchWithCachedData<InferenceModel[]>(
             () => getInferenceModels({ client: this.client, throwOnError: true }),
-            InferenceModelClient.cacheKeyInferenceModels,
+            'inference-models',
         );
         const result: Record<string, ModelConfig> = {};
 

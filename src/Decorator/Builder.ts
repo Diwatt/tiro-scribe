@@ -7,7 +7,7 @@
  * The only generic (T in buildClass) preserves the decorated class type so static members (e.g. entityName) stay typed.
  */
 
-import { AppConfig } from '@/Config/AppConfig';
+import { AppConfig } from '@/Core/AppConfig';
 import { SchemaValidator } from './SchemaValidator';
 import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } from './Type';
 

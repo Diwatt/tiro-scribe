@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 
 const LOG_PREFIX = '[TiroScribe]';
 
@@ -21,7 +22,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     public override state: State = { error: null };
 
     public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-        AppLogger.getInstance().error(`${LOG_PREFIX} AppErrorBoundary caught render error:`, {
+        Container.get(AppLogger).error(`${LOG_PREFIX} AppErrorBoundary caught render error:`, {
             error,
             errorMessage: error?.message,
             errorStack: error?.stack,

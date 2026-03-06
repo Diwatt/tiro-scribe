@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import { ProgressBar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { Container } from '@/Core/Container';
+import { useLocalization } from '@/Localization/Localization';
 import { ONBOARDING_STEPS, type OnboardingFormData, Schema } from '@/State/Onboarding';
+import { OnboardingState } from '@/State/Onboarding/State';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { StepAccount } from './StepAccount';
 import { StepProfile } from './StepProfile';
@@ -32,7 +33,7 @@ const STEP_VIEWS = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
 
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
-    const { locale, LL } = useAppLanguage();
+    const { locale, LL } = useLocalization();
     const rawStep = Container.get(OnboardingState).state.step.get() ?? 1;
     const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
     const progress = step / ONBOARDING_STEPS;

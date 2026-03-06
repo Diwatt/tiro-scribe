@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getStatusColors, readFromStore } from '@/Components/GlobalActivityBar.utils';
-import { Container } from '@/Container';
+import { getStatusColors } from '@/theme/AppTheme';
+import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { ActivityStatus } from '@/State/GlobalActivityStatus';
 import { Text } from 'react-native';
+import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 
 // minimal fake theme containing the required color sections
 const fakeTheme = {
@@ -47,27 +48,30 @@ describe('GlobalActivityBar helpers', () => {
 // additional component behaviour tests
 
 describe('GlobalActivityBar component', () => {
+    // Declare `globalActivityStatus` at the top level for shared access
+    let globalActivityStatus: GlobalActivityStatus;
+
     beforeEach(() => {
-        Container.globalActivityStatus.reset();
+        globalActivityStatus = Container.get(GlobalActivityStatus) as GlobalActivityStatus;
     });
 
     it('renders hidden bar when store has no active status', () => {
-        const { status, message, icon } = readFromStore();
+        const { status, message, icon } = globalActivityStatus.readFromStore();
         expect(status).toBe(ActivityStatus.Ready);
         expect(message).toBe('');
         expect(icon).toBeUndefined();
     });
 
     it('renders message from store when status present', () => {
-        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading');
-        const { status, message } = readFromStore();
+        globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading');
+        const { status, message } = globalActivityStatus.readFromStore();
         expect(status).toBe(ActivityStatus.Pending);
         expect(message).toBe('Downloading');
     });
 
     it('renders custom icon from store when provided', () => {
-        Container.globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading', <Text>⭐</Text>);
-        const { icon } = readFromStore();
+        globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading', <Text>⭐</Text>);
+        const { icon } = globalActivityStatus.readFromStore();
         expect(icon).toEqual(<Text>⭐</Text>);
     });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AsyncButton, getLabel } from '@/Components/AsyncButton';
 import { ActivityStatus } from '@/State/GlobalActivityStatus';
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
 
 // A very small smoke test that exercises the component's ability to read from
 // the global activity store and also respect an explicit status prop.

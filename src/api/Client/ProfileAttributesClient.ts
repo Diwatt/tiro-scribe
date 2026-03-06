@@ -8,12 +8,15 @@ import { AbstractClient } from './AbstractClient';
 
 export class ProfileAttributesClient extends AbstractClient {
     public async getProfileAttributes(locale?: string): Promise<ProfileAttributes> {
-        return this.fetchWithCachedData<ProfileAttributes>(() =>
-            getProfileAttributes({
-                client: this.client,
-                query: locale != null ? { locale } : undefined,
-                throwOnError: true,
-            }),
+        return await this.fetchWithCachedData<ProfileAttributes>(
+            () =>
+                getProfileAttributes({
+                    client: this.client,
+                    query: locale != null ? { locale } : undefined,
+                    throwOnError: true,
+                }),
+
+            'profile-attributes',
         );
     }
 }

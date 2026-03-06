@@ -24,17 +24,10 @@ export interface CreateTherapistResult {
 }
 
 export class TherapistForge {
-    private readonly crypto: CryptoEngine;
-    private readonly recovery: RecoveryCode;
-
-    /**
-     * @param crypto - cryptographic utilities (key derivation, encrypt/decrypt, hashing)
-     * @param recovery - recovery-code implementation for generating/verifying codes
-     */
-    public constructor(crypto: CryptoEngine, recovery: RecoveryCode) {
-        this.crypto = crypto;
-        this.recovery = recovery;
-    }
+    public constructor(
+        private readonly crypto: CryptoEngine,
+        private readonly recovery: RecoveryCode,
+    ) {}
 
     /**
      * Creates a therapist. Caller must persist and store masterKey in vault.

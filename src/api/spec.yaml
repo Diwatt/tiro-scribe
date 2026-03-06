@@ -94,7 +94,7 @@ components:
           type: string
           description: |
             Primary language tag only (lowercase), or the literal "multilingual".
-            Must match the client app locale format: expo-localization is normalized to primary tag (e.g. en, fr) via AppLanguage.
+            Must match the client app locale format: expo-localization is normalized to primary tag (e.g. en, fr) via Localization.
             Use "en", "fr", etc. for language-specific variants; use "multilingual" for language-agnostic inference models (VAD, pitch, speaker).
             Do not use region subtags (e.g. prefer "en" not "en-US") to avoid client mismatch.
         isDefault:

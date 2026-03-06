@@ -10,7 +10,9 @@ import { colord, extend } from 'colord';
 import mixPlugin from 'colord/plugins/mix';
 import type { MD3Theme } from 'react-native-paper';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { SemanticStatusColors, type StatusColors } from './SemanticStatusColors';
+import type { StatusColors } from '@/Components/Status/Status';
+import { ActivityStatus } from '@/State/GlobalActivityStatus';
+import { SemanticStatusColors } from '@/theme/SemanticStatusColors';
 
 extend([mixPlugin]);
 
@@ -320,3 +322,16 @@ export const APP_DARK_THEME: MD3Theme & { colors: ExtendedColors } = {
 export type AppTheme = typeof APP_LIGHT_THEME;
 export type ExtendedTheme = MD3Theme & { colors: ExtendedColors };
 export const APP_THEME = APP_LIGHT_THEME;
+
+// Add `getStatusColors` to the theme module
+const COLOR_MAP: Partial<Record<ActivityStatus, (theme: ExtendedTheme) => StatusColors>> = {
+    [ActivityStatus.Pending]: (theme) => theme.colors.statusProcessing,
+    [ActivityStatus.Success]: (theme) => theme.colors.statusIdle,
+    [ActivityStatus.Warning]: (theme) => theme.colors.statusWarning,
+    [ActivityStatus.Error]: (theme) => theme.colors.statusError,
+};
+
+export function getStatusColors(theme: ExtendedTheme, status: ActivityStatus): StatusColors | null {
+    const getter = COLOR_MAP[status];
+    return getter ? getter(theme) : null;
+}

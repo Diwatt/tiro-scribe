@@ -20,7 +20,7 @@ export class PermissionManager {
     public async hasPermission(): Promise<boolean> {
         if (this.nativeModule == null) {
             throw this.errorNormalizer.createError(
-                ErrorCode.PERMISSION_CHECK_FAILED,
+                ErrorCode.PermissionCheckFailed,
                 'SecureRecorder native module is undefined. Use a dev build (npx expo run:ios or npx expo run:android), not Expo Go. Rebuild and restart the app.',
                 new Error('nativeModule is undefined'),
             );
@@ -29,7 +29,7 @@ export class PermissionManager {
             return await this.nativeModule.hasPermission();
         } catch (error) {
             throw this.errorNormalizer.createError(
-                ErrorCode.PERMISSION_CHECK_FAILED,
+                ErrorCode.PermissionCheckFailed,
                 error instanceof Error ? error.message : String(error),
                 error,
             );
@@ -45,7 +45,7 @@ export class PermissionManager {
             return granted;
         } catch (error) {
             throw this.errorNormalizer.createError(
-                ErrorCode.PERMISSION_REQUEST_FAILED,
+                ErrorCode.PermissionRequestFailed,
                 error instanceof Error ? error.message : String(error),
                 error,
             );

@@ -4,14 +4,12 @@
  * Returns TableDefinition so the DDL writer stays decoupled from entity classes (see TableDefinition JSDoc).
  */
 
-import { sql } from 'kysely';
 import snakeCase from 'lodash/snakeCase';
 import type { PropertyDecorator } from '@/Decorator/PropertyDecorator';
 import { DatabaseException } from '@/Exception';
-import { Container } from '../../Container';
 import type { ColumnOptions, EntityMetadata } from '../Decorator';
 import { OnDeleteAction } from '../Decorator';
-import { QueryBuilder } from '../QueryBuilder';
+import type { QueryBuilder } from '../QueryBuilder';
 import type { FullTextSearchFieldSpec } from './TableDefinition';
 import { TableDefinition } from './TableDefinition';
 
@@ -31,7 +29,7 @@ export class DefinitionBuilder {
     private readonly primaryKeyColumnName: string;
     private readonly primaryKeyPropertyName: string;
     private readonly tableName: string;
-    public constructor(metadata: EntityMetadata) {
+    public constructor(metadata: EntityMetadata, _queryBuilder?: QueryBuilder) {
         this.tableName = metadata.getTableName();
         const primaryKeyColumnField = metadata.getPrimaryKeyColumnField();
         if (primaryKeyColumnField == null) {
@@ -74,9 +72,9 @@ export class DefinitionBuilder {
         const primaryKeySqlType = this.formatSqlType(this.primaryKeyColumn.type, this.primaryKeyColumn.length);
         const primaryKeyFk = this.foreignKeyClauseByPropertyName.get(this.primaryKeyPropertyName) ?? '';
 
-        // Use Kysely's sql template for primary key column
-        const primaryKeyColumn = sql`${sql.raw(this.primaryKeyColumn.columnName)} ${sql.raw(primaryKeySqlType)}${sql.raw(primaryKeyFk)} PRIMARY KEY`;
-        columns.push(primaryKeyColumn.compile(Container.get(QueryBuilder)).sql);
+        // Build primary key column DDL string directly
+        const primaryKeyColumnDdl = `${this.primaryKeyColumn.columnName} ${primaryKeySqlType}${primaryKeyFk} PRIMARY KEY`;
+        columns.push(primaryKeyColumnDdl);
 
         columns.push('data TEXT NOT NULL');
 
@@ -89,9 +87,9 @@ export class DefinitionBuilder {
                 const sqlType = this.formatSqlType(String(options.type).toUpperCase(), options.length);
                 const foreignKeyClause = this.foreignKeyClauseByPropertyName.get(propertyName) ?? '';
                 const columnName = snakeCase(propertyName);
-                // Use Kysely's sql template for foreign key columns
-                const column = sql`${sql.raw(columnName)} ${sql.raw(sqlType)}${sql.raw(foreignKeyClause)}`;
-                columns.push(column.compile(Container.get(QueryBuilder)).sql);
+                // Build foreign key column DDL string directly
+                const columnDdl = `${columnName} ${sqlType}${foreignKeyClause}`;
+                columns.push(columnDdl);
                 continue;
             }
 
@@ -148,13 +146,9 @@ export class DefinitionBuilder {
 
             if (hasForeignKey) {
                 const columnName = snakeCase(propertyName);
-                // Use Kysely's CreateIndexBuilder for foreign key indexes
-                const indexBuilder = Container.get(QueryBuilder)
-                    .schema.createIndex(`idx_${this.tableName}_${columnName}`)
-                    .on(this.tableName)
-                    .column(columnName)
-                    .ifNotExists();
-                indexes.push(`${indexBuilder.compile().sql};`);
+                // Build index DDL string directly
+                const indexDdl = `CREATE INDEX IF NOT EXISTS idx_${this.tableName}_${columnName} ON ${this.tableName}(${columnName});`;
+                indexes.push(indexDdl);
                 continue;
             }
 
@@ -171,14 +165,9 @@ export class DefinitionBuilder {
     private buildVirtualColumn(propertyName: string, sqlType: string): { column: string; index: string } {
         const columnName = snakeCase(propertyName);
         const column = `${columnName} ${sqlType} GENERATED ALWAYS AS (json_extract(data, '$.${propertyName}')) VIRTUAL`;
-        // Use Kysely's CreateIndexBuilder for virtual column indexes
-        const indexBuilder = Container.get(QueryBuilder)
-            .schema.createIndex(`idx_${this.tableName}_${columnName}`)
-            .on(this.tableName)
-            .column(columnName)
-            .ifNotExists();
-        const index = `${indexBuilder.compile().sql};`;
-        return { column, index };
+        // Build index DDL string directly
+        const indexDdl = `CREATE INDEX IF NOT EXISTS idx_${this.tableName}_${columnName} ON ${this.tableName}(${columnName});`;
+        return { column, index: indexDdl };
     }
 
     /**

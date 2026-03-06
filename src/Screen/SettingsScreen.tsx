@@ -2,12 +2,12 @@ import { Bell, Moon, Settings, Shield, User } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Divider, List, Surface, Switch, useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { useLocalization } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export function SettingsScreen(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { LL } = useAppLanguage();
+    const { LL } = useLocalization();
     const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
     const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
     return (

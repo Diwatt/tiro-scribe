@@ -5,9 +5,10 @@ import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Surface, Text, useTheme } from 'react-native-paper';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ActivityStatus } from '@/State/GlobalActivityStatus';
+import { Container } from '@/Core/Container';
+import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import type { ExtendedTheme } from '@/theme/AppTheme';
-import { getStatusColors, readFromStore } from './GlobalActivityBar.utils';
+import { getStatusColors } from '@/theme/AppTheme';
 
 // layout/constants for the bar. grouped into one object to keep the
 // top of the file tidy and make it easier to tweak values together.
@@ -31,7 +32,8 @@ export interface GlobalActivityBarProps {
 
 export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Element {
     const { status: propStatus, message: propMessage, icon: propIcon } = props;
-    const { status: storeStatus, message: storeMessage, icon: storeIcon } = readFromStore();
+    const globalActivityStatus = Container.get(GlobalActivityStatus);
+    const { status: storeStatus, message: storeMessage, icon: storeIcon } = globalActivityStatus.readFromStore();
     const status = propStatus ?? storeStatus;
     const message = propMessage ?? storeMessage;
     const icon = propIcon ?? storeIcon;

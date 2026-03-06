@@ -12,21 +12,18 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Core/AppLogger';
+import { AppConfig } from '@/Core/AppConfig';
 import { InMemoryAudioRecorderException } from '@/Exception';
 
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
+// Create a mock logger instance for testing
+const mockConfig = {
+    isDev: true,
+    databaseName: 'test.db',
+    projectionSalt: 'test-salt',
+} as AppConfig;
 
-vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
-        warn: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-        debug: vi.fn(),
-    },
-}));
+const mockLogger = new AppLogger(mockConfig);
 
 vi.mock('expo-audio', () => ({
     requestRecordingPermissionsAsync: vi.fn(async () => ({ granted: true })),
@@ -91,7 +88,7 @@ describe('InMemoryAudioRecorder - ZOMBIE Tests', () => {
         vi.clearAllMocks();
         vi.useRealTimers();
         (globalThis as any).lastStatusCallback = null;
-        recorder = new InMemoryAudioRecorder(AppLogger);
+        recorder = new InMemoryAudioRecorder(mockLogger);
     });
 
     afterEach(() => {

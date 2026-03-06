@@ -6,12 +6,12 @@
 
 import dayjs from 'dayjs';
 import type { ModelConfig } from '@/Api';
+import type { AppLogger } from '@/Core/AppLogger';
 import { Criteria } from '@/Database/Criteria';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
 import { DownloadQueueStatus } from '@/Entity/Type';
 import { InferenceModelDownloaderException } from '@/Exception';
 import type { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
-import type { LoggerInterface } from '../../Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { DownloadTaskExecutor } from './DownloadTaskExecutor';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
@@ -22,11 +22,11 @@ export class DownloadTaskManager {
     private isPaused = false;
 
     public constructor(
-        private readonly logger: LoggerInterface,
+        private readonly logger: AppLogger,
         private readonly repository: DownloadQueueRepository,
         private readonly checksumVerifier: ChecksumVerifier,
         private readonly artifactStorage: ModelArtifactStorage,
-        private readonly maxConcurrentDownloads = 2,
+        private maxConcurrentDownloads = 2,
     ) {}
 
     /**
@@ -390,7 +390,6 @@ export class DownloadTaskManager {
             if (entity) {
                 await this.repository.remove(entity);
             }
-            this.observableItems.delete(uuid);
             this.logger.debug(`Removed download task ${uuid} from queue`);
         } catch (error) {
             this.logger.error(`Failed to remove download task ${uuid}`, error);
@@ -444,12 +443,7 @@ export class DownloadTaskManager {
             entity.setUpdatedAt(dayjs());
             await this.repository.persist(entity);
 
-            // Update cached observable if exists
-            const cached = this.observableItems.get(uuid);
-            if (cached) {
-                // Observable state will be updated via entity's observable properties
-                this.logger.debug(`Updated error of download task ${uuid}: ${errorMessage}`);
-            }
+            this.logger.debug(`Updated error of download task ${uuid}: ${errorMessage}`);
         } catch (error) {
             this.logger.error(`Failed to update error of download task ${uuid}`, error);
             throw new InferenceModelDownloaderException(
@@ -475,12 +469,7 @@ export class DownloadTaskManager {
             entity.setUpdatedAt(dayjs());
             await this.repository.persist(entity);
 
-            // Update cached observable if exists
-            const cached = this.observableItems.get(uuid);
-            if (cached) {
-                // Observable state will be updated via entity's observable properties
-                this.logger.debug(`Updated progress of download task ${uuid} to ${progressPercent}%`);
-            }
+            this.logger.debug(`Updated progress of download task ${uuid} to ${progressPercent}%`);
         } catch (error) {
             this.logger.error(`Failed to update progress of download task ${uuid}`, error);
             throw new InferenceModelDownloaderException(
@@ -506,12 +495,7 @@ export class DownloadTaskManager {
             entity.setUpdatedAt(dayjs());
             await this.repository.persist(entity);
 
-            // Update cached observable if exists
-            const cached = this.observableItems.get(uuid);
-            if (cached) {
-                // Observable state will be updated via entity's observable properties
-                this.logger.debug(`Updated status of download task ${uuid} to ${status}`);
-            }
+            this.logger.debug(`Updated status of download task ${uuid} to ${status}`);
         } catch (error) {
             this.logger.error(`Failed to update status of download task ${uuid}`, error);
             throw new InferenceModelDownloaderException(

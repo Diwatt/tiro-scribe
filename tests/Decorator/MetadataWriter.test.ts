@@ -4,7 +4,7 @@ import { MetadataReader } from '@/Decorator/MetadataReader';
 import type { MetadataMap } from '@/Decorator/Type';
 import { vi, describe, it, expect } from 'vitest';
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),

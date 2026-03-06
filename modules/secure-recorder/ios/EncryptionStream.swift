@@ -61,7 +61,7 @@ class EncryptionStream {
    * @throws SecureRecorderError if stream not initialized or encryption fails
    */
   internal func write(data: Data) throws {
-    guard let handle = fileHandle else {
+    guard fileHandle != nil else {
       throw SecureRecorderError.recordingFailed("Encryption stream not initialized")
     }
 
@@ -81,7 +81,7 @@ class EncryptionStream {
    * Format: [4-byte length][12-byte nonce][encrypted data + 16-byte tag]
    */
   private func flushBufferToDisk() throws {
-    guard let handle = fileHandle else {
+    guard fileHandle != nil else {
       throw SecureRecorderError.recordingFailed("Encryption stream not initialized")
     }
 
@@ -114,8 +114,8 @@ class EncryptionStream {
 
       // SECURITY: Write complete chunk to disk
       // Format: [4-byte chunk size][12-byte nonce][ciphertext][16-byte tag]
-      handle.write(chunkSizeData)
-      handle.write(sealedBoxData)
+      fileHandle?.write(chunkSizeData)
+      fileHandle?.write(sealedBoxData)
 
     } catch {
       throw SecureRecorderError.recordingFailed("Encryption error: \(error.localizedDescription)")

@@ -5,20 +5,20 @@
 
 import { Kysely } from 'kysely';
 import { ExpoDialect } from 'kysely-expo';
-import { AppConfig } from '@/Config/AppConfig';
-import { Container } from '@/Container';
+import { AppConfig } from '@/Core/AppConfig';
+import { Container } from '@/Core/Container';
 import type { DatabaseSchema } from '@/Database/Type';
 
-// Symbol token for Kysely instance registration
-export const QueryBuilder = Symbol('Kysely');
+// QueryBuilder class extending Kysely
+export class QueryBuilder extends Kysely<DatabaseSchema> {
+    public constructor(config: AppConfig) {
+        super({
+            dialect: new ExpoDialect({
+                database: config.databaseName,
+            }),
+        });
+    }
+}
 
 // Register the QueryBuilder instance with the Container for dependency injection
-Container.register(
-    QueryBuilder,
-    () =>
-        new Kysely<DatabaseSchema>({
-            dialect: new ExpoDialect({
-                database: Container.get(AppConfig).databaseName,
-            }),
-        }),
-);
+Container.register(QueryBuilder, () => new QueryBuilder(Container.get(AppConfig)));

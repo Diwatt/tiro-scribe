@@ -5,14 +5,14 @@
 
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Core/AppLogger';
 import { DatabaseException } from '@/Exception';
-import { AppConfig } from '@/Config/AppConfig';
+import { AppConfig } from '@/Core/AppConfig';
 import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/AppLogger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('@/Service/Logger', () => {
     };
 });
 
-vi.mock('@/Config/AppConfig', () => ({
+vi.mock('@/App/AppConfig', () => ({
     AppConfig: vi.fn().mockImplementation(function () {
         return {
             isDev: false,
@@ -313,8 +313,13 @@ describe('DefinitionLanguageWriter', () => {
                     'extra INTEGER',
                 ],
             });
-            const logger = AppLogger;
-            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+            const mockLogger = {
+                debug: vi.fn(),
+                info: vi.fn(),
+                warn: vi.fn(),
+                error: vi.fn(),
+            };
+            const warnSpy = vi.spyOn(mockLogger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('extra')) {
                     throw new Error('Error code 1: duplicate column name: extra');
@@ -325,7 +330,7 @@ describe('DefinitionLanguageWriter', () => {
                 }
                 return Promise.resolve();
             });
-            const writer = new DefinitionLanguageWriter(tx, logger);
+            const writer = new DefinitionLanguageWriter(tx, mockLogger as any);
             await writer.write(definition);
             expect(warnSpy).not.toHaveBeenCalled();
         });
@@ -517,8 +522,13 @@ describe('DefinitionLanguageWriter', () => {
                     'badcol TEXT',
                 ],
             });
-            const logger = AppLogger;
-            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+            const mockLogger = {
+                debug: vi.fn(),
+                info: vi.fn(),
+                warn: vi.fn(),
+                error: vi.fn(),
+            };
+            const warnSpy = vi.spyOn(mockLogger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('badcol')) {
                     throw new Error('cannot add');
@@ -528,7 +538,7 @@ describe('DefinitionLanguageWriter', () => {
                 }
                 return Promise.resolve();
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, mockLogger as any);
             await expect(writer.write(definition)).rejects.toThrow('cannot add');
             expect(warnSpy).not.toHaveBeenCalled();
             warnSpy.mockRestore();

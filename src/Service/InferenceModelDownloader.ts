@@ -6,15 +6,18 @@
  * `DownloadTaskManager`.
  */
 
-import { Container } from '@/Container';
-import { AppLogger, type LoggerInterface } from '@/Service/Logger';
+import { AppConfig } from '@/Core/AppConfig';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
+import { Registry } from '@/Database/Registry';
+import type { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
 import type { InferenceModelFile, ModelConfig } from '../Api';
-import { DownloadQueueStatus } from '../Entity';
+import { DownloadQueue, DownloadQueueStatus } from '../Entity';
 import { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ChecksumVerifier } from './InferenceModelDownload/ChecksumVerifier';
 import { DownloadTaskExecutor } from './InferenceModelDownload/DownloadTaskExecutor';
-import type { DownloadTaskManager } from './InferenceModelDownload/DownloadTaskManager';
-import type { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
+import { DownloadTaskManager } from './InferenceModelDownload/DownloadTaskManager';
+import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 import { DownloadState } from './InferenceModelDownload/Type';
 
 // Re-export types from Type.ts
@@ -22,10 +25,10 @@ export type { ModelConfig } from '../Api';
 
 export class InferenceModelDownloader {
     public constructor(
-        private readonly logger: LoggerInterface = AppLogger.getInstance(),
+        private readonly logger: AppLogger,
         private readonly artifactStorage: ModelArtifactStorage,
         private readonly downloadTaskManager: DownloadTaskManager,
-        private readonly configProvider: InferenceModelConfigProvider = Container.get(InferenceModelConfigProvider),
+        private readonly configProvider: InferenceModelConfigProvider,
     ) {}
 
     // Core operations
@@ -74,13 +77,13 @@ export class InferenceModelDownloader {
      * react to updates without waiting for the transfer to complete.
      *
      * @param capability model capability key (e.g. 'speaker_id')
-     * @param appLanguage optional language code for config lookup
+     * @param localization optional language code for config lookup
      * @returns the executor handling the download; callers may inspect the
      *          configuration on the executor (`executor.config`) for any
      *          further processing.
      */
-    public async download(capability: string, appLanguage?: string): Promise<DownloadTaskExecutor> {
-        const config = await this.getConfig(capability, appLanguage);
+    public async download(capability: string, localization?: string): Promise<DownloadTaskExecutor> {
+        const config = await this.getConfig(capability, localization);
 
         // Check if all files have been downloaded
         if (this.artifactStorage.hasAllFiles(config)) {
@@ -101,7 +104,7 @@ export class InferenceModelDownloader {
         }
 
         // Add to queue and create session (include language so stored entity is accurate)
-        const queueItem = await this.downloadTaskManager.add(config.capability, appLanguage);
+        const queueItem = await this.downloadTaskManager.add(config.capability, localization);
         const executor = this.downloadTaskManager.getOrCreateExecutor(queueItem, config);
 
         // Kick off the transfer; we deliberately do *not* await the promise so
@@ -234,13 +237,20 @@ export class InferenceModelDownloader {
     }
 }
 
-Container.register(
-    InferenceModelDownloader,
-    () =>
-        new InferenceModelDownloader(
-            AppLogger.getInstance(),
-            {} as ModelArtifactStorage, // These will need proper DI setup
-            {} as DownloadTaskManager,
-            Container.get(InferenceModelConfigProvider),
+Container.register(InferenceModelDownloader, () => {
+    const appConfig = Container.get(AppConfig);
+    const logger = Container.get(AppLogger);
+    const repository = Container.get(Registry).getRepository<DownloadQueueRepository>(DownloadQueue);
+
+    return new InferenceModelDownloader(
+        logger,
+        new ModelArtifactStorage(logger, appConfig),
+        new DownloadTaskManager(
+            logger,
+            repository,
+            new ChecksumVerifier(),
+            new ModelArtifactStorage(logger, appConfig),
         ),
-);
+        new InferenceModelConfigProvider(logger),
+    );
+});

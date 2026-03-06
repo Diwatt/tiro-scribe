@@ -4,9 +4,10 @@
  */
 
 import { sql } from 'kysely';
-import { Container } from '../Container';
+import { Container } from '@/Core/Container';
 import { Criteria } from './Criteria';
 import type { EntityMetadata } from './Decorator';
+import { QueryBuilder } from './QueryBuilder';
 import type { DatabaseSchema } from './Type';
 
 /** Single boolean condition for WHERE (e.g. sql`column = value`). */
@@ -48,7 +49,7 @@ export class QueryCompiler {
             'data',
             ...this.metadata.getForeignKeyColumns().map((c) => c.columnName),
         ] as (keyof DatabaseSchema[keyof DatabaseSchema])[];
-        let query = Container.queryBuilder.selectFrom(table).select(selectColumns);
+        let query = Container.get(QueryBuilder).selectFrom(table).select(selectColumns);
         for (const condition of this.whereConditions(criteria)) {
             query = query.where(condition);
         }
@@ -70,7 +71,7 @@ export class QueryCompiler {
 
     public compileExists(criteria: QueryCriteria): CompiledStatement {
         const table = this.tableName as keyof DatabaseSchema;
-        let query = Container.queryBuilder.selectFrom(table).select(sql<number>`1`.as('1')).limit(1);
+        let query = Container.get(QueryBuilder).selectFrom(table).select(sql<number>`1`.as('1')).limit(1);
         for (const condition of this.whereConditions(criteria)) {
             query = query.where(condition);
         }

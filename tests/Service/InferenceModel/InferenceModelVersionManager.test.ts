@@ -13,7 +13,7 @@ import { InferenceModelVersionManager, type UpdateCheckResult, type UpdateInfo }
 import { InferenceModelConfigProvider } from '@/Service/InferenceModelConfigProvider';
 import { ModelArtifactStorage } from '@/Service/InferenceModelDownload/ModelArtifactStorage';
 import type { ModelConfig } from '@/Api';
-import type { LoggerInterface } from '@/Service/Logger';
+import type { AppLogger } from '@/Core/AppLogger';
 
 // Mock dependencies
 vi.mock('@/Service/InferenceModelConfigProvider');
@@ -29,7 +29,7 @@ vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => {
         ModelArtifactStorage: MockModelArtifactStorage,
     };
 });
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
@@ -62,7 +62,7 @@ vi.mock('semver', () => ({
 
 describe('InferenceModelVersionManager', () => {
     let versionManager: InferenceModelVersionManager;
-    let mockLogger: LoggerInterface;
+    let mockLogger: AppLogger;
     let mockConfigProvider: any;
     let mockArtifactStorage: any;
     let mockSemver: any;

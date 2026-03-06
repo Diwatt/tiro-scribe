@@ -4,16 +4,17 @@
  */
 
 import { observable } from '@legendapp/state';
-import { Container, type LoggerInterface } from '@/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { Registry } from '@/Database/Registry';
-import { AppLanguage } from '@/Localization/AppLanguage';
+import { Localization } from '@/Localization';
 import { ProjectionMatrixFactory } from '@/Math/ProjectionMatrixFactory';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { VoiceCalibrator } from '@/Service';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { StartupOrchestrator } from '@/State/StartupOrchestrator';
 import { Therapist } from '../../Entity/Therapist';
-import { CryptoEngine, RecoveryCode, type RecoveryKit } from '../../Security';
+import { CryptoEngine, RecoveryCode, RecoveryKit } from '../../Security';
 import type { CreateTherapistInput } from '../../Security/TherapistForge';
 import { TherapistForge } from '../../Security/TherapistForge';
 import { ActivityStatus } from '../GlobalActivityStatus';
@@ -48,10 +49,10 @@ export class OnboardingState {
 
     public constructor(
         private readonly recoveryKit: RecoveryKit,
-        private readonly logger: LoggerInterface,
+        private readonly logger: AppLogger,
     ) {
         // Initialize practiceLanguages here where Container is safe to access
-        this.state.practiceLanguages.set([Container.get(AppLanguage).getLocale()]);
+        this.state.practiceLanguages.set([Container.get(Localization).getLocale()]);
     }
 
     public async calibrateVoice(): Promise<void> {
@@ -148,7 +149,8 @@ export class OnboardingState {
     }
 
     public getProfileStepValidation(data: ProfileStepData): ValidationResult {
-        const result = Container.get(FormValidator).validateProfile(data);
+        const validator = new FormValidator();
+        const result = validator.validateProfile(data);
         this.logger.debug('[OnboardingState] getProfileStepValidation', {
             success: result.success,
             ...(result.success === false && { errorKeys: Object.keys(result.errors.fieldErrors) }),
@@ -168,8 +170,8 @@ export class OnboardingState {
         this.state.error.set(undefined);
         this.state.recoveryCode.set('');
         this.state.isBusy.set(false);
-        this.state.practiceLanguages.set([Container.get(AppLanguage).getLocale()]);
-        Container.get(GlobalActivityStatus).reset('recoveryKit');
+        this.state.practiceLanguages.set([Container.get(Localization).getLocale()]);
+        Container.get(GlobalActivityStatus).reset();
         this.pendingTherapist = null;
     }
 
@@ -193,7 +195,7 @@ export class OnboardingState {
                 });
             },
             () => {
-                const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
+                const ll = Container.get(Localization).getTranslationFunctions(Container.get(Localization).getLocale());
                 return ll.onboarding.errorAccountCreation();
             },
         );
@@ -241,4 +243,8 @@ export class OnboardingState {
     }
 }
 
-Container.register(OnboardingState, () => new OnboardingState(Container.get(MasterKeyVault), AppLogger.getInstance()));
+Container.register(OnboardingState, () => {
+    const logger = Container.get(AppLogger);
+
+    return new OnboardingState(new RecoveryKit(logger), logger);
+});

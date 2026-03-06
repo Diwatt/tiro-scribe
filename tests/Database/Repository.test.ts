@@ -12,7 +12,7 @@ import { Repository } from '@/Database/Repository';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
 import { ensureTestTable, clearTestTable } from '../../vitest/mocks/kysely';
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),

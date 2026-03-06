@@ -5,7 +5,6 @@
  * on the singleton.
  */
 import { observable } from '@legendapp/state';
-import { Container } from '@/Container';
 
 export enum ActivityStatus {
     Ready = 'ready',
@@ -71,6 +70,14 @@ export class GlobalActivityStatus {
             }, autoHideAfterMs);
         }
     }
-}
 
-Container.register(GlobalActivityStatus);
+    /**
+     * Reads the highest-priority non-ready entry from the store.
+     */
+    public readFromStore(): { status: ActivityStatus; message: string; icon?: React.ReactNode } {
+        const status = this.getStatus();
+        const message = this.getMessage() ?? '';
+        const icon = this.getIcon();
+        return { status, message, icon };
+    }
+}

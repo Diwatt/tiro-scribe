@@ -9,6 +9,14 @@ import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exce
 import { SpeakerEmbedder } from '@/Service/SpeakerId/SpeakerEmbedder';
 import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
 
+// Mock the logger
+const mockLoggerInstance = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 // Mock onnxruntime-react-native
 const mockInferenceSession = {
     inputNames: ['audio_features'],
@@ -45,37 +53,42 @@ vi.mock('@/Math/AudioFeatureExtractor', () => {
     };
 });
 
-// Mock Logger
-const mockLoggerInstance = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
-
-vi.mock('@/Service/Logger', () => ({
-    AppLogger: {
-        getInstance: () => mockLoggerInstance,
-    },
-}));
-
 // Mock InferenceModelDownloader
-vi.mock('@/Service/InferenceModelDownloader', () => ({
-    InferenceModelDownloader: vi.fn().mockImplementation(() => ({
-        getConfigByLocalPath: vi.fn().mockResolvedValue({
+const mockInferenceModelDownloader = {
+    getConfigByLocalPath: vi.fn().mockResolvedValue({
+        capability: 'speaker-recognition',
+        id: 'speaker-model',
+        files: [{ url: '/mock/model/path.onnx' }]
+    }),
+    download: vi.fn().mockResolvedValue({
+        config: {
             capability: 'speaker-recognition',
             id: 'speaker-model',
             files: [{ url: '/mock/model/path.onnx' }]
-        }),
-        download: vi.fn().mockResolvedValue({ 
-            config: {
-                capability: 'speaker-recognition',
-                id: 'speaker-model',
-                files: [{ url: '/mock/model/path.onnx' }]
-            }
-        }),
-    })),
+        }
+    }),
+};
+
+vi.mock('@/Service/InferenceModelDownloader', () => ({
+    InferenceModelDownloader: vi.fn().mockImplementation(() => mockInferenceModelDownloader),
 }));
+
+// Mock Container to provide the required dependencies
+vi.mock('@/App/Container', (async () => {
+    // Import within the mock factory to handle circular dependencies properly
+    const InferenceModelDownloaderModule = await vi.importActual<any>('@/Service/InferenceModelDownloader');
+    return {
+        Container: {
+            get: vi.fn((cls: any) => {
+                // For InferenceModelDownloader, return an instance with the mocked methods
+                if (cls?.name === 'InferenceModelDownloader') {
+                    return new InferenceModelDownloaderModule.InferenceModelDownloader();
+                }
+                return null;
+            }),
+        },
+    };
+}) as any);
 
 describe('SpeakerEmbedder', () => {
     let speakerEmbedder: SpeakerEmbedder;
@@ -83,7 +96,8 @@ describe('SpeakerEmbedder', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        speakerEmbedder = new SpeakerEmbedder();
+        
+        speakerEmbedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
         // Get the mock instance from the constructor
         mockExtractor = speakerEmbedder['audioFeatureExtractor'];
     });
@@ -100,7 +114,8 @@ describe('SpeakerEmbedder', () => {
 
     describe('initialize', () => {
         it('initializes ONNX session successfully', async () => {
-            await speakerEmbedder.initialize('speaker-model.onnx');
+            // Use absolute path to bypass Container.get(InferenceModelDownloader)
+            await speakerEmbedder.initialize('/mock/model/path.onnx');
             
             expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith(
                 '/mock/model/path.onnx',
@@ -128,9 +143,10 @@ describe('SpeakerEmbedder', () => {
         });
 
         it('throws InvalidAudioFormatError when model not found', async () => {
+            // Use a relative path that will try to use Container.get, which returns null
             vi.mocked(mockOrt.InferenceSession.create).mockRejectedValue(new Error('Model not found'));
             
-            await expect(speakerEmbedder.initialize('nonexistent.onnx')).rejects.toThrow('Failed to initialize speaker recognition model');
+            await expect(speakerEmbedder.initialize('/nonexistent.onnx')).rejects.toThrow('Failed to initialize speaker recognition model');
         });
     });
 
@@ -139,7 +155,8 @@ describe('SpeakerEmbedder', () => {
             // Reset the mock to resolve successfully
             vi.mocked(mockOrt.InferenceSession.create).mockResolvedValue(mockInferenceSession);
             
-            await speakerEmbedder.initialize('speaker-model.onnx');
+            // Use absolute path to bypass Container.get(InferenceModelDownloader)
+            await speakerEmbedder.initialize('/mock/model/path.onnx');
             
             // Mock successful inference
             vi.mocked(mockInferenceSession.run).mockResolvedValue({
@@ -209,9 +226,10 @@ describe('SpeakerEmbedder', () => {
 
     describe('integration', () => {
         it('handles complete workflow from initialization to extraction', async () => {
-            const embedder = new SpeakerEmbedder();
+            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
             
-            await embedder.initialize('speaker-model.onnx');
+            // Use absolute path to bypass Container.get(InferenceModelDownloader)
+            await embedder.initialize('/mock/model/path.onnx');
             
             vi.mocked(mockInferenceSession.run).mockResolvedValue({
                 embedding: { data: new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]) },

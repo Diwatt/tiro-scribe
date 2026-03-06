@@ -7,30 +7,21 @@
 
 import type * as Ort from 'onnxruntime-react-native';
 import type { ModelConfig } from '@/Api';
-import { Container } from '@/Container';
-import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { InvalidAudioFormatError, SessionNotInitializedError, SpeakerVectorExtractionError } from '../../Exception';
 import { AudioFeatureExtractor } from '../../Math/AudioFeatureExtractor';
 import { getOnnxRuntime } from '../../Util/OnnxRuntime';
+import { InferenceModelDownloader } from '../InferenceModelDownloader';
 import { SpeakerVector } from './SpeakerVector';
 
 export class SpeakerEmbedder {
-    private readonly audioFeatureExtractor: AudioFeatureExtractor;
-    private readonly logger: LoggerInterface;
     private speakerSession: Ort.InferenceSession | null = null;
 
-    /**
-     * @param audioFeatureExtractor - audio feature extraction utility
-     * @param logger - optional logger instance
-     */
     public constructor(
-        audioFeatureExtractor: AudioFeatureExtractor = new AudioFeatureExtractor(),
-        logger: LoggerInterface = AppLogger.getInstance(),
-    ) {
-        this.audioFeatureExtractor = audioFeatureExtractor;
-        this.logger = logger;
-    }
+        private readonly audioFeatureExtractor: AudioFeatureExtractor = new AudioFeatureExtractor(),
+        private readonly logger: AppLogger = Container.get(AppLogger),
+    ) {}
 
     /**
      * Extract speaker vector from raw PCM buffer using ONNX Runtime.
@@ -44,19 +35,19 @@ export class SpeakerEmbedder {
 
         try {
             // Step 1: Extract audio features
-            const audioFeatures: Float32Array = this.audioFeatureExtractor.extract(pcm);
+            const AudioFeatures: Float32Array = this.audioFeatureExtractor.extract(pcm);
 
             // Step 2: Run inference with ONNX Runtime
-            const rawEmbedding = await this.runSpeakerInference(audioFeatures);
-            const rawMagnitude = Math.sqrt(rawEmbedding.reduce((sum, v) => sum + v * v, 0));
+            const RawEmbedding = await this.runSpeakerInference(AudioFeatures);
+            const RawMagnitude = Math.sqrt(RawEmbedding.reduce((sum, v) => sum + v * v, 0));
 
             // Step 3: Normalize the embedding vector
-            const normalizedEmbedding = this.normalizeVector(rawEmbedding);
+            const NormalizedEmbedding = this.normalizeVector(RawEmbedding);
 
             // Confidence = raw vector magnitude clamped to [0, 1]
-            const confidence = Math.min(1, Math.max(0, rawMagnitude));
+            const Confidence = Math.min(1, Math.max(0, RawMagnitude));
 
-            return new SpeakerVector(normalizedEmbedding, confidence);
+            return new SpeakerVector(NormalizedEmbedding, Confidence);
         } catch (error) {
             throw new SpeakerVectorExtractionError(
                 `Failed to extract speaker vector: ${error}`,
@@ -73,10 +64,10 @@ export class SpeakerEmbedder {
         try {
             const ort = await getOnnxRuntime();
             // Resolve the model path (handle both local and bundled assets)
-            const resolvedPath = await this.resolveModelPath(modelPath);
+            const ResolvedPath = await this.resolveModelPath(modelPath);
 
             // Load the ONNX model using ONNX Runtime
-            this.speakerSession = await ort.InferenceSession.create(resolvedPath, {
+            this.speakerSession = await ort.InferenceSession.create(ResolvedPath, {
                 executionProviders: ['cpu'], // Use CPU execution provider
             });
 
@@ -98,10 +89,10 @@ export class SpeakerEmbedder {
         }
 
         // Try to find a file with .onnx extension
-        for (const file of config.files) {
-            const filename = file.url.substring(file.url.lastIndexOf('/') + 1);
-            if (filename.toLowerCase().endsWith('.onnx')) {
-                return file.url;
+        for (const File of config.files) {
+            const Filename = File.url.substring(File.url.lastIndexOf('/') + 1);
+            if (Filename.toLowerCase().endsWith('.onnx')) {
+                return File.url;
             }
         }
 
@@ -113,11 +104,11 @@ export class SpeakerEmbedder {
      * Normalize a vector to unit length
      */
     private normalizeVector(vector: number[]): number[] {
-        const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
-        if (magnitude === 0) {
+        const Magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
+        if (Magnitude === 0) {
             return vector;
         }
-        return vector.map((v) => v / magnitude);
+        return vector.map((v) => v / Magnitude);
     }
 
     /**
@@ -130,11 +121,11 @@ export class SpeakerEmbedder {
         }
 
         // Otherwise, ask the inferenceDownloader for a config and download if needed
-        const config = await Container.inferenceModelDownloader.getConfigByLocalPath(modelPath);
-        if (config != null) {
-            const executor = await Container.inferenceModelDownloader.download(config.capability);
+        const Config = await Container.get(InferenceModelDownloader).getConfigByLocalPath(modelPath);
+        if (Config != null) {
+            const Executor = await Container.get(InferenceModelDownloader).download(Config.capability);
             // Get the URI from the config through the executor's config property
-            return this.getModelUriFromConfig(executor.config);
+            return this.getModelUriFromConfig(Executor.config);
         }
 
         throw new InvalidAudioFormatError(
@@ -150,23 +141,31 @@ export class SpeakerEmbedder {
             throw new SessionNotInitializedError();
         }
 
-        const inputName = this.speakerSession.inputNames[0];
-        const outputName = this.speakerSession.outputNames[0];
+        const InputName = this.speakerSession.inputNames[0];
+        const OutputName = this.speakerSession.outputNames[0];
 
-        const nMels = 80;
-        const timeFrames = Math.ceil(features.length / nMels);
-        const inputShape: readonly number[] = [1, nMels, timeFrames];
+        const NMels = 80;
+        const TimeFrames = Math.ceil(features.length / NMels);
+        const InputShape: readonly number[] = [1, NMels, TimeFrames];
 
-        const total = inputShape.reduce((a, b) => a * b, 1);
-        const buffer = new Float32Array(total);
-        buffer.set(features.subarray(0, total));
+        const Total = InputShape.reduce((a, b) => a * b, 1);
+        const Buffer = new Float32Array(Total);
+        Buffer.set(features.subarray(0, Total));
 
         const ort = await getOnnxRuntime();
-        const tensor = new ort.Tensor('float32', buffer, inputShape);
-        const results = await this.speakerSession.run({ [inputName]: tensor });
-        const outputTensor = results[outputName];
-        return Array.from(outputTensor.data as Float32Array);
+        const Tensor = new ort.Tensor('float32', Buffer, InputShape);
+        const Results = await this.speakerSession.run({ [InputName]: Tensor });
+        const OutputTensor = Results[OutputName];
+        return Array.from(OutputTensor.data as Float32Array);
     }
 }
 
-Container.register(SpeakerEmbedder, () => new SpeakerEmbedder(undefined, Container.logger));
+// Register with Container for production use
+try {
+    Container.register(
+        SpeakerEmbedder,
+        () => new SpeakerEmbedder(new AudioFeatureExtractor(), Container.get(AppLogger)),
+    );
+} catch {
+    // Silently ignore registration errors during testing/initialization
+}

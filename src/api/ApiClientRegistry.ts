@@ -5,9 +5,9 @@
  */
 
 import isEmpty from 'lodash/isEmpty';
-import { Container } from '@/Container';
-import { AppLogger } from '@/Service/Logger';
-import { AppConfig } from '../Config';
+import { AppConfig } from '@/Core/AppConfig';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { ApiClientException } from '../Exception';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';

@@ -6,9 +6,11 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, useTheme } from 'react-native-paper';
 import { useProfileAttributes } from '@/Api';
 import { ChipGroup, MultiSelectModal, TextInput } from '@/Components/Form';
-import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
+import { useLocalization } from '@/Localization';
 import type { OnboardingFormData, ProfileStepData } from '@/State/Onboarding';
+import { OnboardingState } from '@/State/Onboarding/State';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 const PROFILE_ATTRIBUTES_QUERY_OPTIONS = {
@@ -18,7 +20,7 @@ const PROFILE_ATTRIBUTES_QUERY_OPTIONS = {
 
 export const StepProfile = observer(function stepProfile(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { locale, LL } = useAppLanguage();
+    const { locale, LL } = useLocalization();
     const { control, getValues, setError } = useFormContext<OnboardingFormData>();
     const error = Container.get(OnboardingState).state.error.get();
 
@@ -28,6 +30,10 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
     });
     const data = profileAttributesQuery.data;
     const { qualifications = [], therapyMethods = [], languages = [] } = data ?? {};
+
+    // Debugging API response
+    (Container.get(AppLogger) as AppLogger).info('Profile Attributes Data:', data);
+
     const isLoading = profileAttributesQuery.isLoading;
 
     const handleContinue = useCallback(() => {
@@ -54,8 +60,16 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
         return (
             <View style={[STYLES.stepRoot, STYLES.loadingContainer]}>
                 <ActivityIndicator size="large" />
-                <Text style={[STYLES.loadingText, { color: theme.colors.onSurfaceVariant }]}>
-                    {LL.onboarding.aboutYou()}
+                <Text style={[STYLES.loadingText, { color: theme.colors.onSurfaceVariant }]}>Loading...</Text>
+            </View>
+        );
+    }
+
+    if (!data) {
+        return (
+            <View style={[STYLES.stepRoot, STYLES.loadingContainer]}>
+                <Text style={[STYLES.loadingText, { color: theme.colors.error }]}>
+                    Failed to load profile attributes.
                 </Text>
             </View>
         );

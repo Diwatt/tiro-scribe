@@ -14,7 +14,7 @@ import { FileDownloader } from '@/Service/InferenceModelDownload/FileDownloader'
 import { ModelArtifactStorage } from '@/Service/InferenceModelDownload/ModelArtifactStorage';
 import { DownloadState } from '@/Service/InferenceModelDownload/Type';
 import type { ModelConfig, InferenceModelFile } from '@/Api';
-import type { LoggerInterface } from '@/Service/Logger';
+import type { AppLogger } from '@/Core/AppLogger';
 
 // Mock dependencies with explicit factories so `new` works in createDefaultInstance
 vi.mock('@/Repository/DownloadQueueRepository', () => ({
@@ -39,7 +39,7 @@ vi.mock('@/Service/InferenceModelDownload/FileDownloader', () => ({
 vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
     ModelArtifactStorage: vi.fn(),
 }));
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
@@ -75,7 +75,7 @@ vi.mock('expo-file-system', () => ({}));
 
 describe('InferenceModelDownloader', () => {
     let downloader: InferenceModelDownloader;
-    let mockLogger: LoggerInterface;
+    let mockLogger: AppLogger;
     let mockRepository: any;
     let mockConfigProvider: any;
     let mockChecksumVerifier: any;

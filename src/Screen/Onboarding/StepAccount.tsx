@@ -7,9 +7,10 @@ import { useFormContext } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, ProgressBar, useTheme } from 'react-native-paper';
 import { TextInput } from '@/Components/Form';
-import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { Container } from '@/Core/Container';
+import { useLocalization } from '@/Localization';
 import type { OnboardingFormData } from '@/State/Onboarding';
+import { OnboardingState } from '@/State/Onboarding/State';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 /** High-contrast colors for password strength so Too weak / Weak / Strong are clearly distinguishable. */
@@ -21,7 +22,7 @@ const STRENGTH_COLORS = {
 
 export const StepAccount = observer(function StepAccountComponent(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { LL } = useAppLanguage();
+    const { LL } = useLocalization();
     const { control, handleSubmit, watch, clearErrors } = useFormContext<OnboardingFormData>();
     const error = Container.get(OnboardingState).state.error.get();
     const isBusy = Container.get(OnboardingState).state.isBusy.get();

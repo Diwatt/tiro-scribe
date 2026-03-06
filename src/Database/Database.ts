@@ -8,15 +8,16 @@
 // desired by the user. We cast the module when accessing documentDirectory to
 // satisfy TypeScript.
 import { deleteDatabaseAsync } from 'expo-sqlite';
-import { AppConfig } from '@/Config';
-import { Container } from '@/Container';
+import { AppConfig } from '@/Core/AppConfig';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
 import type { EntityClass } from '@/Database/Type';
+import type { MetadataConstructor } from '@/Decorator/Type';
 import { ENTITY_CLASSES } from '@/Entity/index';
 import { DatabaseException } from '@/Exception';
-import { AppLogger } from '@/Service/Logger';
 import { QueryBuilder } from './QueryBuilder';
 
 /**
@@ -66,8 +67,8 @@ export class Database {
     public static async reset(): Promise<void> {
         // log before deleting so tests and debugging can see what file is being
         // removed; matches expectation in Database.test.ts
-        const appConfig = AppConfig.getInstance();
-        AppLogger.getInstance().info('[Database] resetting database at', {
+        const appConfig = Container.get(AppConfig);
+        Container.get(AppLogger).info('[Database] resetting database at', {
             path: appConfig.databaseName,
         });
 
@@ -77,14 +78,16 @@ export class Database {
 
     private async openAndSync(entityClasses: EntityClass[]): Promise<void> {
         // Use Kysely transaction for schema creation
-        await Container.get(QueryBuilder)
-            .transaction()
-            .execute(async (trx) => {
-                const writer = new DefinitionLanguageWriter(trx);
-                for (const entityCls of entityClasses) {
-                    const definition = new DefinitionBuilder(EntityMetadata.for(entityCls)).build();
-                    await writer.write(definition);
-                }
-            });
+        const queryBuilder = Container.get(QueryBuilder);
+        await queryBuilder.transaction().execute(async (trx) => {
+            const writer = new DefinitionLanguageWriter(trx, Container.get(AppLogger));
+            for (const entityCls of entityClasses) {
+                const definition = new DefinitionBuilder(
+                    EntityMetadata.for(entityCls as MetadataConstructor),
+                    queryBuilder,
+                ).build();
+                await writer.write(definition);
+            }
+        });
     }
 }

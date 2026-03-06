@@ -1,5 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
+import { Localization } from '@/Localization';
 import { StartupState } from '@/State/StartupOrchestrator';
 import { ActivityStatus } from '@/State/GlobalActivityStatus';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
@@ -7,7 +8,7 @@ import { DownloadState } from '@/Service/InferenceModelDownload/Type';
 import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '@/Entity/Therapist';
 
-vi.mock('@/Service/Logger', () => {
+vi.mock('@/App/Logger', () => {
     const mockLogger = {
         debug: vi.fn(),
         info: vi.fn(),
@@ -49,7 +50,7 @@ describe('StartupOrchestrator', () => {
         } as any);
 
         // ensure the language subsystem returns predictable strings
-        Container.appLanguage.getTranslationFunctions('en');
+        Container.get(Localization).getTranslationFunctions('en');
     });
 
     afterEach(() => {

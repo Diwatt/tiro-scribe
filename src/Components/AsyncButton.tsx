@@ -2,7 +2,7 @@ import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 import { Button, type ButtonProps, useTheme } from 'react-native-paper';
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
 import { ActivityStatus, GlobalActivityStatus } from '../State/GlobalActivityStatus';
 import type { ExtendedTheme } from '../theme/AppTheme';
 import { getLabel } from './AsyncButtonUtils';

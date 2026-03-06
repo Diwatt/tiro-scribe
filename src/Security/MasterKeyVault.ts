@@ -3,7 +3,6 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
-import { Container } from '@/Container';
 
 /** Contract for session key storage; allows injecting a mock in tests. */
 export interface MasterKeyVaultInterface {
@@ -36,7 +35,3 @@ export class MasterKeyVault implements MasterKeyVaultInterface {
         await SecureStore.setItemAsync(MasterKeyVault.KEY_PREFIX + uuid, key);
     }
 }
-
-Container.register(MasterKeyVault);
-
-export type { MasterKeyVaultInterface };

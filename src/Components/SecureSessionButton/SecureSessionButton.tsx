@@ -4,12 +4,13 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization/AppLanguage';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
+import { useLocalization } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { RecorderState } from '../../../modules/secure-recorder/src';
 
-const LOGGER = AppLogger.getInstance();
+const LOGGER = Container.get(AppLogger);
 
 /**
  * Button constants
@@ -37,7 +38,7 @@ export const SecureSessionButton = observer(
         disabled = false,
     }: Props): React.JSX.Element => {
         const theme = useTheme<ExtendedTheme>();
-        const { LL } = useAppLanguage();
+        const { LL } = useLocalization();
         const criticalAction = theme.colors.actions.critical;
         const audioRecording = useAudioRecording();
 

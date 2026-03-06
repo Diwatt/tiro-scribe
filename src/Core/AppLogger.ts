@@ -3,13 +3,10 @@
  */
 
 import { consoleTransport, logger as reactNativeLogger } from 'react-native-logs';
-import { AppConfig } from '@/Config/AppConfig';
-import { Container } from '@/Container';
-
-export type LoggerInterface = ReturnType<typeof reactNativeLogger.createLogger>;
+import type { AppConfig } from '@/Core/AppConfig';
 
 export class AppLogger {
-    private readonly logger: LoggerInterface;
+    private readonly logger: ReturnType<typeof reactNativeLogger.createLogger>;
 
     public constructor(config: AppConfig) {
         this.logger = reactNativeLogger.createLogger({
@@ -27,10 +24,6 @@ export class AppLogger {
             printLevel: true,
             printDate: true,
         });
-    }
-
-    public get loggerInstance(): LoggerInterface {
-        return this.logger;
     }
 
     // Proxy all logging methods
@@ -51,7 +44,7 @@ export class AppLogger {
     }
 
     // Proxy other LoggerInstance methods
-    public extend(extension: string): LoggerInterface {
+    public extend(extension: string): ReturnType<typeof reactNativeLogger.createLogger> {
         return this.logger.extend(extension);
     }
 
@@ -78,14 +71,4 @@ export class AppLogger {
     public patchConsole(): void {
         this.logger.patchConsole();
     }
-
-    /**
-     * Convenience accessor so call sites can grab the singleton logger without manually resolving the container.
-     * Tests can stub this by mocking the module and returning a fake logger from getInstance().
-     */
-    public static getInstance(): LoggerInterface {
-        return Container.get(AppLogger).loggerInstance;
-    }
 }
-
-Container.register(AppLogger, () => new AppLogger(Container.get(AppConfig)));

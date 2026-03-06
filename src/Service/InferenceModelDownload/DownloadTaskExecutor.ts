@@ -9,8 +9,8 @@ import { observable } from '@legendapp/state';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
+import type { AppLogger } from '@/Core/AppLogger';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
-import type { LoggerInterface } from '../../Service/Logger';
 import type { ChecksumVerifier } from './ChecksumVerifier';
 import { FileDownloader } from './FileDownloader';
 import type { ModelArtifactStorage } from './ModelArtifactStorage';
@@ -25,11 +25,9 @@ export class DownloadTaskExecutor {
     private readonly _startedAt: Dayjs;
     private readonly _state$: Observable<DownloadState>;
 
-    private readonly queueEntity: DownloadQueue;
-
     public constructor(
-        private readonly logger: LoggerInterface,
-        queueEntity: DownloadQueue,
+        private readonly logger: AppLogger,
+        private readonly queueEntity: DownloadQueue,
         private readonly modelConfig: ModelConfig,
         private readonly checksumVerifier: ChecksumVerifier,
         private readonly artifactStorage: ModelArtifactStorage,
@@ -38,7 +36,6 @@ export class DownloadTaskExecutor {
         private readonly onComplete?: () => Promise<void>,
         startedAt: Dayjs = dayjs(),
     ) {
-        this.queueEntity = queueEntity;
         this._startedAt = startedAt;
 
         // Create observables from entity's current state
@@ -88,7 +85,7 @@ export class DownloadTaskExecutor {
     public static createCompleted(
         capability: string,
         config: ModelConfig,
-        logger: LoggerInterface,
+        logger: AppLogger,
         artifactStorage: ModelArtifactStorage,
         checksumVerifier: ChecksumVerifier,
     ): DownloadTaskExecutor {

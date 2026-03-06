@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 
 

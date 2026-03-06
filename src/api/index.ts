@@ -5,14 +5,11 @@
  */
 
 /** 1. Client registry – use get(Model) to obtain the client instance (lazy). */
-export {
-    ApiClientRegistry,
-    apiClientRegistry,
-    InferenceModelClient,
-    ProfileAttributesClient,
-} from './ApiClientRegistry';
+export { ApiClientRegistry } from './ApiClientRegistry';
 /** Types (from spec + inference-model client). */
 export type { InferenceModelMap, ModelConfig } from './Client/InferenceModelClient';
+export { InferenceModelClient } from './Client/InferenceModelClient';
+export { ProfileAttributesClient } from './Client/ProfileAttributesClient';
 export type {
     InferenceModel,
     InferenceModelFile,

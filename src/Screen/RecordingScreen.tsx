@@ -6,10 +6,11 @@ import { StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecureSessionButton } from '@/Components';
-import { AppLogger } from '@/Service/Logger';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
-const LOGGER = AppLogger.getInstance();
+const LOGGER = Container.get(AppLogger);
 
 export const RecordingScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();

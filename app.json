@@ -58,6 +58,9 @@
         "extra": {
             "eas": {
                 "projectId": null
+            },
+            "expo-router": {
+                "appRoot": "app"
             }
         }
     }

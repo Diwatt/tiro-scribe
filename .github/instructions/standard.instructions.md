@@ -19,7 +19,7 @@ applyTo: "src/**/*.ts,src/**/*.tsx"
 | **Database/** | Persistence: entities, repository, decorators, serialization. |
 | **Entity/** | Domain entities (pure data + getters/setters; no I/O). |
 | **Exception/** | Custom error types. |
-| **Localization/** | Locale, translations, `AppLanguage`, `useAppLanguage`. |
+| **Localization/** | Locale, translations, `Localization`, `useLocalization`. |
 | **Navigation/** | Routing and screen types. |
 | **Security/** | Crypto, secure storage, vault, recovery kit, hardware gate. |
 | **Service/** | Capabilities (auth, biocode, voice calibration, etc.). No `*Service` suffix. |

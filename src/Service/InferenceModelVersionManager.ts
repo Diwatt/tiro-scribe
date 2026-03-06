@@ -4,9 +4,8 @@
 
 import semver from 'semver';
 import type { ModelConfig } from '@/Api';
-import { Container } from '@/Container';
-import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
+import type { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import { InferenceModelConfigProvider } from './InferenceModelConfigProvider';
 import { ModelArtifactStorage } from './InferenceModelDownload/ModelArtifactStorage';
 
@@ -27,7 +26,7 @@ export interface UpdateCheckResult {
 
 export class InferenceModelVersionManager {
     public constructor(
-        private readonly logger: LoggerInterface,
+        private readonly logger: AppLogger,
         private readonly configProvider: InferenceModelConfigProvider,
         private readonly artifactStorage: ModelArtifactStorage,
     ) {}
@@ -85,14 +84,6 @@ export class InferenceModelVersionManager {
             updates,
             totalSizeBytes,
         };
-    }
-
-    public static createDefaultInstance(): InferenceModelVersionManager {
-        const logger = AppLogger.getInstance();
-        const configProvider = Container.get(InferenceModelConfigProvider);
-        const artifactStorage = new ModelArtifactStorage(logger);
-
-        return new InferenceModelVersionManager(logger, configProvider, artifactStorage);
     }
 
     /**
@@ -164,8 +155,8 @@ Container.register(
     InferenceModelVersionManager,
     () =>
         new InferenceModelVersionManager(
-            AppLogger.getInstance(),
+            Container.get(AppLogger),
             Container.get(InferenceModelConfigProvider),
-            new ModelArtifactStorage(AppLogger.getInstance()),
+            new ModelArtifactStorage(Container.get(AppLogger)),
         ),
 );

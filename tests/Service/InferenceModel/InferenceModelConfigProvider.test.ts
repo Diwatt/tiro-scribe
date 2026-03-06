@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock AppConfig FIRST - before any module imports that use decorators at load-time
-vi.mock('@/Config/AppConfig', () => ({
+vi.mock('@/App/AppConfig', () => ({
     AppConfig: {
         getInstance: vi.fn(() => ({
             databaseName: 'test-database.sqlite',
@@ -17,7 +17,7 @@ vi.mock('@/Config/AppConfig', () => ({
 }));
 
 // Then mock dependencies
-vi.mock('@/Service/Logger', () => ({
+vi.mock('@/App/AppLogger', () => ({
     AppLogger: {
         getInstance: vi.fn(() => ({
             debug: vi.fn(),
@@ -42,8 +42,8 @@ import { InferenceModelConfigProvider } from '@/Service/InferenceModelConfigProv
 import { apiClientRegistry, InferenceModelClient } from '@/Api';
 import { ApiClientException, InferenceModelDownloaderException } from '@/Exception';
 import type { ModelConfig } from '@/Api';
-import { Container } from '@/Container';
-import { AppLogger } from '@/Service/Logger';
+import { Container } from '@/Core/Container';
+import { AppLogger } from '@/Core/AppLogger';
 import { ApiClientRegistry } from '@/Api/ApiClientRegistry';
 
 describe('InferenceModelConfigProvider', () => {

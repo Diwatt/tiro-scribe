@@ -5,15 +5,14 @@
 
 import { fetch } from 'expo/fetch';
 import type { File } from 'expo-file-system';
+import type { AppLogger } from '@/Core/AppLogger';
 import { InferenceModelDownloaderException } from '@/Exception';
-import type { LoggerInterface } from '@/Service/Logger';
-import { AppLogger } from '@/Service/Logger';
 import { StreamWriter } from './StreamWriter';
 
 export class FileDownloader {
     public constructor(
         private readonly destinationFile: File,
-        private readonly logger: LoggerInterface = AppLogger.getInstance(),
+        private readonly logger: AppLogger,
     ) {}
 
     /**

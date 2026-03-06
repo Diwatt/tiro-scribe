@@ -2,7 +2,7 @@ import { User } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Avatar, Card, Searchbar, Text, useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { useLocalization } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 // Mock data for subjects (uuid for offline/sync)
@@ -15,7 +15,7 @@ const MOCK_SUBJECTS = [
 
 export function SubjectsScreen(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { LL } = useAppLanguage();
+    const { LL } = useLocalization();
     const [searchQuery, setSearchQuery] = React.useState('');
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>

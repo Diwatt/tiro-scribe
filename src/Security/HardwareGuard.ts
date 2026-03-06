@@ -13,8 +13,8 @@
 import * as Device from 'expo-device';
 import { DeviceType } from 'expo-device';
 import semver from 'semver';
+import type { AppLogger } from '@/Core/AppLogger';
 import { HardwareGuardException } from '../Exception';
-import type { LoggerInterface } from '../Service/Logger';
 
 export class HardwareGuard {
     // --- public ---
@@ -26,7 +26,7 @@ export class HardwareGuard {
     // --- private ---
 
     public constructor(
-        private readonly log: LoggerInterface,
+        private readonly logger: AppLogger,
         minRamGigabytes: number,
         minVersion: string,
     ) {
@@ -52,7 +52,7 @@ export class HardwareGuard {
     private hasEnoughRam(minRamBytes: number): boolean {
         const total = Device.totalMemory;
         if (total != null && total < minRamBytes) {
-            this.log.warn('[HardwareGuard] RAM below threshold', { totalMemory: total });
+            this.logger.warn('[HardwareGuard] RAM below threshold', { totalMemory: total });
             return false;
         }
         return true;
@@ -67,7 +67,7 @@ export class HardwareGuard {
         const actual = (osVersion ?? '').trim();
         const isParseableActual = !!semver.coerce(actual);
         if (!actual || !isParseableActual) {
-            this.log.warn(`[HardwareGuard] ${platformLabel} OS version unavailable or unparseable`, {
+            this.logger.warn(`[HardwareGuard] ${platformLabel} OS version unavailable or unparseable`, {
                 osName: Device.osName,
                 osVersion: osVersion ?? null,
             });
@@ -75,14 +75,14 @@ export class HardwareGuard {
         }
         const coercedActual = semver.coerce(actual);
         if (!coercedActual) {
-            this.log.warn(`[HardwareGuard] ${platformLabel} OS version unavailable or unparseable`, {
+            this.logger.warn(`[HardwareGuard] ${platformLabel} OS version unavailable or unparseable`, {
                 osName: Device.osName,
                 osVersion: osVersion ?? null,
             });
             return false;
         }
         if (!semver.gte(coercedActual, coercedMin)) {
-            this.log.warn(`[HardwareGuard] ${platformLabel} OS below minimum version`, {
+            this.logger.warn(`[HardwareGuard] ${platformLabel} OS below minimum version`, {
                 osName: Device.osName,
                 osVersion: actual,
                 required: coercedMin.version,
@@ -99,7 +99,7 @@ export class HardwareGuard {
             (a) => (a?.toLowerCase().includes('arm64') ?? false) || (a?.toLowerCase().includes('x86_64') ?? false),
         );
         if (archs.length > 0 && !has) {
-            this.log.warn('[HardwareGuard] No 64-bit CPU (arm64/x86_64)', { supportedCpuArchitectures: archs });
+            this.logger.warn('[HardwareGuard] No 64-bit CPU (arm64/x86_64)', { supportedCpuArchitectures: archs });
             return false;
         }
         return true;
@@ -109,7 +109,7 @@ export class HardwareGuard {
     private isPhoneOrTablet(): boolean {
         const type = Device.deviceType;
         if (type != null && type !== DeviceType.PHONE && type !== DeviceType.TABLET) {
-            this.log.warn('[HardwareGuard] Device type not supported', { deviceType: type });
+            this.logger.warn('[HardwareGuard] Device type not supported', { deviceType: type });
             return false;
         }
         return true;
@@ -129,7 +129,7 @@ export class HardwareGuard {
 
         const coerced = semver.coerce(minVersion.trim());
         if (!coerced) {
-            this.log.error('[HardwareGuard] Failed to parse minVersion', {
+            this.logger.error('[HardwareGuard] Failed to parse minVersion', {
                 minVersion,
             });
             throw new HardwareGuardException(

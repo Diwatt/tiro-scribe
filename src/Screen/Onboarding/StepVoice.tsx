@@ -2,14 +2,14 @@ import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, Button, HelperText, useTheme } from 'react-native-paper';
-import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { Container } from '@/Core/Container';
+import { useLocalization } from '@/Localization';
 import { OnboardingState } from '@/State/Onboarding/State';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { LL } = useAppLanguage();
+    const { LL } = useLocalization();
     const actions = theme.colors.actions;
     const error = Container.get(OnboardingState).state.error.get();
     const isBusy = Container.get(OnboardingState).state.isBusy.get();

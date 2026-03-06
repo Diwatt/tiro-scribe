@@ -6,10 +6,10 @@
  */
 
 import { CompiledQuery, type Kysely } from 'kysely';
-import { Container } from '../Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 import type { MetadataConstructor } from '../Decorator/Type';
 import { DatabaseException } from '../Exception';
-import { AppLogger } from '../Service/Logger';
 import type { AbstractEntity } from './AbstractEntity';
 import { Collection } from './Collection';
 import { Criteria } from './Criteria';
@@ -131,7 +131,7 @@ export class Repository<TEntity extends AbstractEntity = AbstractEntity> {
      * Real foreign key columns are written so REFERENCES constraints are satisfied.
      */
     public async persist(entity: TEntity): Promise<TEntity> {
-        const logger = AppLogger.getInstance();
+        const logger = Container.get(AppLogger);
         const primaryKey = entity.primaryKey;
 
         // Validate primary key is not empty or whitespace-only
@@ -282,7 +282,7 @@ export class Repository<TEntity extends AbstractEntity = AbstractEntity> {
         data: Partial<Record<string, unknown>>,
         storedRecord?: Record<string, unknown>,
     ): Record<string, unknown> {
-        const logger = AppLogger.getInstance();
+        const logger = Container.get(AppLogger);
         const defaults = this.metadata.getColumnDefaults();
 
         logger.debug('[Repository] mergeForPersist:', {

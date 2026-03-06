@@ -1,22 +1,22 @@
 import { observer } from '@legendapp/state/react';
 import { useRouter } from 'expo-router';
 import type React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card, ProgressBar, useTheme } from 'react-native-paper';
 import { SecureSessionButton, StatusReady } from '@/Components';
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
 import { Registry } from '@/Database/Registry';
-import { useAppLanguage } from '@/Localization/AppLanguage';
-import { InferenceManager } from '@/Service/InferenceManager';
+import { useLocalization } from '@/Localization';
+import type { ExtendedTheme } from '@/theme/AppTheme';
 import { Therapist } from '../Entity/Therapist';
-import { useArtifactDownloadProgress } from '../Service/InferenceManager';
 
 export const Home = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const router = useRouter();
-    const { LL } = useAppLanguage();
-    const { progress, isReady: _isReady, isDownloading } = useArtifactDownloadProgress();
+    const { LL } = useLocalization();
+    const [isDownloading, _setIsDownloading] = useState(false);
+    const [progress, _setProgress] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
@@ -26,8 +26,7 @@ export const Home = observer((): React.JSX.Element => {
             if (cancelled) {
                 return;
             }
-            const current = therapists.first() ?? null;
-            Container.get(InferenceManager).downloadMissingArtifacts(current);
+            const _current = therapists.first() ?? null;
         })();
         return () => {
             cancelled = true;

@@ -1,10 +1,9 @@
 /**
  * Global app language: single source of truth for locale (device/OS only).
- * Singleton; constructor sets locale from device on first getInstance(). No React providers; screens call useAppLanguage().
+ * Singleton; constructor sets locale from device on first getInstance(). No React providers; screens call useLocalization().
  */
 
-import * as Localization from 'expo-localization';
-import { Container } from '@/Container';
+import { Container } from '@/Core/Container';
 import type { Locales, TranslationFunctions, Translations } from './i18n-types';
 import { en } from './translations/en';
 import { fr } from './translations/fr';
@@ -14,13 +13,13 @@ const INITIAL_DICTIONARIES: Record<Locales, Translations> = {
     fr: fr as Translations,
 };
 
-export interface UseAppLanguageReturn {
+export interface UseLocalizationReturn {
     locale: Locales;
     /** Translation functions; at call site use as LL (e.g. LL.onboarding.aboutYou()). */
     LL: TranslationFunctions;
 }
 
-export class AppLanguage {
+export class Localization {
     public static readonly DEFAULT_LOCALE: Locales = 'en';
 
     private static readonly dictionaries: Record<Locales, Translations> = INITIAL_DICTIONARIES;
@@ -28,9 +27,9 @@ export class AppLanguage {
     public static readonly SUPPORTED_LOCALES: Locales[] = ['en', 'fr'];
 
     private static readonly translationCache: Partial<Record<Locales, TranslationFunctions>> =
-        AppLanguage.createEmptyTranslationCache();
+        Localization.createEmptyTranslationCache();
 
-    private readonly locale: Locales = AppLanguage.DEFAULT_LOCALE;
+    private readonly locale: Locales = Localization.DEFAULT_LOCALE;
 
     public constructor() {
         this.locale = this.getDeviceLocale();
@@ -43,7 +42,7 @@ export class AppLanguage {
             if (locales && locales.length > 0) {
                 const first = locales[0];
                 const languageCode = first.languageCode ?? first.languageTag?.split('-')[0] ?? 'en';
-                if (AppLanguage.isLocale(languageCode)) {
+                if (Localization.isLocale(languageCode)) {
                     return languageCode;
                 }
             }
@@ -51,14 +50,14 @@ export class AppLanguage {
             const fallbackTag = (Localization as { locale?: string }).locale;
             if (fallbackTag) {
                 const base = fallbackTag.split('-')[0];
-                if (AppLanguage.isLocale(base)) {
+                if (Localization.isLocale(base)) {
                     return base;
                 }
             }
         } catch {
             // ignore and fall through to default
         }
-        return AppLanguage.DEFAULT_LOCALE;
+        return Localization.DEFAULT_LOCALE;
     }
 
     public getLocale(): Locales {
@@ -66,25 +65,25 @@ export class AppLanguage {
     }
 
     public getTranslationFunctions(locale: Locales): TranslationFunctions {
-        const effectiveLocale = AppLanguage.isLocale(locale) ? locale : AppLanguage.DEFAULT_LOCALE;
-        const cached = AppLanguage.translationCache[effectiveLocale];
+        const effectiveLocale = Localization.isLocale(locale) ? locale : Localization.DEFAULT_LOCALE;
+        const cached = Localization.translationCache[effectiveLocale];
         if (cached) {
             return cached;
         }
-        const translations = AppLanguage.dictionaries[effectiveLocale] ?? AppLanguage.dictionaries.en;
-        const built = AppLanguage.buildTranslationFunctions(translations);
-        AppLanguage.translationCache[effectiveLocale] = built;
+        const translations = Localization.dictionaries[effectiveLocale] ?? Localization.dictionaries.en;
+        const built = Localization.buildTranslationFunctions(translations);
+        Localization.translationCache[effectiveLocale] = built;
         return built;
     }
 
     private static buildTranslationFunctions(translations: Translations): TranslationFunctions {
-        const result = AppLanguage.createEmptyTranslationFunctions();
+        const result = Localization.createEmptyTranslationFunctions();
 
         const buildNested = (source: Record<string, unknown>, target: Record<string, unknown>): void => {
             for (const key of Object.keys(source)) {
                 const value = source[key];
                 if (typeof value === 'string') {
-                    target[key] = (params?: Record<string, unknown>) => AppLanguage.interpolate(value, params);
+                    target[key] = (params?: Record<string, unknown>) => Localization.interpolate(value, params);
                 } else if (typeof value === 'object' && value !== null) {
                     // Create nested object
                     target[key] = {};
@@ -117,18 +116,18 @@ export class AppLanguage {
     }
 
     private static isLocale(s: string): s is Locales {
-        return AppLanguage.SUPPORTED_LOCALES.includes(s as Locales);
+        return Localization.SUPPORTED_LOCALES.includes(s as Locales);
     }
 }
 
-Container.register(AppLanguage);
+Container.register(Localization, () => new Localization()); // Updated registration
 
 /**
  * React hook: current locale and translation functions (returned as LL for usage: LL.onboarding.aboutYou()).
  */
-export function useAppLanguage(): UseAppLanguageReturn {
-    const appLanguage = Container.get(AppLanguage);
-    const locale = appLanguage.getLocale();
-    const LL = appLanguage.getTranslationFunctions(locale);
+export function useLocalization(): UseLocalizationReturn {
+    const localization = Container.get(Localization);
+    const locale = localization.getLocale();
+    const LL = localization.getTranslationFunctions(locale);
     return { locale, LL };
 }

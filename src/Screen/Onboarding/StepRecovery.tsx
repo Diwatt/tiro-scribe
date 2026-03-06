@@ -7,16 +7,17 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, Snackbar, useTheme } from 'react-native-paper';
 import { AsyncButton } from '@/Components';
 import { Checkbox } from '@/Components/Form';
-import { Container } from '@/Container';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { Container } from '@/Core/Container';
+import { useLocalization } from '@/Localization';
 import type { OnboardingFormData } from '@/State/Onboarding';
+import { OnboardingState } from '@/State/Onboarding/State';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 const RECOVERY_CODE_COPIED_DURATION_MS = 2000;
 
 export const StepRecovery = observer(function stepRecovery(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const { LL } = useAppLanguage();
+    const { LL } = useLocalization();
     const { control, getValues } = useFormContext<OnboardingFormData>();
     const actions = theme.colors.actions;
     const error = Container.get(OnboardingState).state.error.get();

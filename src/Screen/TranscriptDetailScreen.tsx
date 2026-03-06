@@ -4,13 +4,13 @@ import type React from 'react';
 import { useCallback } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, IconButton, Surface, Text, useTheme } from 'react-native-paper';
-import { useAppLanguage } from '@/Localization/AppLanguage';
+import { useLocalization } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export function TranscriptDetailScreen(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const router = useRouter();
-    const { LL } = useAppLanguage();
+    const { LL } = useLocalization();
     const params = useLocalSearchParams<{
         id?: string;
         transcript?: string;

@@ -5,11 +5,11 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { Container } from '../Container';
+import type { AppLogger } from '@/Core/AppLogger';
 import { RECOVERY_KIT_HTML } from './RecoveryKitTemplate';
 
 export class RecoveryKit {
-    private readonly logger = AppLogger.getInstance();
+    public constructor(private readonly logger: AppLogger) {}
 
     /**
      * Copies the recovery code to the system clipboard.

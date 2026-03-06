@@ -7,7 +7,6 @@
 
 import { Platform } from 'react-native';
 import { z } from 'zod';
-import { Container } from '@/Container';
 
 const ENV_SCHEMA = z.object({
     // biome-ignore lint/style/useNamingConvention: environment variable name
@@ -120,5 +119,3 @@ export class AppConfig {
         };
     }
 }
-
-Container.register(AppConfig);
