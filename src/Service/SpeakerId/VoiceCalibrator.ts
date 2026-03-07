@@ -11,12 +11,12 @@
 import { SecureRecorder } from 'secure-recorder';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
+import { RecordingPermissionError } from '@/Exception/RecordingPermissionError';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import type { Biocode } from './Biocode';
 import { BiocodeFactory } from './BiocodeFactory';
 import { SpeakerEmbedder } from './SpeakerEmbedder';
 import type { SpeakerVector } from './SpeakerVector';
-import { Audio } from 'expo-av';
 
 export class VoiceCalibrator {
     private static readonly DEFAULT_DURATION_MS = 5000;
@@ -93,7 +93,7 @@ export class VoiceCalibrator {
 
         const granted = await SecureRecorder.requestPermission();
         if (!granted) {
-            throw new Error('Microphone permission is required for voice calibration recording');
+            throw new RecordingPermissionError('Microphone permission is required for voice calibration recording');
         }
     }
 
@@ -112,7 +112,7 @@ export class VoiceCalibrator {
         const recorder = new SecureRecorder(sessionId);
 
         try {
-            await recorder.init();
+            await recorder.initialize();
             await recorder.start();
             this.logger.debug('[VoiceCalibrator] Recording started', { sessionId });
 
@@ -234,11 +234,7 @@ export class VoiceCalibrator {
     private uint8ToPcm(buffer: Uint8Array): Float32Array {
         // 1. On crée une "vue" Int16 directement sur la mémoire RAM du buffer.
         // Le moteur JS gère l'endianness et le signe nativement.
-        const int16Array = new Int16Array(
-            buffer.buffer, 
-            buffer.byteOffset, 
-            buffer.length / 2
-        );
+        const int16Array = new Int16Array(buffer.buffer, buffer.byteOffset, buffer.length / 2);
 
         // 2. On prépare le tableau de destination
         const pcm = new Float32Array(int16Array.length);

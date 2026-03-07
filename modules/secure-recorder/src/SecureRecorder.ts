@@ -96,16 +96,16 @@ export class SecureRecorder {
     }
 
     /**
-     * Initializes the recorder by synchronizing state with the native module.
+     * Initialize the recorder by synchronizing state with the native module.
      * Call this method after creating a new SecureRecorder instance.
      *
      * @example
      * ```typescript
      * const recorder = new SecureRecorder('session-123');
-     * await recorder.init();
+     * await recorder.initialize();
      * ```
      */
-    public async init(): Promise<void> {
+    public async initialize(): Promise<void> {
         await this.syncState();
     }
 

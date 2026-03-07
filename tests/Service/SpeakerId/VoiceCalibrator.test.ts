@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VoiceCalibrator } from '@/Service/SpeakerId/VoiceCalibrator';
 import { Biocode } from '@/Service/SpeakerId/Biocode';
 import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
+import { RecordingPermissionError } from '@/Exception/RecordingPermissionError';
+import { SecureRecorder } from 'secure-recorder';
 
 dayjs.extend(utc);
 
@@ -68,8 +70,8 @@ const mockBiocodeFactory = {
     create: vi.fn<(vector: SpeakerVector, matrix: number[][]) => Biocode>(),
 };
 
-const createCalibrator = (durationMs = 5000): VoiceCalibrator =>
-    new VoiceCalibrator(mockSpeakerEmbedder as any, mockBiocodeFactory as any, mockLogger as any, durationMs);
+const createCalibrator = (): VoiceCalibrator =>
+    new VoiceCalibrator(mockSpeakerEmbedder as any, mockBiocodeFactory as any, mockLogger as any);
 
 describe('VoiceCalibrator – ZOMBIE tests', () => {
     beforeEach(() => {
@@ -127,6 +129,15 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         await calibrator.run(projectionMatrix);
 
         expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, projectionMatrix);
+    });
+
+    it('Permission – throws when recording permission denied', async () => {
+        // ensure permission checks are invoked
+        vi.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
+        vi.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(false);
+
+        const calibrator = createCalibrator();
+        await expect(calibrator.run(projectionMatrix)).rejects.toBeInstanceOf(RecordingPermissionError);
     });
 
     it('Exception – propagates microphone capture failures', async () => {
