@@ -4,6 +4,7 @@
  */
 
 import { observable } from '@legendapp/state';
+import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { Registry } from '@/Database/Registry';
@@ -50,6 +51,12 @@ export class OnboardingState {
     public constructor(
         private readonly recoveryKit: RecoveryKit,
         private readonly logger: AppLogger,
+        private readonly appConfig: AppConfig,
+        private readonly localization: Localization,
+        private readonly registry: Registry,
+        private readonly masterKeyVault: MasterKeyVault,
+        private readonly startupOrchestrator: StartupOrchestrator,
+        private readonly voiceCalibrator: VoiceCalibrator,
     ) {
         // Initialize practiceLanguages here where Container is safe to access
         this.state.practiceLanguages.set([Container.get(Localization).getLocale()]);
@@ -64,17 +71,23 @@ export class OnboardingState {
                     throw new Error('Pending therapist missing during calibration');
                 }
 
-                const masterKey = await Container.get(MasterKeyVault).load(therapist.uuid);
-                const projectionFactory = new ProjectionMatrixFactory(new CryptoEngine());
+                this.logger.debug('[OnboardingState] calibrateVoice masterKeyVault load', { therapistUuid: therapist.uuid });
+                const masterKey = await this.masterKeyVault.load(therapist.uuid);
+                this.logger.debug('[OnboardingState] ProjectionMatrixFactory create', { therapistUuid: therapist.uuid });
+                const projectionFactory = new ProjectionMatrixFactory(
+                    new CryptoEngine(),
+                    this.appConfig.projectionSalt,
+                );
                 const projectionMatrix = projectionFactory.create(masterKey);
-                const biocode = await Container.get(VoiceCalibrator).run(projectionMatrix);
+                this.logger.debug('[OnboardingState] calibrateVoice run', { therapistUuid: therapist.uuid });
+                const biocode = await this.voiceCalibrator.run(projectionMatrix, this.appConfig.voiceCalibrationDurationMs);
 
                 therapist.biocode = biocode.projectedVector;
                 this.state.step.set(4);
                 this.logger.debug('[OnboardingState] calibrateVoice success', { step: 4 });
             },
             () => {
-                const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
+                const ll = this.localization.getLL();
                 return ll.onboarding.errorVoiceCalibration();
             },
         );
@@ -97,7 +110,7 @@ export class OnboardingState {
             recoveryCodeSaveConfirmed,
             hasPendingTherapist: this.pendingTherapist != null,
         });
-        const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
+        const ll = this.localization.getLL();
         this.state.error.set(undefined);
         if (!recoveryCodeSaveConfirmed) {
             this.state.error.set(ll.onboarding.errorConfirmSaveCode());
@@ -111,9 +124,9 @@ export class OnboardingState {
             return;
         }
         try {
-            const repo = await Container.get(Registry).getRepository(Therapist);
+            const repo = await this.registry.getRepository(Therapist);
             await repo.persist(therapist);
-            Container.get(StartupOrchestrator).run();
+            this.startupOrchestrator.run();
             this.logger.debug('[OnboardingState] finalize success');
         } catch (error: unknown) {
             this.logger.debug('[OnboardingState] finalize persist failed', {
@@ -126,12 +139,12 @@ export class OnboardingState {
     public async generateAndShareRecoveryKit(): Promise<void> {
         const code = this.state.recoveryCode.get();
         this.logger.debug('[OnboardingState] generateAndShareRecoveryKit', { hasCode: !!code });
-        const ll = Container.get(AppLanguage).getTranslationFunctions(Container.get(AppLanguage).getLocale());
+        const ll = this.localization.getLL();
         this.state.error.set(undefined);
         Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Pending, ll.recoveryKit.generatingPdf());
         if (!code) {
             this.state.error.set(ll.onboarding.errorNoRecoveryCode());
-            Container.get(GlobalActivityStatus).reset('recoveryKit');
+            Container.get(GlobalActivityStatus).reset();
             return;
         }
         try {
@@ -139,7 +152,7 @@ export class OnboardingState {
             await this.recoveryKit.share(uri);
             Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Success, ll.recoveryKit.saved());
             this.logger.debug('[OnboardingState] generateAndShareRecoveryKit success');
-            Container.get(GlobalActivityStatus).reset('recoveryKit');
+            Container.get(GlobalActivityStatus).reset();
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : ll.recoveryKit.errorGeneric();
             this.logger.error('[OnboardingState] generateAndShareRecoveryKit failed', { error, message });
@@ -246,5 +259,14 @@ export class OnboardingState {
 Container.register(OnboardingState, () => {
     const logger = Container.get(AppLogger);
 
-    return new OnboardingState(new RecoveryKit(logger), logger);
+    return new OnboardingState(
+        new RecoveryKit(logger),
+        logger,
+        Container.get(AppConfig),
+        Container.get(Localization),
+        Container.get(Registry),
+        Container.get(MasterKeyVault),
+        Container.get(StartupOrchestrator),
+        Container.get(VoiceCalibrator),
+    );
 });

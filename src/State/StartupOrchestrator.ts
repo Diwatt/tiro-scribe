@@ -152,3 +152,5 @@ export class StartupOrchestrator {
         }
     }
 }
+
+Container.register(StartupOrchestrator, () => new StartupOrchestrator());

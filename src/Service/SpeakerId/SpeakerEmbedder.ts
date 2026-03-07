@@ -161,11 +161,8 @@ export class SpeakerEmbedder {
 }
 
 // Register with Container for production use
-try {
-    Container.register(
-        SpeakerEmbedder,
-        () => new SpeakerEmbedder(new AudioFeatureExtractor(), Container.get(AppLogger)),
-    );
-} catch {
-    // Silently ignore registration errors during testing/initialization
-}
+
+Container.register(
+    SpeakerEmbedder,
+    () => new SpeakerEmbedder(new AudioFeatureExtractor(), Container.get(AppLogger)),
+);

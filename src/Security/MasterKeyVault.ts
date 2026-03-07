@@ -2,15 +2,10 @@
  * MasterKeyVault – Manages the lifecycle of the decrypted master key in SecureStore.
  */
 
+import { Container } from '@/Core/Container';
 import * as SecureStore from 'expo-secure-store';
 
-/** Contract for session key storage; allows injecting a mock in tests. */
-export interface MasterKeyVaultInterface {
-    exists(uuid: string): Promise<boolean>;
-    save(uuid: string, key: string): Promise<void>;
-}
-
-export class MasterKeyVault implements MasterKeyVaultInterface {
+export class MasterKeyVault {
     private static readonly KEY_PREFIX = 'scribe_master_';
 
     public async exists(uuid: string): Promise<boolean> {
@@ -35,3 +30,5 @@ export class MasterKeyVault implements MasterKeyVaultInterface {
         await SecureStore.setItemAsync(MasterKeyVault.KEY_PREFIX + uuid, key);
     }
 }
+
+Container.register(MasterKeyVault, () => new MasterKeyVault());

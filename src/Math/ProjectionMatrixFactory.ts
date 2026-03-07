@@ -16,7 +16,7 @@ import type { CryptoEngine } from '../Security/CryptoEngine';
 export class ProjectionMatrixFactory {
     public constructor(
         private readonly crypto: CryptoEngine,
-        private readonly projectionSalt: string = AppConfig.getInstance().projectionSalt,
+        private readonly projectionSalt: string,
     ) {}
 
     /**
@@ -30,7 +30,8 @@ export class ProjectionMatrixFactory {
         const raw = reshape(flat, [rows, cols]);
         const matrix = this.ensure2DArray(raw);
 
-        return this.orthonormalize(matrix);
+        //return this.orthonormalize(matrix);
+        return this.fastNormalize(matrix);
     }
 
     /**
@@ -66,26 +67,20 @@ export class ProjectionMatrixFactory {
         return (raw as { toArray(): number[][] }).toArray();
     }
 
+
     /**
-     * Orthonormalize matrix using QR decomposition (Householder reflections)
-     * More numerically stable than classical Gram-Schmidt
+     * Fast normalization of rows to unit length.
+     * Not a true orthonormalization but sufficient for projection purposes and much faster than QR decomposition.
+     * And due to Johnson-Lindenstrauss lemma is should still preserve distances with high probability in high dimensions.
      */
-    private orthonormalize(matrix: number[][]): number[][] {
-        const rows = matrix.length;
-        const cols = matrix[0].length;
-
-        const mt = transpose(matrix);
-        const decomposition = qr(mt);
-
-        const q = this.ensure2DArray(decomposition.Q);
-
-        const result: number[][] = [];
-        for (let i = 0; i < rows; i++) {
-            result[i] = new Array(cols);
-            for (let j = 0; j < cols; j++) {
-                result[i][j] = q[j][i];
+    private fastNormalize(matrix: number[][]): number[][] {
+        return matrix.map(row => {
+            let sumSq = 0;
+            for (let i = 0; i < row.length; i++) {
+                sumSq += row[i] * row[i];
             }
-        }
-        return result;
+            const mag = Math.sqrt(sumSq) || 1; // || 1 pour éviter la division par zéro
+            return row.map(val => val / mag);
+        });
     }
 }

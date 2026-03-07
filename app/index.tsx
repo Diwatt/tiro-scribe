@@ -13,6 +13,7 @@ import { useTheme } from 'react-native-paper';
 import { AppConfig } from '@/Core/AppConfig';
 import { Database } from '@/Database/Database';
 import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
+import { Container } from '@/Core/Container';
 
 async function hideSplash(): Promise<void> {
     try {
@@ -27,7 +28,7 @@ export default observer(function GateScreen(): React.JSX.Element | null {
     const theme = useTheme();
     const router = useRouter();
     const bootStarted = useRef(false);
-    const startupOrchestrator = useMemo(() => new StartupOrchestrator(), []);
+    const startupOrchestrator = useMemo(() => Container.get(StartupOrchestrator), []);
 
     useEffect(() => {
         if (bootStarted.current) {

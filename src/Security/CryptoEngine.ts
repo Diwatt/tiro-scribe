@@ -10,7 +10,7 @@ export class CryptoEngine {
     private static readonly algorithm = 'aes-256-cbc';
     private static readonly ivBytes = 16;
     private static readonly keyLen = 32;
-    private static readonly pbkdf2Iterations = 100_000;
+    private static readonly pbkdf2Iterations = 1000;
     public decrypt(ciphertext: string, keyHex: string): string {
         const key = Buffer.from(keyHex, 'hex');
         const combined = Buffer.from(ciphertext, 'base64');
@@ -40,22 +40,13 @@ export class CryptoEngine {
     public generateDeterministicBytes(keyHex: string, salt: string, byteLength: number): Buffer {
         // Derive a key once using PBKDF2
         const key = QuickCrypto.pbkdf2Sync(keyHex, salt, CryptoEngine.pbkdf2Iterations, CryptoEngine.keyLen, 'sha256');
-        const keyHexString = key.toString('hex');
-
-        // Use hash function in counter mode for fast deterministic byte generation
-        let result = Buffer.alloc(0);
-        let counter = 0;
-
-        while (result.length < byteLength) {
-            const counterBuffer = Buffer.alloc(4);
-            counterBuffer.writeUInt32LE(counter, 0);
-            const counterHex = counterBuffer.toString('hex');
-            const hashHex = this.hash(`${keyHexString}${counterHex}`);
-            const hashBuffer = Buffer.from(hashHex, 'hex');
-            result = Buffer.concat([result, hashBuffer]);
-            counter++;
-        }
-
+        
+        // Use AES-256-CTR as a stream cipher (no size limits)
+        const cipher = QuickCrypto.createCipheriv('aes-256-ctr', key, Buffer.alloc(16, 0)); // IV = zero
+        
+        let result = cipher.update(Buffer.alloc(byteLength, 0));
+        result = Buffer.concat([result, cipher.final()]);
+        
         return result.subarray(0, byteLength);
     }
 

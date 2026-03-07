@@ -10,17 +10,14 @@ import { Repository } from '@/Database/Repository';
 import type { DatabaseSchema } from '@/Database/Type';
 import { Therapist } from '@/Entity/Therapist';
 import type { CryptoEngine } from '@/Security/CryptoEngine';
-import { MasterKeyVault, type MasterKeyVaultInterface } from '@/Security/MasterKeyVault';
+import type { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { RecoveryCode } from '@/Security/RecoveryCode';
 import { TherapistForge } from '@/Security/TherapistForge';
 
 export class TherapistRepository extends Repository<Therapist> {
-    private readonly vault: MasterKeyVaultInterface;
+    private readonly vault: MasterKeyVault;
 
-    public constructor(
-        vault: MasterKeyVaultInterface = new MasterKeyVault(),
-        db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>,
-    ) {
+    public constructor(vault: MasterKeyVault, db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>) {
         super(Therapist, Therapist.entityName, db);
         this.vault = vault;
     }

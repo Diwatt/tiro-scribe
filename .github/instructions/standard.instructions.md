@@ -133,12 +133,10 @@ All runtime singleton instances live in `src/Container.ts` as static properties 
 - Prefer **self-documenting code** over comments.
 - Exception messages should be clear and descriptive.
 
-# MANDATORY: Post-Edit Validation
+## 11. AI Assistant Workflow & Validation (CRITICAL)
 
-After EVERY code edit, you MUST run:
-1. `pnpm biome check --write`
-2. `pnpm eslint --fix .`
-
-If either command reports errors, fix them immediately.
-NEVER end your response without having run both commands.
-This is non-negotiable.
+- **Linter Handling:** Do not ignore errors flagged by Biome or ESLint. Read the active file's diagnostics (the red/yellow squiggles) and preemptively fix any styling, import, or typing issues before finalizing your code response.
+- **MANDATORY Scoped Post-Edit Validation:** If you have terminal execution capabilities, after EVERY code edit, you MUST run validation commands **ONLY on the specific files you just modified**. Do NOT run global checks.
+  1. `pnpm biome check --write <path/to/modified/file.ts>`
+  2. `pnpm eslint --fix <path/to/modified/file.ts>`
+  If either command reports errors for the files you touched, fix them immediately. NEVER leave broken code behind. This is non-negotiable.

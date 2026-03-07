@@ -118,6 +118,25 @@ export class Localization {
     private static isLocale(s: string): s is Locales {
         return Localization.SUPPORTED_LOCALES.includes(s as Locales);
     }
+
+    /**
+     * Retrieves the list of locales from the device or OS.
+     * This is a placeholder implementation and should be replaced with actual device/OS locale retrieval logic.
+     */
+    private static getLocales(): Array<{ languageCode: string; languageTag?: string }> {
+        // Example implementation: Replace with actual logic to fetch locales from the device/OS
+        return [
+            { languageCode: 'en', languageTag: 'en-US' },
+            { languageCode: 'fr', languageTag: 'fr-FR' },
+        ];
+    }
+
+    /**
+     * Returns the translation functions for the current locale.
+     */
+    public getLL(): TranslationFunctions {
+        return this.getTranslationFunctions(this.locale);
+    }
 }
 
 Container.register(Localization, () => new Localization()); // Updated registration

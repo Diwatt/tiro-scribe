@@ -52,7 +52,7 @@ vi.mock('react-native-worklets', () => ({
     runOnJS: (fn: Function) => fn,
 }));
 
-import { InMemoryAudioRecorder } from '../../src/Service/InMemoryAudioRecorder';
+import { InMemoryAudioRecorder } from '../../src/Service/ForceCalibrationRecorder';
 import { requestRecordingPermissionsAsync, setAudioModeAsync, AudioModule } from 'expo-audio';
 
 // Get the mocked AudioRecorder constructor
