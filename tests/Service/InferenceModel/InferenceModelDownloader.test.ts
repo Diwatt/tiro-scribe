@@ -146,6 +146,8 @@ describe('InferenceModelDownloader', () => {
             calculateTotalSize: vi.fn(),
             hasAllFiles: vi.fn(),
             getModelUri: vi.fn(),
+            getUri: vi.fn(),
+            toAbsoluteUri: vi.fn(),
             ensureDirectories: vi.fn(),
             resolvePath: vi.fn(),
         };
@@ -309,7 +311,7 @@ describe('InferenceModelDownloader', () => {
         };
 
         beforeEach(() => {
-            mockArtifactStorage.resolvePath.mockReturnValue('file://models/speaker_id/speaker-v1');
+            mockArtifactStorage.getUri.mockReturnValue('file://models/speaker_id/speaker-v1');
             mockArtifactStorage.hasAllFiles.mockReturnValue(true);
         });
 
@@ -320,6 +322,30 @@ describe('InferenceModelDownloader', () => {
             
             expect(path).toBe('file://models/speaker_id/speaker-v1');
             expect(mockDownloadTaskManager.getActiveSession).toHaveBeenCalledWith('speaker_id');
+        });
+
+        it('should normalize a relative URI from artifactStorage', () => {
+            mockDownloadTaskManager.getActiveSession.mockReturnValue(mockSession);
+            // artifactStorage returns a bogus relative path
+            mockArtifactStorage.getUri.mockReturnValue('artifacts/foo.onnx');
+            // when downloader asks to convert the bad value, storage should
+            // supply the absolute URI
+            mockArtifactStorage.toAbsoluteUri.mockReturnValue('file:///doc/artifacts/foo.onnx');
+
+            const path = downloader.getLocalPath('speaker_id');
+            expect(path).toBe('file:///doc/artifacts/foo.onnx');
+            expect(mockArtifactStorage.toAbsoluteUri).toHaveBeenCalledWith('artifacts/foo.onnx');
+        });
+
+        it('getLocalPathForFile should also normalise relative URIs', () => {
+            // reuse same fake session
+            mockDownloadTaskManager.getActiveSession.mockReturnValue(mockSession);
+            mockArtifactStorage.getUri.mockReturnValue('artifacts/bar.onnx');
+            mockArtifactStorage.toAbsoluteUri.mockReturnValue('file:///doc/artifacts/bar.onnx');
+
+            const out = downloader.getLocalPathForFile(mockConfig, mockConfig.files[0]);
+            expect(out).toBe('file:///doc/artifacts/bar.onnx');
+            expect(mockArtifactStorage.toAbsoluteUri).toHaveBeenCalledWith('artifacts/bar.onnx');
         });
 
         it('should return undefined when model not downloaded', () => {

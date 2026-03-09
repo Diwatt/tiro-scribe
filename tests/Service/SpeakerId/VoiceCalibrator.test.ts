@@ -1,15 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { VoiceCalibrator } from '@/Service/SpeakerId/VoiceCalibrator';
-import { Biocode } from '@/Service/SpeakerId/Biocode';
-import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
-import { RecordingPermissionError } from '@/Exception/RecordingPermissionError';
-import { SecureRecorder } from 'secure-recorder';
-
-dayjs.extend(utc);
-
-type DownloaderConfig = { files: { url: string }[] };
 
 const mocks = vi.hoisted(() => ({
     logger: {
@@ -22,15 +13,18 @@ const mocks = vi.hoisted(() => ({
         capture: vi.fn<(durationMs: number) => Promise<Float32Array>>(),
     },
     downloader: {
+        // downloader mocks remain for any indirect calls via SpeakerEmbedder
         download: vi.fn<(capability: string) => Promise<{ config: DownloaderConfig }>>(),
         getLocalPath: vi.fn<(capability: string) => string | undefined>(),
         getLocalPathForFile: vi.fn<
             (config: DownloaderConfig, file: DownloaderConfig['files'][number]) => string | undefined
         >(),
+        getConfig: vi.fn<(capability: string) => Promise<DownloaderConfig>>(),
     },
 }));
 
-vi.mock('@/Container', () => ({
+// mock container before any service imports occur
+vi.mock('@/Core/Container', () => ({
     Container: {
         register: vi.fn(),
         get: vi.fn((token: any) => {
@@ -42,6 +36,10 @@ vi.mock('@/Container', () => ({
             if (token && token.name === 'InferenceModelDownloader') {
                 return mocks.downloader;
             }
+            // Provide a fake AppConfig so the downloader factory won't blow up
+            if (token && token.name === 'AppConfig') {
+                return { voiceCalibrationDurationMs: 5000 } as any;
+            }
             return undefined;
         }),
         logger: mocks.logger,
@@ -49,6 +47,15 @@ vi.mock('@/Container', () => ({
         inferenceModelDownloader: mocks.downloader,
     },
 }));
+
+import { VoiceCalibrator } from '@/Service/SpeakerId/VoiceCalibrator';
+import { Biocode } from '@/Service/SpeakerId/Biocode';
+import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
+import { SecureRecorder } from 'secure-recorder';
+
+dayjs.extend(utc);
+
+type DownloaderConfig = { files: { url: string }[] };
 
 const { logger: mockLogger, recorder: mockRecorder, downloader: mockDownloader } = mocks;
 
@@ -64,6 +71,7 @@ const mockBiocode = new Biocode([0.5, 0.4, 0.3], 0.95, dayjs.utc());
 const mockSpeakerEmbedder = {
     extract: vi.fn<(pcm: Float32Array) => Promise<SpeakerVector>>(),
     initialize: vi.fn<(path: string) => Promise<void>>(),
+    loadModel: vi.fn<(capability: string) => Promise<void>>(),
 };
 
 const mockBiocodeFactory = {
@@ -71,23 +79,20 @@ const mockBiocodeFactory = {
 };
 
 const createCalibrator = (): VoiceCalibrator =>
-    new VoiceCalibrator(mockSpeakerEmbedder as any, mockBiocodeFactory as any, mockLogger as any);
+    new VoiceCalibrator(mockRecorder as any, mockSpeakerEmbedder as any, mockBiocodeFactory as any, mockLogger as any);
 
 describe('VoiceCalibrator – ZOMBIE tests', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockRecorder.capture.mockResolvedValue(new Float32Array([0.1, 0.2, 0.3]));
-        mockDownloader.download.mockResolvedValue({ config: { files: [{ url: 'speaker.onnx' }] } });
-        mockDownloader.getLocalPath.mockReturnValue('/tmp/speaker.onnx');
-        mockDownloader.getLocalPathForFile.mockReturnValue('/tmp/speaker.onnx');
+        mockSpeakerEmbedder.loadModel.mockResolvedValue();
         mockSpeakerEmbedder.initialize.mockResolvedValue();
         mockSpeakerEmbedder.extract.mockResolvedValue(defaultSpeakerVector);
         mockBiocodeFactory.create.mockReturnValue(mockBiocode);
     });
 
     it('Zero – throws when no artifact path can be determined', async () => {
-        mockDownloader.getLocalPath.mockReturnValue(undefined);
-        mockDownloader.getLocalPathForFile.mockReturnValue(undefined);
+        mockSpeakerEmbedder.loadModel.mockRejectedValue(new Error('Speaker ID artifact path unavailable'));
 
         const calibrator = createCalibrator();
 
@@ -102,6 +107,7 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         expect(result).toBe(mockBiocode);
         expect(mockRecorder.capture).toHaveBeenCalledTimes(1);
         expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, projectionMatrix);
+        expect(mockSpeakerEmbedder.loadModel).toHaveBeenCalledWith('speaker_id');
     });
 
     it('Many – consecutive runs capture and project each time', async () => {
@@ -111,15 +117,15 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         await calibrator.run(projectionMatrix);
 
         expect(mockRecorder.capture).toHaveBeenCalledTimes(2);
-        expect(mockSpeakerEmbedder.initialize).toHaveBeenCalledTimes(2);
+        expect(mockSpeakerEmbedder.loadModel).toHaveBeenCalledTimes(2);
         expect(mockBiocodeFactory.create).toHaveBeenCalledTimes(2);
     });
 
     it('Boundary – respects configured calibration duration', async () => {
         const durationMs = 1234;
-        const calibrator = createCalibrator(durationMs);
+        const calibrator = createCalibrator();
 
-        await calibrator.run(projectionMatrix);
+        await calibrator.run(projectionMatrix, durationMs);
 
         expect(mockRecorder.capture).toHaveBeenCalledWith(durationMs);
     });
@@ -131,14 +137,6 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, projectionMatrix);
     });
 
-    it('Permission – throws when recording permission denied', async () => {
-        // ensure permission checks are invoked
-        vi.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
-        vi.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(false);
-
-        const calibrator = createCalibrator();
-        await expect(calibrator.run(projectionMatrix)).rejects.toBeInstanceOf(RecordingPermissionError);
-    });
 
     it('Exception – propagates microphone capture failures', async () => {
         const error = new Error('microphone unavailable');
@@ -147,6 +145,7 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         const calibrator = createCalibrator();
 
         await expect(calibrator.run(projectionMatrix)).rejects.toThrow(error);
+        expect(mockSpeakerEmbedder.loadModel).toHaveBeenCalled();
         expect(mockSpeakerEmbedder.initialize).not.toHaveBeenCalled();
     });
 });

@@ -5,6 +5,23 @@
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+// Stub expo-file-system so tests don't attempt to load native modules
+vi.mock('expo-file-system', () => {
+    return {
+        File: class {
+            uri = '';
+            exists = false;
+            constructor(..._args: any[]) {
+                // instance will be replaced in tests via mocking
+            }
+        },
+        Paths: {
+            document: '',
+        },
+    };
+});
+
 import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exception';
 import { SpeakerEmbedder } from '@/Service/SpeakerId/SpeakerEmbedder';
 import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
@@ -67,7 +84,23 @@ const mockInferenceModelDownloader = {
             files: [{ url: '/mock/model/path.onnx' }]
         }
     }),
+    getLocalPath: vi.fn<(capability: string) => string | undefined>(),
+    getLocalPathForFile: vi.fn<(config: any, file: any) => string | undefined>(),
 };
+
+// Mock Core container so SpeakerEmbedder and others get logger/downloader
+vi.mock('@/Core/Container', () => ({
+    Container: {
+        register: vi.fn(),
+        get: vi.fn((cls: any) => {
+            if (cls && typeof cls.name === 'string' && cls.name.includes('AppLogger')) {
+                return mockLoggerInstance;
+            }
+            // return our preconfigured downloader mock for everything else
+            return mockInferenceModelDownloader;
+        }),
+    },
+}));
 
 vi.mock('@/Service/InferenceModelDownloader', () => ({
     InferenceModelDownloader: vi.fn().mockImplementation(() => mockInferenceModelDownloader),
@@ -84,6 +117,9 @@ vi.mock('@/App/Container', (async () => {
                 if (cls?.name === 'InferenceModelDownloader') {
                     return new InferenceModelDownloaderModule.InferenceModelDownloader();
                 }
+                if (cls?.name === 'AppLogger') {
+                    return mockLoggerInstance;
+                }
                 return null;
             }),
         },
@@ -95,8 +131,9 @@ describe('SpeakerEmbedder', () => {
     let mockExtractor: any;
 
     beforeEach(() => {
+        // clear call counts only; retain return value stubs until each test
         vi.clearAllMocks();
-        
+
         speakerEmbedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
         // Get the mock instance from the constructor
         mockExtractor = speakerEmbedder['audioFeatureExtractor'];
@@ -147,6 +184,71 @@ describe('SpeakerEmbedder', () => {
             vi.mocked(mockOrt.InferenceSession.create).mockRejectedValue(new Error('Model not found'));
             
             await expect(speakerEmbedder.initialize('/nonexistent.onnx')).rejects.toThrow('Failed to initialize speaker recognition model');
+        });
+
+        it('resolves relative paths from document directory', async () => {
+            // prepare a fake File class that returns an object with uri/exists
+            const fakeFile = { exists: true, uri: 'file:///doc/artifacts/model.onnx' };
+            const expoFS = await import('expo-file-system');
+            class StubFile {
+                exists = fakeFile.exists;
+                uri = fakeFile.uri;
+                constructor(..._args: any[]) {
+                    // ignore arguments
+                }
+            }
+            (expoFS as any).File = StubFile;
+            (expoFS as any).Paths = { document: '/doc' };
+
+            // spy on InferenceSession.create to observe the resolved path
+            vi.mocked(mockOrt.InferenceSession.create).mockResolvedValue(mockInferenceSession);
+
+            await speakerEmbedder.initialize('artifacts/model.onnx');
+            expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith(
+                'file:///doc/artifacts/model.onnx',
+                { executionProviders: ['cpu'] }
+            );
+        });
+    });
+
+    describe('loadModel', () => {
+        it('initializes from existing local path', async () => {
+            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
+            const initSpy = (embedder.initialize = vi.fn().mockResolvedValue() as any);
+
+            mockInferenceModelDownloader.getLocalPath.mockReturnValue('/existing/path.onnx');
+
+            await embedder.loadModel('speaker_id');
+            expect(initSpy).toHaveBeenCalledWith('/existing/path.onnx');
+        });
+
+
+
+        it('downloads model when local path missing', async () => {
+            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
+            const initSpy = (embedder.initialize = vi.fn().mockResolvedValue() as any);
+
+            mockInferenceModelDownloader.getLocalPath.mockReturnValue(undefined);
+            mockInferenceModelDownloader.download.mockResolvedValue({
+                config: {
+                    capability: 'speaker-recognition',
+                    id: 'speaker-model',
+                    files: [{ url: '/mock/model/path.onnx' }],
+                },
+            } as any);
+            mockInferenceModelDownloader.getLocalPathForFile.mockReturnValue('/mock/model/path.onnx');
+
+            await embedder.loadModel('speaker_id');
+            expect(initSpy).toHaveBeenCalledWith('/mock/model/path.onnx');
+        });
+
+        it('throws if model cannot be resolved', async () => {
+            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
+            mockInferenceModelDownloader.getLocalPath.mockReturnValue(undefined);
+            mockInferenceModelDownloader.getLocalPathForFile.mockReturnValue(undefined);
+            mockInferenceModelDownloader.download.mockResolvedValue({ config: { capability: '', id: '', files: [] } } as any);
+
+            await expect(embedder.loadModel('speaker_id')).rejects.toThrow('Model for speaker_id not available');
         });
     });
 

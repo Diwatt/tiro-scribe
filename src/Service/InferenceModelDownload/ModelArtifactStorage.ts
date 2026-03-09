@@ -147,6 +147,19 @@ export class ModelArtifactStorage {
     }
 
     /**
+     * Convert a relative storage path (e.g. "artifacts/foo.onnx") into a full
+     * file URI.  This is used by callers who may accidentally obtain a relative
+     * string from the downloader; the conversion logic lives here so that the
+     * expo-file-system dependency is confined to a single class and can be
+     * mocked easily in tests.
+     */
+    public toAbsoluteUri(relativePath: string): string {
+        const segments = relativePath.split('/');
+        const file = new File(Paths.document, ...segments);
+        return file.uri;
+    }
+
+    /**
      * Checks if all files for a model configuration have been downloaded.
      *
      * @param config - The model configuration

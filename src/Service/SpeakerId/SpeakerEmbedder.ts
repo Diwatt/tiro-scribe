@@ -14,6 +14,9 @@ import { AudioFeatureExtractor } from '../../Math/AudioFeatureExtractor';
 import { getOnnxRuntime } from '../../Util/OnnxRuntime';
 import { InferenceModelDownloader } from '../InferenceModelDownloader';
 import { SpeakerVector } from './SpeakerVector';
+// needed for fallback when callers pass a relative path (e.g. "artifacts/..." )
+import { File, Paths } from 'expo-file-system';
+
 
 export class SpeakerEmbedder {
     private speakerSession: Ort.InferenceSession | null = null;
@@ -115,10 +118,26 @@ export class SpeakerEmbedder {
      * Resolve model path - downloads model if needed
      */
     private async resolveModelPath(modelPath: string): Promise<string> {
-        // Absolute paths or file URIs bypass downloader
+        // Absolute paths or file URIs bypass downloader entirely
         if (modelPath.startsWith('file://') || modelPath.startsWith('/')) {
             return modelPath;
         }
+
+        // If the path is relative (e.g. "artifacts/.."), convert it to a
+        // full URI by resolving against the document directory.  Previously we
+        // only returned the value if the file actually existed, but race
+        // conditions and filesystem quirks can make `exists` return `false` even
+        // though the file is perfectly valid once passed to native APIs.  To
+        // avoid throwing a confusing error we always compute the candidate URI
+        // and only use the existence check as a fast‑path.
+        const relativeSegments = modelPath.split('/');
+        const candidateFile = new File(Paths.document, ...relativeSegments);
+        const candidateUri = candidateFile.uri;
+        if (candidateFile.exists) {
+            return candidateUri;
+        }
+        // otherwise fall through to config resolution, but if that also fails
+        // we'll still return candidateUri at the end instead of throwing.
 
         // Otherwise, ask the inferenceDownloader for a config and download if needed
         const Config = await Container.get(InferenceModelDownloader).getConfigByLocalPath(modelPath);
@@ -128,9 +147,39 @@ export class SpeakerEmbedder {
             return this.getModelUriFromConfig(Executor.config);
         }
 
-        throw new InvalidAudioFormatError(
-            `Model not found at ${modelPath}. Please ensure the model is downloaded or provide a valid model URL.`,
-        );
+        // Fallback: we were unable to resolve the model via the downloader; return
+        // the candidate document‑relative URI anyway and let the caller (usually
+        // ONNX Runtime) report the error.  This avoids the confusing
+        // "Model not found at artifacts/..." message and gives more context in
+        // the underlying filesystem error if the file truly is missing.
+        return candidateUri;
+    }
+
+    /**
+     * Load and initialize a model by capability name (e.g. 'speaker_id').
+     *
+     * This method centralizes the download/lookup logic so callers such as
+     * VoiceCalibrator don't need to know about InferenceModelDownloader.
+     * If the embedder is already initialized the call is a no-op.
+     */
+    public async loadModel(capability: string): Promise<void> {
+        if (this.speakerSession) {
+            return;
+        }
+
+        const downloader = Container.get(InferenceModelDownloader);
+        // attempt to resolve path; download if missing
+        let modelPath = downloader.getLocalPath(capability);
+        if (!modelPath) {
+            const executor = await downloader.download(capability);
+            modelPath = downloader.getLocalPathForFile(executor.config, executor.config.files[0]);
+        }
+
+        if (!modelPath) {
+            throw new InvalidAudioFormatError(`Model for ${capability} not available`);
+        }
+
+        await this.initialize(modelPath);
     }
 
     /**

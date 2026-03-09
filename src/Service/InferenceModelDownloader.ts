@@ -174,25 +174,50 @@ export class InferenceModelDownloader {
     }
 
     public getLocalPath(capability: string, _version?: string): string | undefined {
-        // In a full implementation, this would resolve the actual file path
-        // For now, we use the existing method
+        // Return a file URI for the first downloaded artifact, if any.
         const session = this.downloadTaskManager.getActiveSession(capability);
         if (!session) {
             return undefined;
         }
 
-        // Return path to first file (simplified)
         const file = session.config.files[0];
         if (!file) {
             return undefined;
         }
 
-        return this.artifactStorage.resolvePath(session.config, file);
+        let uri = this.artifactStorage.getUri(session.config, file);
+        if (!uri.startsWith('file://') && !uri.startsWith('/')) {
+            // delegate bruteforce conversion to model storage helper instead of
+            // pulling in expo-file-system here (which would break tests).
+            uri = this.artifactStorage.toAbsoluteUri(uri);
+        }
+
+        return uri;
     }
 
     /** Path to a specific file in the model configuration. Relative under document dir. */
     public getLocalPathForFile(config: ModelConfig, file: InferenceModelFile): string {
-        return this.artifactStorage.resolvePath(config, file);
+        // When callers ask for a specific file we intend to return a *file URI*
+        // pointing at the downloaded artifact.  Historically this method used to
+        // hand back a relative path which forced every consumer to run its own
+        // resolution logic; per the comment above `resolveModelPath` we still
+        // need to guard against that situation when no download session exists.
+        let uri = this.artifactStorage.getUri(config, file);
+
+        // Some edge cases (race conditions during cleanup, bugs in the
+        // underlying expo-file-system library, or unexpected config
+        // mutations) have resulted in the storage layer returning a plain
+        // relative path such as "artifacts/foo/model.onnx".  This is a
+        // disaster when handed straight to ONNX Runtime, so normalize it here
+        // by prefixing the document directory and converting to an actual URI.
+        if (!uri.startsWith('file://') && !uri.startsWith('/')) {
+            // delegate conversion to storage helper which already knows about
+            // expo-file-system; this keeps the downloader free of native
+            // module dependencies.
+            uri = this.artifactStorage.toAbsoluteUri(uri);
+        }
+
+        return uri;
     }
 
     /**
