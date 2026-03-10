@@ -8,10 +8,11 @@ import { RecoveryKit } from '@/Security';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { StartupOrchestrator } from '@/State/StartupOrchestrator';
 import { AbstractState } from './AbstractState';
+import type { PendingTherapistProvider } from './Types';
 
 export class RecoveryState extends AbstractState {
     public readonly recoveryCode = observable<string>('');
-    private _getPendingTherapist: () => Therapist | null = () => null;
+    private pendingTherapistProvider: PendingTherapistProvider | null = null;
 
     public constructor(
         logger: AppLogger,
@@ -24,8 +25,8 @@ export class RecoveryState extends AbstractState {
         super(logger);
     }
 
-    public setPendingTherapistGetter(getter: () => Therapist | null): void {
-        this._getPendingTherapist = getter;
+    public setPendingTherapistProvider(provider: PendingTherapistProvider): void {
+        this.pendingTherapistProvider = provider;
     }
 
     public async copyRecoveryCodeToClipboard(): Promise<void> {
@@ -70,7 +71,7 @@ export class RecoveryState extends AbstractState {
             return;
         }
 
-        const therapist = this._getPendingTherapist();
+        const therapist = this.pendingTherapistProvider?.getPendingTherapist();
         if (!therapist) {
             this.error.set(ll.onboarding.errorSessionLost());
             return;

@@ -10,29 +10,30 @@ import type { Therapist } from '@/Entity/Therapist';
 import { type AccountCreationResult, AccountState } from './AccountState';
 import { ProfileState } from './ProfileState';
 import { RecoveryState } from './RecoveryState';
+import { OnboardingStep, type PendingTherapistProvider } from './Types';
 import { VoiceState } from './VoiceState';
 
 /** Re-export for consumers. */
-export type { ValidationResult } from './Types';
+export type { OnboardingStep, PendingTherapistProvider, ValidationResult } from './Types';
 
 /** Number of steps in the onboarding wizard (progress UI). */
-export const ONBOARDING_STEPS = 4;
+export const ONBOARDING_STEPS = Object.keys(OnboardingStep).length / 2; // enum has both keys and values
 
-export class OnboardingState {
-    public readonly step = observable<number>(1);
+export class OnboardingState implements PendingTherapistProvider {
+    public readonly step = observable<OnboardingStep>(OnboardingStep.Account);
 
     // aggregated values derived from the child states
-    public readonly error!: ObservableComputed<string | undefined>;
-    public readonly isBusy!: ObservableComputed<boolean>;
+    public readonly error: ObservableComputed<string | undefined>;
+    public readonly isBusy: ObservableComputed<boolean>;
 
     public readonly account: AccountState;
-
     public readonly profile: ProfileState;
     public readonly voice: VoiceState;
     public readonly recovery: RecoveryState;
-    private readonly pendingTherapist = observable<Therapist | null>(null);
 
+    private readonly pendingTherapist = observable<Therapist | null>(null);
     private readonly logger: AppLogger;
+
     public constructor(
         account: AccountState,
         profile: ProfileState,
@@ -63,10 +64,17 @@ export class OnboardingState {
         this.setupBindings();
     }
 
-    public goToStep(step: number): void {
+    /**
+     * Implements PendingTherapistProvider contract.
+     */
+    public getPendingTherapist(): Therapist | null {
+        return this.pendingTherapist.get();
+    }
+
+    public goToStep(step: OnboardingStep): void {
         this.logger.debug('[OnboardingState] goToStep', { step, stepBefore: this.step.get() });
         this.step.set(step);
-        if (step === 3) {
+        if (step === OnboardingStep.Voice) {
             this.voice.ensureSpeakerModel().catch(() => {
                 // swallow; voice state already updates global activity status
             });
@@ -75,7 +83,7 @@ export class OnboardingState {
 
     public reset(): void {
         this.logger.debug('[OnboardingState] reset', { stepBefore: this.step.get() });
-        this.step.set(1);
+        this.step.set(OnboardingStep.Account);
         this.pendingTherapist.set(null);
         this.account.reset();
         this.profile.reset();
@@ -86,7 +94,7 @@ export class OnboardingState {
     public handleAccountSuccess(result: AccountCreationResult): void {
         this.pendingTherapist.set(result.therapist);
         this.recovery.recoveryCode.set(result.recoveryCode);
-        this.step.set(3);
+        this.step.set(OnboardingStep.Voice);
         this.voice.ensureSpeakerModel().catch(() => {
             // errors are surfaced by the voice state itself
         });
@@ -99,8 +107,8 @@ export class OnboardingState {
     private setupBindings(): void {
         // callbacks that depend on `this`
         this.account.setOnSuccess(this.handleAccountSuccess.bind(this));
-        this.voice.setPendingTherapistGetter(() => this.pendingTherapist.get());
-        this.recovery.setPendingTherapistGetter(() => this.pendingTherapist.get());
+        this.voice.setPendingTherapistProvider(this);
+        this.recovery.setPendingTherapistProvider(this);
 
         // nothing else to wire at the root level any more
     }

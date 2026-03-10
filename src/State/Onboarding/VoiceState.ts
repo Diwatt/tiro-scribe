@@ -2,7 +2,6 @@ import { observable } from '@legendapp/state';
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import type { Therapist } from '@/Entity/Therapist';
 import { Localization } from '@/Localization';
 import { ProjectionMatrixFactory } from '@/Math/ProjectionMatrixFactory';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
@@ -13,6 +12,7 @@ import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { ErrorMessage } from '@/Util/ErrorMessage';
 import { AbstractState } from './AbstractState';
+import type { PendingTherapistProvider } from './Types';
 
 export class VoiceState extends AbstractState {
     public readonly isSpeakerModelDownloading = observable<boolean>(false);
@@ -20,7 +20,7 @@ export class VoiceState extends AbstractState {
     public readonly isSpeakerModelReady = observable<boolean>(false);
 
     private modelDownloadExecutor: DownloadTaskExecutor | null = null;
-    private _getPendingTherapist: () => Therapist | null = () => null;
+    private pendingTherapistProvider: PendingTherapistProvider | null = null;
 
     public constructor(
         logger: AppLogger,
@@ -36,15 +36,17 @@ export class VoiceState extends AbstractState {
     }
 
     /**
-     * Called by the container or parent state to provide a way to look up the
-     * pending therapist; the state does **not** own the value.
+     * Called by the parent state to provide access to the pending therapist.
+     * The state does **not** own the value, merely holds a reference to the provider.
      */
-    public setPendingTherapistGetter(getter: () => Therapist | null): void {
-        this._getPendingTherapist = getter;
+    public setPendingTherapistProvider(provider: PendingTherapistProvider): void {
+        this.pendingTherapistProvider = provider;
     }
 
     public async calibrateVoice(): Promise<void> {
-        this.logger.debug('[VoiceState] calibrateVoice', { hasPendingTherapist: this._getPendingTherapist() != null });
+        this.logger.debug('[VoiceState] calibrateVoice', {
+            hasPendingTherapist: this.pendingTherapistProvider?.getPendingTherapist() != null,
+        });
 
         if (this.isSpeakerModelDownloading.get()) {
             return;
@@ -53,7 +55,7 @@ export class VoiceState extends AbstractState {
         this.error.set(undefined);
         try {
             await this.runAsyncAction(async () => {
-                const therapist = this._getPendingTherapist();
+                const therapist = this.pendingTherapistProvider?.getPendingTherapist();
                 if (!therapist) {
                     throw new Error('Pending therapist missing during calibration');
                 }

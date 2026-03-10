@@ -8,10 +8,29 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
     private _nativeModule: NativeSecureRecorderModule | null = null;
 
     private get nativeModule(): NativeSecureRecorderModule {
-        this._nativeModule ??= requireNativeModule('SecureRecorder');
+        // lazy-load the native implementation; expo-modules-core will throw if the
+        // module isn't registered (e.g. when running in Expo Go). We catch that
+        // and rephrase the message so developers know what to do instead of
+        // staring at a cryptic "Cannot find native module" error.
+        if (this._nativeModule == null) {
+            try {
+                this._nativeModule = requireNativeModule('SecureRecorder');
+            } catch (err) {
+                // original error message may already be descriptive, but we add
+                // guidance about the build environment.
+                const original = err instanceof Error ? err.message : String(err);
+                throw new Error(
+                    `SecureRecorder native module unavailable. ` +
+                        `Make sure you are running a development build or a standalone ` +
+                        `app (npx expo run:ios / run:android or an EAS build), ` +
+                        `not Expo Go.\n` +
+                        `Original error: ${original}`,
+                );
+            }
 
-        if (!this._nativeModule) {
-            throw new Error('SecureRecorder native module initialization failed unexpectedly.');
+            if (!this._nativeModule) {
+                throw new Error('SecureRecorder native module initialization failed unexpectedly.');
+            }
         }
 
         return this._nativeModule;

@@ -44,14 +44,23 @@ describe('SecureRecorderModule', () => {
             // Accessing nativeModule getter will trigger requireNativeModule
             expect(() => {
                 SecureRecorderModule.startRecording('test');
-            }).toThrow();
+            }).toThrow(/unavailable|initialization failed/);
         });
 
         it('should throw when requireNativeModule returns undefined', () => {
             requireNativeModule.mockReturnValue(undefined);
             expect(() => {
                 SecureRecorderModule.startRecording('test');
-            }).toThrow();
+            }).toThrow(/unavailable|initialization failed/);
+        });
+
+        it('should surface a helpful message when requireNativeModule throws', () => {
+            requireNativeModule.mockImplementation(() => {
+                throw new Error("Cannot find native module 'SecureRecorder'");
+            });
+            expect(() => {
+                SecureRecorderModule.startRecording('test');
+            }).toThrow(/development build|Expo Go/);
         });
 
         it('should handle null sessionId in startRecording', async () => {

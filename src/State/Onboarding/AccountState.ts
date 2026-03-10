@@ -7,6 +7,7 @@ import type { CreateTherapistInput } from '@/Security/TherapistForge';
 import { TherapistForge } from '@/Security/TherapistForge';
 import { AbstractState } from './AbstractState';
 import type { OnboardingFormData } from './Schema';
+import type { AccountSuccessHandler } from './Types';
 
 export interface AccountCreationResult {
     therapist: Therapist;
@@ -14,7 +15,7 @@ export interface AccountCreationResult {
 }
 
 export class AccountState extends AbstractState {
-    private onSuccess?: (result: AccountCreationResult) => void;
+    private onSuccess?: AccountSuccessHandler;
 
     public constructor(
         logger: AppLogger,
@@ -23,7 +24,7 @@ export class AccountState extends AbstractState {
         super(logger);
     }
 
-    public setOnSuccess(handler: (result: AccountCreationResult) => void): void {
+    public setOnSuccess(handler: AccountSuccessHandler): void {
         this.onSuccess = handler;
     }
 

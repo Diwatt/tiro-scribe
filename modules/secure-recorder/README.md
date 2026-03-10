@@ -140,6 +140,9 @@ recorder.onerror = (error) => {
 
 ### Static Methods
 
+> **Important:** SecureRecorder is a custom native module. it **will not work** inside the stock Expo Go app. you must either install a custom development client (`npx expo run:ios` / `npx expo run:android`) or build a standalone application with EAS. attempting to call any API in Expo Go results in the familiar runtime error `Cannot find native module 'SecureRecorder'`.
+
+
 #### `SecureRecorder.hasPermission(): Promise<boolean>`
 
 Checks if microphone permission is granted.
