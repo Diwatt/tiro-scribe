@@ -17,12 +17,10 @@
 
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { InferenceModelDownloaderException } from '@/Exception/InferenceModelDownloaderException';
 import { VoiceCalibrationRecorder } from '@/Service/VoiceCalibrationRecorder';
 import type { Biocode } from './Biocode';
 import { BiocodeFactory } from './BiocodeFactory';
 import { SpeakerEmbedder } from './SpeakerEmbedder';
-import type { SpeakerVector } from './SpeakerVector';
 
 export class VoiceCalibrator {
     private static readonly DEFAULT_DURATION_MS = 5000;
@@ -82,13 +80,14 @@ export class VoiceCalibrator {
 
             return biocode;
         } catch (error: unknown) {
+            // log the raw object so we can inspect unexpected shapes (e.g. RN errors)
             this.logger.error('[VoiceCalibrator] Voice calibration failed', {
-                error: error instanceof Error ? error.message : String(error),
+                error,
+                message: error instanceof Error ? error.message : undefined,
             });
             throw error;
         }
     }
-
 }
 
 // Register with Container for production use

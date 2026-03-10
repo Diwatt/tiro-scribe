@@ -24,8 +24,9 @@ export const StepAccount = observer(function StepAccountComponent(): React.JSX.E
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useLocalization();
     const { control, handleSubmit, watch, clearErrors } = useFormContext<OnboardingFormData>();
-    const error = Container.get(OnboardingState).state.error.get();
-    const isBusy = Container.get(OnboardingState).state.isBusy.get();
+    const onboarding = Container.get(OnboardingState);
+    const error = onboarding.account.error.get();
+    const isBusy = onboarding.account.isBusy.get();
 
     const password = watch('password');
     const confirmPassword = watch('confirmPassword');
@@ -35,12 +36,12 @@ export const StepAccount = observer(function StepAccountComponent(): React.JSX.E
     );
 
     const handleBackPress = useCallback(() => {
-        Container.get(OnboardingState).goToStep(1);
-    }, []);
+        onboarding.goToStep(1);
+    }, [onboarding]);
 
     const onSubmit = useCallback((formData: OnboardingFormData) => {
-        Container.get(OnboardingState).submit(formData);
-    }, []);
+        onboarding.account.submit(formData, onboarding.profile.practiceLanguages.get());
+    }, [onboarding]);
 
     useEffect(() => {
         if (password && confirmPassword && password === confirmPassword) {

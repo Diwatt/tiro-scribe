@@ -1,27 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock AppConfig FIRST - before any imports that use decorators
-vi.mock('@/App/AppConfig', () => ({
-    AppConfig: {
-        getInstance: vi.fn(() => ({
-            databaseName: 'test-database.sqlite',
-            isDev: false,
-        })),
-    },
-}));
-
-// Then mock other dependencies
-vi.mock('@/App/AppLogger', () => ({
-    AppLogger: {
-        getInstance: vi.fn(() => ({
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
-        })),
-    },
-}));
-
 vi.mock('expo-sqlite', () => ({
     deleteDatabaseAsync: vi.fn(),
 }));
@@ -73,14 +51,12 @@ describe('Database utility methods', () => {
             warn: vi.fn(),
             error: vi.fn(),
         };
-        vi.mocked(AppLogger.getInstance).mockReturnValue(loggerMock);
         
         // Set up AppConfig mock
         appConfigMock = {
             databaseName: 'test-database.sqlite',
             isDev: false,
         };
-        vi.mocked(AppConfig.getInstance).mockReturnValue(appConfigMock);
         
         // Mock Container.get to return the mocked instances
         vi.spyOn(Container, 'get').mockImplementation((cls: any) => {

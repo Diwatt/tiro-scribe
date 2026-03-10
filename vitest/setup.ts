@@ -92,14 +92,61 @@ vi.mock('react-native-quick-crypto', () => {
                     },
                 };
             },
-            createCipheriv: () => ({
-                update: () => alloc(0),
-                final: () => alloc(0),
-            }),
-            createDecipheriv: () => ({
-                update: () => alloc(0),
-                final: () => alloc(0),
-            }),
+            createCipheriv: (algorithm: string, key: any, iv: any) => {
+                // Deterministic PRNG seeded from key for reproducible test results
+                let state = 0x12345678;
+                // Seed from key bytes
+                if (key && typeof key.length === 'number') {
+                    for (let i = 0; i < key.length; i++) {
+                        state = Math.imul(state ^ (key[i] || 0), 2654435761);
+                    }
+                }
+                // Also incorporate IV
+                if (iv && typeof iv.length === 'number') {
+                    for (let i = 0; i < iv.length; i++) {
+                        state = Math.imul(state ^ (iv[i] || 0), 2246822519);
+                    }
+                }
+                return {
+                    update: (data: any) => {
+                        const size = data && data.length ? data.length : 0;
+                        const result = alloc(size);
+                        for (let i = 0; i < size; i++) {
+                            // Linear congruential generator with better constants
+                            state = Math.imul(1664525, state) + 1013904223;
+                            result[i] = (state >>> 8) & 0xff;
+                        }
+                        return result;
+                    },
+                    final: () => alloc(0),
+                };
+            },
+            createDecipheriv: (algorithm: string, key: any, iv: any) => {
+                // Same PRNG as createCipheriv for consistency
+                let state = 0x12345678;
+                if (key && typeof key.length === 'number') {
+                    for (let i = 0; i < key.length; i++) {
+                        state = Math.imul(state ^ (key[i] || 0), 2654435761);
+                    }
+                }
+                if (iv && typeof iv.length === 'number') {
+                    for (let i = 0; i < iv.length; i++) {
+                        state = Math.imul(state ^ (iv[i] || 0), 2246822519);
+                    }
+                }
+                return {
+                    update: (data: any) => {
+                        const size = data && data.length ? data.length : 0;
+                        const result = alloc(size);
+                        for (let i = 0; i < size; i++) {
+                            state = Math.imul(1664525, state) + 1013904223;
+                            result[i] = (state >>> 8) & 0xff;
+                        }
+                        return result;
+                    },
+                    final: () => alloc(0),
+                };
+            },
             pbkdf2Sync: (password: string, salt: string) => {
                 // Deterministic mock: different (password,salt) => different hex so tests like "different salt => different key" pass
                 const str = `${password}:${salt}`;
@@ -240,6 +287,8 @@ vi.mock('react-native-paper', () => {
         Text: (props: any) => React.createElement('Text', props, props.children),
         ActivityIndicator: (props: any) => React.createElement('View', props, 'loading'),
         useTheme: () => ({ colors: { actions: { success: { background: '', text: '' } } } }),
+        MD3LightTheme: { colors: { primary: '#000' } },
+        MD3DarkTheme: { colors: { primary: '#fff' } },
     };
 });
 
@@ -523,7 +572,7 @@ vi.mock('@/Exception', () => {
     };
 });
 
-vi.mock('@/Container', () => {
+vi.mock('@/Core/Container', () => {
     // Define DatabaseException directly to avoid circular import issues
     class DatabaseException extends Error {
         public code: string;
@@ -545,6 +594,7 @@ vi.mock('@/Container', () => {
     const Container: any = {
         register: vi.fn(),
         get: vi.fn(),
+        initialize: vi.fn(),
         // ... other properties will be added below
     };
     
@@ -633,8 +683,12 @@ vi.mock('@/Container', () => {
             }),
             getMessage: vi.fn().mockReturnValue(''),
             getIcon: vi.fn().mockReturnValue(undefined),
+            readFromStore: vi.fn(function(this: any) {
+                const state = this.state$.get();
+                return { status: state.status, message: state.message, icon: state.icon };
+            }),
             state$: { 
-                get: vi.fn().mockReturnValue({ status: 'ready' }), 
+                get: vi.fn().mockReturnValue({ status: 'ready', message: '', icon: undefined }), 
                 set: vi.fn(function(this: any, value: any) {
                     // Update the mock return value when set is called
                     this.get.mockReturnValue(value);
@@ -659,7 +713,11 @@ vi.mock('@/Container', () => {
         inferenceModelVersionManager: {},
         inMemoryAudioRecorder: {},
         masterKeyVault: {},
-        onboardingState: {},
+        onboardingState: {
+            reset: vi.fn(),
+            stepIndex: { get: vi.fn().mockReturnValue(0), set: vi.fn() },
+            currentStep: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
+        },
         queryBuilder: testKysely,
         registry: { 
             getRepository: vi.fn().mockImplementation(async function(entityConfig: any) {
@@ -838,8 +896,12 @@ vi.mock('@/Container-enhanced', () => {
             }),
             getMessage: vi.fn().mockReturnValue(''),
             getIcon: vi.fn().mockReturnValue(undefined),
+            readFromStore: vi.fn(function(this: any) {
+                const state = this.state$.get();
+                return { status: state.status, message: state.message, icon: state.icon };
+            }),
             state$: { 
-                get: vi.fn().mockReturnValue({ status: 'ready' }), 
+                get: vi.fn().mockReturnValue({ status: 'ready', message: '', icon: undefined }), 
                 set: vi.fn(function(this: any, value: any) {
                     // Update the mock return value when set is called
                     this.get.mockReturnValue(value);
@@ -864,7 +926,11 @@ vi.mock('@/Container-enhanced', () => {
         inferenceModelVersionManager: {},
         inMemoryAudioRecorder: {},
         masterKeyVault: {},
-        onboardingState: {},
+        onboardingState: {
+            reset: vi.fn(),
+            stepIndex: { get: vi.fn().mockReturnValue(0), set: vi.fn() },
+            currentStep: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
+        },
         queryBuilder: testKysely,
         registry: { 
             getRepository: vi.fn().mockImplementation(async function(entityConfig: any) {
@@ -981,10 +1047,10 @@ vi.mock('expo-audio', () => ({
     })),
 }));
 
-// Mock @/App/Container by aliasing it to the @/Container mock
+// Mock @/App/Container by aliasing it to the @/Core/Container mock
 vi.mock('@/App/Container', async () => {
-    // Import the actual @/Container mock that was already set up above
-    const containerMock = await vi.importMock('@/Container');
+    // Import the actual @/Core/Container mock that was already set up above
+    const containerMock = await vi.importMock('@/Core/Container');
     return containerMock;
 });
 

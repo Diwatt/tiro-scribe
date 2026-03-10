@@ -10,24 +10,10 @@ import { DatabaseException } from '@/Exception';
 import { AppConfig } from '@/Core/AppConfig';
 import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/App/AppLogger', () => {
-    const mockLogger = {
-        debug: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-    };
-    return {
-        AppLogger: {
-            getInstance: vi.fn(() => mockLogger),
-            ...mockLogger,
-        },
-    };
-});
-
-vi.mock('@/App/AppConfig', () => ({
+// Mock AppConfig since some tests need to control isDev
+vi.mock('@/Core/AppConfig', () => ({
     AppConfig: vi.fn().mockImplementation(function () {
         return {
             isDev: false,
@@ -281,8 +267,14 @@ describe('DefinitionLanguageWriter', () => {
                     'vcol TEXT GENERATED ALWAYS AS (json_extract(data, "$.x")) VIRTUAL',
                 ],
             });
-            const logger = AppLogger;
-            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+            // Create a proper mock logger object with spyable methods
+            const mockLogger = {
+                debug: vi.fn(),
+                info: vi.fn(),
+                warn: vi.fn(),
+                error: vi.fn(),
+            };
+            const warnSpy = vi.spyOn(mockLogger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('vcol')) {
                     throw new Error('virtual not supported');
@@ -292,7 +284,7 @@ describe('DefinitionLanguageWriter', () => {
                 }
                 return Promise.resolve();
             });
-            const writer = new DefinitionLanguageWriter(tx, logger);
+            const writer = new DefinitionLanguageWriter(tx, mockLogger as any);
             await writer.write(definition);
             expect(warnSpy).toHaveBeenCalledTimes(1);
             expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual\/generated column/);

@@ -22,7 +22,8 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useLocalization();
     const { control, getValues, setError } = useFormContext<OnboardingFormData>();
-    const error = Container.get(OnboardingState).state.error.get();
+    const onboarding = Container.get(OnboardingState);
+    const error = onboarding.profile.error.get();
 
     const profileAttributesQuery = useProfileAttributes({
         ...PROFILE_ATTRIBUTES_QUERY_OPTIONS,
@@ -38,7 +39,7 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
 
     const handleContinue = useCallback(() => {
         const data = getValues() as ProfileStepData;
-        const result = Container.get(OnboardingState).getProfileStepValidation(data);
+        const result = onboarding.profile.getProfileStepValidation(data);
         if (!result.success) {
             const { formErrors, fieldErrors } = result.errors;
             for (const [field, messages] of Object.entries(fieldErrors)) {
@@ -48,13 +49,13 @@ export const StepProfile = observer(function stepProfile(): React.JSX.Element {
                 }
             }
             if (formErrors[0]) {
-                Container.get(OnboardingState).state.error.set(formErrors[0]);
+                onboarding.profile.error.set(formErrors[0]);
             }
             return;
         }
-        Container.get(OnboardingState).state.practiceLanguages.set([...data.languages]);
-        Container.get(OnboardingState).goToStep(2);
-    }, [getValues, setError]);
+        onboarding.profile.practiceLanguages.set([...data.languages]);
+        onboarding.goToStep(2);
+    }, [getValues, setError, onboarding]);
 
     if (isLoading) {
         return (

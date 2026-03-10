@@ -5,9 +5,10 @@
  * projection matrix for speaker voice identity projection.
  */
 
-import { qr, reshape, transpose } from 'mathjs';
+import { reshape } from 'mathjs';
 import { AppConfig } from '@/Core/AppConfig';
-import type { CryptoEngine } from '../Security/CryptoEngine';
+import { Container } from '@/Core/Container';
+import { CryptoEngine } from '../Security/CryptoEngine';
 
 /**
  * ProjectionMatrixFactory creates orthonormal projection matrices from cryptographic keys.
@@ -67,20 +68,25 @@ export class ProjectionMatrixFactory {
         return (raw as { toArray(): number[][] }).toArray();
     }
 
-
     /**
      * Fast normalization of rows to unit length.
      * Not a true orthonormalization but sufficient for projection purposes and much faster than QR decomposition.
      * And due to Johnson-Lindenstrauss lemma is should still preserve distances with high probability in high dimensions.
      */
     private fastNormalize(matrix: number[][]): number[][] {
-        return matrix.map(row => {
+        return matrix.map((row) => {
             let sumSq = 0;
-            for (let i = 0; i < row.length; i++) {
-                sumSq += row[i] * row[i];
+            for (const val of row) {
+                sumSq += val * val;
             }
             const mag = Math.sqrt(sumSq) || 1; // || 1 pour éviter la division par zéro
-            return row.map(val => val / mag);
+            return row.map((val) => val / mag);
         });
     }
 }
+
+Container.register(ProjectionMatrixFactory, () => {
+    const appConfig = Container.get(AppConfig);
+
+    return new ProjectionMatrixFactory(new CryptoEngine(), appConfig.projectionSalt);
+});

@@ -34,7 +34,8 @@ const STEP_VIEWS = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useLocalization();
-    const rawStep = Container.get(OnboardingState).state.step.get() ?? 1;
+    const onboarding = Container.get(OnboardingState);
+    const rawStep = onboarding.step.get() ?? 1;
     const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
     const progress = step / ONBOARDING_STEPS;
 
@@ -45,8 +46,8 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
     });
 
     useEffect(() => {
-        Container.get(OnboardingState).reset();
-    }, []);
+        onboarding.reset();
+    }, [onboarding]);
 
     const stepComponent = STEP_VIEWS[step - 1] ?? null;
 

@@ -11,9 +11,10 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useLocalization();
     const actions = theme.colors.actions;
-    const error = Container.get(OnboardingState).state.error.get();
-    const isBusy = Container.get(OnboardingState).state.isBusy.get();
-    const isDownloading = Container.get(OnboardingState).isSpeakerModelDownloading.get();
+    const onboarding = Container.get(OnboardingState);
+    const error = onboarding.voice.error.get();
+    const isBusy = onboarding.voice.isBusy.get();
+    const isDownloading = onboarding.voice.isSpeakerModelDownloading.get();
 
     return (
         <View style={STYLES.stepRoot}>
@@ -45,7 +46,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                 <>
                     <Button
                         mode="contained"
-                        onPress={() => Container.get(OnboardingState).calibrateVoice()}
+                        onPress={() => onboarding.voice.calibrateVoice()}
                         style={[STYLES.primaryButton, { backgroundColor: actions.primary.background }]}
                         contentStyle={STYLES.primaryButtonContent}
                     >
@@ -53,7 +54,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                     </Button>
                     <Button
                         mode="text"
-                        onPress={() => Container.get(OnboardingState).reset()}
+                        onPress={() => onboarding.reset()}
                         style={STYLES.backButton}
                         contentStyle={STYLES.primaryButtonContent}
                     >

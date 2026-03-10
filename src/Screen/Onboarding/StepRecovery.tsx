@@ -19,17 +19,21 @@ export const StepRecovery = observer(function stepRecovery(): React.JSX.Element 
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useLocalization();
     const { control, getValues } = useFormContext<OnboardingFormData>();
+    const onboarding = Container.get(OnboardingState);
     const actions = theme.colors.actions;
-    const error = Container.get(OnboardingState).state.error.get();
-    const recoveryCode = Container.get(OnboardingState).state.recoveryCode.get();
+    const error = onboarding.recovery.error.get();
+    const recoveryCode = onboarding.recovery.recoveryCode.get();
 
     const [recoveryCodeCopied, setRecoveryCodeCopied] = useState(false);
     const handleCopyRecoveryCode = useCallback(async () => {
-        await Container.get(OnboardingState).copyRecoveryCodeToClipboard();
+        await onboarding.recovery.copyRecoveryCodeToClipboard();
         setRecoveryCodeCopied(true);
         setTimeout(() => setRecoveryCodeCopied(false), RECOVERY_CODE_COPIED_DURATION_MS);
-    }, []);
-    const handleSaveRecoveryKit = useCallback(() => Container.get(OnboardingState).generateAndShareRecoveryKit(), []);
+    }, [onboarding.recovery]);
+    const handleSaveRecoveryKit = useCallback(
+        () => onboarding.recovery.generateAndShareRecoveryKit(),
+        [onboarding.recovery],
+    );
 
     return (
         <View style={STYLES.stepRoot}>
@@ -92,7 +96,7 @@ export const StepRecovery = observer(function stepRecovery(): React.JSX.Element 
             <View style={STYLES.stepSpacer} />
             <Button
                 mode="contained"
-                onPress={() => Container.get(OnboardingState).finalize(!!getValues('recoveryCodeSaveConfirmed'))}
+                onPress={() => onboarding.recovery.finalize(!!getValues('recoveryCodeSaveConfirmed'))}
                 style={[STYLES.primaryButton, { backgroundColor: actions.success.background }]}
                 contentStyle={STYLES.primaryButtonContent}
             >

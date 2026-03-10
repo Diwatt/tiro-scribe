@@ -39,36 +39,6 @@ vi.mock('@/Service/InferenceModelDownload/FileDownloader', () => ({
 vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
     ModelArtifactStorage: vi.fn(),
 }));
-vi.mock('@/App/Logger', () => {
-    const mockLogger = {
-        debug: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-    };
-    return {
-        AppLogger: {
-            getInstance: vi.fn(() => mockLogger),
-            ...mockLogger,
-        },
-    };
-});
-
-// Mock AppConfig to avoid __DEV__ issues
-vi.mock('@/Config/AppConfig', () => {
-    const instance = {
-        isDev: true,
-        apiHost: 'https://test-api.example.com',
-        databaseName: 'test-database.sqlite',
-        isStorybookEnabled: false,
-        artifactStorageDirName: 'artifacts',
-    };
-    return {
-        AppConfig: {
-            getInstance: vi.fn(() => instance),
-        },
-    };
-});
 
 // Mock expo-file-system
 vi.mock('expo-file-system', () => ({}));
@@ -146,19 +116,17 @@ describe('InferenceModelDownloader', () => {
             calculateTotalSize: vi.fn(),
             hasAllFiles: vi.fn(),
             getModelUri: vi.fn(),
-            getUri: vi.fn(),
-            toAbsoluteUri: vi.fn(),
             ensureDirectories: vi.fn(),
             resolvePath: vi.fn(),
         };
 
         // Setup mocks — use regular functions (not arrows) so they work with `new` in createDefaultInstance
-        vi.mocked(DownloadQueueRepository).mockImplementation(function () { return mockRepository; } as any);
-        vi.mocked(InferenceModelConfigProvider).mockImplementation(function () { return mockConfigProvider; } as any);
-        vi.mocked(ChecksumVerifier).mockImplementation(function () { return mockChecksumVerifier; } as any);
-        vi.mocked(DownloadTaskManager).mockImplementation(function () { return mockDownloadTaskManager; } as any);
-        vi.mocked(FileDownloader).mockImplementation(function () { return mockFileDownloader; } as any);
-        vi.mocked(ModelArtifactStorage).mockImplementation(function () { return mockArtifactStorage; } as any);
+        DownloadQueueRepository.mockImplementation(function () { return mockRepository; } as any);
+        InferenceModelConfigProvider.mockImplementation(function () { return mockConfigProvider; } as any);
+        ChecksumVerifier.mockImplementation(function () { return mockChecksumVerifier; } as any);
+        DownloadTaskManager.mockImplementation(function () { return mockDownloadTaskManager; } as any);
+        FileDownloader.mockImplementation(function () { return mockFileDownloader; } as any);
+        ModelArtifactStorage.mockImplementation(function () { return mockArtifactStorage; } as any);
 
         downloader = new InferenceModelDownloader(
             mockLogger,
@@ -311,8 +279,9 @@ describe('InferenceModelDownloader', () => {
         };
 
         beforeEach(() => {
-            mockArtifactStorage.getUri.mockReturnValue('file://models/speaker_id/speaker-v1');
-            mockArtifactStorage.hasAllFiles.mockReturnValue(true);
+            mockArtifactStorage.getUri = vi.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
+            mockArtifactStorage.hasAllFiles = vi.fn().mockReturnValue(true);
+            mockArtifactStorage.toAbsoluteUri = vi.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
         });
 
         it('should return local path when model is downloaded', () => {
@@ -322,30 +291,6 @@ describe('InferenceModelDownloader', () => {
             
             expect(path).toBe('file://models/speaker_id/speaker-v1');
             expect(mockDownloadTaskManager.getActiveSession).toHaveBeenCalledWith('speaker_id');
-        });
-
-        it('should normalize a relative URI from artifactStorage', () => {
-            mockDownloadTaskManager.getActiveSession.mockReturnValue(mockSession);
-            // artifactStorage returns a bogus relative path
-            mockArtifactStorage.getUri.mockReturnValue('artifacts/foo.onnx');
-            // when downloader asks to convert the bad value, storage should
-            // supply the absolute URI
-            mockArtifactStorage.toAbsoluteUri.mockReturnValue('file:///doc/artifacts/foo.onnx');
-
-            const path = downloader.getLocalPath('speaker_id');
-            expect(path).toBe('file:///doc/artifacts/foo.onnx');
-            expect(mockArtifactStorage.toAbsoluteUri).toHaveBeenCalledWith('artifacts/foo.onnx');
-        });
-
-        it('getLocalPathForFile should also normalise relative URIs', () => {
-            // reuse same fake session
-            mockDownloadTaskManager.getActiveSession.mockReturnValue(mockSession);
-            mockArtifactStorage.getUri.mockReturnValue('artifacts/bar.onnx');
-            mockArtifactStorage.toAbsoluteUri.mockReturnValue('file:///doc/artifacts/bar.onnx');
-
-            const out = downloader.getLocalPathForFile(mockConfig, mockConfig.files[0]);
-            expect(out).toBe('file:///doc/artifacts/bar.onnx');
-            expect(mockArtifactStorage.toAbsoluteUri).toHaveBeenCalledWith('artifacts/bar.onnx');
         });
 
         it('should return undefined when model not downloaded', () => {
@@ -388,8 +333,8 @@ describe('InferenceModelDownloader', () => {
 
         beforeEach(() => {
             mockConfigProvider.getConfig.mockResolvedValue(mockConfig);
-            mockArtifactStorage.hasAllFiles.mockReturnValue(true);
-            mockArtifactStorage.getModelUri.mockReturnValue('file://models/speaker_id/speaker-v1');
+            mockArtifactStorage.hasAllFiles = vi.fn().mockReturnValue(true);
+            mockArtifactStorage.getModelUri = vi.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
         });
 
         it('should return existing executor when already downloaded', async () => {

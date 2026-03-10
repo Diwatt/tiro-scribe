@@ -129,7 +129,10 @@ export class AppConfig {
             // biome-ignore lint/style/useNamingConvention: environment variable name
             EXPO_PUBLIC_PROJECTION_SALT: process.env.EXPO_PUBLIC_PROJECTION_SALT ?? 'biocode_projection',
             // biome-ignore lint/style/useNamingConvention: environment variable name
-            EXPO_PUBLIC_VOICE_CALIBRATION_DURATION_MS: parseInt(String(process.env.EXPO_PUBLIC_VOICE_CALIBRATION_DURATION_MS ?? '5000'), 10),
+            EXPO_PUBLIC_VOICE_CALIBRATION_DURATION_MS: parseInt(
+                String(process.env.EXPO_PUBLIC_VOICE_CALIBRATION_DURATION_MS ?? '5000'),
+                10,
+            ),
         };
     }
 }

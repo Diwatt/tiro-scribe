@@ -6,28 +6,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock AppConfig FIRST - before any module imports that use decorators at load-time
-vi.mock('@/App/AppConfig', () => ({
-    AppConfig: {
-        getInstance: vi.fn(() => ({
-            databaseName: 'test-database.sqlite',
-            isDev: false,
-        })),
-    },
-}));
-
-// Then mock dependencies
-vi.mock('@/App/AppLogger', () => ({
-    AppLogger: {
-        getInstance: vi.fn(() => ({
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
-        })),
-    },
-}));
-
 // Mock the Api module
 vi.mock('@/Api', () => ({
     apiClientRegistry: {
@@ -73,12 +51,6 @@ describe('InferenceModelConfigProvider', () => {
                 return undefined;
             }),
         };
-        
-        // Mock AppLogger
-        vi.mocked(AppLogger.getInstance).mockReturnValue(mockLogger);
-        
-        // Mock apiClientRegistry.get to return the mock client directly
-        vi.mocked(apiClientRegistry.get).mockReturnValue(mockInferenceModelClient);
         
         // Spy on Container.get and mock it to return our mock registry
         containerGetSpy = vi.spyOn(Container, 'get').mockReturnValue(mockApiClientRegistry);
@@ -272,6 +244,8 @@ describe('InferenceModelConfigProvider', () => {
     });
 
     it('should verify apiClientRegistry.get mock', () => {
+        // Set up the mock return value for this test
+        (apiClientRegistry.get as any).mockReturnValue(mockInferenceModelClient);
         const client = apiClientRegistry.get('inference');
         expect(client).toBe(mockInferenceModelClient);
         expect(client.getInferenceModels).toBeDefined();
