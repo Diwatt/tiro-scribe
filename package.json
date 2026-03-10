@@ -6,30 +6,38 @@
     "main": "index.js",
     "scripts": {
         "preios": "rm -rf $TMPDIR/metro-* $TMPDIR/haste-* /tmp/metro-* /tmp/haste-* 2>/dev/null || true",
-        "android": "STORYBOOK_ENABLED=false expo run:android",
-        "android:logcat": "adb logcat -c && adb logcat ReactNativeJS:V ReactNative:V RCTLog:V Expo:V *:S",
-        "ios": "STORYBOOK_ENABLED=false expo run:ios",
-        "ios:xcode": "open ios/TiroScribe.xcworkspace",
-        "prebuild": "expo prebuild",
-        "prebuild:clean": "expo prebuild --clean",
+
+        "clean": "watchman watch-del-all 2>/dev/null || true; rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null; rm -rf .expo node_modules coverage build ios/Pods ios/build ios/DerivedData android/.gradle android/app/build android/app/.cxx android/build; find . -name '*.tsbuildinfo' -delete 2>/dev/null; pnpm install; (test -d ios && cd ios && pod install) || true",
+        "clean:metro": "rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null || true",
+
+        "pods:install": "cd ios && pod install",
+        "pods:clean": "cd ios && pod deintegrate && pod install",
+
+        "module:build": "cd modules/secure-recorder && pnpm exec expo-module clean && pnpm exec expo-module tsc -p tsconfig.json",
+
+        "ios:dev": "STORYBOOK_ENABLED=false pnpm run preios && pnpm run pods:install && expo run:ios",
+        "android:dev": "STORYBOOK_ENABLED=false pnpm run preios && expo run:android",
+        "ios": "echo \"use 'pnpm run ios:dev' (development build) or 'expo start' instead\" && exit 1",
+        "android": "echo \"use 'pnpm run android:dev' (development build) or 'expo start' instead\" && exit 1",
+
         "start": "expo start --dev-client",
         "start:reset": "expo start --clear",
-        "prestorybook": "rm -rf $TMPDIR/metro-* $TMPDIR/haste-* /tmp/metro-* /tmp/haste-* node_modules/.cache .expo 2>/dev/null || true",
+
         "storybook": "STORYBOOK_ENABLED=true expo start --clear",
         "storybook:ios": "STORYBOOK_ENABLED=true expo start --clear --ios",
         "storybook:android": "STORYBOOK_ENABLED=true expo start --clear --android",
-        "clean": "watchman watch-del-all 2>/dev/null || true; rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null; rm -rf .expo node_modules coverage build ios/Pods ios/build ios/DerivedData android/.gradle android/app/build android/app/.cxx android/build; find . -name '*.tsbuildinfo' -delete 2>/dev/null; pnpm install; (test -d ios && cd ios && pod install) || true",
-        "clean:metro": "rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null || true",
-        "pods:install": "cd ios && pod install",
-        "pods:clean": "cd ios && pod deintegrate && pod install",
+
+        "android:logcat": "adb logcat -c && adb logcat ReactNativeJS:V ReactNative:V RCTLog:V Expo:V *:S",
+
         "generate:api": "node scripts/generate-api.js",
         "mock:server": "node scripts/start-mock-server.js",
-        "module:build": "cd modules/secure-recorder && pnpm exec expo-module clean && pnpm exec expo-module tsc -p tsconfig.json",
+
         "test": "vitest run --passWithNoTests",
         "test:watch": "vitest",
         "test:kotlin": "if [ -d 'android' ] && [ -f 'android/gradlew' ]; then cd android && ./gradlew :secure-recorder:testDebugUnitTest; else echo 'Error: Android project not found'; exit 1; fi",
         "test:swift": "if [ -d 'ios' ] && [ -d 'ios/TiroScribe.xcworkspace' ]; then cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator'; else echo 'Error: iOS workspace not found'; exit 1; fi",
         "test:all": "pnpm test; pnpm test:kotlin || true; pnpm test:swift || true",
+
         "type-check": "tsc --noEmit",
         "format": "biome format --write .",
         "format:check": "biome format .",

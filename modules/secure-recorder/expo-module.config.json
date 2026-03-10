@@ -12,6 +12,7 @@
         "supportsPhone": true
     },
     "apple": {
-        "modules": ["SecureRecorderModule"]
+        "modules": ["SecureRecorderModule"],
+        "podspecPath": "SecureRecorder.podspec"
     }
 }

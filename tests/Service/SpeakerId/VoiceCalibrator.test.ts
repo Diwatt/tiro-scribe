@@ -78,8 +78,18 @@ const mockBiocodeFactory = {
     create: vi.fn<(vector: SpeakerVector, matrix: number[][]) => Biocode>(),
 };
 
+const mockProjectionMatrixFactory = {
+    create: vi.fn<(masterKey: string, inputDim: number) => number[][]>(),
+};
+
 const createCalibrator = (): VoiceCalibrator =>
-    new VoiceCalibrator(mockRecorder as any, mockSpeakerEmbedder as any, mockBiocodeFactory as any, mockLogger as any);
+    new VoiceCalibrator(
+        mockRecorder as any,
+        mockSpeakerEmbedder as any,
+        mockBiocodeFactory as any,
+        mockLogger as any,
+        mockProjectionMatrixFactory as any,
+    );
 
 describe('VoiceCalibrator – ZOMBIE tests', () => {
     beforeEach(() => {
@@ -130,11 +140,36 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         expect(mockRecorder.capture).toHaveBeenCalledWith(durationMs);
     });
 
+    it('Short – warns when the recorded PCM length is much lower than expected', async () => {
+        // if we request 5000ms at 16kHz we expect ~80_000 samples; return only 5k
+        mockRecorder.capture.mockResolvedValueOnce(new Float32Array(5000));
+
+        const calibrator = createCalibrator();
+        await calibrator.run(projectionMatrix);
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+            '[VoiceCalibrator] captured much less audio than expected',
+            expect.objectContaining({ requestedMs: 5000 }),
+        );
+    });
+
     it('Interface – feeds extracted speaker vector into BiocodeFactory with projection matrix', async () => {
         const calibrator = createCalibrator();
         await calibrator.run(projectionMatrix);
 
         expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, projectionMatrix);
+    });
+
+    it('MasterKey – generates projection matrix based on vector length', async () => {
+        const fakeMatrix = [[9, 9], [9, 9]];
+        mockProjectionMatrixFactory.create.mockReturnValue(fakeMatrix);
+
+        const calibrator = createCalibrator();
+        const biocode = await calibrator.run('some-master-key');
+
+        expect(mockProjectionMatrixFactory.create).toHaveBeenCalledWith('some-master-key', defaultSpeakerVector.vector.length);
+        expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, fakeMatrix);
+        expect(biocode).toBe(mockBiocode);
     });
 
 

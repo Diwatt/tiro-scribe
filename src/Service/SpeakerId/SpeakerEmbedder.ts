@@ -193,13 +193,62 @@ export class SpeakerEmbedder {
         const InputName = this.speakerSession.inputNames[0];
         const OutputName = this.speakerSession.outputNames[0];
 
-        const NMels = 80;
-        const TimeFrames = Math.ceil(features.length / NMels);
+        // Determine the expected input dimensions from the session metadata if
+        // available.  ONNX models exported for speaker recognition often have a
+        // fixed time dimension (e.g. `[1,80,80]`), but some may leave it
+        // symbolic for dynamic-length audio.  We use defaults as a fallback so
+        // that the logic remains safe even when metadata isn't provided (e.g.
+        // during unit tests).
+        let NMels = 80;
+        let expectedTimeFrames: number | null = null;
+        if (this.speakerSession.inputMetadata && this.speakerSession.inputMetadata.length > 0) {
+            const meta = this.speakerSession.inputMetadata[0];
+            if (meta.isTensor && meta.shape.length >= 3) {
+                const dim1 = meta.shape[1];
+                const dim2 = meta.shape[2];
+                if (typeof dim1 === 'number') {
+                    NMels = dim1;
+                }
+                if (typeof dim2 === 'number') {
+                    expectedTimeFrames = dim2;
+                }
+            }
+        }
+
+        const rawTimeFrames = Math.ceil(features.length / NMels);
+        let TimeFrames = rawTimeFrames;
+
+        if (expectedTimeFrames !== null) {
+            // if the model expects a fixed number of time frames, make sure the
+            // buffer we feed into ONNX matches that shape.  This prevents the
+            // "Got invalid dimensions" runtime error seen when a short recording
+            // only produced 37 frames instead of the required 80.
+            if (rawTimeFrames < expectedTimeFrames) {
+                this.logger.warn(
+                    '[SpeakerEmbedder] feature vector contained only %d frames, padding to %d',
+                    rawTimeFrames,
+                    expectedTimeFrames,
+                );
+                TimeFrames = expectedTimeFrames;
+            } else if (rawTimeFrames > expectedTimeFrames) {
+                this.logger.debug(
+                    '[SpeakerEmbedder] feature vector has %d frames, truncating to %d',
+                    rawTimeFrames,
+                    expectedTimeFrames,
+                );
+                TimeFrames = expectedTimeFrames;
+            }
+        }
+        // if expectedTimeFrames is null the model is dynamic on the time
+        // dimension; we'll just use rawTimeFrames and let the session accept it.
+
         const InputShape: readonly number[] = [1, NMels, TimeFrames];
 
-        const Total = InputShape.reduce((a, b) => a * b, 1);
+        const Total = NMels * TimeFrames;
         const Buffer = new Float32Array(Total);
-        Buffer.set(features.subarray(0, Total));
+        // copy up to the amount we'll actually feed the model; remaining slots
+        // stay zero which corresponds to silence
+        Buffer.set(features.subarray(0, Math.min(features.length, Total)));
 
         const ort = await getOnnxRuntime();
         const Tensor = new ort.Tensor('float32', Buffer, InputShape);

@@ -3,7 +3,6 @@ import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { Localization } from '@/Localization';
-import { ProjectionMatrixFactory } from '@/Math/ProjectionMatrixFactory';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { VoiceCalibrator } from '@/Service';
 import type { DownloadTaskExecutor } from '@/Service/InferenceModelDownload/DownloadTaskExecutor';
@@ -30,7 +29,6 @@ export class VoiceState extends AbstractState {
         private readonly masterKeyVault: MasterKeyVault,
         private readonly appConfig: AppConfig,
         private readonly voiceCalibrator: VoiceCalibrator,
-        private readonly projectionMatrixFactory: ProjectionMatrixFactory,
     ) {
         super(logger);
     }
@@ -64,13 +62,13 @@ export class VoiceState extends AbstractState {
                     therapistUuid: therapist.uuid,
                 });
                 const masterKey = await this.masterKeyVault.load(therapist.uuid);
-                this.logger.debug('[VoiceState] ProjectionMatrixFactory create', {
-                    therapistUuid: therapist.uuid,
-                });
-                const projectionMatrix = this.projectionMatrixFactory.create(masterKey);
+
                 this.logger.debug('[VoiceState] run', { therapistUuid: therapist.uuid });
+                // pass the master key directly; the calibrator will build a matrix
+                // sized to the extracted speaker vector.  this avoids dimension
+                // mismatches when the model output size changes.
                 const biocode = await this.voiceCalibrator.run(
-                    projectionMatrix,
+                    masterKey,
                     this.appConfig.voiceCalibrationDurationMs,
                 );
 
@@ -194,7 +192,6 @@ Container.register(VoiceState, () => {
     const masterKeyVault = Container.get(MasterKeyVault);
     const appConfig = Container.get(AppConfig);
     const voiceCalibrator = Container.get(VoiceCalibrator);
-    const projectionMatrixFactory = Container.get(ProjectionMatrixFactory);
 
     return new VoiceState(
         logger,
@@ -204,6 +201,5 @@ Container.register(VoiceState, () => {
         masterKeyVault,
         appConfig,
         voiceCalibrator,
-        projectionMatrixFactory,
     );
 });

@@ -38,6 +38,13 @@ const mockLoggerInstance = {
 const mockInferenceSession = {
     inputNames: ['audio_features'],
     outputNames: ['embedding'],
+    // metadata will be mutated in individual tests as necessary
+    inputMetadata: [{
+        name: 'audio_features',
+        isTensor: true,
+        type: undefined,
+        shape: [1, 80, 80],
+    }],
     run: vi.fn(),
 };
 
@@ -323,6 +330,43 @@ describe('SpeakerEmbedder', () => {
             const result = await speakerEmbedder.extract(pcmData);
             
             expect(result.confidence).toBe(1); // Should be clamped to 1
+        });
+
+        it('pads features to the required number of frames when audio is short', async () => {
+            // Force the extractor to return only 37 frames worth of features
+            mockExtractor.extract.mockReturnValue(new Float32Array(80 * 37));
+            const pcmData = new Float32Array(100); // length irrelevant
+
+            await speakerEmbedder.extract(pcmData);
+
+            // the tensor constructor should have been called with shape [1,80,80]
+            const lastCall = vi.mocked(mockTensorConstructor).mock.calls.slice(-1)[0];
+            expect(lastCall[2]).toEqual([1, 80, 80]);
+        });
+
+        it('truncates features when audio yields more frames than model accepts', async () => {
+            // Return 100 frames of features; model expects 80
+            mockExtractor.extract.mockReturnValue(new Float32Array(80 * 100));
+            const pcmData = new Float32Array(100);
+
+            await speakerEmbedder.extract(pcmData);
+
+            const lastCall = vi.mocked(mockTensorConstructor).mock.calls.slice(-1)[0];
+            expect(lastCall[2]).toEqual([1, 80, 80]);
+        });
+
+        it('respects dynamic time dimension when metadata shape is symbolic', async () => {
+            // Change metadata to mimic a dynamic model [1,80,?]
+            mockInferenceSession.inputMetadata[0].shape = [1, 80, 'T'];
+            // now shorter input should not be padded/truncated
+            mockExtractor.extract.mockReturnValue(new Float32Array(80 * 37));
+            const pcmData = new Float32Array(100);
+
+            await speakerEmbedder.extract(pcmData);
+
+            const lastCall = vi.mocked(mockTensorConstructor).mock.calls.slice(-1)[0];
+            // with dynamic time dimension we expect rawTimeFrames = 37
+            expect(lastCall[2]).toEqual([1, 80, 37]);
         });
     });
 

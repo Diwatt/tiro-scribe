@@ -1,70 +1,87 @@
-# Build Guide (Simple)
+# Build & Compilation Guide
 
-This guide is intentionally short and focused on 3 tasks:
-1. Build from scratch
-2. Clean and rebuild `secure-recorder`
-3. Run full app builds (iOS/Android)
+This document walks through the **entire build process** from a clean
+checkout up through running the app on a device or simulator.  We emphasise
+the three most‑common actions:
 
-## 1) Build From Scratch
+1. clear the workspace
+2. build the native `secure-recorder` module
+3. compile & launch the app
 
-Run from project root:
+Sections later in the file provide extra details (prebuilds, verification,
+release builds, etc.) but the “happy path” is just those three steps.
+
+---
+
+## 1. Preparation (first time only)
+
+Run these once after cloning the repository or whenever dependencies change:
 
 ```bash
-pnpm install
-pnpm run pods:install
+pnpm install                  # install JS packages in root + workspaces
+pnpm run pods:install         # install CocoaPods for the iOS project
 ```
 
-Then start a platform build:
+> You can skip `pods:install` on Android – the Gradle build will handle
+> dependencies automatically.
 
-```bash
-# iOS
-pnpm run ios
+Once this is done you have a working development environment but **no
+native modules are compiled yet**.
 
-# Android
-pnpm run android
-```
+---
 
-## 2) Clean Everything (Recommended if build is unstable)
+## 2. Clear everything (optional but useful)
 
-Run from project root:
+If you suspect stale artifacts are causing build failures, perform a full
+clean before continuing.  This step is safe to run at any time and is the
+recommended starting point for CI pipelines.
 
 ```bash
 pnpm run clean
 ```
 
-What this does (via script):
-- Clears Metro cache
-- Removes JS/Expo/iOS/Android build artifacts
-- Reinstalls dependencies
-- Reinstalls iOS pods
+The `clean` script does the following:
 
-## 3) Build `secure-recorder` Module
+- wipes Metro/haste caches (`/tmp/metro-*`, etc.)
+- removes `.expo`, build folders, and other JS artifacts
+- deletes generated iOS/Android build output
+- reinstalls node modules and iOS pods
 
-Preferred (from project root):
+Run it when your build is “wonky” or after switching branches that added
+native code.
+
+---
+
+## 3. Build the `secure-recorder` native module
+
+The custom Expo module is written in TypeScript and compiled separately from
+the main app.  You should rebuild it whenever you modify code under
+`modules/secure-recorder`.
+
+### quick one‑time compile
 
 ```bash
-pnpm run module:build
+pnpm run module:build       # from project root
 ```
 
-This is a one-shot build (no watch mode). It compiles the module TypeScript and exits.
+This compiles the module sources and exits.  It is **not** a watch mode; use
+only for CI or manual checks.
 
-Alternative (inside module folder):
+### manual alternative (inside module folder)
 
 ```bash
 cd modules/secure-recorder
 pnpm exec expo-module tsc -p tsconfig.json
 ```
 
-Do not use `pnpm run build:watch` for CI/manual build checks.
-
-Recommended full module verification:
+### verify the build (high confidence)
 
 ```bash
 cd modules/secure-recorder
-pnpm run verify
+pnpm run verify             # runs both TypeScript and native tests
 ```
 
-Native-only verification:
+Native‑only checks are available too:
 
 ```bash
 cd modules/secure-recorder
@@ -72,54 +89,87 @@ pnpm run verify:android
 pnpm run verify:ios
 ```
 
-## 4) Full Application Build
+> **Important:** if the native module is not compiled & linked, the
+> runtime error `Cannot find native module 'SecureRecorder'` will occur
+> when the app attempts to use it.  That is the same failure you see
+> when running with Expo Go – the module simply isn’t present.
 
-### Development Build
+---
+
+## 4. Regenerate & build the app (development builds)
+
+After cleaning and building the native module, you are ready to create a
+**development build** that includes all custom code.  The npm scripts wrap the
+corresponding `expo` commands:
 
 ```bash
-# iOS dev build
-pnpm run ios
+# iOS development client (runs `expo run:ios` under the hood)
+pnpm run ios:dev
 
-# Android dev build
-pnpm run android
+# Android development client
+pnpm run android:dev
 ```
 
-### Prebuild (Regenerate native projects)
+These commands will:
+
+1. run a prebuild if the native projects are out of date
+2. add any new Expo modules (including `secure-recorder`)
+3. compile and install the app on a simulator/device
+
+You can also explicitly regenerate the native folders beforehand:
 
 ```bash
-# Generate native ios/android folders from Expo config
-pnpm run prebuild
-
-# Same, but with clean regeneration
-pnpm run prebuild:clean
+pnpm run prebuild          # normal regeneration
+pnpm run prebuild:clean    # force a clean regen of ios/ and android/
 ```
 
-### Release Build
+Typically you only need `prebuild` if you’ve edited `app.json` or added a
+new native dependency.
+
+Once the development client is running you may `expo start` the bundle
+but always install the binary produced by `run:ios`/`run:android` rather than
+using Expo Go.
+
+---
+
+## 5. Release & other advanced tasks
+
+### Android release APK/AAB
 
 ```bash
-# Android release artifacts
 cd android
 ./gradlew assembleRelease
 ```
 
-For iOS release, archive in Xcode:
-1. Open `ios/TiroScribe.xcworkspace`
-2. Select Product → Archive
-3. Export through Xcode Organizer
+### iOS archive
 
-## 5) Minimal Troubleshooting
+1. Open `ios/TiroScribe.xcworkspace` in Xcode
+2. Select **Product → Archive**
+3. Export via the Organizer window
 
-If a build fails, run this order:
+---
+
+## 6. Troubleshooting quick recipe
+
+When a build error occurs, follow this sequence:
 
 ```bash
 pnpm run clean
 pnpm run module:build
-pnpm run ios    # or pnpm run android
+pnpm run ios:dev    # or pnpm run android:dev
 ```
 
-If iOS still fails:
+If an iOS build still fails, try:
 
 ```bash
 pnpm run pods:clean
-pnpm run ios
+pnpm run ios:dev
 ```
+
+Those three steps – **clean, build native, run app** – resolve the vast
+majority of issues.
+
+---
+
+Keep this file bookmarked; it’s the shortest path from a pristine clone to a
+running development client with the secure‑recorder module included.
