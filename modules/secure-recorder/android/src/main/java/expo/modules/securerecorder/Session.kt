@@ -1,6 +1,7 @@
 package expo.modules.securerecorder
 
 import android.media.AudioRecord
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,6 +51,8 @@ class Session(
    * @throws Exception if initialization fails
    */
   internal fun start(keyAlias: String): String {
+    val startTs = System.currentTimeMillis()
+    Log.d("SecureRecorder", "Session.start invoked sessionId=$sessionId at $startTs")
     // Initialize event handler (needs stop() method, so initialize here)
     eventHandler = EventHandler(
       sessionId = sessionId,
@@ -106,6 +109,8 @@ class Session(
    * @throws Exception if finalization fails
    */
   internal fun stop(): String {
+    val stopTs = System.currentTimeMillis()
+    Log.d("SecureRecorder", "Session.stop invoked sessionId=$sessionId at $stopTs")
     // Cancel recording job
     val job = recordingJob
     if (job != null) {

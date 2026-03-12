@@ -53,31 +53,40 @@ class Pipeline {
   internal func process() {
     let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: audioConfig.bufferSize)
     defer { buffer.deallocate() }
-    
+
+    let startTime = Date()
+    var iteration = 0
+
     while recordingTimer.isActive {
+      iteration += 1
       // SECURITY: Check all limits
       let limits = limiter.getLimits()
-      
+
       // Check duration limit
       let elapsedTime = recordingTimer.getElapsedTime()
       if isLimitExceeded(limits: limits, isType: { if case .duration = $0 { return true }; return false }, value: elapsedTime) {
+        print("[SecureRecorder][Pipeline] limit reached after \(iteration) iterations, elapsed=\(elapsedTime)ms")
         return
       }
-      
+
       // Check file size limit
       if let fileSize = try? FileManager.default.attributesOfItem(atPath: outputFile.path)[.size] as? Int64 {
         if isLimitExceeded(limits: limits, isType: { if case .fileSize = $0 { return true }; return false }, value: fileSize) {
+          print("[SecureRecorder][Pipeline] file size limit reached after \(iteration) iterations, size=\(fileSize)")
           return
         }
       }
-      
+
       // Read audio data from AudioRecord (isomorphic: matches Android audioRecord.read())
       let bytesRead = audioRecord.read(buffer, offset: 0, size: audioConfig.bufferSize)
-      
+      let now = Date()
+      let elapsedSinceStart = now.timeIntervalSince(startTime)
+      print("[SecureRecorder][Pipeline] iter=\(iteration) bytesRead=\(bytesRead) elapsed=\(elapsedSinceStart)s")
+
       if bytesRead > 0 {
         // Convert buffer to Data for encryption
         let dataToWrite = Data(bytes: buffer, count: bytesRead)
-        
+
         // Encrypt and write
         do {
           try encryptionStream.write(data: dataToWrite)

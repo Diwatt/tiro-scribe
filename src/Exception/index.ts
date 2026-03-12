@@ -10,7 +10,6 @@ export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './Decorat
 export { FileOperationError } from './FileOperationError';
 export { HardwareGuardException } from './HardwareGuardException';
 export { InferenceModelDownloaderException } from './InferenceModelDownloaderException';
-export { InMemoryAudioRecorderException } from './InMemoryAudioRecorderException';
 export { InvalidAudioFormatError } from './InvalidAudioFormatError';
 export { InvalidDimensionError } from './InvalidDimensionError';
 export { NoActiveRecordingError } from './NoActiveRecordingError';

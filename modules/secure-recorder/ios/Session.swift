@@ -72,6 +72,8 @@ class Session {
    * @throws SecureRecorderError if initialization fails
    */
   internal func start(keyAlias: String) throws -> String {
+    let startTs = Date()
+    print("[SecureRecorder][Session] start requested, sessionId=\(sessionId) at \(startTs)")
     // Get or create encryption key
     let key = try keyManager.getOrCreateKey(alias: keyAlias)
     
@@ -138,6 +140,8 @@ class Session {
    * @throws SecureRecorderError if finalization fails
    */
   internal func stop() throws -> String {
+    let stopTs = Date()
+    print("[SecureRecorder][Session] stop requested, sessionId=\(sessionId) at \(stopTs)")
     // Stop audio recording (isomorphic: matches Android AudioRecorder.stop())
     if audioRecord != nil {
       audioRecorder.stop(record: audioRecord)

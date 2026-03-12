@@ -67,10 +67,7 @@ export class VoiceState extends AbstractState {
                 // pass the master key directly; the calibrator will build a matrix
                 // sized to the extracted speaker vector.  this avoids dimension
                 // mismatches when the model output size changes.
-                const biocode = await this.voiceCalibrator.run(
-                    masterKey,
-                    this.appConfig.voiceCalibrationDurationMs,
-                );
+                const biocode = await this.voiceCalibrator.run(masterKey, this.appConfig.voiceCalibrationDurationMs);
 
                 therapist.biocode = biocode.projectedVector;
             });
@@ -79,6 +76,8 @@ export class VoiceState extends AbstractState {
             this.logger.debug('[VoiceState] calibrateVoice failed', {
                 error,
                 message: ErrorMessage.toString(error),
+                durationMs: this.appConfig.voiceCalibrationDurationMs,
+                therapistUuid: this.pendingTherapistProvider?.getPendingTherapist()?.uuid,
             });
             this.error.set(ll.onboarding.errorVoiceCalibration());
         }

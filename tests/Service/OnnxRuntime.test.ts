@@ -1,0 +1,97 @@
+/**
+ * OnnxRuntime tests
+ *
+ * Ensure the high-level runtime wrapper loads models and runs inference with
+ * the expected shape logic.
+ */
+
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+// we will mock the underlying onnxruntime-react-native module
+const mockDispose = vi.fn();
+const mockSession = {
+  inputNames: ['input'],
+  outputNames: ['output'],
+  run: vi.fn(),
+  dispose: mockDispose,
+};
+
+const mockOrt = {
+  InferenceSession: {
+    create: vi.fn().mockResolvedValue(mockSession),
+  },
+  Tensor: vi.fn().mockImplementation(function(this: any, type: any, data: any, shape: any) {
+    this.data = data;
+    this.shape = shape;
+  }),
+};
+
+vi.mock('onnxruntime-react-native', () => mockOrt);
+
+// nothing to mock from util any more; runtime class loads orth directly
+
+
+import { OnnxRuntime } from '@/Service/OnnxRuntime';
+import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exception';
+
+describe('OnnxRuntime', () => {
+  let runtime: OnnxRuntime;
+  const mockDownloader = { getLocalPath: vi.fn(), download: vi.fn(), getLocalPathForFile: vi.fn() };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // default downloader returns path immediately
+    mockDownloader.getLocalPath.mockReturnValue('/m.onnx');
+    runtime = new OnnxRuntime({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as any, mockDownloader as any);
+  });
+
+  it('load creates a session once', async () => {
+    await runtime.load('speaker_id');
+    expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/m.onnx', { executionProviders: ['cpu'] });
+    await runtime.load('speaker_id');
+    expect(mockOrt.InferenceSession.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('release calls dispose and removes session', async () => {
+    await runtime.load('speaker_id');
+    expect((runtime as any).sessions.has('speaker_id')).toBe(true);
+
+    await runtime.release('speaker_id');
+    expect(mockDispose).toHaveBeenCalled();
+    expect((runtime as any).sessions.has('speaker_id')).toBe(false);
+  });
+
+  it('unloads previous session when loading different capability', async () => {
+    await runtime.load('one');
+    expect((runtime as any).sessions.has('one')).toBe(true);
+
+    // change downloader path to simulate a different model being fetched
+    mockDownloader.getLocalPath.mockReturnValueOnce('/other.onnx');
+    await runtime.load('two');
+
+    expect((runtime as any).sessions.has('one')).toBe(false);
+    expect((runtime as any).sessions.has('two')).toBe(true);
+    expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/other.onnx', { executionProviders: ['cpu'] });
+  });
+
+  it('run throws before load', async () => {
+    await expect(runtime.run('speaker_id', new Float32Array(1), [1])).rejects.toThrow(SessionNotInitializedError);
+  });
+
+  it('run returns output from session', async () => {
+    await runtime.load('speaker_id');
+    mockSession.run.mockResolvedValue({ output: { data: new Float32Array([1, 2, 3]) } });
+    const result = await runtime.run('speaker_id', new Float32Array([0, 0, 0]), [1, 3]);
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  // old CAM++-specific tests removed; shape validation is up to callers.
+
+
+  it('creates tensor using provided shape', async () => {
+    await runtime.load('speaker_id');
+    mockSession.run.mockResolvedValue({ output: { data: new Float32Array([0]) } });
+    const features = new Float32Array(6);
+    await runtime.run('speaker_id', features, [2, 3]);
+    expect(mockOrt.Tensor).toHaveBeenCalledWith('float32', features, [2, 3]);
+  });
+});

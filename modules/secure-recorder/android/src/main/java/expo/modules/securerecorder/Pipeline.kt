@@ -1,6 +1,7 @@
 package expo.modules.securerecorder
 
 import android.media.AudioRecord
+import android.util.Log
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import java.io.File
@@ -30,25 +31,33 @@ class Pipeline(
 ) {
   internal suspend fun process() {
     val buffer = ByteArray(audioConfig.bufferSize)
-    
+    val startTime = System.currentTimeMillis()
+    var iteration = 0
+
     try {
       while (currentCoroutineContext().isActive && recordingTimer.isActive) {
+        iteration++
         // SECURITY: Check all limits
         val limits = limiter.getLimits()
         
         // Check duration limit
         val elapsedTime = recordingTimer.getElapsedTime()
         if (isLimitExceeded<Limit.Duration>(limits, elapsedTime)) {
+          Log.d("SecureRecorder", "Pipeline limit reached after $iteration iterations, elapsed=$elapsedTime")
           return
         }
         
         // Check file size limit
         val fileSize = outputFile.length()
         if (isLimitExceeded<Limit.FileSize>(limits, fileSize)) {
+          Log.d("SecureRecorder", "Pipeline file size limit reached after $iteration iterations, size=$fileSize")
           return
         }
         
         val bytesRead = audioRecord.read(buffer, 0, buffer.size)
+        val now = System.currentTimeMillis()
+        val elapsedSinceStart = now - startTime
+        Log.d("SecureRecorder", "Pipeline iter=$iteration bytesRead=$bytesRead elapsed=${elapsedSinceStart}ms")
         if (bytesRead > 0) {
           val dataToWrite = buffer.copyOfRange(0, bytesRead)
           encryptionStream.write(dataToWrite)

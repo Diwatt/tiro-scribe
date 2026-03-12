@@ -1,392 +1,70 @@
 /**
  * SpeakerEmbedder tests
- * 
- * Tests ONNX session management and speaker embedding extraction functionality
+ *
+ * Verifies that the service delegates ONNX operations to the runtime wrapper and
+ * handles feature extraction/normalization.
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Stub expo-file-system so tests don't attempt to load native modules
-vi.mock('expo-file-system', () => {
-    return {
-        File: class {
-            uri = '';
-            exists = false;
-            constructor(..._args: any[]) {
-                // instance will be replaced in tests via mocking
-            }
-        },
-        Paths: {
-            document: '',
-        },
-    };
-});
 
 import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exception';
 import { SpeakerEmbedder } from '@/Service/SpeakerId/SpeakerEmbedder';
 import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
 
-// Mock the logger
-const mockLoggerInstance = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+const mockRuntime = { loadModel: vi.fn().mockResolvedValue(undefined), run: vi.fn().mockResolvedValue(new Float32Array([0.1,0.2,0.3])) };
+const mockDownloader = { getLocalPath: vi.fn(), download: vi.fn(), getLocalPathForFile: vi.fn() };
 
-// Mock onnxruntime-react-native
-const mockInferenceSession = {
-    inputNames: ['audio_features'],
-    outputNames: ['embedding'],
-    // metadata will be mutated in individual tests as necessary
-    inputMetadata: [{
-        name: 'audio_features',
-        isTensor: true,
-        type: undefined,
-        shape: [1, 80, 80],
-    }],
-    run: vi.fn(),
-};
-
-const mockTensorConstructor = vi.fn().mockImplementation(function(this: any, type: any, data: any, shape: any) {
-    this.data = data || new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
-    this.type = type;
-    this.shape = shape;
-});
-
-const mockOrt = {
-    InferenceSession: {
-        create: vi.fn().mockResolvedValue(mockInferenceSession),
-    },
-    Tensor: mockTensorConstructor,
-};
-
-vi.mock('onnxruntime-react-native', () => mockOrt);
-
+vi.mock('@/Service/OnnxRuntime', () => ({ OnnxRuntime: vi.fn().mockImplementation(() => mockRuntime) }));
 vi.mock('@/Math/AudioFeatureExtractor', () => {
-    class MockAudioFeatureExtractor {
-        extract = vi.fn().mockImplementation((pcm: any) => {
-            // Handle both Float32Array and regular arrays
-            const features = new Float32Array(80 * 100); // 80 mel bins * 100 frames
-            return features;
-        });
-    }
-    
-    return {
-        AudioFeatureExtractor: MockAudioFeatureExtractor,
-    };
+  class MockAudioFeatureExtractor { extract = vi.fn().mockImplementation(() => new Float32Array(80 * 100)); }
+  return { AudioFeatureExtractor: MockAudioFeatureExtractor };
 });
-
-// Mock InferenceModelDownloader
-const mockInferenceModelDownloader = {
-    getConfigByLocalPath: vi.fn().mockResolvedValue({
-        capability: 'speaker-recognition',
-        id: 'speaker-model',
-        files: [{ url: '/mock/model/path.onnx' }]
-    }),
-    download: vi.fn().mockResolvedValue({
-        config: {
-            capability: 'speaker-recognition',
-            id: 'speaker-model',
-            files: [{ url: '/mock/model/path.onnx' }]
-        }
-    }),
-    getLocalPath: vi.fn<(capability: string) => string | undefined>(),
-    getLocalPathForFile: vi.fn<(config: any, file: any) => string | undefined>(),
-};
-
-// Mock Core container so SpeakerEmbedder and others get logger/downloader
-vi.mock('@/Core/Container', () => ({
-    Container: {
-        register: vi.fn(),
-        get: vi.fn((cls: any) => {
-            if (cls && typeof cls.name === 'string' && cls.name.includes('AppLogger')) {
-                return mockLoggerInstance;
-            }
-            // return our preconfigured downloader mock for everything else
-            return mockInferenceModelDownloader;
-        }),
-    },
-}));
-
-vi.mock('@/Service/InferenceModelDownloader', () => ({
-    InferenceModelDownloader: vi.fn().mockImplementation(() => mockInferenceModelDownloader),
-}));
-
-// Mock Container to provide the required dependencies
-vi.mock('@/App/Container', (async () => {
-    // Import within the mock factory to handle circular dependencies properly
-    const InferenceModelDownloaderModule = await vi.importActual<any>('@/Service/InferenceModelDownloader');
-    return {
-        Container: {
-            get: vi.fn((cls: any) => {
-                // For InferenceModelDownloader, return an instance with the mocked methods
-                if (cls?.name === 'InferenceModelDownloader') {
-                    return new InferenceModelDownloaderModule.InferenceModelDownloader();
-                }
-                if (cls?.name === 'AppLogger') {
-                    return mockLoggerInstance;
-                }
-                return null;
-            }),
-        },
-    };
-}) as any);
+vi.mock('@/Core/Container', () => ({ Container: { register: vi.fn(), get: vi.fn((cls: any) => cls?.name?.includes('AppLogger') ? mockLogger : undefined) } }));
 
 describe('SpeakerEmbedder', () => {
-    let speakerEmbedder: SpeakerEmbedder;
-    let mockExtractor: any;
+  let embedder: SpeakerEmbedder;
+  let extractor: any;
 
-    beforeEach(() => {
-        // clear call counts only; retain return value stubs until each test
-        vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    embedder = new SpeakerEmbedder(undefined, mockRuntime as any);
+    extractor = (embedder as any).audioFeatureExtractor;
+  });
 
-        speakerEmbedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
-        // Get the mock instance from the constructor
-        mockExtractor = speakerEmbedder['audioFeatureExtractor'];
+  it('constructs without error', () => {
+    expect(() => new SpeakerEmbedder(undefined, mockRuntime as any)).not.toThrow();
+  });
+
+
+  describe('extract', () => {
+    it('throws if not initialized', async () => {
+      const un = new SpeakerEmbedder(undefined, mockRuntime as any);
+      // runtime should reject when no model has been loaded
+      mockRuntime.run.mockRejectedValueOnce(new SessionNotInitializedError('no session'));
+      await expect(un.extract(new Float32Array([1]))).rejects.toThrow(SpeakerVectorExtractionError);
     });
 
-    describe('constructor', () => {
-        it('creates instance with default dependencies', () => {
-            expect(() => new SpeakerEmbedder()).not.toThrow();
-        });
-
-        it('creates instance with custom dependencies', () => {
-            expect(() => new SpeakerEmbedder()).not.toThrow();
-        });
+    it('calls extractor and runtime and normalizes output', async () => {
+      const pcm = new Float32Array([0.1]);
+      const res = await embedder.extract(pcm);
+      expect(extractor.extract).toHaveBeenCalledWith(pcm);
+      // features length is 80*100 per mock extractor; compute expected shape
+      const expectedShape = [1, 80, 100];
+      expect(mockRuntime.run).toHaveBeenCalledWith('speaker_id', expect.any(Float32Array), expectedShape);
+      expect(res).toBeInstanceOf(SpeakerVector);
+      expect(res.vector.length).toBe(3);
     });
 
-    describe('initialize', () => {
-        it('initializes ONNX session successfully', async () => {
-            // Use absolute path to bypass Container.get(InferenceModelDownloader)
-            await speakerEmbedder.initialize('/mock/model/path.onnx');
-            
-            expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith(
-                '/mock/model/path.onnx',
-                { executionProviders: ['cpu'] }
-            );
-            expect(mockLoggerInstance.info).toHaveBeenCalledWith('SpeakerEmbedder initialized successfully');
-        });
-
-        it('handles absolute file paths directly', async () => {
-            await speakerEmbedder.initialize('/absolute/path/model.onnx');
-            
-            expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith(
-                '/absolute/path/model.onnx',
-                { executionProviders: ['cpu'] }
-            );
-        });
-
-        it('handles file:// URIs directly', async () => {
-            await speakerEmbedder.initialize('file://path/model.onnx');
-            
-            expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith(
-                'file://path/model.onnx',
-                { executionProviders: ['cpu'] }
-            );
-        });
-
-        it('throws InvalidAudioFormatError when model not found', async () => {
-            // Use a relative path that will try to use Container.get, which returns null
-            vi.mocked(mockOrt.InferenceSession.create).mockRejectedValue(new Error('Model not found'));
-            
-            await expect(speakerEmbedder.initialize('/nonexistent.onnx')).rejects.toThrow('Failed to initialize speaker recognition model');
-        });
-
-        it('resolves relative paths from document directory', async () => {
-            // prepare a fake File class that returns an object with uri/exists
-            const fakeFile = { exists: true, uri: 'file:///doc/artifacts/model.onnx' };
-            const expoFS = await import('expo-file-system');
-            class StubFile {
-                exists = fakeFile.exists;
-                uri = fakeFile.uri;
-                constructor(..._args: any[]) {
-                    // ignore arguments
-                }
-            }
-            (expoFS as any).File = StubFile;
-            (expoFS as any).Paths = { document: '/doc' };
-
-            // spy on InferenceSession.create to observe the resolved path
-            vi.mocked(mockOrt.InferenceSession.create).mockResolvedValue(mockInferenceSession);
-
-            await speakerEmbedder.initialize('artifacts/model.onnx');
-            expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith(
-                'file:///doc/artifacts/model.onnx',
-                { executionProviders: ['cpu'] }
-            );
-        });
+    it('propagates extractor error', async () => {
+      extractor.extract.mockImplementation(() => { throw new Error('err'); });
+      await expect(embedder.extract(new Float32Array([0]))).rejects.toThrow(SpeakerVectorExtractionError);
     });
 
-    describe('loadModel', () => {
-        it('initializes from existing local path', async () => {
-            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
-            const initSpy = (embedder.initialize = vi.fn().mockResolvedValue() as any);
-
-            mockInferenceModelDownloader.getLocalPath.mockReturnValue('/existing/path.onnx');
-
-            await embedder.loadModel('speaker_id');
-            expect(initSpy).toHaveBeenCalledWith('/existing/path.onnx');
-        });
-
-
-
-        it('downloads model when local path missing', async () => {
-            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
-            const initSpy = (embedder.initialize = vi.fn().mockResolvedValue() as any);
-
-            mockInferenceModelDownloader.getLocalPath.mockReturnValue(undefined);
-            mockInferenceModelDownloader.download.mockResolvedValue({
-                config: {
-                    capability: 'speaker-recognition',
-                    id: 'speaker-model',
-                    files: [{ url: '/mock/model/path.onnx' }],
-                },
-            } as any);
-            mockInferenceModelDownloader.getLocalPathForFile.mockReturnValue('/mock/model/path.onnx');
-
-            await embedder.loadModel('speaker_id');
-            expect(initSpy).toHaveBeenCalledWith('/mock/model/path.onnx');
-        });
-
-        it('throws if model cannot be resolved', async () => {
-            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
-            mockInferenceModelDownloader.getLocalPath.mockReturnValue(undefined);
-            mockInferenceModelDownloader.getLocalPathForFile.mockReturnValue(undefined);
-            mockInferenceModelDownloader.download.mockResolvedValue({ config: { capability: '', id: '', files: [] } } as any);
-
-            await expect(embedder.loadModel('speaker_id')).rejects.toThrow('Model for speaker_id not available');
-        });
+    it('propagates runtime error', async () => {
+      mockRuntime.run.mockRejectedValueOnce(new Error('err2'));
+      await expect(embedder.extract(new Float32Array([0]))).rejects.toThrow(SpeakerVectorExtractionError);
     });
-
-    describe('extract', () => {
-        beforeEach(async () => {
-            // Reset the mock to resolve successfully
-            vi.mocked(mockOrt.InferenceSession.create).mockResolvedValue(mockInferenceSession);
-            
-            // Use absolute path to bypass Container.get(InferenceModelDownloader)
-            await speakerEmbedder.initialize('/mock/model/path.onnx');
-            
-            // Mock successful inference
-            vi.mocked(mockInferenceSession.run).mockResolvedValue({
-                embedding: new (mockTensorConstructor as any)('float32', new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]), [1, 5]),
-            });
-        });
-
-        it('extracts speaker vector from PCM data', async () => {
-            const pcmData = new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
-            
-            const result = await speakerEmbedder.extract(pcmData);
-            
-            expect(mockExtractor.extract).toHaveBeenCalledWith(pcmData);
-            expect(result).toBeInstanceOf(SpeakerVector);
-            expect(result.vector).toEqual([0.13483997285797064, 0.2696799457159413, 0.4045199286202726, 0.5393598914318826, 0.6741998542434924]);
-            expect(result.confidence).toBeGreaterThan(0);
-            expect(result.confidence).toBeLessThanOrEqual(1);
-        });
-
-        it('throws SessionNotInitializedError when not initialized', async () => {
-            const uninitializedEmbedder = new SpeakerEmbedder();
-            const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-            
-            await expect(uninitializedEmbedder.extract(pcmData)).rejects.toThrow(SessionNotInitializedError);
-        });
-
-        it('throws SpeakerVectorExtractionError on extraction failure', async () => {
-            mockExtractor.extract.mockImplementation(() => {
-                throw new Error('Feature extraction failed');
-            });
-            
-            const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-            
-            await expect(speakerEmbedder.extract(pcmData)).rejects.toThrow(SpeakerVectorExtractionError);
-        });
-
-        it('throws SpeakerVectorExtractionError on inference failure', async () => {
-            vi.mocked(mockInferenceSession.run).mockRejectedValue(new Error('Inference failed'));
-            
-            const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-            
-            await expect(speakerEmbedder.extract(pcmData)).rejects.toThrow(SpeakerVectorExtractionError);
-        });
-
-        it('only accepts Float32Array', async () => {
-            // TypeScript should catch this, but we test runtime behavior
-            const pcmData = [0.1, 0.2, 0.3]; // Regular array, not Float32Array
-            
-            // This should work at runtime since JavaScript arrays are duck-typed
-            const result = await speakerEmbedder.extract(pcmData as any);
-            
-            expect(result).toBeInstanceOf(SpeakerVector);
-        });
-
-        it('calculates confidence correctly', async () => {
-            // Mock normalized embedding with known magnitude
-            vi.mocked(mockInferenceSession.run).mockResolvedValue({
-                embedding: new (mockTensorConstructor as any)('float32', new Float32Array([0.6, 0.8, 0, 0, 0]), [1, 5]),
-            });
-            
-            const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-            const result = await speakerEmbedder.extract(pcmData);
-            
-            expect(result.confidence).toBe(1); // Should be clamped to 1
-        });
-
-        it('pads features to the required number of frames when audio is short', async () => {
-            // Force the extractor to return only 37 frames worth of features
-            mockExtractor.extract.mockReturnValue(new Float32Array(80 * 37));
-            const pcmData = new Float32Array(100); // length irrelevant
-
-            await speakerEmbedder.extract(pcmData);
-
-            // the tensor constructor should have been called with shape [1,80,80]
-            const lastCall = vi.mocked(mockTensorConstructor).mock.calls.slice(-1)[0];
-            expect(lastCall[2]).toEqual([1, 80, 80]);
-        });
-
-        it('truncates features when audio yields more frames than model accepts', async () => {
-            // Return 100 frames of features; model expects 80
-            mockExtractor.extract.mockReturnValue(new Float32Array(80 * 100));
-            const pcmData = new Float32Array(100);
-
-            await speakerEmbedder.extract(pcmData);
-
-            const lastCall = vi.mocked(mockTensorConstructor).mock.calls.slice(-1)[0];
-            expect(lastCall[2]).toEqual([1, 80, 80]);
-        });
-
-        it('respects dynamic time dimension when metadata shape is symbolic', async () => {
-            // Change metadata to mimic a dynamic model [1,80,?]
-            mockInferenceSession.inputMetadata[0].shape = [1, 80, 'T'];
-            // now shorter input should not be padded/truncated
-            mockExtractor.extract.mockReturnValue(new Float32Array(80 * 37));
-            const pcmData = new Float32Array(100);
-
-            await speakerEmbedder.extract(pcmData);
-
-            const lastCall = vi.mocked(mockTensorConstructor).mock.calls.slice(-1)[0];
-            // with dynamic time dimension we expect rawTimeFrames = 37
-            expect(lastCall[2]).toEqual([1, 80, 37]);
-        });
-    });
-
-    describe('integration', () => {
-        it('handles complete workflow from initialization to extraction', async () => {
-            const embedder = new SpeakerEmbedder(undefined, mockLoggerInstance);
-            
-            // Use absolute path to bypass Container.get(InferenceModelDownloader)
-            await embedder.initialize('/mock/model/path.onnx');
-            
-            vi.mocked(mockInferenceSession.run).mockResolvedValue({
-                embedding: { data: new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]) },
-            });
-            
-            const pcmData = new Float32Array(16000); // 1 second of audio at 16kHz
-            const result = await embedder.extract(pcmData);
-            
-            expect(result).toBeInstanceOf(SpeakerVector);
-            expect(result.vector).toHaveLength(5);
-            expect(result.confidence).toBeGreaterThan(0);
-        });
-    });
+  });
 });

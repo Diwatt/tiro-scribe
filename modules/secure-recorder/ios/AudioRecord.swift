@@ -118,14 +118,23 @@ class AudioRecord {
       self?.handleAudioBuffer(buffer)
     }
     
+    // Set recording state BEFORE starting the engine so that the tap-callback
+    // (which fires immediately on a background thread once the engine begins)
+    // sees _isRecording == true and does not silently discard the first buffers.
+    // Using sync(flags: .barrier) instead of async to guarantee the write is
+    // visible to any reader before engine.start() returns.
+    stateQueue.sync(flags: .barrier) { [weak self] in
+      self?._isRecording = true
+    }
+
     // Start engine
     do {
       try engine.start()
-      // Update state (thread-safe)
-      stateQueue.async(flags: .barrier) { [weak self] in
-        self?._isRecording = true
-      }
     } catch {
+      // Roll back state on failure
+      stateQueue.sync(flags: .barrier) { [weak self] in
+        self?._isRecording = false
+      }
       inputNode.removeTap(onBus: 0)
       throw error
     }
