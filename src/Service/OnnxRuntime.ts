@@ -1,7 +1,8 @@
 import type * as Ort from 'onnxruntime-react-native';
+import { NativeModules } from 'react-native';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { SessionNotInitializedError } from '@/Exception';
+import { OnnxRuntimeError, SessionNotInitializedError } from '@/Exception';
 import type { InferenceModel } from './InferenceModel';
 import { InferenceModelDownloader } from './InferenceModelDownloader';
 
@@ -23,7 +24,8 @@ type DisposableSession = {
  *
  * Clean API:
  *   * load(capability)   ← Automatically creates & initializes model, creates session
- *   * run(capability, ...) ← Execute inference
+ *   * runRaw(capability, ...) ← Execute inference (low-level)
+ *   * getModel(capability) ← Retrieve an initialized model instance
  *   * release(capability) ← Cleanup
  *
  * Internal design:
@@ -51,8 +53,24 @@ export class OnnxRuntime implements InferenceModel {
 
     public static async ensureOrt(): Promise<typeof Ort> {
         if (OnnxRuntime.cachedOrt == null) {
-            OnnxRuntime.cachedOrt = await import('onnxruntime-react-native');
+            try {
+                OnnxRuntime.cachedOrt = await import('onnxruntime-react-native');
+            } catch (err) {
+                const original = err instanceof Error ? err : new Error(String(err));
+                throw new OnnxRuntimeError(
+                    'onnxruntime-react-native native module unavailable. Make sure you are running a development build (npx expo run:android / npx expo run:ios) or an EAS build, not Expo Go.',
+                    original,
+                );
+            }
+
+            if (!OnnxRuntime.cachedOrt || typeof OnnxRuntime.cachedOrt.InferenceSession !== 'function') {
+                throw new OnnxRuntimeError(
+                    'onnxruntime-react-native initialization failed: native bindings are missing. ' +
+                        'Ensure the app is built with the onnxruntime native module and is running in a dev/client build.',
+                );
+            }
         }
+
         return OnnxRuntime.cachedOrt;
     }
 
@@ -161,6 +179,19 @@ export class OnnxRuntime implements InferenceModel {
     }
 
     /**
+     * Retrieve an initialized model instance for a capability.
+     *
+     * This is useful when callers want to work with model-specific APIs
+     * (e.g. run() methods with custom signatures).
+     */
+    public async getModel<T extends InferenceModel>(capability: string): Promise<T> {
+        await this.load(capability); // Ensure it's created and loaded
+        const model = this.models.get(capability);
+        if (!model) throw new Error(`Model ${capability} could not be loaded`);
+        return model as T;
+    }
+
+    /**
      * Release (dispose) the session for a capability to free memory.
      */
     public async release(capability: string): Promise<void> {
@@ -178,10 +209,22 @@ export class OnnxRuntime implements InferenceModel {
     }
 
     /**
+     * Execute a model-specific run method.
+     *
+     * This method is intentionally loose in its typing since each model
+     * may accept different inputs (e.g. multiple sessions, different shapes).
+     */
+    public async run(capability: string, features: any, shape: any, ...args: any[]): Promise<any> {
+        // Default to the raw low-level execution signature.
+        // Models that need a different signature should implement their own run() method.
+        return this.runRaw(capability, features, shape);
+    }
+
+    /**
      * Run the currently loaded model on the provided feature vector.
      * Throws if no model has been loaded yet.
      */
-    public async run(capability: string, features: Float32Array, shape: readonly number[]): Promise<number[]> {
+    public async runRaw(capability: string, features: Float32Array, shape: readonly number[]): Promise<number[]> {
         const session = this.sessions.get(capability);
         if (!session) {
             throw new SessionNotInitializedError(`ONNX Runtime session not initialized for ${capability}`);

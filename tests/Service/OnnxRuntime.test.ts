@@ -16,10 +16,12 @@ const mockSession = {
   dispose: mockDispose,
 };
 
+const mockInferenceSession = vi.fn().mockResolvedValue(mockSession);
+// Ensure InferenceSession is callable (as it is in the real native binding)
+mockInferenceSession.create = vi.fn().mockResolvedValue(mockSession);
+
 const mockOrt = {
-  InferenceSession: {
-    create: vi.fn().mockResolvedValue(mockSession),
-  },
+  InferenceSession: mockInferenceSession,
   Tensor: vi.fn().mockImplementation(function(this: any, type: any, data: any, shape: any) {
     this.data = data;
     this.shape = shape;
@@ -39,8 +41,18 @@ describe('OnnxRuntime', () => {
   const mockDownloader = { getLocalPath: vi.fn(), download: vi.fn(), getLocalPathForFile: vi.fn() };
   beforeEach(() => {
     vi.clearAllMocks();
+
     // default downloader returns path immediately
     mockDownloader.getLocalPath.mockReturnValue('/m.onnx');
+
+    // Ensure model initialization does not crash when downloader is used
+    mockDownloader.download.mockResolvedValue({
+      config: {
+        files: ['dummy_encoder.onnx', 'dummy_decoder.onnx'],
+      },
+    });
+    mockDownloader.getLocalPathForFile.mockReturnValue('/m.onnx');
+
     runtime = new OnnxRuntime({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as any, mockDownloader as any);
   });
 
@@ -61,26 +73,26 @@ describe('OnnxRuntime', () => {
   });
 
   it('unloads previous session when loading different capability', async () => {
-    await runtime.load('one');
-    expect((runtime as any).sessions.has('one')).toBe(true);
+    await runtime.load('speaker_id');
+    expect((runtime as any).sessions.has('speaker_id')).toBe(true);
 
     // change downloader path to simulate a different model being fetched
     mockDownloader.getLocalPath.mockReturnValueOnce('/other.onnx');
-    await runtime.load('two');
+    await runtime.load('asr');
 
-    expect((runtime as any).sessions.has('one')).toBe(false);
-    expect((runtime as any).sessions.has('two')).toBe(true);
+    expect((runtime as any).sessions.has('speaker_id')).toBe(false);
+    expect((runtime as any).sessions.has('asr')).toBe(true);
     expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/other.onnx', { executionProviders: ['cpu'] });
   });
 
-  it('run throws before load', async () => {
-    await expect(runtime.run('speaker_id', new Float32Array(1), [1])).rejects.toThrow(SessionNotInitializedError);
+  it('runRaw throws before load', async () => {
+    await expect(runtime.runRaw('speaker_id', new Float32Array(1), [1])).rejects.toThrow(SessionNotInitializedError);
   });
 
-  it('run returns output from session', async () => {
+  it('runRaw returns output from session', async () => {
     await runtime.load('speaker_id');
     mockSession.run.mockResolvedValue({ output: { data: new Float32Array([1, 2, 3]) } });
-    const result = await runtime.run('speaker_id', new Float32Array([0, 0, 0]), [1, 3]);
+    const result = await runtime.runRaw('speaker_id', new Float32Array([0, 0, 0]), [1, 3]);
     expect(result).toEqual([1, 2, 3]);
   });
 
@@ -91,7 +103,7 @@ describe('OnnxRuntime', () => {
     await runtime.load('speaker_id');
     mockSession.run.mockResolvedValue({ output: { data: new Float32Array([0]) } });
     const features = new Float32Array(6);
-    await runtime.run('speaker_id', features, [2, 3]);
+    await runtime.runRaw('speaker_id', features, [2, 3]);
     expect(mockOrt.Tensor).toHaveBeenCalledWith('float32', features, [2, 3]);
   });
 });

@@ -17,6 +17,7 @@
 import { Container } from '@/Core/Container';
 import { SpeakerVectorExtractionError } from '../../Exception';
 import { AudioFeatureExtractor } from '../../Math/AudioFeatureExtractor';
+import type { SpeakerId } from '../InferenceModel/SpeakerId';
 import { OnnxRuntime } from '../OnnxRuntime';
 
 import { SpeakerVector } from './SpeakerVector';
@@ -25,8 +26,8 @@ export class SpeakerEmbedder {
     private initialized = false;
 
     public constructor(
-        private readonly audioFeatureExtractor: AudioFeatureExtractor = new AudioFeatureExtractor(),
-        private readonly onnxRuntime: OnnxRuntime = Container.get(OnnxRuntime),
+        private readonly audioFeatureExtractor: AudioFeatureExtractor,
+        private readonly onnxRuntime: OnnxRuntime,
     ) {}
 
     /**
@@ -97,21 +98,10 @@ export class SpeakerEmbedder {
      * Run speaker recognition inference with CAM++ model
      */
     private async runSpeakerInference(features: Float32Array): Promise<number[]> {
-        // CAM++ expects a [1, 80, TimeFrames] tensor.
-        // The embedder owns this tensor shape logic because callers work
-        // with audio features from AudioFeatureExtractor.
-        const nMels = 80;
-        const timeFrames = Math.floor(features.length / nMels);
-        if (timeFrames === 0) {
-            throw new SpeakerVectorExtractionError('Feature vector contains no complete frames');
-        }
-
-        const inputShape: readonly number[] = [1, nMels, timeFrames];
-        const buffer = features.subarray(0, nMels * timeFrames);
-
-        // Use low-level OnnxRuntime API to load and run speaker_id model
-        await this.onnxRuntime.load('speaker_id');
-        return this.onnxRuntime.run('speaker_id', buffer, inputShape);
+        // Retrieve the specialized speaker_id model and delegate tensor shaping
+        // (the model knows its expected input shape and handles padding / slicing).
+        const model = await this.onnxRuntime.getModel<SpeakerId>('speaker_id');
+        return await model.run(features);
     }
 }
 

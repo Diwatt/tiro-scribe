@@ -4,7 +4,7 @@
  */
 
 import { fetch } from 'expo/fetch';
-import type { File } from 'expo-file-system';
+import { File } from 'expo-file-system';
 import type { AppLogger } from '@/Core/AppLogger';
 import { InferenceModelDownloaderException } from '@/Exception';
 import { StreamWriter } from './StreamWriter';
@@ -54,29 +54,19 @@ export class FileDownloader {
             if (!response.body) {
                 throw new InferenceModelDownloaderException('Response body is not readable');
             }
-            const reader = response.body.getReader();
 
-            // Stream and write chunks with progress tracking
-            let writtenBytes = 0;
-            let result: ReadableStreamReadResult<Uint8Array>;
+            // Process the stream and yield progress updates
+            yield* this.processStream(response.body, streamWriter, totalBytes);
 
-            do {
-                result = await reader.read();
-
-                if (result.done || !result.value || result.value.length === 0) {
-                    break;
-                }
-
-                await streamWriter.write(result.value);
-
-                writtenBytes += result.value.length;
-                if (totalBytes > 0) {
-                    const progress = Math.min(writtenBytes / totalBytes, 1);
-                    yield progress;
-                }
-            } while (!result.done);
-
-            await streamWriter.close();
+            // Fallback: if stream produced an empty file despite HTTP 200 response,
+            // retry using the native downloader (particularly important on Android).
+            const fileSize = this.destinationFile.size ?? 0;
+            if (fileSize === 0) {
+                await this.fallbackToNativeDownload(url);
+                yield 1;
+                this.logger.debug(`Download completed (fallback): ${url} -> ${this.destinationFile.uri}`);
+                return;
+            }
 
             if (totalBytes <= 0) {
                 yield 1;
@@ -95,6 +85,34 @@ export class FileDownloader {
         }
     }
 
+    private async *processStream(
+        body: ReadableStream<Uint8Array>,
+        streamWriter: StreamWriter,
+        totalBytes: number,
+    ): AsyncGenerator<number, void, void> {
+        const reader = body.getReader();
+        let writtenBytes = 0;
+        let result: ReadableStreamReadResult<Uint8Array>;
+
+        do {
+            result = await reader.read();
+
+            if (result.done || !result.value || result.value.length === 0) {
+                break;
+            }
+
+            await streamWriter.write(result.value);
+
+            writtenBytes += result.value.length;
+            if (totalBytes > 0) {
+                const progress = Math.min(writtenBytes / totalBytes, 1);
+                yield progress;
+            }
+        } while (!result.done);
+
+        await streamWriter.close();
+    }
+
     private ensureDestinationFileExists(): void {
         // make sure destination file exists before we try to open a stream;
         // this mirrors the previous behaviour that lived in StreamWriter.
@@ -108,5 +126,21 @@ export class FileDownloader {
                 );
             }
         }
+    }
+
+    private async fallbackToNativeDownload(url: string): Promise<void> {
+        this.logger.warn(
+            `[FileDownloader] Streamed download produced empty file; retrying with native downloader for ${url}`,
+        );
+
+        // Delete the empty file before fallback (ignore failures)
+        try {
+            await this.destinationFile.delete();
+        } catch {
+            // best-effort cleanup; if it fails we still attempt the download
+        }
+
+        // Use native download as fallback
+        await File.downloadFileAsync(url, this.destinationFile);
     }
 }

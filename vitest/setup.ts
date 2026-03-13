@@ -405,6 +405,19 @@ vi.mock('@/Exception', () => {
 
     return {
         DatabaseException,
+        // Error types used by runtime / inference model layers
+        OnnxRuntimeError: class MockOnnxRuntimeError extends Error {
+            public code: string;
+            public name = 'OnnxRuntimeError';
+            constructor(message: string, originalError?: Error) {
+                super(message);
+                this.code = 'ONNX_RUNTIME_ERROR';
+                this.name = 'OnnxRuntimeError';
+                if (originalError && originalError.stack) {
+                    this.stack = `${this.stack}\nCaused by: ${originalError.stack}`;
+                }
+            }
+        },
         // Mock other exports to avoid import issues
         TiroScribeException: class MockTiroScribeException extends Error {
             public code: string;

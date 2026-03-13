@@ -9,7 +9,8 @@
         "minSdkVersion": 29,
         "targetSdkVersion": 35,
         "supportsTablet": true,
-        "supportsPhone": true
+        "supportsPhone": true,
+        "modules": ["expo.modules.securerecorder.SecureRecorderModule"]
     },
     "apple": {
         "modules": ["SecureRecorderModule"],

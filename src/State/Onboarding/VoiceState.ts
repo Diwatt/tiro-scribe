@@ -74,8 +74,8 @@ export class VoiceState extends AbstractState {
         } catch (error: unknown) {
             const ll = this.localization.getLL();
             this.logger.debug('[VoiceState] calibrateVoice failed', {
-                error,
                 message: ErrorMessage.toString(error),
+                stack: error instanceof Error ? error.stack : undefined,
                 durationMs: this.appConfig.voiceCalibrationDurationMs,
                 therapistUuid: this.pendingTherapistProvider?.getPendingTherapist()?.uuid,
             });

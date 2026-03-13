@@ -3,41 +3,38 @@
     "version": "0.1.0",
     "private": true,
     "description": "Privacy-first clinical research app with on-device AI processing",
+    "onnxruntimeExtensionsEnabled": "true",
     "main": "index.js",
     "scripts": {
         "preios": "rm -rf $TMPDIR/metro-* $TMPDIR/haste-* /tmp/metro-* /tmp/haste-* 2>/dev/null || true",
-
-        "clean": "watchman watch-del-all 2>/dev/null || true; rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null; rm -rf .expo node_modules coverage build ios/Pods ios/build ios/DerivedData android/.gradle android/app/build android/app/.cxx android/build; find . -name '*.tsbuildinfo' -delete 2>/dev/null; pnpm install; (test -d ios && cd ios && pod install) || true",
         "clean:metro": "rm -rf /tmp/metro-* /tmp/haste-* $TMPDIR/metro-* $TMPDIR/haste-* 2>/dev/null || true",
-
+        "clean": "watchman watch-del-all 2>/dev/null || true; pnpm run clean:metro; rm -rf .expo coverage build ios/Pods ios/build ios/DerivedData android/.gradle android/app/build android/app/.cxx android/build; find . -name '*.tsbuildinfo' -delete 2>/dev/null || true",
+        "clean:native": "rm -rf android ios",
+        "clean:all": "pnpm run clean && pnpm run clean:native && rm -rf node_modules && pnpm install",
+        "prebuild": "npx expo prebuild",
+        "prebuild:clean": "pnpm run clean:native && npx expo prebuild",
         "pods:install": "cd ios && pod install",
         "pods:clean": "cd ios && pod deintegrate && pod install",
-
         "module:build": "cd modules/secure-recorder && pnpm exec expo-module clean && pnpm exec expo-module tsc -p tsconfig.json",
-
+        "android:dev": "STORYBOOK_ENABLED=false pnpm run clean:metro && expo run:android",
+        "android:fresh": "STORYBOOK_ENABLED=false pnpm run clean:metro && pnpm run prebuild:clean && expo run:android",
         "ios:dev": "STORYBOOK_ENABLED=false pnpm run preios && pnpm run pods:install && expo run:ios",
-        "android:dev": "STORYBOOK_ENABLED=false pnpm run preios && expo run:android",
-        "ios": "echo \"use 'pnpm run ios:dev' (development build) or 'expo start' instead\" && exit 1",
-        "android": "echo \"use 'pnpm run android:dev' (development build) or 'expo start' instead\" && exit 1",
-
+        "ios:fresh": "STORYBOOK_ENABLED=false pnpm run preios && pnpm run prebuild:clean && expo run:ios",
+        "ios": "echo \"use 'pnpm run ios:dev' or 'pnpm run ios:fresh' instead\" && exit 1",
+        "android": "echo \"use 'pnpm run android:dev' or 'pnpm run android:fresh' instead\" && exit 1",
         "start": "expo start --dev-client",
         "start:reset": "expo start --clear",
-
         "storybook": "STORYBOOK_ENABLED=true expo start --clear",
         "storybook:ios": "STORYBOOK_ENABLED=true expo start --clear --ios",
         "storybook:android": "STORYBOOK_ENABLED=true expo start --clear --android",
-
         "android:logcat": "adb logcat -c && adb logcat ReactNativeJS:V ReactNative:V RCTLog:V Expo:V *:S",
-
         "generate:api": "node scripts/generate-api.js",
         "mock:server": "node scripts/start-mock-server.js",
-
         "test": "vitest run --passWithNoTests",
         "test:watch": "vitest",
         "test:kotlin": "if [ -d 'android' ] && [ -f 'android/gradlew' ]; then cd android && ./gradlew :secure-recorder:testDebugUnitTest; else echo 'Error: Android project not found'; exit 1; fi",
         "test:swift": "if [ -d 'ios' ] && [ -d 'ios/TiroScribe.xcworkspace' ]; then cd ios && xcodebuild test -workspace TiroScribe.xcworkspace -scheme TiroScribe -destination 'platform=iOS Simulator'; else echo 'Error: iOS workspace not found'; exit 1; fi",
         "test:all": "pnpm test; pnpm test:kotlin || true; pnpm test:swift || true",
-
         "type-check": "tsc --noEmit",
         "format": "biome format --write .",
         "format:check": "biome format .",
@@ -85,7 +82,7 @@
         "lodash": "^4.17.23",
         "lucide-react-native": "^0.575.0",
         "mathjs": "^15.1.1",
-        "onnxruntime-react-native": "^1.24.2",
+        "onnxruntime-react-native": "^1.24.3",
         "react": "19.1.0",
         "react-hook-form": "^7.71.2",
         "react-native": "0.81.5",
@@ -158,7 +155,9 @@
             "react-dom": "19.1.0",
             "react-test-renderer": "19.1.0"
         },
-        "patchedDependencies": {},
+        "patchedDependencies": {
+            "onnxruntime-react-native@1.24.3": "patches/onnxruntime-react-native@1.24.3.patch"
+        },
         "onlyBuiltDependencies": [
             "esbuild",
             "better-sqlite3"

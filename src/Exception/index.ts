@@ -18,6 +18,7 @@ export type { RecordingError } from './RecordingError';
 export { RecordingErrorType } from './RecordingErrorType';
 export { RecordingPermissionError } from './RecordingPermissionError';
 export { RecordingUriUnavailableError } from './RecordingUriUnavailableError';
+export { OnnxRuntimeError } from './OnnxRuntimeError';
 export { SessionNotInitializedError } from './SessionNotInitializedError';
 export { TiroScribeException } from './TiroScribeException';
 export { TranscriptionNotImplementedError } from './TranscriptionNotImplementedError';

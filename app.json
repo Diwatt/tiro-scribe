@@ -53,7 +53,9 @@
                 }
             ],
             "expo-file-system",
-            "expo-asset"
+            "expo-asset",
+            "./plugins/withOnnxruntime",
+            "onnxruntime-react-native"
         ],
         "extra": {
             "eas": {

@@ -34,7 +34,7 @@ export interface AsrConfig {
 // and provide token→text decoding functionality.
 export type AsrTokenizer = Record<string, never>;
 
-export class AutomaticSpeechRecognizer implements InferenceModel {
+export class AutomaticSpeechRecognizer implements InferenceModel<[Float32Array, readonly number[]], string> {
     private encoderSessionCapability = 'asr_encoder';
     private decoderSessionCapability = 'asr_decoder';
     private isInitialized = false;

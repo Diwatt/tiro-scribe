@@ -311,9 +311,11 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - onnxruntime-c (1.24.2)
-  - onnxruntime-react-native (1.24.2):
+  - onnxruntime-extensions-c (0.13.0)
+  - onnxruntime-react-native (1.24.3):
     - hermes-engine
     - onnxruntime-c
+    - onnxruntime-extensions-c
     - RCTRequired
     - RCTTypeSafety
     - React-Core
@@ -2464,7 +2466,7 @@ DEPENDENCIES:
   - "hermes-engine (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._eea90957baa797d70d22cd9841a8e7a2/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)"
   - "NitroModules (from `../node_modules/.pnpm/react-native-nitro-modules@0.33.8_react-native@0.81.5_@babel+core@7.29.0_@react-native-_3f4d5622e0e89c8bcf4236d0acd66c9a/node_modules/react-native-nitro-modules`)"
   - "NitroSound (from `../node_modules/.pnpm/react-native-nitro-sound@0.2.10_react-native-nitro-modules@0.33.8_react-native@0.81.5_@_13348c0aa3165b44186706760c3f9052/node_modules/react-native-nitro-sound`)"
-  - "onnxruntime-react-native (from `../node_modules/.pnpm/onnxruntime-react-native@1.24.2_react-native@0.81.5_@babel+core@7.29.0_@react-native-co_db68502fa0bec38b28c038de5d5ecdfc/node_modules/onnxruntime-react-native`)"
+  - onnxruntime-react-native (from `../node_modules/onnxruntime-react-native`)
   - "QuickCrypto (from `../node_modules/.pnpm/react-native-quick-crypto@1.0.14_expo-build-properties@1.0.10_expo@54.0.33__expo@54.0.3_29971334a0213a817075cbfa7a186e1a/node_modules/react-native-quick-crypto`)"
   - "RCTDeprecation (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._eea90957baa797d70d22cd9841a8e7a2/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)"
   - "RCTRequired (from `../node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_@react-native-community+cli@20.1.1_typescript@5._eea90957baa797d70d22cd9841a8e7a2/node_modules/react-native/Libraries/Required`)"
@@ -2548,6 +2550,7 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - onnxruntime-c
+    - onnxruntime-extensions-c
 
 EXTERNAL SOURCES:
   EXConstants:
@@ -2612,7 +2615,7 @@ EXTERNAL SOURCES:
   NitroSound:
     :path: "../node_modules/.pnpm/react-native-nitro-sound@0.2.10_react-native-nitro-modules@0.33.8_react-native@0.81.5_@_13348c0aa3165b44186706760c3f9052/node_modules/react-native-nitro-sound"
   onnxruntime-react-native:
-    :path: "../node_modules/.pnpm/onnxruntime-react-native@1.24.2_react-native@0.81.5_@babel+core@7.29.0_@react-native-co_db68502fa0bec38b28c038de5d5ecdfc/node_modules/onnxruntime-react-native"
+    :path: "../node_modules/onnxruntime-react-native"
   QuickCrypto:
     :path: "../node_modules/.pnpm/react-native-quick-crypto@1.0.14_expo-build-properties@1.0.10_expo@54.0.33__expo@54.0.3_29971334a0213a817075cbfa7a186e1a/node_modules/react-native-quick-crypto"
   RCTDeprecation:
@@ -2802,7 +2805,8 @@ SPEC CHECKSUMS:
   NitroModules: 597e254be8b2bb5396e55ae10fda1c0e197f3b76
   NitroSound: d606e7028e65565cd9ab3de9fc42fd8ab264fa8c
   onnxruntime-c: b58bafbc58707d165404665e46a7467a16e8e0e4
-  onnxruntime-react-native: 9194dfa33733fa203a7a5fe2878c42a37c567623
+  onnxruntime-extensions-c: 46aede179035fc012b044e75f5b0da4e4b1a39e3
+  onnxruntime-react-native: 586affff1e2e60389f602005e2c46604f1706342
   QuickCrypto: ae2e5a0ef6867ae86339fed1a9f5e1a16e6495ea
   RCTDeprecation: 943572d4be82d480a48f4884f670135ae30bf990
   RCTRequired: 8f3cfc90cc25cf6e420ddb3e7caaaabc57df6043
@@ -2882,6 +2886,6 @@ SPEC CHECKSUMS:
   SecureRecorder: b6232acdaf79df521201df345994a7e1dcb7fba9
   Yoga: 65431d43277b661ebc7289c6c5d82f64ce42cfe0
 
-PODFILE CHECKSUM: 4ac53beb18f49df56dc37e0b3b6605219b26f27f
+PODFILE CHECKSUM: 498326847a947572ba6337d9d8e5800d0eaa749c
 
 COCOAPODS: 1.16.2

@@ -96,9 +96,17 @@ export class VoiceCalibrator {
             return biocode;
         } catch (error: unknown) {
             // log the raw object so we can inspect unexpected shapes (e.g. RN errors)
+            const errorMessage = error instanceof Error ? error.message : undefined;
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            type WithOriginalError = { originalError?: unknown };
+            const originalError = (error as WithOriginalError).originalError;
+            const originalErrorStack = originalError instanceof Error ? originalError.stack : undefined;
+
             this.logger.error('[VoiceCalibrator] Voice calibration failed', {
                 error,
-                message: error instanceof Error ? error.message : undefined,
+                message: errorMessage,
+                stack: errorStack,
+                originalStack: originalErrorStack,
             });
             throw error;
         }

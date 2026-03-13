@@ -12,7 +12,7 @@
  *   * Execute inference via OnnxRuntime
  *   * Handle postprocessing (raw output → domain object)
  */
-export interface InferenceModel {
+export interface InferenceModel<TArgs extends unknown[] = unknown[], TResult = unknown> {
     /**
      * Initialize the model: download files, parse config, create sessions.
      * Safe to call multiple times; subsequent calls are no-ops if already loaded.
@@ -28,4 +28,13 @@ export interface InferenceModel {
      * Return true if the model has been initialized and is ready to run.
      */
     isReady(): Promise<boolean>;
+
+    /**
+     * Execute a model-specific inference run.
+     *
+     * Different models may accept different arguments (e.g. multiple sessions,
+     * custom shapes, or additional metadata), so the signature is intentionally
+     * loose.
+     */
+    run(...args: TArgs): Promise<TResult>;
 }

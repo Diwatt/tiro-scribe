@@ -28,7 +28,7 @@ export interface SpeakerIdConfig {
     numMelBins?: number;
 }
 
-export class SpeakerId implements InferenceModel {
+export class SpeakerId implements InferenceModel<[Float32Array, readonly number[]], number[]> {
     private readonly capability = 'speaker_id';
     private isInitialized = false;
 
@@ -88,20 +88,29 @@ export class SpeakerId implements InferenceModel {
     /**
      * Extract speaker embedding from mel-spectrogram features
      * @param features - Mel-spectrogram features (preprocessed by caller)
-     * @param shape - Tensor shape [1, nMels, timeFrames]
      * @returns Raw speaker embedding vector (caller normalizes to unit length)
      */
-    public async run(features: Float32Array, shape: readonly number[]): Promise<number[]> {
+    public async run(features: Float32Array): Promise<number[]> {
         if (!this.isInitialized) {
             throw new Error('SpeakerId model not initialized. Call initialize() first.');
         }
 
         try {
+            // CAM++ expects input shaped as [1, timeFrames, nMels]
+            const nMels = this.config?.numMelBins ?? 80;
+            const timeFrames = Math.floor(features.length / nMels);
+            if (timeFrames === 0) {
+                throw new Error('Feature vector contains no complete frames');
+            }
+
+            const inputShape: readonly number[] = [1, timeFrames, nMels];
+            const buffer = features.subarray(0, nMels * timeFrames);
+
             // Load model session
             await this.runtime.load(this.capability);
 
             // Execute inference
-            return await this.runtime.run(this.capability, features, shape);
+            return await this.runtime.runRaw(this.capability, buffer, inputShape);
         } catch (error) {
             this.logger.error('[SpeakerId] Inference failed', { error });
             throw error;

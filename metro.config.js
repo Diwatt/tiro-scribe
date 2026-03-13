@@ -10,12 +10,14 @@ const path = require('node:path');
 const config = getDefaultConfig(__dirname);
 
 // Pnpm workspace specific configuration
-// We need to tell Metro about the workspace root node_modules
 config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules')];
 
 // Enable symlink support for pnpm
 config.resolver.unstable_enableSymlinks = true;
 config.resolver.unstable_enablePackageExports = true;
+
+// Allow ONNX model files to be bundled as assets
+config.resolver.assetExts.push('onnx', 'ort');
 
 // Only wrap with Storybook when explicitly enabled
 const isStorybookEnabled = process.env.STORYBOOK_ENABLED === 'true';
