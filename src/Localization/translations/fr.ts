@@ -36,6 +36,8 @@ const fr: Translation = {
         errorSessionLost: 'Session perdue. Veuillez recommencer.',
         errorAccountCreation: 'Échec de la création du compte.',
         errorVoiceCalibration: 'Échec de la calibration vocale.',
+        voiceRecording: 'Enregistrement…',
+        voiceProcessing: 'Création du profil vocal…',
         errorSaveAccount: "Échec de l'enregistrement du compte.",
         errorNoRecoveryCode: 'Aucun code de récupération disponible.',
     },

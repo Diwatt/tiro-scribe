@@ -39,46 +39,42 @@ export class VoiceCalibrator {
     ) {}
 
     /**
-     * Capture voice sample and create a biocode.
+     * Perform voice calibration in two phases:
+     *   1. record and decrypt a voice sample to PCM
+     *   2. extract speaker embedding + project to a Biocode
      *
-     * Uses SecureRecorder for encrypted file-based recording, decrypts the file,
-     * extracts speaker embedding via ONNX CAM++, and projects through the
-     * therapist's projection matrix to create a Biocode.
-     *
-     * This method supports two calling styles:
-    /**
-     * Capture a voice sample and create a biocode. The only supported call
-     * signature takes a therapist master key; callers no longer need to supply
-     * a projection matrix directly.
-     *
-     * Internally the method will record audio, extract a speaker vector via the
-     * `SpeakerEmbedder`, and then request a projection matrix from
-     * `ProjectionMatrixFactory` sized to the vector's length.  This keeps the
-     * API stable when the model output dimension changes.
-     *
-     * @param masterKey – Therapist master key string used to derive projection
-     *                    matrix.
-     * @param voiceCalibrationDurationMs – How long to record (default 5000ms)
+     * These steps are split so callers can show UI progress for each stage.
      */
-    public async run(
-        masterKey: string,
-        voiceCalibrationDurationMs: number = VoiceCalibrator.DEFAULT_DURATION_MS,
-    ): Promise<Biocode> {
-        this.logger.info('[VoiceCalibrator] Starting voice calibration', {
-            durationMs: voiceCalibrationDurationMs,
-        });
-
+    public async captureVoiceSample(durationMs: number): Promise<Float32Array> {
         try {
-            // ensure ONNX session is ready for speaker embedding.  the runtime
-            // now manages downloads/sessions directly.
-            await this.ensureModel('speaker_id');
+            // recording does not require the model to be loaded
+            await this.recorder.capture(durationMs);
+            return await this.recorder.getPcm();
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : undefined;
+            const errorStack = error instanceof Error ? error.stack : undefined;
+            type WithOriginalError = { originalError?: unknown };
+            const originalError = (error as WithOriginalError).originalError;
+            const originalErrorStack = originalError instanceof Error ? originalError.stack : undefined;
 
-            // use the injected recorder to capture PCM
-            const pcm = await this.recorder.capture(voiceCalibrationDurationMs);
-
-            this.logger.debug('[VoiceCalibrator] Audio capture complete', {
-                pcmLength: pcm.length,
+            this.logger.error('[VoiceCalibrator] captureVoiceSample failed', {
+                error,
+                message: errorMessage,
+                stack: errorStack,
+                originalStack: originalErrorStack,
+                durationMs,
             });
+
+            throw error;
+        }
+    }
+
+    /**
+     * Convert PCM into a Biocode using the speaker embedding model and projection.
+     */
+    public async generateBiocode(masterKey: string, pcm: Float32Array): Promise<Biocode> {
+        try {
+            await this.ensureModel('speaker_id');
 
             // Extract speaker vector from PCM
             const speakerVector = await this.speakerEmbedder.extract(pcm);
@@ -86,31 +82,25 @@ export class VoiceCalibrator {
             // Generate projection matrix based on master key and vector length
             const projectionMatrix = this.projectionMatrixFactory.create(masterKey, speakerVector.vector.length);
 
-            // Create biocode via projection
-            const biocode = this.biocodeFactory.create(speakerVector, projectionMatrix);
-
-            this.logger.info('[VoiceCalibrator] Voice calibration complete', {
-                confidence: speakerVector.confidence,
-            });
-
-            return biocode;
+            return this.biocodeFactory.create(speakerVector, projectionMatrix);
         } catch (error: unknown) {
-            // log the raw object so we can inspect unexpected shapes (e.g. RN errors)
             const errorMessage = error instanceof Error ? error.message : undefined;
             const errorStack = error instanceof Error ? error.stack : undefined;
             type WithOriginalError = { originalError?: unknown };
             const originalError = (error as WithOriginalError).originalError;
             const originalErrorStack = originalError instanceof Error ? originalError.stack : undefined;
 
-            this.logger.error('[VoiceCalibrator] Voice calibration failed', {
+            this.logger.error('[VoiceCalibrator] generateBiocode failed', {
                 error,
                 message: errorMessage,
                 stack: errorStack,
                 originalStack: originalErrorStack,
             });
+
             throw error;
         }
     }
+
 
     /**
      * Ensure the ONNX model session for the given capability is ready.

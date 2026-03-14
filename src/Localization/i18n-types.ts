@@ -82,6 +82,10 @@ type RootTranslation = {
         errorAccountCreation: string;
         /** Voice calibration failed. */
         errorVoiceCalibration: string;
+        /** Recording in progress... */
+        voiceRecording: string;
+        /** Generating voice profile... */
+        voiceProcessing: string;
         /** Failed to save account. */
         errorSaveAccount: string;
         /** No recovery code available. */
@@ -261,6 +265,10 @@ export type TranslationFunctions = {
         errorAccountCreation: () => LocalizedString;
         /** Voice calibration failed. */
         errorVoiceCalibration: () => LocalizedString;
+        /** Recording in progress. */
+        voiceRecording: () => LocalizedString;
+        /** Generating voice profile. */
+        voiceProcessing: () => LocalizedString;
         /** Failed to save account. */
         errorSaveAccount: () => LocalizedString;
         /** No recovery code available. */

@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
         warn: vi.fn(),
     },
     recorder: {
-        capture: vi.fn<(durationMs: number) => Promise<Float32Array>>(),
+        capture: vi.fn<(durationMs: number) => Promise<string>>(),
+        getPcm: vi.fn<() => Promise<Float32Array>>(),
     },
     runtime: {
         load: vi.fn<(capability: string) => Promise<void>>(),
@@ -57,7 +58,7 @@ const { logger: mockLogger, recorder: mockRecorder, runtime: mockRuntime } = moc
 
 
 const defaultSpeakerVector = new SpeakerVector([0.1, 0.2, 0.3], 0.9);
-const mockBiocode = new Biocode([0.5, 0.4, 0.3], 0.95, dayjs.utc());
+const mockBiocode = new Biocode([0.5, 0.4, 0.3], defaultSpeakerVector.confidence, dayjs.utc());
 
 const mockSpeakerEmbedder = {
     extract: vi.fn<(pcm: Float32Array) => Promise<SpeakerVector>>(),
@@ -88,10 +89,9 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         // rejection from the 'Zero' case.
         mockRuntime.load.mockResolvedValue(undefined);
 
-        // default capture should produce the expected number of samples for a
-        // 5-second session (16kHz * 5s = 80 000 samples).  Use zeros since
-        // the actual content is irrelevant.
-        mockRecorder.capture.mockResolvedValue(new Float32Array(80000));
+        // default capture should return a file path; the PCM is provided via getPcm.
+        mockRecorder.capture.mockResolvedValue('/tmp/fake-recording.enc');
+        mockRecorder.getPcm.mockResolvedValue(new Float32Array(80000));
         mockSpeakerEmbedder.extract.mockResolvedValue(defaultSpeakerVector);
         mockBiocodeFactory.create.mockReturnValue(mockBiocode);
         // projection factory should always return some matrix to avoid undefined
@@ -104,39 +104,32 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
 
         const calibrator = createCalibrator();
 
-        await expect(calibrator.run('some-key')).rejects.toThrow('Speaker ID artifact path unavailable');
+        await expect(calibrator.generateBiocode('some-key', new Float32Array([0]))).rejects.toThrow(
+            'Speaker ID artifact path unavailable',
+        );
         expect(mockRuntime.load).toHaveBeenCalledWith('speaker_id');
     });
 
-    it('One – returns Biocode for a single successful capture using master key', async () => {
+    it('One – captures and generates a biocode', async () => {
         const calibrator = createCalibrator();
-        const result = await calibrator.run('master-key-1');
+        const pcm = await calibrator.captureVoiceSample(5000);
+        const result = await calibrator.generateBiocode('master-key-1', pcm);
 
         expect(result).toBe(mockBiocode);
         expect(mockRecorder.capture).toHaveBeenCalledTimes(1);
+        expect(mockRecorder.getPcm).toHaveBeenCalledTimes(1);
         expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, expect.any(Array));
         expect(mockRuntime.load).toHaveBeenCalledWith('speaker_id');
-
-        // verify basic logging
-        expect(mockLogger.info).toHaveBeenCalledWith(
-            '[VoiceCalibrator] Starting voice calibration',
-            expect.objectContaining({ durationMs: 5000 }),
-        );
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-            '[VoiceCalibrator] Audio capture complete',
-            expect.objectContaining({ pcmLength: 80000 }),
-        );
-        expect(mockLogger.info).toHaveBeenCalledWith(
-            '[VoiceCalibrator] Voice calibration complete',
-            expect.objectContaining({ confidence: defaultSpeakerVector.confidence }),
-        );
     });
 
     it('Many – consecutive runs capture and project each time', async () => {
         const calibrator = createCalibrator();
 
-        await calibrator.run('key1');
-        await calibrator.run('key2');
+        await calibrator.captureVoiceSample(1000);
+        await calibrator.generateBiocode('key1', new Float32Array([0]));
+
+        await calibrator.captureVoiceSample(1000);
+        await calibrator.generateBiocode('key2', new Float32Array([0]));
 
         expect(mockRecorder.capture).toHaveBeenCalledTimes(2);
         expect(mockRuntime.load).toHaveBeenCalledTimes(1);
@@ -147,22 +140,45 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         const durationMs = 1234;
         const calibrator = createCalibrator();
 
-        await calibrator.run('some-key', durationMs);
+        await calibrator.captureVoiceSample(durationMs);
 
         expect(mockRecorder.capture).toHaveBeenCalledWith(durationMs);
     });
 
+    it('captureVoiceSample – records and returns PCM', async () => {
+        const calibrator = createCalibrator();
+        const pcm = await calibrator.captureVoiceSample(2500);
+
+        expect(mockRecorder.capture).toHaveBeenCalledWith(2500);
+        expect(mockRecorder.getPcm).toHaveBeenCalled();
+        expect(pcm.length).toBe(80000);
+    });
+
+    it('generateBiocode – runs model and projects to biocode', async () => {
+        const calibrator = createCalibrator();
+        const pcm = new Float32Array([0.1, 0.2, 0.3]);
+
+        const biocode = await calibrator.generateBiocode('some-master-key', pcm);
+
+        expect(mockRuntime.load).toHaveBeenCalledWith('speaker_id');
+        expect(mockSpeakerEmbedder.extract).toHaveBeenCalledWith(pcm);
+        expect(mockProjectionMatrixFactory.create).toHaveBeenCalledWith(
+            'some-master-key',
+            defaultSpeakerVector.vector.length,
+        );
+        expect(biocode).toBe(mockBiocode);
+    });
+
     it('Short – propagates RecordingTooShortError from recorder', async () => {
         const err = new RecordingTooShortError(80000, 5000);
-        mockRecorder.capture.mockRejectedValueOnce(err);
+        mockRecorder.getPcm.mockRejectedValueOnce(err);
 
         const calibrator = createCalibrator();
-        await expect(calibrator.run('any-key')).rejects.toBe(err);
-        // model initialization (load) still happens before capture
-        expect(mockRuntime.load).toHaveBeenCalled();
+        await expect(calibrator.captureVoiceSample(1000)).rejects.toBe(err);
+        expect(mockRuntime.load).not.toHaveBeenCalled();
 
         expect(mockLogger.error).toHaveBeenCalledWith(
-            '[VoiceCalibrator] Voice calibration failed',
+            '[VoiceCalibrator] captureVoiceSample failed',
             expect.objectContaining({ error: err }),
         );
     });
@@ -175,7 +191,8 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
         mockProjectionMatrixFactory.create.mockReturnValue(fakeMatrix);
 
         const calibrator = createCalibrator();
-        const biocode = await calibrator.run('some-master-key');
+        const pcm = new Float32Array([0.1, 0.2, 0.3]);
+        const biocode = await calibrator.generateBiocode('some-master-key', pcm);
 
         expect(mockProjectionMatrixFactory.create).toHaveBeenCalledWith('some-master-key', defaultSpeakerVector.vector.length);
         expect(mockBiocodeFactory.create).toHaveBeenCalledWith(defaultSpeakerVector, fakeMatrix);
@@ -190,7 +207,7 @@ describe('VoiceCalibrator – ZOMBIE tests', () => {
 
         const calibrator = createCalibrator();
 
-        await expect(calibrator.run('whatever')).rejects.toThrow(error);
-        expect(mockRuntime.load).toHaveBeenCalled();
+        await expect(calibrator.captureVoiceSample(1000)).rejects.toThrow(error);
+        expect(mockRuntime.load).not.toHaveBeenCalled();
     });
 });

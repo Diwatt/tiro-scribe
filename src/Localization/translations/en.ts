@@ -36,6 +36,8 @@ const en: BaseTranslation = {
         errorSessionLost: 'Session lost. Please start over.',
         errorAccountCreation: 'Account creation failed.',
         errorVoiceCalibration: 'Voice calibration failed.',
+        voiceRecording: 'Recording…',
+        voiceProcessing: 'Creating voice profile…',
         errorSaveAccount: 'Failed to save account.',
         errorNoRecoveryCode: 'No recovery code available.',
     },

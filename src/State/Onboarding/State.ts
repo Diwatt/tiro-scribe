@@ -108,6 +108,7 @@ export class OnboardingState implements PendingTherapistProvider {
         // callbacks that depend on `this`
         this.account.setOnSuccess(this.handleAccountSuccess.bind(this));
         this.voice.setPendingTherapistProvider(this);
+        this.voice.setOnCalibrationSuccess(() => this.goToStep(OnboardingStep.Recovery));
         this.recovery.setPendingTherapistProvider(this);
 
         // nothing else to wire at the root level any more

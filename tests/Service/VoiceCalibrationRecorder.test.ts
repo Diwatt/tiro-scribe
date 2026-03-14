@@ -24,6 +24,14 @@ describe('VoiceCalibrationRecorder', () => {
         listenerCallback = () => {};
         fakeChunks.length = 0;
 
+        // Ensure Device.isDevice exists in the test environment so we can mock it.
+        if (!Object.prototype.hasOwnProperty.call(Device, 'isDevice')) {
+            Object.defineProperty(Device, 'isDevice', {
+                get: () => true,
+                configurable: true,
+            });
+        }
+
         // stub Timer.sleep so tests don't actually wait
         vi.spyOn(Timer, 'sleep').mockResolvedValue(undefined as any);
 
@@ -63,7 +71,8 @@ describe('VoiceCalibrationRecorder', () => {
         } as unknown as SecureRecorder;
 
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
-        const pcm = await recorder.capture(1); // 1ms -> 16 samples
+        await recorder.capture(1); // 1ms -> 16 samples
+        const pcm = await recorder.getPcm();
 
         expect(pcm).toBeInstanceOf(Float32Array);
         expect(pcm.length).toBe(16);
@@ -74,19 +83,15 @@ describe('VoiceCalibrationRecorder', () => {
         // logger should have recorded session start and at least one decryption chunk
         expect(mockLogger.debug).toHaveBeenCalledWith(
             '[VoiceCalibrationRecorder] recording started',
-            expect.objectContaining({ sessionId: expect.any(String), startTs: expect.any(Number) }),
-        );
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-            '[VoiceCalibrationRecorder] sleep complete',
-            expect.objectContaining({ sessionId: expect.any(String), duration: expect.any(Number) }),
+            expect.objectContaining({ sessionId: expect.any(String) }),
         );
         expect(mockLogger.info).toHaveBeenCalledWith(
             '[VoiceCalibrationRecorder] recording stopped',
-            expect.objectContaining({ sessionId: expect.any(String), stopTs: expect.any(Number), duration: expect.any(Number) }),
+            expect.objectContaining({ sessionId: expect.any(String), encryptedFilePath: expect.any(String) }),
         );
         expect(mockLogger.debug).toHaveBeenCalledWith(
             '[VoiceCalibrationRecorder] decryption chunk',
-            expect.objectContaining({ offsetBefore: expect.any(Number), timestamp: expect.any(Number) }),
+            expect.objectContaining({ offsetBefore: expect.any(Number) }),
         );
     });
 
@@ -119,16 +124,15 @@ describe('VoiceCalibrationRecorder', () => {
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         // 1000ms -> expect 16000 samples, only one available
-        await expect(recorder.capture(1000)).rejects.toBeInstanceOf(RecordingTooShortError);
+        await recorder.capture(1000);
+        await expect(recorder.getPcm()).rejects.toBeInstanceOf(RecordingTooShortError);
 
-        // error log should include sessionId, duration and timestamps
+        // error log should include file path and duration
         expect(mockLogger.error).toHaveBeenCalledWith(
-            'Voice calibration capture failed.',
+            'Voice calibration decryption failed.',
             expect.objectContaining({
-                sessionId: expect.any(String),
+                encryptedFilePath: expect.any(String),
                 durationMs: 1000,
-                startTs: expect.any(Number),
-                stopTs: expect.any(Number),
                 error: expect.any(String),
             }),
         );
@@ -151,7 +155,9 @@ describe('VoiceCalibrationRecorder', () => {
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
-        const pcm = await recorder.capture(100); // 100ms -> 1600 samples expected
+        await recorder.capture(100); // 100ms -> 1600 samples expected
+        const pcm = await recorder.getPcm();
+
         expect(pcm).toBeInstanceOf(Float32Array);
         expect(pcm.length).toBe(1450); // trimmed to actual samples
         // verify normalization applied to first two samples
@@ -161,7 +167,10 @@ describe('VoiceCalibrationRecorder', () => {
 
     it('on simulator returns silent buffer instead of throwing', async () => {
         // make Device.isDevice false to simulate simulator environment
-        vi.spyOn(Device, 'isDevice', 'get').mockReturnValue(false);
+        Object.defineProperty(Device, 'isDevice', {
+            get: () => false,
+            configurable: true,
+        });
 
         // no PCM chunks at all
         const fakeRecorder = {
@@ -173,7 +182,9 @@ describe('VoiceCalibrationRecorder', () => {
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         const expectedSamples = (VoiceCalibrationRecorder as any).SAMPLE_RATE * 1; // 1s
-        const pcm = await recorder.capture(1000);
+        await recorder.capture(1000);
+        const pcm = await recorder.getPcm();
+
         expect(pcm.length).toBe(expectedSamples);
         expect(Array.from(pcm).every((v) => v === 0)).toBe(true);
     });
@@ -191,7 +202,8 @@ describe('VoiceCalibrationRecorder', () => {
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
-        await expect(recorder.capture(0)).rejects.toThrow(error);
+        await recorder.capture(0);
+        await expect(recorder.getPcm()).rejects.toThrow(error);
     });
 
 });

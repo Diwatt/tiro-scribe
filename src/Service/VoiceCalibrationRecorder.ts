@@ -2,14 +2,16 @@
  * VoiceCalibrationRecorder – low‑level capturer used during calibration.
  *
  * This class drives the native `SecureRecorder`: it requests permissions,
- * starts/stops a session, streams decrypted bytes and converts them to
- * normalized Float32Array PCM.  No model or biocode logic belongs here.
+ * starts/stops a session and writes an encrypted recording to disk.  Decryption
+ * and conversion to normalized Float32Array PCM is handled via `getPcm()`.
+ * No model or biocode logic belongs here.
  *
  * This class can be instantiated directly and is the only concrete recorder
  * implementation used in production.
  */
-import { SecureRecorder } from 'secure-recorder';
+
 import * as Device from 'expo-device';
+import { SecureRecorder } from 'secure-recorder';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { RecordingPermissionError } from '@/Exception/RecordingPermissionError';
@@ -25,12 +27,16 @@ export class VoiceCalibrationRecorder {
     private static readonly SAMPLE_RATE = 16000; // 16 kHz PCM
     private static readonly MAX_INT16 = 32768.0; // used for normalizing 16‑bit samples
 
+    // state from last capture (used by getPcm)
+    private _lastEncryptedFilePath?: string;
+    private _lastDurationMs?: number;
+
     public constructor(
         private readonly logger: AppLogger,
         private readonly secureRecorderFactory: SecureRecorderFactory,
     ) {}
 
-    public async capture(durationMs: number): Promise<Float32Array> {
+    public async capture(durationMs: number): Promise<string> {
         this.logger.info('Starting voice calibration capture.', { durationMs });
         await this.ensureRecordingPermission();
 
@@ -38,50 +44,57 @@ export class VoiceCalibrationRecorder {
         this.logger.debug('[VoiceCalibrationRecorder] session id', { sessionId });
         const recorder = this.secureRecorderFactory(sessionId);
 
-        // timestamps for diagnostics
-        let startTs = 0;
-        let stopTs = 0;
-
         try {
             await recorder.initialize();
             await recorder.start();
-            startTs = Date.now();
-            this.logger.debug('[VoiceCalibrationRecorder] recording started', { sessionId, startTs });
+            this.logger.debug('[VoiceCalibrationRecorder] recording started', { sessionId });
 
             // record for the requested duration
             await Timer.sleep(durationMs);
-            const afterSleepTs = Date.now();
-            this.logger.debug('[VoiceCalibrationRecorder] sleep complete', {
-                sessionId,
-                duration: afterSleepTs - startTs,
-            });
 
             const encryptedFilePath = await recorder.stop();
-            stopTs = Date.now();
-            this.logger.info('[VoiceCalibrationRecorder] recording stopped', {
+            this.logger.info('[VoiceCalibrationRecorder] recording stopped', { sessionId, encryptedFilePath });
+
+            this._lastEncryptedFilePath = encryptedFilePath;
+            this._lastDurationMs = durationMs;
+
+            return encryptedFilePath;
+        } catch (error: unknown) {
+            this.logger.error('Voice calibration capture failed.', {
                 sessionId,
-                stopTs,
-                duration: stopTs - startTs,
-                encryptedFilePath,
+                durationMs,
+                error: error instanceof Error ? error.message : String(error),
             });
 
-            // prepare buffer for decrypted PCM samples
-            const expectedSamples = (VoiceCalibrationRecorder.SAMPLE_RATE * durationMs) / 1000;
-            const buffer = new Float32Array(expectedSamples);
-            let offset = 0;
+            throw error;
+        } finally {
+            recorder.dispose();
+        }
+    }
 
+    public async getPcm(durationMs?: number): Promise<Float32Array> {
+        const encryptedFilePath = this._lastEncryptedFilePath;
+        const duration = durationMs ?? this._lastDurationMs;
+
+        if (!encryptedFilePath || duration == null) {
+            throw new Error('No recording available. Call capture() before getPcm().');
+        }
+
+        const expectedSamples = (VoiceCalibrationRecorder.SAMPLE_RATE * duration) / 1000;
+        const buffer = new Float32Array(expectedSamples);
+        let offset = 0;
+
+        try {
             const pcmPromise = new Promise<Float32Array>((resolve, reject) => {
                 const subscription = SecureRecorder.addDecryptionListener((event) => {
                     const bytes = event.data as Uint8Array;
                     const int16Array = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.length / 2);
-                    const chunkTs = Date.now();
 
                     // log chunk info to help debug short recordings
                     this.logger.debug('[VoiceCalibrationRecorder] decryption chunk', {
                         bytes: bytes.length,
                         isLast: event.isLast,
                         offsetBefore: offset,
-                        timestamp: chunkTs,
                     });
 
                     for (const sample of int16Array) {
@@ -116,20 +129,27 @@ export class VoiceCalibrationRecorder {
 
             if (offset < minRequiredSamples) {
                 this.logger.error('[VoiceCalibrationRecorder] recording shorter than requested', {
-                    requestedMs: durationMs,
+                    encryptedFilePath,
+                    durationMs: duration,
                     expectedSamples,
                     minRequiredSamples,
                     actualSamples: offset,
-                    startTs,
-                    stopTs,
                 });
 
                 // In simulator the microphone is unreliable; return a silent buffer
                 // instead of failing so that developers can proceed with calibration.
-                if (!Device.isDevice) {
-                    this.logger.warn(
-                        '[VoiceCalibrationRecorder] running on simulator, padding silent buffer',
-                    );
+                const isDevice = (() => {
+                    try {
+                        return Boolean(Device.isDevice);
+                    } catch {
+                        // Some test environments (e.g. vitest module mocks) may not
+                        // surface the isDevice export. Assume real device in that case.
+                        return true;
+                    }
+                })();
+
+                if (!isDevice) {
+                    this.logger.warn('[VoiceCalibrationRecorder] running on simulator, padding silent buffer');
                     return new Float32Array(expectedSamples);
                 }
 
@@ -144,17 +164,13 @@ export class VoiceCalibrationRecorder {
 
             return pcm;
         } catch (error: unknown) {
-            this.logger.error('Voice calibration capture failed.', {
-                sessionId,
-                durationMs,
-                startTs,
-                stopTs,
+            this.logger.error('Voice calibration decryption failed.', {
+                encryptedFilePath,
+                durationMs: duration,
                 error: error instanceof Error ? error.message : String(error),
             });
 
             throw error;
-        } finally {
-            recorder.dispose();
         }
     }
 

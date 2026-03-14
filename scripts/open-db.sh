@@ -84,15 +84,35 @@ fi
 ANDROID_DEVICE=$(adb devices | grep emulator | awk '{print $1}' | head -n 1)
 if [ -n "$ANDROID_DEVICE" ]; then
     echo "Android emulator detected: $ANDROID_DEVICE"
+    ADB="adb -s $ANDROID_DEVICE"
+
     # if we don't have a name yet, list databases and pick the first .db/.sqlite
     if [ -z "$DB_NAME" ]; then
-        DB_NAME=$(adb -s "$ANDROID_DEVICE" shell "run-as $APP_PACKAGE ls /data/data/$APP_PACKAGE/databases" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r' )
+        DB_NAME=$($ADB shell "run-as $APP_PACKAGE ls /data/data/$APP_PACKAGE/databases" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r')
     fi
+
+    # Some builds (e.g. Expo Go from Play Store) are not debuggable and run-as will fail.
+    # On emulators we can often use `adb root` and pull the file directly.
+    if [ -z "$DB_NAME" ]; then
+        echo "run-as failed or no database found; attempting root access (emulator only)."
+        $ADB root >/dev/null 2>&1
+        DB_NAME=$($ADB shell "ls /data/data/$APP_PACKAGE/databases" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r')
+    fi
+
     if [ -n "$DB_NAME" ]; then
         DB_LOCAL_TEMP="/tmp/$DB_NAME"
-        adb -s "$ANDROID_DEVICE" shell "run-as $APP_PACKAGE cat /data/data/$APP_PACKAGE/databases/$DB_NAME" > "$DB_LOCAL_TEMP" 2>/dev/null
-        echo "candidate Android path: $DB_LOCAL_TEMP"
-        open_if_exists "$DB_LOCAL_TEMP"
+
+        # Prefer run-as when possible (works for debug builds), otherwise fall back to root + pull.
+        if $ADB shell "run-as $APP_PACKAGE cat /data/data/$APP_PACKAGE/databases/$DB_NAME" > "$DB_LOCAL_TEMP" 2>/dev/null; then
+            echo "candidate Android path: $DB_LOCAL_TEMP"
+            open_if_exists "$DB_LOCAL_TEMP"
+        else
+            echo "run-as failed; trying adb root + pull (emulator)."
+            $ADB root >/dev/null 2>&1
+            $ADB pull "/data/data/$APP_PACKAGE/databases/$DB_NAME" "$DB_LOCAL_TEMP" >/dev/null 2>&1
+            echo "candidate Android path: $DB_LOCAL_TEMP"
+            open_if_exists "$DB_LOCAL_TEMP"
+        fi
     fi
 fi
 

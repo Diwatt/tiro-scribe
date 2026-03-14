@@ -1,5 +1,6 @@
 import { observer } from '@legendapp/state/react';
 import type React from 'react';
+import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, Button, HelperText, useTheme } from 'react-native-paper';
 import { Container } from '@/Core/Container';
@@ -14,7 +15,11 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const onboarding = Container.get(OnboardingState);
     const error = onboarding.voice.error.get();
     const isBusy = onboarding.voice.isBusy.get();
+    const phase = onboarding.voice.calibrationPhase.get();
     const isDownloading = onboarding.voice.isSpeakerModelDownloading.get();
+
+    const startCalibration = useCallback(() => onboarding.voice.calibrateVoice(), [onboarding]);
+    const resetOnboarding = useCallback(() => onboarding.reset(), [onboarding]);
 
     return (
         <View style={STYLES.stepRoot}>
@@ -30,7 +35,22 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                         {error}
                     </HelperText>
                 ) : null}
-                {isBusy ? <ActivityIndicator size="large" style={STYLES.voiceLoader} /> : null}
+                {isBusy ? (
+                    <>
+                        <ActivityIndicator
+                            size="large"
+                            style={STYLES.voiceLoader}
+                            color={
+                                phase === 'recording'
+                                    ? theme.colors.statusBatchWaiting.accent
+                                    : theme.colors.statusProcessing.accent
+                            }
+                        />
+                        <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant }]}>
+                            {phase === 'recording' ? LL.onboarding.voiceRecording() : LL.onboarding.voiceProcessing()}
+                        </Text>
+                    </>
+                ) : null}
             </View>
             <View style={STYLES.stepSpacer} />
             {isDownloading ? (
@@ -46,7 +66,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                 <>
                     <Button
                         mode="contained"
-                        onPress={() => onboarding.voice.calibrateVoice()}
+                        onPress={startCalibration}
                         style={[STYLES.primaryButton, { backgroundColor: actions.primary.background }]}
                         contentStyle={STYLES.primaryButtonContent}
                     >
@@ -54,7 +74,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                     </Button>
                     <Button
                         mode="text"
-                        onPress={() => onboarding.reset()}
+                        onPress={resetOnboarding}
                         style={STYLES.backButton}
                         contentStyle={STYLES.primaryButtonContent}
                     >

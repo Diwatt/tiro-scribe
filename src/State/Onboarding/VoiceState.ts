@@ -10,16 +10,19 @@ import { DownloadState } from '@/Service/InferenceModelDownload/Type';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { ErrorMessage } from '@/Util/ErrorMessage';
+import { EventLoop } from '@/Util/EventLoop';
 import { AbstractState } from './AbstractState';
 import type { PendingTherapistProvider } from './Types';
 
 export class VoiceState extends AbstractState {
+    public readonly calibrationPhase = observable<'idle' | 'recording' | 'processing'>('idle');
     public readonly isSpeakerModelDownloading = observable<boolean>(false);
     public readonly speakerModelProgress = observable<number>(0);
     public readonly isSpeakerModelReady = observable<boolean>(false);
 
     private modelDownloadExecutor: DownloadTaskExecutor | null = null;
     private pendingTherapistProvider: PendingTherapistProvider | null = null;
+    private onCalibrationSuccess?: () => void;
 
     public constructor(
         logger: AppLogger,
@@ -39,6 +42,10 @@ export class VoiceState extends AbstractState {
      */
     public setPendingTherapistProvider(provider: PendingTherapistProvider): void {
         this.pendingTherapistProvider = provider;
+    }
+
+    public setOnCalibrationSuccess(handler: () => void): void {
+        this.onCalibrationSuccess = handler;
     }
 
     public async calibrateVoice(): Promise<void> {
@@ -63,23 +70,35 @@ export class VoiceState extends AbstractState {
                 });
                 const masterKey = await this.masterKeyVault.load(therapist.uuid);
 
-                this.logger.debug('[VoiceState] run', { therapistUuid: therapist.uuid });
-                // pass the master key directly; the calibrator will build a matrix
-                // sized to the extracted speaker vector.  this avoids dimension
-                // mismatches when the model output size changes.
-                const biocode = await this.voiceCalibrator.run(masterKey, this.appConfig.voiceCalibrationDurationMs);
+                this.calibrationPhase.set('recording');
+                this.logger.debug('[VoiceState] captureVoiceSample', { therapistUuid: therapist.uuid });
+                const pcm = await this.voiceCalibrator.captureVoiceSample(this.appConfig.voiceCalibrationDurationMs);
+
+                this.calibrationPhase.set('processing');
+                // yield to allow UI to update before the compute-heavy biocode step
+                await EventLoop.yield();
+
+                this.logger.debug('[VoiceState] generateBiocode', { therapistUuid: therapist.uuid });
+                const biocode = await this.voiceCalibrator.generateBiocode(masterKey, pcm);
 
                 therapist.biocode = biocode.projectedVector;
+
+                if (typeof this.onCalibrationSuccess === 'function') {
+                    this.onCalibrationSuccess();
+                }
             });
         } catch (error: unknown) {
             const ll = this.localization.getLL();
             this.logger.debug('[VoiceState] calibrateVoice failed', {
+                error,
                 message: ErrorMessage.toString(error),
                 stack: error instanceof Error ? error.stack : undefined,
                 durationMs: this.appConfig.voiceCalibrationDurationMs,
                 therapistUuid: this.pendingTherapistProvider?.getPendingTherapist()?.uuid,
             });
             this.error.set(ll.onboarding.errorVoiceCalibration());
+        } finally {
+            this.calibrationPhase.set('idle');
         }
     }
 

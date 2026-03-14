@@ -93,7 +93,10 @@ describe('VoiceState', () => {
     const mockGlobalActivity = { setStatus: vi.fn() } as unknown as GlobalActivityStatus;
     const mockMasterKeyVault = { load: vi.fn() } as unknown as MasterKeyVault;
     const mockAppConfig = { voiceCalibrationDurationMs: 5000 } as unknown as AppConfig;
-    const mockCalibrator = { run: vi.fn() } as unknown as VoiceCalibrator;
+    const mockCalibrator = {
+        captureVoiceSample: vi.fn<() => Promise<Float32Array>>(),
+        generateBiocode: vi.fn<(masterKey: string, pcm: Float32Array) => Promise<Biocode>>(),
+    } as unknown as VoiceCalibrator;
 
     const therapist = { uuid: 'thera-1', biocode: undefined } as any;
     const pendingProvider = { getPendingTherapist: () => therapist };
@@ -119,17 +122,19 @@ describe('VoiceState', () => {
     it('passes masterKey to calibrator and stores returned biocode', async () => {
         mockMasterKeyVault.load = vi.fn().mockResolvedValue('the-key');
         const fakeBiocode = new Biocode([1, 2, 3], 0.8, dayjs.utc());
-        mockCalibrator.run = vi.fn().mockResolvedValue(fakeBiocode);
+        mockCalibrator.captureVoiceSample = vi.fn().mockResolvedValue(new Float32Array([0.1]));
+        mockCalibrator.generateBiocode = vi.fn().mockResolvedValue(fakeBiocode);
 
         await voiceState.calibrateVoice();
 
-        expect(mockCalibrator.run).toHaveBeenCalledWith('the-key', mockAppConfig.voiceCalibrationDurationMs);
+        expect(mockCalibrator.captureVoiceSample).toHaveBeenCalledWith(mockAppConfig.voiceCalibrationDurationMs);
+        expect(mockCalibrator.generateBiocode).toHaveBeenCalledWith('the-key', expect.any(Float32Array));
         expect(therapist.biocode).toEqual(fakeBiocode.projectedVector);
     });
 
     it('sets error message if calibrator throws', async () => {
         mockMasterKeyVault.load = vi.fn().mockResolvedValue('k');
-        mockCalibrator.run = vi.fn().mockRejectedValue(new Error('oops')) as any;
+        mockCalibrator.captureVoiceSample = vi.fn().mockRejectedValue(new Error('oops')) as any;
         // recreate state so it uses the updated calibrator reference
         voiceState = new VoiceState(
             mockLogger,
@@ -152,7 +157,7 @@ describe('VoiceState', () => {
         // ensure any observable notifications or timer callbacks propagate
         await new Promise((resolve) => setImmediate(resolve));
 
-        expect(mockCalibrator.run).toHaveBeenCalled();
+        expect(mockCalibrator.captureVoiceSample).toHaveBeenCalled();
         expect(mockLogger.debug).toHaveBeenCalledWith(
             '[VoiceState] calibrateVoice failed',
             expect.objectContaining({ error: expect.anything(), message: expect.any(String) }),
