@@ -8,13 +8,13 @@ To run Storybook:
 
 ```bash
 # Start Storybook in development mode
-pnpm storybook
+bun run storybook
 
 # Start Storybook on iOS
-pnpm storybook:ios
+bun run storybook:ios
 
 # Start Storybook on Android
-pnpm storybook:android
+bun run storybook:android
 ```
 
 ## Adding New Stories

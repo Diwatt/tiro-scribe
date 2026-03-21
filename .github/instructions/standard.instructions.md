@@ -133,10 +133,17 @@ All runtime singleton instances live in `src/Container.ts` as static properties 
 - Prefer **self-documenting code** over comments.
 - Exception messages should be clear and descriptive.
 
+---
+
 ## 11. AI Assistant Workflow & Validation (CRITICAL)
 
 - **Linter Handling:** Do not ignore errors flagged by Biome or ESLint. Read the active file's diagnostics (the red/yellow squiggles) and preemptively fix any styling, import, or typing issues before finalizing your code response.
-- **MANDATORY Scoped Post-Edit Validation:** If you have terminal execution capabilities, after EVERY code edit, you MUST run validation commands **ONLY on the specific files you just modified**. Do NOT run global checks.
-  1. `pnpm biome check --write <path/to/modified/file.ts>`
-  2. `pnpm eslint --fix <path/to/modified/file.ts>`
-  If either command reports errors for the files you touched, fix them immediately. NEVER leave broken code behind. This is non-negotiable.
+- **NO Terminal Formatting:** DO NOT attempt to run `bun run biome` or `bun run lint` in the terminal after your edits. The user handles formatting locally via a dedicated macro (`Shift+Alt+S`). Your job is to provide clean code upfront, not to run formatting scripts.
+
+---
+
+## 12. MCP Tools (Zero-Hallucination Policy)
+
+You have access to MCP servers. Use them proactively:
+- **Context7:** ALWAYS use this tool to read the latest official documentation for `expo`, `react-native`, `onnxruntime-react-native`, `kysely`, and `@legendapp/state` before using their APIs to prevent hallucinations.
+- **Sequential Thinking:** Use this tool to break down complex architectural changes or MVVM refactoring before writing the code.

@@ -9,7 +9,7 @@ the three most‑common actions:
 3. compile & launch the app
 
 Sections later in the file provide extra details (prebuilds, verification,
-release builds, etc.) but the “happy path” is just those three steps.
+release builds, etc.) but the "happy path" is just those three steps.
 
 ---
 
@@ -18,8 +18,8 @@ release builds, etc.) but the “happy path” is just those three steps.
 Run these once after cloning the repository or whenever dependencies change:
 
 ```bash
-pnpm install                  # install JS packages in root + workspaces
-pnpm run pods:install         # install CocoaPods for the iOS project
+bun install                   # install JS packages in root + workspaces
+bun run pods:install          # install CocoaPods for the iOS project
 ```
 
 > You can skip `pods:install` on Android – the Gradle build will handle
@@ -37,7 +37,7 @@ clean before continuing.  This step is safe to run at any time and is the
 recommended starting point for CI pipelines.
 
 ```bash
-pnpm run clean
+bun run clean
 ```
 
 The `clean` script does the following:
@@ -45,9 +45,9 @@ The `clean` script does the following:
 - wipes Metro/haste caches (`/tmp/metro-*`, etc.)
 - removes `.expo`, build folders, and other JS artifacts
 - deletes generated iOS/Android build output
-- reinstalls node modules and iOS pods
+- reinstalls node_modules and iOS pods
 
-Run it when your build is “wonky” or after switching branches that added
+Run it when your build is "wonky" or after switching branches that added
 native code.
 
 ---
@@ -61,7 +61,7 @@ the main app.  You should rebuild it whenever you modify code under
 ### quick one‑time compile
 
 ```bash
-pnpm run module:build       # from project root
+bun run module:build       # from project root
 ```
 
 This compiles the module sources and exits.  It is **not** a watch mode; use
@@ -71,28 +71,28 @@ only for CI or manual checks.
 
 ```bash
 cd modules/secure-recorder
-pnpm exec expo-module tsc -p tsconfig.json
+bunx expo-module tsc -p tsconfig.json
 ```
 
 ### verify the build (high confidence)
 
 ```bash
 cd modules/secure-recorder
-pnpm run verify             # runs both TypeScript and native tests
+bun run verify             # runs both TypeScript and native tests
 ```
 
 Native‑only checks are available too:
 
 ```bash
 cd modules/secure-recorder
-pnpm run verify:android
-pnpm run verify:ios
+bun run verify:android
+bun run verify:ios
 ```
 
 > **Important:** if the native module is not compiled & linked, the
 > runtime error `Cannot find native module 'SecureRecorder'` will occur
 > when the app attempts to use it.  That is the same failure you see
-> when running with Expo Go – the module simply isn’t present.
+> when running with Expo Go – the module simply isn't present.
 
 ---
 
@@ -104,10 +104,10 @@ corresponding `expo` commands:
 
 ```bash
 # iOS development client (runs `expo run:ios` under the hood)
-pnpm run ios:dev
+bun run ios:dev
 
 # Android development client
-pnpm run android:dev
+bun run android:dev
 ```
 
 These commands will:
@@ -119,16 +119,16 @@ These commands will:
 You can also explicitly regenerate the native folders beforehand:
 
 ```bash
-pnpm run prebuild          # normal regeneration
-pnpm run prebuild:clean    # force a clean regen of ios/ and android/
+bun run prebuild           # normal regeneration
+bun run prebuild:clean     # force a clean regen of ios/ and android/
 ```
 
-Typically you only need `prebuild` if you’ve edited `app.json` or added a
+Typically you only need `prebuild` if you've edited `app.json` or added a
 new native dependency.
 
 Once the development client is running you may `expo start` the bundle
 but always install the binary produced by `run:ios`/`run:android` rather than
-using Expo Go.
+using Expo Go.
 
 ---
 
@@ -154,16 +154,16 @@ cd android
 When a build error occurs, follow this sequence:
 
 ```bash
-pnpm run clean
-pnpm run module:build
-pnpm run ios:dev    # or pnpm run android:dev
+bun run clean
+bun run module:build
+bun run ios:dev    # or bun run android:dev
 ```
 
 If an iOS build still fails, try:
 
 ```bash
-pnpm run pods:clean
-pnpm run ios:dev
+bun run pods:clean
+bun run ios:dev
 ```
 
 Those three steps – **clean, build native, run app** – resolve the vast
@@ -171,5 +171,5 @@ majority of issues.
 
 ---
 
-Keep this file bookmarked; it’s the shortest path from a pristine clone to a
+Keep this file bookmarked; it's the shortest path from a pristine clone to a
 running development client with the secure‑recorder module included.

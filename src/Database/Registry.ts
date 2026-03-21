@@ -6,6 +6,7 @@
  * Custom repository: @Entity({ repositoryClass: 'TherapistRepository' }) — must be exported from @/Repository.
  */
 
+import type { ClassType } from '@/Core/Container';
 import { Container } from '@/Core/Container';
 import * as RepositoriesModule from '@/Repository';
 import type { MetadataConstructor } from '../Decorator/Type';
@@ -54,7 +55,7 @@ export class Registry {
 
         const meta = EntityMetadata.for(EntityClass as unknown as MetadataConstructor);
         const repositoryClassName = meta.getRepositoryClassName();
-        let customClass: RepoCtor | undefined;
+
         if (repositoryClassName) {
             // Dynamically lookup any repository exported from @/Repository
             const repoClass = (RepositoriesModule as Record<string, unknown>)[repositoryClassName] as
@@ -68,10 +69,14 @@ export class Registry {
                     { repositoryClassName },
                 );
             }
-            customClass = repoClass;
+            // Use Container.get to retrieve the registered repository
+            const repository = Container.get(repoClass as ClassType<Repository>);
+            this.repositories.set(entityName, repository);
+            return repository as unknown as R;
         }
 
-        const repository = Repository.create(entityName, EntityClass, customClass);
+        // No custom class, use Repository.create() for generic Repository
+        const repository = Repository.create(entityName, EntityClass);
         this.repositories.set(entityName, repository);
         return repository as unknown as R;
     }

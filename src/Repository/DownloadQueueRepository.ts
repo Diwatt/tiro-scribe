@@ -5,6 +5,7 @@
  */
 
 import type { Kysely, Transaction } from 'kysely';
+import { Container } from '@/Core/Container';
 import type { Collection } from '@/Database/Collection';
 import { Criteria } from '@/Database/Criteria';
 import { Repository } from '@/Database/Repository';
@@ -110,3 +111,5 @@ export class DownloadQueueRepository extends Repository<DownloadQueue> {
     // Use findByStatus(), findByCapability() etc. which return Collection,
     // then call .toDataObject() or .toDataObjects() on the Collection as needed.
 }
+
+Container.register(DownloadQueueRepository, () => new DownloadQueueRepository());

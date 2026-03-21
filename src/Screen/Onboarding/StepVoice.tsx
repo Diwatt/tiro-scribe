@@ -36,7 +36,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                     </HelperText>
                 ) : null}
                 {isBusy ? (
-                    <>
+                    <View style={STYLES.centeredStatus}>
                         <ActivityIndicator
                             size="large"
                             style={STYLES.voiceLoader}
@@ -46,10 +46,10 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                                     : theme.colors.statusProcessing.accent
                             }
                         />
-                        <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant }]}>
+                        <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant, textAlign: 'center' }]}>
                             {phase === 'recording' ? LL.onboarding.voiceRecording() : LL.onboarding.voiceProcessing()}
                         </Text>
-                    </>
+                    </View>
                 ) : null}
             </View>
             <View style={STYLES.stepSpacer} />
@@ -93,6 +93,7 @@ const STYLES = StyleSheet.create({
     stepTitle: { fontSize: 22, fontWeight: '600', marginBottom: 20 },
     body: { fontSize: 16, marginBottom: 24, lineHeight: 24 },
     voiceLoader: { marginVertical: 24 },
+    centeredStatus: { alignItems: 'center', marginVertical: 24 },
     loadingContainer: { alignItems: 'center', marginVertical: 24 },
     loadingText: { fontSize: 16, marginTop: 8 },
     primaryButton: { marginTop: 0 },

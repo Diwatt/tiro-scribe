@@ -9,7 +9,7 @@ import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
  */
 
 // biome-ignore lint/suspicious/noExplicitAny: <this is necessary for a flexible factory function>
-type ClassType<T = unknown> = new (...args: any[]) => T;
+export type ClassType<T = unknown> = new (...args: any[]) => T;
 
 /**
  * Enhanced Container with class-based keys for better type safety

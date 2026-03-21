@@ -8,7 +8,7 @@ applyTo: "**/*"
 - **JavaScript Engine:** Hermes only – No support for JSC, V8, or web environments
 - **State Management:** @legendapp/state – Observable-based reactive state
 - **Build System:** Metro bundler with TypeScript support
-- **Package Manager:** pnpm with workspace configuration
+- **Package Manager:** Bun with workspace configuration
 - **Platform Support:** iOS and Android only – No web, desktop, or legacy React Native versions
 
 ## 2. Security & Privacy Layer

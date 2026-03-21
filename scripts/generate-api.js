@@ -1,7 +1,7 @@
 /**
  * Run @hey-api/openapi-ts from the raw spec so generated Types match the API (snake_case).
  * No key transform; output: src/Api/generated (PascalCase filenames from config).
- * Run: node scripts/generate-api.js or pnpm run generate:api
+ * Run: bun scripts/generate-api.js or bun run generate:api
  */
 
 const { execSync } = require('child_process');
@@ -22,7 +22,7 @@ try {
     }
 
     execSync(
-        `npx openapi-ts -i "${SPEC_YAML}" -f "${CONFIG}"`,
+        `bunx openapi-ts -i "${SPEC_YAML}" -f "${CONFIG}"`,
         { cwd: ROOT, stdio: 'inherit' },
     );
 

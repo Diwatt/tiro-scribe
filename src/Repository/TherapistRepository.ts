@@ -10,9 +10,10 @@ import { Repository } from '@/Database/Repository';
 import type { DatabaseSchema } from '@/Database/Type';
 import { Therapist } from '@/Entity/Therapist';
 import type { CryptoEngine } from '@/Security/CryptoEngine';
-import type { MasterKeyVault } from '@/Security/MasterKeyVault';
+import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { RecoveryCode } from '@/Security/RecoveryCode';
 import { TherapistForge } from '@/Security/TherapistForge';
+import { Container } from '@/Core/Container';
 
 export class TherapistRepository extends Repository<Therapist> {
     private readonly vault: MasterKeyVault;
@@ -52,3 +53,6 @@ export class TherapistRepository extends Repository<Therapist> {
         return true;
     }
 }
+
+
+Container.register(TherapistRepository, () => new TherapistRepository(Container.get(MasterKeyVault)));

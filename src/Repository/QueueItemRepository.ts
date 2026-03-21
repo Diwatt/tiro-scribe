@@ -4,6 +4,7 @@
  */
 
 import type { Kysely, Transaction } from 'kysely';
+import { Container } from '@/Core/Container';
 import { Repository } from '@/Database/Repository';
 import type { DatabaseSchema } from '@/Database/Type';
 import { QueueItem } from '@/Entity/QueueItem';
@@ -13,3 +14,5 @@ export class QueueItemRepository extends Repository<QueueItem> {
         super(QueueItem, QueueItem.entityName, db);
     }
 }
+
+Container.register(QueueItemRepository, () => new QueueItemRepository());
