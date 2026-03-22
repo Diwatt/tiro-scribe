@@ -6,7 +6,7 @@
 !.expo/README.md
 
 # VSCode
-.vscode/
+.zed/
 
 # Xcode
 build/
@@ -97,3 +97,7 @@ recordings/
 # ONNX models (should be bundled, but cache can be ignored)
 .onnx_cache/
 db.json
+*.db
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

@@ -1,3 +1,14 @@
+/**
+ * ESM ESLint configuration (module) to avoid Node reparsing warnings when tools
+ * attempt to load `eslint.config.js` without `"type": "module"` in package.json.
+ *
+ * This file mirrors the project's existing ESLint rules but is exported as an
+ * ES module (`.mjs`) so Node will parse it as ESM directly and avoid the
+ * "MODULE_TYPELESS_PACKAGE_JSON" reparsing warning.
+ *
+ * Keep in sync with `eslint.config.js`.
+ */
+
 import biome from 'eslint-config-biome';
 import plugin from '@typescript-eslint/eslint-plugin';
 import parser from '@typescript-eslint/parser';
@@ -27,7 +38,7 @@ export default [
         files: ['src/**/*.ts', 'src/**/*.tsx'],
         plugins: { 
             '@typescript-eslint': plugin,
-            perfectionist 
+            perfectionist,
         },
         rules: {
             // 1. One class per file (disabled per WIP services request)
@@ -52,7 +63,7 @@ export default [
                     'React.FC': 'Use `function X(props: Props): React.JSX.Element` instead.',
                     'React.FunctionComponent': 'Use `function X(props: Props): React.JSX.Element` instead.',
                 },
-            }]
+            }],
         },
     },
     {

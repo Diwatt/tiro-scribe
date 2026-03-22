@@ -10,7 +10,7 @@
 # ---- configuration -------------------------------------------------------
 # change these values for your project.  'APP_PACKAGE' is the bundle id
 # used by Expo (host.exp.Exponent).
-APP_PACKAGE="host.exp.Exponent"
+APP_PACKAGE="com.tiroscribe.app"
 # DB_NAME will be auto‑filled from `.env` or default to the value used by
 # the app (see src/Config/AppConfig.ts).  You may override it manually here
 # if you want to open a different database file.
@@ -87,8 +87,9 @@ if [ -n "$ANDROID_DEVICE" ]; then
     ADB="adb -s $ANDROID_DEVICE"
 
     # if we don't have a name yet, list databases and pick the first .db/.sqlite
+    # FIX: Nouveau chemin expo-sqlite -> files/SQLite
     if [ -z "$DB_NAME" ]; then
-        DB_NAME=$($ADB shell "run-as $APP_PACKAGE ls /data/data/$APP_PACKAGE/databases" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r')
+        DB_NAME=$($ADB shell "run-as $APP_PACKAGE ls /data/data/$APP_PACKAGE/files/SQLite" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r')
     fi
 
     # Some builds (e.g. Expo Go from Play Store) are not debuggable and run-as will fail.
@@ -96,20 +97,31 @@ if [ -n "$ANDROID_DEVICE" ]; then
     if [ -z "$DB_NAME" ]; then
         echo "run-as failed or no database found; attempting root access (emulator only)."
         $ADB root >/dev/null 2>&1
-        DB_NAME=$($ADB shell "ls /data/data/$APP_PACKAGE/databases" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r')
+        DB_NAME=$($ADB shell "ls /data/data/$APP_PACKAGE/files/SQLite" 2>/dev/null | grep -E '\.(db|sqlite)$' | head -n1 | tr -d '\r')
     fi
 
     if [ -n "$DB_NAME" ]; then
-        DB_LOCAL_TEMP="/tmp/$DB_NAME"
+        # Save pulled DB into the project root so it's easy to find from the repo.
+        # Compute the project root relative to this script's location.
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+        PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+        DB_LOCAL_TEMP="$PROJECT_ROOT/$DB_NAME"
 
         # Prefer run-as when possible (works for debug builds), otherwise fall back to root + pull.
-        if $ADB shell "run-as $APP_PACKAGE cat /data/data/$APP_PACKAGE/databases/$DB_NAME" > "$DB_LOCAL_TEMP" 2>/dev/null; then
+        if $ADB shell "run-as $APP_PACKAGE cat /data/data/$APP_PACKAGE/files/SQLite/$DB_NAME" > "$DB_LOCAL_TEMP" 2>/dev/null; then
+            # Télécharge aussi les fichiers WAL et SHM
+            $ADB shell "run-as $APP_PACKAGE cat /data/data/$APP_PACKAGE/files/SQLite/$DB_NAME-wal" > "$DB_LOCAL_TEMP-wal" 2>/dev/null || true
+            $ADB shell "run-as $APP_PACKAGE cat /data/data/$APP_PACKAGE/files/SQLite/$DB_NAME-shm" > "$DB_LOCAL_TEMP-shm" 2>/dev/null || true
+
             echo "candidate Android path: $DB_LOCAL_TEMP"
             open_if_exists "$DB_LOCAL_TEMP"
         else
             echo "run-as failed; trying adb root + pull (emulator)."
             $ADB root >/dev/null 2>&1
-            $ADB pull "/data/data/$APP_PACKAGE/databases/$DB_NAME" "$DB_LOCAL_TEMP" >/dev/null 2>&1
+            $ADB pull "/data/data/$APP_PACKAGE/files/SQLite/$DB_NAME" "$DB_LOCAL_TEMP" >/dev/null 2>&1
+            $ADB pull "/data/data/$APP_PACKAGE/files/SQLite/$DB_NAME-wal" "$DB_LOCAL_TEMP-wal" >/dev/null 2>&1
+            $ADB pull "/data/data/$APP_PACKAGE/files/SQLite/$DB_NAME-shm" "$DB_LOCAL_TEMP-shm" >/dev/null 2>&1
+
             echo "candidate Android path: $DB_LOCAL_TEMP"
             open_if_exists "$DB_LOCAL_TEMP"
         fi
