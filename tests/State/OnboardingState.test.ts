@@ -1,9 +1,6 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // simple stub of legendapp state for node tests
-vi.mock('@legendapp/state', () => {
-    type AnyObj = Record<string, any>;
-    type ObservableComputed<T> = { get: () => T };
+jest.mock('@legendapp/state', () => {
     function observable<T>(initial: T) {
         let value: any = initial;
         const listeners: Array<(arg: { value: T }) => void> = [];
@@ -59,9 +56,9 @@ vi.mock('@legendapp/state', () => {
 });
 
 // prevent native/expo modules from being bundled during unit tests
-vi.mock('expo-clipboard', () => ({ setStringAsync: vi.fn() }));
-vi.mock('expo-print', () => ({ printToFileAsync: vi.fn() }));
-vi.mock('expo-sharing', () => ({ isAvailableAsync: vi.fn(), shareAsync: vi.fn() }));
+jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
+jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
 import { Container } from '@/Core/Container';
 import { OnboardingState } from '@/State/Onboarding/State';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
@@ -69,16 +66,16 @@ import { DownloadState } from '@/Service/InferenceModelDownload/Type';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import { Localization } from '@/Localization';
 
-vi.mock('@/App/Logger', () => {
+jest.mock('@/Core/AppLogger', () => {
     const mockLogger = {
-        debug: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
     };
     return {
         AppLogger: {
-            getInstance: vi.fn(() => mockLogger),
+            getInstance: jest.fn(() => mockLogger),
             ...mockLogger,
         },
     };
@@ -104,14 +101,14 @@ describe('OnboardingState', () => {
             } as any;
         });
 
-        vi.useFakeTimers();
+        jest.useFakeTimers();
         Container.get(GlobalActivityStatus).reset();
 
         // ensure we start with a fresh state
         Container.get(OnboardingState).reset();
 
         // stub downloader behaviour; simulate downloading then completion
-        vi.spyOn(Container.get(InferenceModelDownloader), 'download').mockResolvedValue({
+        jest.spyOn(Container.get(InferenceModelDownloader), 'download').mockResolvedValue({
             state$: { onChange: (cb: any) => {
                 // transition to completed shortly after
                 setTimeout(() => cb({ value: DownloadState.Completed }), 100);
@@ -125,8 +122,8 @@ describe('OnboardingState', () => {
     });
 
     afterEach(() => {
-        vi.useRealTimers();
-        vi.restoreAllMocks();
+        jest.useRealTimers();
+        jest.restoreAllMocks();
     });
 
     it.skip('begins speaker-model download when navigating to step 3', async () => {
@@ -137,9 +134,9 @@ describe('OnboardingState', () => {
         expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Pending);
 
         // advance fake timer so the simulated executor fires
-        vi.advanceTimersByTime(100);
+        jest.advanceTimersByTime(100);
         // run any pending timers to ensure callbacks execute
-        await vi.runAllTimersAsync();
+        await jest.runAllTimersAsync();
         await Promise.resolve();
 
         // download should have finished by now
@@ -157,7 +154,7 @@ describe('OnboardingState', () => {
 
     it.skip('calibrateVoice does not await ensureSpeakerModel', async () => {
         const state = Container.get(OnboardingState);
-        const spy = vi.spyOn(state.voice as any, 'ensureSpeakerModel');
+        const spy = jest.spyOn(state.voice as any, 'ensureSpeakerModel');
         // leave downloading false so the method would normally proceed
         state.voice.isSpeakerModelDownloading.set(false);
         // call without therapist; runAsyncAction will swallow the error

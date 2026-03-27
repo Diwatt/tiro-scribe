@@ -4,7 +4,6 @@
  * projection quality for speaker vector matching.
  */
 
-import { describe, it, expect } from 'vitest';
 import { ProjectionMatrixFactory } from '../../src/Math/ProjectionMatrixFactory';
 import { VectorProjection } from '../../src/Math/VectorProjection';
 import { CryptoEngine } from '../../src/Security/CryptoEngine';

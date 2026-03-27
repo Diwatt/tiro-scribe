@@ -18,6 +18,8 @@ import { Container } from '@/Core/Container';
 import { useLocalization } from '@/Localization/Localization';
 import { ONBOARDING_STEPS, type OnboardingFormData, Schema } from '@/State/Onboarding';
 import { OnboardingState } from '@/State/Onboarding/State';
+
+
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { StepAccount } from './StepAccount';
 import { StepProfile } from './StepProfile';
@@ -35,6 +37,9 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
     const theme = useTheme<ExtendedTheme>();
     const { locale, LL } = useLocalization();
     const onboarding = Container.get(OnboardingState);
+
+
+
     const rawStep = onboarding.step.get() ?? 1;
     const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
     const progress = step / ONBOARDING_STEPS;

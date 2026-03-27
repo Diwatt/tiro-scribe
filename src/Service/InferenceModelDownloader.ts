@@ -114,7 +114,14 @@ export class InferenceModelDownloader {
         // caller attaches their own handler – this is intentional so that
         // client code can react to startup failures rather than having them
         // silently logged here.
-        executor.start();
+        //
+        // In Node.js/Jest environments, we add a no-op catch handler to prevent
+        // "unhandled promise rejection" errors from being thrown by the event loop,
+        // while still allowing callers to handle the rejection themselves.
+        executor.start().catch(() => {
+            // Rejection is intentional and will be handled by the caller.
+            // This catch just prevents Node.js from throwing an unhandled rejection error.
+        });
 
         return executor;
     }

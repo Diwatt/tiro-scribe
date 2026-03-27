@@ -9,6 +9,7 @@ import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStat
 import { StartupOrchestrator } from '@/State/StartupOrchestrator';
 import { AbstractState } from './AbstractState';
 import type { PendingTherapistProvider } from './Types';
+import { AppRouter } from '@/Core/AppRouter';
 
 export class RecoveryState extends AbstractState {
     public readonly recoveryCode = observable<string>('');
@@ -79,8 +80,20 @@ export class RecoveryState extends AbstractState {
 
         try {
             await this.registry.getRepository(Therapist).persist(therapist);
-            this.startupOrchestrator.run();
+
+            // Ensure startup orchestration completes before attempting navigation.
+            // Awaiting helps guarantee the StartupOrchestrator's state flips to Ready.
+            await this.startupOrchestrator.run();
+
             this.logger.debug('[RecoveryState] finalize success');
+
+            // Imperative navigation from state layer (explicitly requested).
+            // Wrap in try/catch to avoid throwing from navigation into the state flow.
+            try {
+                Container.get(AppRouter).replace('/main');
+            } catch (navError) {
+                this.logger.debug('[RecoveryState] navigation to /main failed', { navError });
+            }
         } catch (error: unknown) {
             this.logger.debug('[RecoveryState] finalize persist failed', {
                 error: error instanceof Error ? error.message : String(error),

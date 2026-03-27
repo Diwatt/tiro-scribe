@@ -1,0 +1,6 @@
+# pnpm-workspace.yaml
+# Workspace packages for pnpm.
+# This tells pnpm which folders contain workspace packages.
+# Matches the `workspaces` entry that used to live in package.json.
+packages:
+  - 'modules/*'

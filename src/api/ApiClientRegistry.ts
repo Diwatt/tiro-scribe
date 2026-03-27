@@ -8,6 +8,7 @@ import isEmpty from 'lodash/isEmpty';
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
+import { SystemVerifier } from '@/Service/SystemVerifier';
 import { ApiClientException } from '../Exception';
 import { InferenceModelClient } from './Client/InferenceModelClient';
 import { ProfileAttributesClient } from './Client/ProfileAttributesClient';
@@ -43,7 +44,7 @@ export class ApiClientRegistry {
             return new ProfileAttributesClient(httpClient);
         }
         if (model === InferenceModelClient) {
-            return new InferenceModelClient(httpClient);
+            return new InferenceModelClient(httpClient, Container.get(SystemVerifier));
         }
         throw new Error(`Unknown model: ${model.name}`);
     }

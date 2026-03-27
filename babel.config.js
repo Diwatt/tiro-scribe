@@ -5,6 +5,13 @@ module.exports = function (api) {
         presets: [['babel-preset-expo', { decorators: false }]],
         plugins: [
             ['@babel/plugin-proposal-decorators', { version: '2023-05' }],
+            // Required: the 2023-05 decorator transform emits static class-block
+            // syntax internally; this plugin must follow the decorators plugin so
+            // Babel can parse and lower those blocks for Node/Jest environments.
+            '@babel/plugin-transform-class-static-block',
+            // Transform dynamic import() calls to require() in Jest/Node (CJS) mode
+            // so that `await import('module')` works without --experimental-vm-modules.
+            ...(process.env.NODE_ENV === 'test' ? ['babel-plugin-dynamic-import-node'] : []),
             [
                 'module-resolver',
                 {

@@ -4,24 +4,26 @@
  * Uses a real in-memory SQLite database via Kysely — no Kysely mocking.
  */
 
-import { vi, describe, beforeAll, beforeEach, it, expect } from 'vitest';
 import { Collection } from '@/Database/Collection';
 import { Criteria } from '@/Database/Criteria';
 import { DatabaseException } from '@/Exception';
+import { Container } from '@/Core/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { QueryBuilder } from '@/Database/QueryBuilder';
 import { Repository } from '@/Database/Repository';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
-import { ensureTestTable, clearTestTable } from '../../vitest/mocks/kysely';
+import { createTestKysely, ensureTestTable, clearTestTable } from '../helpers/kysely';
 
-vi.mock('@/App/Logger', () => {
+jest.mock('@/Core/AppLogger', () => {
     const mockLogger = {
-        debug: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
     };
     return {
         AppLogger: {
-            getInstance: vi.fn(() => mockLogger),
+            getInstance: jest.fn(() => mockLogger),
             ...mockLogger,
         },
     };
@@ -30,13 +32,21 @@ vi.mock('@/App/Logger', () => {
 describe('Repository', () => {
     const MockEncounter = createMockEncounterConstructor();
     let repo: Repository;
+    let db: any;
 
-    beforeAll(() => {
-        ensureTestTable('encounters', ['therapist_id']);
+    beforeAll(async () => {
+        db = await createTestKysely();
+        Container.register(QueryBuilder, () => db);
+        Container.register(AppLogger as any, () => AppLogger.getInstance() as any);
+        await ensureTestTable(db, 'encounters', {
+            uuid: 'TEXT PRIMARY KEY',
+            data: 'TEXT',
+            therapist_id: 'TEXT',
+        });
     });
 
-    beforeEach(() => {
-        clearTestTable('encounters');
+    beforeEach(async () => {
+        await clearTestTable(db, 'encounters');
         repo = Repository.create(MockEncounter.entityName, MockEncounter as never);
     });
 

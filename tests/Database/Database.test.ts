@@ -1,15 +1,3 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-vi.mock('expo-sqlite', () => ({
-    deleteDatabaseAsync: vi.fn(),
-}));
-
-// Mock kysely-expo to avoid JSX parsing errors
-vi.mock('kysely-expo', () => ({
-    ExpoDialect: vi.fn(),
-    KyselyProvider: vi.fn(),
-    useKysely: vi.fn(),
-}));
 
 // NOW import Database and other modules after mocks are set up
 import { Database } from '@/Database/Database';
@@ -19,21 +7,20 @@ import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
 
 // Mock only the transaction executor adapter check, use real testKysely for everything else
-vi.mock('kysely', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('kysely')>();
+jest.mock('kysely', () => {
+    const actual = jest.requireActual('kysely');
     return {
         ...actual,
-        Kysely: vi.fn().mockImplementation(() => ({
-            getExecutor: vi.fn().mockReturnValue({ adapter: { supportsTransactionalDdl: () => true } }),
+        Kysely: jest.fn().mockImplementation(() => ({
+            getExecutor: jest.fn().mockReturnValue({ adapter: { supportsTransactionalDdl: () => true } }),
         })),
     };
 });
 
 // Use the real testKysely instance but mock the schema methods for testing
-vi.mock('@/Database/Kysely', () => {
-    const { testKysely } = require('../vitest/mocks/kysely');
+jest.mock('@/Database/QueryBuilder', () => {
     return {
-        qb: testKysely,
+        QueryBuilder: jest.fn(),
     };
 });
 
@@ -42,14 +29,14 @@ describe('Database utility methods', () => {
     let appConfigMock: any;
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         
         // Set up logger mock
         loggerMock = {
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
+            debug: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
         };
         
         // Set up AppConfig mock
@@ -59,7 +46,7 @@ describe('Database utility methods', () => {
         };
         
         // Mock Container.get to return the mocked instances
-        vi.spyOn(Container, 'get').mockImplementation((cls: any) => {
+        jest.spyOn(Container, 'get').mockImplementation((cls: any) => {
             if (cls === AppLogger) {
                 return loggerMock;
             }

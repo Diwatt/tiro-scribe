@@ -4,7 +4,6 @@
  */
 
 import { DeviceType } from 'expo-device';
-import { vi } from 'vitest';
 import { HardwareGuardException } from '@/Exception';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { HardwareGuard } from '@/Security/HardwareGuard';
@@ -28,7 +27,7 @@ const mockDevice = {
     supportedCpuArchitectures: ['arm64'] as string[],
 };
 
-vi.mock('react-native', () => ({
+jest.mock('react-native', () => ({
     Platform: {
         get OS() {
             return (global as unknown as { __platformOS: 'ios' | 'android' }).__platformOS ?? 'ios';
@@ -36,7 +35,7 @@ vi.mock('react-native', () => ({
     },
 }));
 
-vi.mock('expo-device', () => ({
+jest.mock('expo-device', () => ({
     DeviceType: { PHONE: 2, TABLET: 3, DESKTOP: 4, TV: 5 },
     get deviceType() {
         return mockDevice.deviceType;

@@ -51,70 +51,130 @@
         "capability": "asr",
         "variants": [
             {
-                "language": "en",
+                "language": "multilingual",
                 "isDefault": false,
-                "id": "asr-en",
+                "id": "whisper_v3_turbo",
                 "version": "1.0.0",
+                "requirements": {
+                    "Device.totalMemory": ">=6000000000",
+                    "FileSystem.getFreeDiskStorageAsync": ">=1500000000"
+                },
                 "files": [
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/en/encoder_model_quantized.onnx?download=true",
-                        "hash": "4c1cc5ae608781afe378215a1f7c1201de97f2c63646380ebcae33d8349b3b66",
-                        "sizeBytes": 313154567
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/en/decoder_model_merged_quantized.onnx?download=true",
-                        "hash": "17fd842e10abc95beb453c7ac0184a339553e9dbba8f2fd17bef112e8d992d5b",
-                        "sizeBytes": 672556407
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/en/config.json?download=true",
-                        "hash": "ad31ca7a37eede52184e6b76d293f854b8f056c65189020e56e2fed9448b36c8",
-                        "sizeBytes": 1372
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/en/tokenizer.json?download=true",
-                        "hash": "287537d5be89a39bd18e7e3875ad9900faa668493fb759392b8f52a492eca5db",
-                        "sizeBytes": 3855707
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/en/preprocessor_config.json?download=true",
-                        "hash": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d",
-                        "sizeBytes": 339
-                    }
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/high/decoder_model_merged_quantized.onnx?download=true",
+                      "hash": "61481bd3be3a445d5a4b9070e8f8b2c6cc4fbbbbdc9f0e7ed048a132b8b84e0d",
+                      "sizeBytes": 439936716
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/high/encoder_model_quantized.onnx?download=true",
+                      "hash": "d2f853dc3254fdc0079f55dd4433ea716ac98ec5574d3b475f288f2a77cebba9",
+                      "sizeBytes": 644822195
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/high/config.json?download=true",
+                      "hash": "35cd83669f75bc2867f3b3a4461850392d5e308cd6ea951c3700539883c28df1",
+                      "sizeBytes": 1332
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/high/generation_config.json?download=true",
+                      "hash": "16f95291d2f47c944d3c2b19390bba7965666555c1ea2a0bdc850d1fab45612f",
+                      "sizeBytes": 3897
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/high/preprocessor_config.json?download=true",
+                      "hash": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711",
+                      "sizeBytes": 340
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/high/tokenizer.json?download=true",
+                      "hash": "6d8cbd7cd0d8d5815e478dac67b85a26bbe77c1f5e0c6d76d1ce2abc0e5f21ca",
+                      "sizeBytes": 2480617
+                  }
                 ],
                 "minAppVersion": "0.0.0"
             },
             {
                 "language": "multilingual",
                 "isDefault": true,
-                "id": "asr-multi",
+                "id": "whisper_v2_small",
                 "version": "1.0.0",
+                "requirements": {
+                    "Device.totalMemory": ">=3000000000",
+                    "FileSystem.getFreeDiskStorageAsync": ">=600000000"
+                },
                 "files": [
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/multi/encoder_model_quantized.onnx?download=true",
-                        "hash": "2507d090bf9f1d468f4c1cef274aa34eda025894118f5476e24a0d80308a5315",
-                        "sizeBytes": 313154567
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/multi/decoder_model_merged_quantized.onnx?download=true",
-                        "hash": "9ddfe49c075a1ffcdef4738377db2a8681cdd5c5b124fda6df1c902e5722d6d1",
-                        "sizeBytes": 672561526
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/multi/config.json?download=true",
-                        "hash": "8690388eab438c28ffc0697e2551a60b4f062c7e110e381115c6d9922658293a",
-                        "sizeBytes": 1417
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/multi/tokenizer.json?download=true",
-                        "hash": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
-                        "sizeBytes": 3930494
-                    },
-                    {
-                        "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/multi/preprocessor_config.json?download=true",
-                        "hash": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d",
-                        "sizeBytes": 339
-                    }
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/mid/decoder_model_merged_quantized.onnx?download=true",
+                      "hash": "ec07c3cbb64172c39791e26ee870a65ac22b458c36722bfe2776b3dbf741e0c9",
+                      "sizeBytes": 156750845
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/mid/encoder_model_quantized.onnx?download=true",
+                      "hash": "a43a83f3c5361cd591cfa7c36f14b43cf7cb22f47a415cc14a8d557be800fa92",
+                      "sizeBytes": 92326160
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/mid/config.json?download=true",
+                      "hash": "457854d452f17661e197d74aee12b8e74fb75ba30ebfaa7426d0d61ea1e08a18",
+                      "sizeBytes": 2227
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/mid/generation_config.json?download=true",
+                      "hash": "f538b28220c6a6d6f1af1458d4141cacb4ef4963df3de98a19490440c412ddf0",
+                      "sizeBytes": 3893
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/mid/preprocessor_config.json?download=true",
+                      "hash": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d",
+                      "sizeBytes": 339
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/mid/tokenizer.json?download=true",
+                      "hash": "27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566",
+                      "sizeBytes": 2480466
+                  }
+                ],
+                "minAppVersion": "0.0.0"
+            },
+            {
+                "language": "multilingual",
+                "isDefault": false,
+                "id": "whisper_v2_base",
+                "version": "1.0.0",
+                "requirements": {
+                    "FileSystem.getFreeDiskStorageAsync": ">= 200000000"
+                },
+                "files": [
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/low/decoder_model_merged_quantized.onnx?download=true",
+                      "hash": "f9ddfaca517938bef3264b80f6267ecdeb4e19a25d00f0f280f86cc7539ee2a2",
+                      "sizeBytes": 158950475
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/low/encoder_model_quantized.onnx?download=true",
+                      "hash": "2b3d863e8ab891e30e8e7e4d24849ac24f116a6ef1d270477c281f674a922ec4",
+                      "sizeBytes": 23123021
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/low/config.json?download=true",
+                      "hash": "b76adf479fb1bdd6d35cb9350b6bf221722451b4f524d64afc079a90136884e2",
+                      "sizeBytes": 1409
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/low/generation_config.json?download=true",
+                      "hash": "113dd787d1016204e0bc2dd2576eb922220a915b4dc21ebc075e268087c918d2",
+                      "sizeBytes": 3832
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/low/preprocessor_config.json?download=true",
+                      "hash": "a6a76d28c93edb273669eb9e0b0636a2bddbb1272c3261e47b7ca6dfdbac1b8d",
+                      "sizeBytes": 339
+                  },
+                  {
+                      "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/low/tokenizer.json?download=true",
+                      "hash": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+                      "sizeBytes": 3930494
+                  }
                 ],
                 "minAppVersion": "0.0.0"
             }

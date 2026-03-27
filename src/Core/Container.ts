@@ -1,6 +1,7 @@
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
+import { AppRouter } from '@/Core/AppRouter';
 
 // Enhanced version with class-based keys
 
@@ -39,6 +40,9 @@ export class Container {
 
         // Register GlobalActivityStatus
         Container.register(GlobalActivityStatus, () => new GlobalActivityStatus(), true);
+
+        // Register AppRouter (depends on AppLogger)
+        Container.register(AppRouter, () => new AppRouter(Container.get(AppLogger)), true);
     }
 
     public static register<T>(cls: ClassType<T>, factory: () => T, forceCreation = false): void {

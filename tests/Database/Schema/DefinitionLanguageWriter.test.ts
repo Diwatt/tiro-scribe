@@ -10,11 +10,10 @@ import { DatabaseException } from '@/Exception';
 import { AppConfig } from '@/Core/AppConfig';
 import type { Kysely } from 'kysely';
 import type { DatabaseSchema } from '@/Database/Type';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock AppConfig since some tests need to control isDev
-vi.mock('@/Core/AppConfig', () => ({
-    AppConfig: vi.fn().mockImplementation(function () {
+jest.mock('@/Core/AppConfig', () => ({
+    AppConfig: jest.fn().mockImplementation(function () {
         return {
             isDev: false,
         };
@@ -255,7 +254,7 @@ describe('DefinitionLanguageWriter', () => {
 
         it('addColumnOrWarn logs a warning and continues when adding a virtual column fails in dev', async () => {
             // simulate dev environment by mocking AppConfig to return isDev: true
-            vi.mocked(AppConfig).mockImplementation(function () {
+            jest.mocked(AppConfig).mockImplementation(function () {
                 return {
                     isDev: true,
                 };
@@ -269,12 +268,12 @@ describe('DefinitionLanguageWriter', () => {
             });
             // Create a proper mock logger object with spyable methods
             const mockLogger = {
-                debug: vi.fn(),
-                info: vi.fn(),
-                warn: vi.fn(),
-                error: vi.fn(),
+                debug: jest.fn(),
+                info: jest.fn(),
+                warn: jest.fn(),
+                error: jest.fn(),
             };
-            const warnSpy = vi.spyOn(mockLogger, 'warn').mockImplementation(() => {});
+            const warnSpy = jest.spyOn(mockLogger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('vcol')) {
                     throw new Error('virtual not supported');
@@ -290,7 +289,7 @@ describe('DefinitionLanguageWriter', () => {
             expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual\/generated column/);
             warnSpy.mockRestore();
             // reset AppConfig mock to default
-            vi.mocked(AppConfig).mockImplementation(function () {
+            jest.mocked(AppConfig).mockImplementation(function () {
                 return {
                     isDev: false,
                 };
@@ -306,12 +305,12 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const mockLogger = {
-                debug: vi.fn(),
-                info: vi.fn(),
-                warn: vi.fn(),
-                error: vi.fn(),
+                debug: jest.fn(),
+                info: jest.fn(),
+                warn: jest.fn(),
+                error: jest.fn(),
             };
-            const warnSpy = vi.spyOn(mockLogger, 'warn').mockImplementation(() => {});
+            const warnSpy = jest.spyOn(mockLogger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('extra')) {
                     throw new Error('Error code 1: duplicate column name: extra');
@@ -385,7 +384,7 @@ describe('DefinitionLanguageWriter', () => {
             const definition = createMinimalDefinition({
                 indexes: ['CREATE INDEX a ON t(a);', 'CREATE INDEX b ON t(b);'],
             });
-            const execute = vi.fn(async (sql: string) => {
+            const execute = jest.fn(async (sql: string) => {
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
                 return Promise.resolve();
             });
@@ -400,7 +399,7 @@ describe('DefinitionLanguageWriter', () => {
         });
 
         it('constructor stores tx and write uses it', async () => {
-            const execute = vi.fn(() => Promise.resolve());
+            const execute = jest.fn(() => Promise.resolve());
             const tx = createMockDb(execute);
             const writer = new DefinitionLanguageWriter(tx);
             await writer.write(createMinimalDefinition());
@@ -502,7 +501,7 @@ describe('DefinitionLanguageWriter', () => {
 
         it('does not warn for non-virtual column add failures and rethrows', async () => {
             // simulate dev environment by mocking AppConfig to return isDev: true
-            vi.mocked(AppConfig).mockImplementation(function () {
+            jest.mocked(AppConfig).mockImplementation(function () {
                 return {
                     isDev: true,
                 };
@@ -515,12 +514,12 @@ describe('DefinitionLanguageWriter', () => {
                 ],
             });
             const mockLogger = {
-                debug: vi.fn(),
-                info: vi.fn(),
-                warn: vi.fn(),
-                error: vi.fn(),
+                debug: jest.fn(),
+                info: jest.fn(),
+                warn: jest.fn(),
+                error: jest.fn(),
             };
-            const warnSpy = vi.spyOn(mockLogger, 'warn').mockImplementation(() => {});
+            const warnSpy = jest.spyOn(mockLogger, 'warn').mockImplementation(() => {});
             const tx = createMockDb(async (sql) => {
                 if (sql.startsWith('ALTER TABLE') && sql.includes('badcol')) {
                     throw new Error('cannot add');
@@ -535,7 +534,7 @@ describe('DefinitionLanguageWriter', () => {
             expect(warnSpy).not.toHaveBeenCalled();
             warnSpy.mockRestore();
             // reset AppConfig mock to default
-            vi.mocked(AppConfig).mockImplementation(function () {
+            jest.mocked(AppConfig).mockImplementation(function () {
                 return {
                     isDev: false,
                 };

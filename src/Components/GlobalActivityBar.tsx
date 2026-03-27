@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Surface, Text, useTheme } from 'react-native-paper';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { observer } from '@legendapp/state/react';
 import { Container } from '@/Core/Container';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import type { ExtendedTheme } from '@/theme/AppTheme';
@@ -22,7 +23,7 @@ export interface GlobalActivityBarProps {
     /**
      * If supplied the component renders this status/message instead of
      * observing the global store. Useful for stories or localised use.
-     * When omitted the bar will read `globalActivityStatus` directly.
+     * When omitted the observed wrapper will provide values from the store.
      */
     status?: ActivityStatus;
     message?: string;
@@ -30,13 +31,23 @@ export interface GlobalActivityBarProps {
     icon?: React.ReactNode;
 }
 
+/**
+ * Presentational / pure component.
+ *
+ * - Does not read any stores.
+ * - Always controlled via props.
+ * - Keeps UI isolated and easy to test.
+ *
+ * Note: we treat an omitted `status` as `ActivityStatus.Ready` (hidden) to
+ * avoid accidentally showing the bar when consumers forget to pass a status.
+ */
 export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Element {
     const { status: propStatus, message: propMessage, icon: propIcon } = props;
-    const globalActivityStatus = Container.get(GlobalActivityStatus);
-    const { status: storeStatus, message: storeMessage, icon: storeIcon } = globalActivityStatus.readFromStore();
-    const status = propStatus ?? storeStatus;
-    const message = propMessage ?? storeMessage;
-    const icon = propIcon ?? storeIcon;
+
+    // Treat undefined as Ready so the bar remains hidden by default.
+    const status = propStatus ?? ActivityStatus.Ready;
+    const message = propMessage;
+    const icon = propIcon;
 
     const theme = useTheme<ExtendedTheme>();
     const insets = useSafeAreaInsets();
@@ -125,6 +136,29 @@ export function GlobalActivityBar(props: GlobalActivityBarProps): React.JSX.Elem
         </Animated.View>
     );
 }
+
+/**
+ * Observed wrapper — reads the global store and passes values to the
+ * presentational component. Consolidated into the same file so there's only
+ * one component file to import from.
+ *
+ * This file default-exports the observed variant so the typical app import is:
+ *   import GlobalActivityBar from '@/Components/GlobalActivityBar';
+ *
+ * Use the named `GlobalActivityBar` export when you want the pure component
+ * for stories/tests and intend to pass props manually.
+ */
+function ObservedGlobalActivityBarInner(): React.JSX.Element {
+    const globalActivityStatus = Container.get(GlobalActivityStatus);
+    // readFromStore() is the existing API returning { status, message, icon }
+    const { status, message, icon } = globalActivityStatus.readFromStore();
+
+    return <GlobalActivityBar status={status} message={message} icon={icon} />;
+}
+
+// Export the observed wrapper as the default export to avoid exporting a
+// non-component value alongside components.
+export default observer(ObservedGlobalActivityBarInner);
 
 const STYLES = StyleSheet.create({
     container: {

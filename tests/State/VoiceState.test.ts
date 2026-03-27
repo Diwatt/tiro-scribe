@@ -1,11 +1,9 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // simple stub of legendapp state for node tests
-vi.mock('@legendapp/state', () => {
-    type AnyObj = Record<string, any>;
-    type ObservableComputed<T> = { get: () => T };
+jest.mock('@legendapp/state', () => {
+
     function observable<T>(initial: T) {
         let value: any = initial;
         const listeners: Array<(arg: { value: T }) => void> = [];
@@ -54,7 +52,7 @@ vi.mock('@legendapp/state', () => {
         return proxy as unknown as T;
     }
     function computed<T>(fn: () => T) {
-        return { get: fn } as unknown as ObservableComputed<T>;
+        return { get: fn } as unknown as { get: () => T };
     }
 
     return { observable, computed };
@@ -70,12 +68,12 @@ import { AppConfig } from '@/Core/AppConfig';
 import { VoiceCalibrator } from '@/Service/SpeakerId/VoiceCalibrator';
 import { Biocode } from '@/Service/SpeakerId/Biocode';
 
-vi.mock('@/Core/Container', () => ({
-    Container: { get: vi.fn(), register: vi.fn() },
+jest.mock('@/Core/Container', () => ({
+    Container: { get: jest.fn(), register: jest.fn() },
 }));
 
 // simple observable stub used by state; not needed to emulate entire legendapp
-vi.mock('@legendapp/state', () => ({
+jest.mock('@legendapp/state', () => ({
     observable: (init: any) => ({
         get: () => init,
         set: (_: any) => {},
@@ -87,22 +85,22 @@ dayjs.extend(utc);
 
 describe('VoiceState', () => {
     let voiceState: VoiceState;
-    const mockLogger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as AppLogger;
-    const mockLocalization = { getLL: vi.fn(() => ({ onboarding: { errorVoiceCalibration: () => 'err' }, download: {} })) } as unknown as Localization;
+    const mockLogger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as unknown as AppLogger;
+    const mockLocalization = { getLL: jest.fn(() => ({ onboarding: { errorVoiceCalibration: () => 'err' }, download: {} })) } as unknown as Localization;
     const mockDownloader = {} as unknown as InferenceModelDownloader;
-    const mockGlobalActivity = { setStatus: vi.fn() } as unknown as GlobalActivityStatus;
-    const mockMasterKeyVault = { load: vi.fn() } as unknown as MasterKeyVault;
+    const mockGlobalActivity = { setStatus: jest.fn() } as unknown as GlobalActivityStatus;
+    const mockMasterKeyVault = { load: jest.fn() } as unknown as MasterKeyVault;
     const mockAppConfig = { voiceCalibrationDurationMs: 5000 } as unknown as AppConfig;
     const mockCalibrator = {
-        captureVoiceSample: vi.fn<() => Promise<Float32Array>>(),
-        generateBiocode: vi.fn<(masterKey: string, pcm: Float32Array) => Promise<Biocode>>(),
+        captureVoiceSample: jest.fn<() => Promise<Float32Array>>(),
+        generateBiocode: jest.fn<(masterKey: string, pcm: Float32Array) => Promise<Biocode>>(),
     } as unknown as VoiceCalibrator;
 
     const therapist = { uuid: 'thera-1', biocode: undefined } as any;
     const pendingProvider = { getPendingTherapist: () => therapist };
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         voiceState = new VoiceState(
             mockLogger,
             mockLocalization,
@@ -120,10 +118,10 @@ describe('VoiceState', () => {
     });
 
     it('passes masterKey to calibrator and stores returned biocode', async () => {
-        mockMasterKeyVault.load = vi.fn().mockResolvedValue('the-key');
+        mockMasterKeyVault.load = jest.fn().mockResolvedValue('the-key');
         const fakeBiocode = new Biocode([1, 2, 3], 0.8, dayjs.utc());
-        mockCalibrator.captureVoiceSample = vi.fn().mockResolvedValue(new Float32Array([0.1]));
-        mockCalibrator.generateBiocode = vi.fn().mockResolvedValue(fakeBiocode);
+        mockCalibrator.captureVoiceSample = jest.fn().mockResolvedValue(new Float32Array([0.1]));
+        mockCalibrator.generateBiocode = jest.fn().mockResolvedValue(fakeBiocode);
 
         await voiceState.calibrateVoice();
 
@@ -133,8 +131,8 @@ describe('VoiceState', () => {
     });
 
     it('sets error message if calibrator throws', async () => {
-        mockMasterKeyVault.load = vi.fn().mockResolvedValue('k');
-        mockCalibrator.captureVoiceSample = vi.fn().mockRejectedValue(new Error('oops')) as any;
+        mockMasterKeyVault.load = jest.fn().mockResolvedValue('k');
+        mockCalibrator.captureVoiceSample = jest.fn().mockRejectedValue(new Error('oops')) as any;
         // recreate state so it uses the updated calibrator reference
         voiceState = new VoiceState(
             mockLogger,
@@ -151,7 +149,7 @@ describe('VoiceState', () => {
         }
 
         // spy on observable so we can see what gets written
-        const errorSpy = vi.spyOn(voiceState.error, 'set');
+        const errorSpy = jest.spyOn(voiceState.error, 'set');
 
         await voiceState.calibrateVoice();
         // ensure any observable notifications or timer callbacks propagate

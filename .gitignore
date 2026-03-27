@@ -54,6 +54,7 @@ android/local.properties
 
 # node.js
 node_modules/
+pnpm-lock.yaml
 npm-debug.log
 yarn-error.log
 
@@ -101,3 +102,10 @@ db.json
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+
+# pnpm lockfile
+pnpm-lock.yaml
+
+# Bun (legacy — project now uses pnpm)
+bun.lock
+bun.lockb

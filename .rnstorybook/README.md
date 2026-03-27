@@ -6,22 +6,22 @@ This directory contains the Storybook configuration for React Native.
 
 To run Storybook:
 
-```bash
+```tiro-scribe/.rnstorybook/README.md#L1-8
 # Start Storybook in development mode
-bun run storybook
+pnpm run storybook
 
 # Start Storybook on iOS
-bun run storybook:ios
+pnpm run storybook:ios
 
 # Start Storybook on Android
-bun run storybook:android
+pnpm run storybook:android
 ```
 
 ## Adding New Stories
 
 Create a `.stories.tsx` file next to your component:
 
-```typescript
+```tiro-scribe/.rnstorybook/README.md#L10-28
 import type {Meta, StoryObj} from '@storybook/react-native';
 import {YourComponent} from './YourComponent';
 
@@ -42,7 +42,7 @@ export const Default: Story = {
 
 Then import it in `.storybook/index.tsx`:
 
-```typescript
+```tiro-scribe/.rnstorybook/README.md#L30-34
 configure(() => {
     require('../src/Components/YourComponent.stories');
 }, module);

@@ -8,7 +8,6 @@
 // @ts-expect-error allow setting global for test
 global.__DEV__ = true;
 
-import { vi } from 'vitest';
 import { InferenceModelVersionManager, type UpdateCheckResult, type UpdateInfo } from '@/Service/InferenceModelVersionManager';
 import { InferenceModelConfigProvider } from '@/Service/InferenceModelConfigProvider';
 import { ModelArtifactStorage } from '@/Service/InferenceModelDownload/ModelArtifactStorage';
@@ -16,37 +15,37 @@ import type { ModelConfig } from '@/Api';
 import type { AppLogger } from '@/Core/AppLogger';
 
 // Mock dependencies
-vi.mock('@/Service/InferenceModelConfigProvider');
-vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => {
+jest.mock('@/Service/InferenceModelConfigProvider');
+jest.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => {
     // Create a mock class
-    const MockModelArtifactStorage = vi.fn(function() {
+    const MockModelArtifactStorage = jest.fn(function() {
         // When called as a constructor, return an instance with methods
-        this.calculateTotalSize = vi.fn();
-        this.deleteModelConfig = vi.fn();
+        this.calculateTotalSize = jest.fn();
+        this.deleteModelConfig = jest.fn();
     });
     
     return {
         ModelArtifactStorage: MockModelArtifactStorage,
     };
 });
-vi.mock('@/App/Logger', () => {
+jest.mock('@/Core/AppLogger', () => {
     const mockLogger = {
-        debug: vi.fn(),
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
     };
     return {
         AppLogger: {
-            getInstance: vi.fn(() => mockLogger),
+            getInstance: jest.fn(() => mockLogger),
             ...mockLogger,
         },
     };
 });
 
 // Mock AppConfig to avoid __DEV__ issues
-vi.mock('@/Config/AppConfig', () => ({
-    AppConfig: vi.fn().mockImplementation(function () {
+jest.mock('@/Core/AppConfig', () => ({
+    AppConfig: jest.fn().mockImplementation(function () {
         return {
             isDev: true,
         };
@@ -54,10 +53,8 @@ vi.mock('@/Config/AppConfig', () => ({
 }));
 
 // Mock semver
-vi.mock('semver', () => ({
-    default: {
-        gt: vi.fn(),
-    },
+jest.mock('semver', () => ({
+    gt: jest.fn(),
 }));
 
 describe('InferenceModelVersionManager', () => {
@@ -70,36 +67,36 @@ describe('InferenceModelVersionManager', () => {
     beforeEach(async () => {
         // Create mock logger
         mockLogger = {
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
+            debug: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
         } as any;
 
         // Create mock config provider
         mockConfigProvider = {
-            getConfigs: vi.fn(),
-            getConfig: vi.fn(),
+            getConfigs: jest.fn(),
+            getConfig: jest.fn(),
         };
 
         // Create mock artifact storage
         mockArtifactStorage = {
-            calculateTotalSize: vi.fn(),
-            deleteModelConfig: vi.fn(),
+            calculateTotalSize: jest.fn(),
+            deleteModelConfig: jest.fn(),
         };
 
         // Get semver mock
-        mockSemver = (await import('semver')).default;
+        mockSemver = jest.requireMock('semver') as any;
 
         // Setup mocks
-        vi.mocked(InferenceModelConfigProvider).mockImplementation(() => mockConfigProvider);
+        jest.mocked(InferenceModelConfigProvider).mockImplementation(() => mockConfigProvider);
 
         versionManager = new InferenceModelVersionManager(
             mockLogger,
             mockConfigProvider,
             mockArtifactStorage
         );
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
 
@@ -164,7 +161,7 @@ describe('InferenceModelVersionManager', () => {
 
         beforeEach(() => {
             mockConfigProvider.getConfigs.mockResolvedValue(mockRemoteConfigs);
-            vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue(mockLocalConfigs);
+            jest.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue(mockLocalConfigs);
             mockArtifactStorage.calculateTotalSize.mockResolvedValue(0);
         });
 
@@ -221,7 +218,7 @@ describe('InferenceModelVersionManager', () => {
             const localConfigsWithoutSpeaker: Record<string, ModelConfig> = {
                 vad: mockLocalConfigs.vad,
             };
-            vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue(localConfigsWithoutSpeaker);
+            jest.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue(localConfigsWithoutSpeaker);
             // Mock semver.gt to return false for vad (1.0.0 == 1.0.0)
             mockSemver.gt.mockReturnValue(false);
             
@@ -295,11 +292,11 @@ describe('InferenceModelVersionManager', () => {
         beforeEach(() => {
             mockConfigProvider.getConfig.mockResolvedValue(mockRemoteConfig);
             // Mock getLocalConfigs to return a local config
-            vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({
+            jest.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({
                 speaker_id: mockLocalConfig,
             });
             // Mock isNewerVersion to return true
-            vi.spyOn(versionManager as any, 'isNewerVersion').mockReturnValue(true);
+            jest.spyOn(versionManager as any, 'isNewerVersion').mockReturnValue(true);
         });
 
         it('should fetch config and delegate to downloader', async () => {
@@ -429,7 +426,7 @@ describe('InferenceModelVersionManager', () => {
     // Zombie method tests - edge cases and error conditions
     describe('zombie method tests', () => {
         it('should handle null/undefined configs from getLocalConfigs', async () => {
-            vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue(null);
+            jest.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue(null);
             mockConfigProvider.getConfigs.mockResolvedValue({});
             
             // This will throw because Object.keys(null) throws TypeError
@@ -437,7 +434,7 @@ describe('InferenceModelVersionManager', () => {
         });
 
         it('should handle empty configs from API', async () => {
-            vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({});
+            jest.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({});
             mockConfigProvider.getConfigs.mockResolvedValue({});
             
             const result = await versionManager.checkForUpdates();
@@ -469,7 +466,7 @@ describe('InferenceModelVersionManager', () => {
 
 
         it('should handle error in calculateTotalSize', async () => {
-            vi.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({});
+            jest.spyOn(versionManager as any, 'getLocalConfigs').mockResolvedValue({});
             mockConfigProvider.getConfigs.mockResolvedValue({
                 test: {
                     capability: 'test',

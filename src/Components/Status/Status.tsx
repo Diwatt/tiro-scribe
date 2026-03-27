@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Surface, Text, useTheme } from 'react-native-paper';
 import type { ExtendedTheme } from '@/theme/AppTheme';
-import { StatusState } from './StatusTypes';
+import { getThemeColorsForStatusState } from '@/theme/AppTheme';
+import type { StatusState } from './StatusTypes';
 
 export interface StatusColors {
     background: string;
@@ -24,28 +25,7 @@ export interface StatusBaseProps {
 
 export function Status({ title, subtitle, icon, state, iconBgOverride, children }: StatusBaseProps): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const statusColorKey = StatusState.getColorKey(state);
-
-    // Type-safe access to status colors
-    const statusColors = (() => {
-        switch (statusColorKey) {
-            case 'statusIdle':
-                return theme.colors.statusIdle;
-            case 'statusProcessing':
-                return theme.colors.statusProcessing;
-            case 'statusBatchWaiting':
-                return theme.colors.statusBatchWaiting;
-            case 'statusSetup':
-                return theme.colors.statusSetup;
-            case 'statusError':
-                return theme.colors.statusError;
-            case 'statusWarning':
-                return theme.colors.statusWarning;
-            default:
-                // Fallback to statusIdle if unknown
-                return theme.colors.statusIdle;
-        }
-    })();
+    const statusColors = getThemeColorsForStatusState(theme, state);
 
     return (
         <Surface

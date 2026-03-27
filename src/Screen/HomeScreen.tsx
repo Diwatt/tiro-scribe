@@ -1,44 +1,35 @@
 import { observer } from '@legendapp/state/react';
-import { useRouter } from 'expo-router';
 import type React from 'react';
-import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card, ProgressBar, useTheme } from 'react-native-paper';
-import { SecureSessionButton, StatusReady } from '@/Components';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SecureSessionButton, StatusProcessing, StatusState } from '@/Components';
 import { Container } from '@/Core/Container';
-import { Registry } from '@/Database/Registry';
 import { useLocalization } from '@/Localization';
+import { HomeState } from '@/State/HomeState';
+
+import { Status } from '@/Components/Status/Status';
+import { Sparkles } from 'lucide-react-native';
 import type { ExtendedTheme } from '@/theme/AppTheme';
-import { Therapist } from '../Entity/Therapist';
 
 export const Home = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
-    const router = useRouter();
     const { LL } = useLocalization();
-    const [isDownloading, _setIsDownloading] = useState(false);
-    const [progress, _setProgress] = useState(0);
+    const homeState = Container.get(HomeState);
+    const isDownloading = homeState.isDownloading.get();
+    const progress = homeState.progress.get();
+    const bannerMessage = homeState.bannerMessage.get();
+    const insets = useSafeAreaInsets();
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            const repo = await Container.get(Registry).getRepository(Therapist);
-            const therapists = await repo.findAll();
-            if (cancelled) {
-                return;
-            }
-            const _current = therapists.first() ?? null;
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    // Repository warm-up / one-off read removed.
+    // Home-specific initialization should be performed by HomeState or services.
 
     const handlePress = () => {
-        router.push({ pathname: '/main/recording', params: { autoStart: 'true' } });
+        homeState.navigateToRecording(true);
     };
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
-            <ScrollView contentContainerStyle={STYLES.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[STYLES.scrollContent, { paddingTop: insets.top }]} showsVerticalScrollIndicator={false}>
                 {!!isDownloading && (
                     <Card style={[STYLES.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
                         <Card.Content>
@@ -56,7 +47,16 @@ export const Home = observer((): React.JSX.Element => {
                         </Card.Content>
                     </Card>
                 )}
-                <StatusReady />
+                {isDownloading ? (
+                    <StatusProcessing progress={Math.round(progress * 100)} currentTask={bannerMessage ?? undefined} />
+                ) : (
+                    <Status
+                        title={LL.status.readyTitle()}
+                        subtitle={LL.status.readySubtitle()}
+                        icon={<Sparkles size={24} color={theme.colors.statusIdle.text} />}
+                        state={StatusState.Ready}
+                    />
+                )}
                 <View style={{ height: 100 }} />
             </ScrollView>
 
@@ -78,7 +78,6 @@ const STYLES = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 60,
     },
     banner: {
         marginBottom: 16,

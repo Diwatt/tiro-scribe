@@ -1,3 +1,11 @@
+/**
+ * Canonical list of status states used by Status components.
+ *
+ * Note: The previous helper that converted a `StatusState` into a theme key
+ * has been removed. Theme mapping now lives in the theme module
+ * (`src/theme/AppTheme.ts`) and should be the single source of truth for
+ * mapping states -> themed `StatusColors`.
+ */
 export enum StatusState {
     Ready = 'ready',
     Processing = 'processing',
@@ -5,20 +13,4 @@ export enum StatusState {
     Setup = 'setup',
     Error = 'error',
     Warning = 'warning',
-}
-
-export function getStatusStateColorKey(state: StatusState): string {
-    const stateName = state.toLowerCase();
-    const camelCase = stateName
-        .split('_')
-        .map((word, index) =>
-            index === 0
-                ? word.charAt(0).toLowerCase() + word.slice(1)
-                : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-        )
-        .join('');
-    if (state === StatusState.Ready) {
-        return 'statusIdle';
-    }
-    return `status${camelCase.charAt(0).toUpperCase() + camelCase.slice(1)}`;
 }

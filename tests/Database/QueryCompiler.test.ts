@@ -3,12 +3,16 @@
  * SUT: QueryCompiler.build(). No real DB; we assert compiled SQL shape and parameters.
  */
 
-import { describe, expect, it } from 'vitest';
 import { EntityMetadata } from '@/Database/Decorator';
 import { QueryCompiler } from '@/Database/QueryCompiler';
 import { DatabaseException } from '@/Exception';
 import type { MetadataConstructor } from '@/Decorator/Type';
 import { createMockEncounterConstructor } from '../helpers/mockEntity';
+
+import { Container } from '@/Core/Container';
+import { AppConfig } from '@/Core/AppConfig';
+
+Container.register(AppConfig, () => ({ databaseName: 'test_db' } as any));
 
 const MockEncounter = createMockEncounterConstructor();
 const metadata = EntityMetadata.for(MockEncounter as MetadataConstructor);

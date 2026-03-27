@@ -59,7 +59,7 @@ export class StartupOrchestrator {
 
         // provide explicit generic parameter so caller receives the
         // specialized interface with autocomplete support.
-        const repo = await Container.get(Registry).getRepository<TherapistRepository>(Therapist);
+        const repo = Container.get(Registry).getRepository<TherapistRepository>(Therapist);
         const hasSession = await repo.hasActiveSession();
         if (hasSession) {
             this.state.set(StartupState.Ready);

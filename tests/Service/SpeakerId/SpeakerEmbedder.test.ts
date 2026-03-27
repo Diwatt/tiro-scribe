@@ -5,35 +5,34 @@
  * handles feature extraction/normalization.
  */
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 
 import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exception';
 import { SpeakerEmbedder } from '@/Service/SpeakerId/SpeakerEmbedder';
 import { SpeakerVector } from '@/Service/SpeakerId/SpeakerVector';
 
-const mockLogger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-const mockModel = { run: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]) };
-const mockRuntime = { load: vi.fn().mockResolvedValue(undefined), getModel: vi.fn().mockResolvedValue(mockModel) };
+const mockLogger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+const mockModel = { run: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]) };
+const mockRuntime = { load: jest.fn().mockResolvedValue(undefined), getModel: jest.fn().mockResolvedValue(mockModel) };
 
-vi.mock('@/Service/OnnxRuntime', () => ({ OnnxRuntime: vi.fn().mockImplementation(() => mockRuntime) }));
+jest.mock('@/Service/OnnxRuntime', () => ({ OnnxRuntime: jest.fn().mockImplementation(() => mockRuntime) }));
 
-const mockExtractor = { extract: vi.fn().mockImplementation(() => new Float32Array(80 * 100)) };
-vi.mock('@/Math/AudioFeatureExtractor', () => {
+const mockExtractor = { extract: jest.fn().mockImplementation(() => new Float32Array(80 * 100)) };
+jest.mock('@/Math/AudioFeatureExtractor', () => {
   class MockAudioFeatureExtractor {
     extract = mockExtractor.extract;
   }
   return { AudioFeatureExtractor: MockAudioFeatureExtractor };
 });
 
-vi.mock('@/Core/Container', () => ({ Container: { register: vi.fn(), get: vi.fn((cls: any) => cls?.name?.includes('AppLogger') ? mockLogger : undefined) } }));
+jest.mock('@/Core/Container', () => ({ Container: { register: jest.fn(), get: jest.fn((cls: any) => cls?.name?.includes('AppLogger') ? mockLogger : undefined) } }));
 
 describe('SpeakerEmbedder', () => {
   let embedder: SpeakerEmbedder;
   let extractor: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     mockRuntime.getModel.mockReset();
     mockRuntime.getModel.mockResolvedValue(mockModel);

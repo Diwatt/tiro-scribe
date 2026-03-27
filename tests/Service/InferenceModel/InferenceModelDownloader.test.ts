@@ -4,7 +4,6 @@
  * Includes "zombie method" tests for edge cases and error conditions.
  */
 
-import { vi } from 'vitest';
 import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
 import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
 import { InferenceModelConfigProvider } from '@/Service/InferenceModelConfigProvider';
@@ -17,31 +16,31 @@ import type { ModelConfig, InferenceModelFile } from '@/Api';
 import type { AppLogger } from '@/Core/AppLogger';
 
 // Mock dependencies with explicit factories so `new` works in createDefaultInstance
-vi.mock('@/Repository/DownloadQueueRepository', () => ({
-    DownloadQueueRepository: vi.fn(),
+jest.mock('@/Repository/DownloadQueueRepository', () => ({
+    DownloadQueueRepository: jest.fn(),
 }));
-vi.mock('@/Service/InferenceModelConfigProvider', () => ({
-    InferenceModelConfigProvider: vi.fn(),
+jest.mock('@/Service/InferenceModelConfigProvider', () => ({
+    InferenceModelConfigProvider: jest.fn(),
     inferenceModelConfigProvider: {
-        getConfig: vi.fn(),
-        getConfigs: vi.fn(),
+        getConfig: jest.fn(),
+        getConfigs: jest.fn(),
     },
 }));
-vi.mock('@/Service/InferenceModelDownload/ChecksumVerifier', () => ({
-    ChecksumVerifier: vi.fn(),
+jest.mock('@/Service/InferenceModelDownload/ChecksumVerifier', () => ({
+    ChecksumVerifier: jest.fn(),
 }));
-vi.mock('@/Service/InferenceModelDownload/DownloadTaskManager', () => ({
-    DownloadTaskManager: vi.fn(),
+jest.mock('@/Service/InferenceModelDownload/DownloadTaskManager', () => ({
+    DownloadTaskManager: jest.fn(),
 }));
-vi.mock('@/Service/InferenceModelDownload/FileDownloader', () => ({
-    FileDownloader: vi.fn(),
+jest.mock('@/Service/InferenceModelDownload/FileDownloader', () => ({
+    FileDownloader: jest.fn(),
 }));
-vi.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
-    ModelArtifactStorage: vi.fn(),
+jest.mock('@/Service/InferenceModelDownload/ModelArtifactStorage', () => ({
+    ModelArtifactStorage: jest.fn(),
 }));
 
 // Mock expo-file-system
-vi.mock('expo-file-system', () => ({}));
+jest.mock('expo-file-system', () => ({}));
 
 describe('InferenceModelDownloader', () => {
     let downloader: InferenceModelDownloader;
@@ -57,67 +56,67 @@ describe('InferenceModelDownloader', () => {
         // Mock app language to a fixed locale so defaulting is predictable
         // Create mock logger
         mockLogger = {
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
+            debug: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
         } as any;
 
         // Create mock repository
         mockRepository = {
-            findByCapability: vi.fn(),
-            findByCapabilityAndLanguage: vi.fn(),
-            getStats: vi.fn(),
+            findByCapability: jest.fn(),
+            findByCapabilityAndLanguage: jest.fn(),
+            getStats: jest.fn(),
         };
 
         // Create mock config provider
         mockConfigProvider = {
-            getConfig: vi.fn(),
-            getConfigs: vi.fn(),
+            getConfig: jest.fn(),
+            getConfigs: jest.fn(),
         };
 
         // Create mock checksum verifier
         mockChecksumVerifier = {
-            verify: vi.fn(),
+            verify: jest.fn(),
         };
 
         // Create mock download task manager
         mockDownloadTaskManager = {
-            add: vi.fn(),
-            findByStatus: vi.fn(),
-            getById: vi.fn(),
-            updateStatus: vi.fn(),
-            updateProgress: vi.fn(),
-            updateError: vi.fn(),
-            remove: vi.fn(),
-            cancel: vi.fn(),
-            getByCapability: vi.fn(),
-            getStats: vi.fn(),
-            pause: vi.fn(),
-            resume: vi.fn(),
-            setMaxConcurrentDownloads: vi.fn(),
-            createSession: vi.fn(),
-            getActiveSession: vi.fn(),
-            getActiveSessions: vi.fn().mockReturnValue([]),
-            removeSession: vi.fn(),
-            processQueue: vi.fn(),
-            getOrCreateExecutor: vi.fn(),
+            add: jest.fn(),
+            findByStatus: jest.fn(),
+            getById: jest.fn(),
+            updateStatus: jest.fn(),
+            updateProgress: jest.fn(),
+            updateError: jest.fn(),
+            remove: jest.fn(),
+            cancel: jest.fn(),
+            getByCapability: jest.fn(),
+            getStats: jest.fn(),
+            pause: jest.fn(),
+            resume: jest.fn(),
+            setMaxConcurrentDownloads: jest.fn(),
+            createSession: jest.fn(),
+            getActiveSession: jest.fn(),
+            getActiveSessions: jest.fn().mockReturnValue([]),
+            removeSession: jest.fn(),
+            processQueue: jest.fn(),
+            getOrCreateExecutor: jest.fn(),
         };
 
         // Create mock file downloader
         mockFileDownloader = {
-            downloadFile: vi.fn(),
+            downloadFile: jest.fn(),
         };
 
         // Create mock artifact storage
         mockArtifactStorage = {
-            getFile: vi.fn(),
-            deleteModelConfig: vi.fn(),
-            calculateTotalSize: vi.fn(),
-            hasAllFiles: vi.fn(),
-            getModelUri: vi.fn(),
-            ensureDirectories: vi.fn(),
-            resolvePath: vi.fn(),
+            getFile: jest.fn(),
+            deleteModelConfig: jest.fn(),
+            calculateTotalSize: jest.fn(),
+            hasAllFiles: jest.fn(),
+            getModelUri: jest.fn(),
+            ensureDirectories: jest.fn(),
+            resolvePath: jest.fn(),
         };
 
         // Setup mocks — use regular functions (not arrows) so they work with `new` in createDefaultInstance
@@ -134,7 +133,7 @@ describe('InferenceModelDownloader', () => {
             mockDownloadTaskManager,
             mockConfigProvider
         );
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
 
@@ -279,9 +278,9 @@ describe('InferenceModelDownloader', () => {
         };
 
         beforeEach(() => {
-            mockArtifactStorage.getUri = vi.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
-            mockArtifactStorage.hasAllFiles = vi.fn().mockReturnValue(true);
-            mockArtifactStorage.toAbsoluteUri = vi.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
+            mockArtifactStorage.getUri = jest.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
+            mockArtifactStorage.hasAllFiles = jest.fn().mockReturnValue(true);
+            mockArtifactStorage.toAbsoluteUri = jest.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
         });
 
         it('should return local path when model is downloaded', () => {
@@ -333,8 +332,8 @@ describe('InferenceModelDownloader', () => {
 
         beforeEach(() => {
             mockConfigProvider.getConfig.mockResolvedValue(mockConfig);
-            mockArtifactStorage.hasAllFiles = vi.fn().mockReturnValue(true);
-            mockArtifactStorage.getModelUri = vi.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
+            mockArtifactStorage.hasAllFiles = jest.fn().mockReturnValue(true);
+            mockArtifactStorage.getModelUri = jest.fn().mockReturnValue('file://models/speaker_id/speaker-v1');
         });
 
         it('should return existing executor when already downloaded', async () => {
@@ -351,7 +350,7 @@ describe('InferenceModelDownloader', () => {
             const fakeExecutor: any = {
                 getState: () => DownloadState.Completed,
                 getProgress: () => 100,
-                start: vi.fn().mockResolvedValue(undefined),
+                start: jest.fn().mockResolvedValue(undefined),
                 getModelUri: () => 'file://downloaded/path',
             };
             mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
@@ -371,7 +370,7 @@ describe('InferenceModelDownloader', () => {
             const fakeExecutor: any = {
                 getState: () => DownloadState.Completed,
                 getProgress: () => 100,
-                start: vi.fn().mockResolvedValue(undefined),
+                start: jest.fn().mockResolvedValue(undefined),
                 getModelUri: () => 'file://downloaded/path',
             };
             mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
@@ -400,7 +399,7 @@ describe('InferenceModelDownloader', () => {
             const fakeExecutor: any = {
                 getState: () => DownloadState.Downloading,
                 getProgress: () => 0,
-                start: vi.fn().mockReturnValue(startPromise),
+                start: jest.fn().mockReturnValue(startPromise),
                 getModelUri: () => 'file://downloaded/path',
             };
 
@@ -426,8 +425,8 @@ describe('InferenceModelDownloader', () => {
             mockArtifactStorage.hasAllFiles.mockReturnValue(false);
             const fakeExecutor: any = {
                 getState: () => DownloadState.Downloading,
-                start: vi.fn().mockRejectedValue(new Error('network')), 
-                getError: vi.fn().mockReturnValue('network'),
+                start: jest.fn().mockRejectedValue(new Error('network')), 
+                getError: jest.fn().mockReturnValue('network'),
             };
             mockDownloadTaskManager.add.mockResolvedValue({ capability: 'speaker_id' });
             mockDownloadTaskManager.getOrCreateExecutor.mockReturnValue(fakeExecutor);
@@ -470,7 +469,7 @@ describe('InferenceModelDownloader', () => {
         };
 
         beforeEach(() => {
-            vi.spyOn(downloader as any, 'getLocalConfigs').mockResolvedValue(mockConfigs);
+            jest.spyOn(downloader as any, 'getLocalConfigs').mockResolvedValue(mockConfigs);
             mockArtifactStorage.resolvePath.mockImplementation((config: ModelConfig, file: InferenceModelFile) =>
                 `file://models/${config.capability}/${config.id}`
             );
@@ -500,7 +499,7 @@ describe('InferenceModelDownloader', () => {
         });
 
         it('should handle empty local configs', async () => {
-            vi.spyOn(downloader as any, 'getLocalConfigs').mockResolvedValue({});
+            jest.spyOn(downloader as any, 'getLocalConfigs').mockResolvedValue({});
             
             const config = await downloader.getConfigByLocalPath('file://models/speaker_id/speaker-v1');
             
@@ -529,7 +528,7 @@ describe('InferenceModelDownloader', () => {
 
         it('should handle error in getLocalConfigs', async () => {
             const error = new Error('Storage error');
-            vi.spyOn(downloader as any, 'getLocalConfigs').mockRejectedValue(error);
+            jest.spyOn(downloader as any, 'getLocalConfigs').mockRejectedValue(error);
             
             await expect(downloader.getConfigByLocalPath('some/path')).rejects.toThrow('Storage error');
         });
@@ -549,7 +548,7 @@ describe('InferenceModelDownloader', () => {
                 minAppVersion: '1.0.0',
             };
             
-            vi.spyOn(downloader as any, 'getLocalConfigs').mockResolvedValue({
+            jest.spyOn(downloader as any, 'getLocalConfigs').mockResolvedValue({
                 test: configWithEmptyFiles,
             });
             mockArtifactStorage.hasAllFiles.mockReturnValue(true);

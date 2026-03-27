@@ -58,7 +58,7 @@ export class TherapistForge {
             email: input.email,
             name: null,
             passwordHash,
-            localKeyId: null,
+            biometricKeyAlias: null,
             encryptedMasterKeyPrimary: encryptedPrimary,
             encryptedMasterKeyRecovery: encryptedRecovery,
             recoveryCodeHash,

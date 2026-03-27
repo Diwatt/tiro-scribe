@@ -25,8 +25,11 @@ export class Therapist extends AbstractEntity {
     @Column({ default: '[]', type: 'text', as: 'json' })
     public languages!: string[];
 
+    // TODO (Post-MVP) : Here we gonnna store the alias for the hardware key (Keystore/Secure Enclave).
+    // It will be use to encrypt and decrypt the Master Key with biometrics interface (FaceID/TouchID) 
+    // to avoid the therapist to retype his password on every app opening
     @Column({ default: null, type: 'varchar', length: 36 })
-    public localKeyId!: string | null;
+    public biometricKeyAlias!: string | null;
 
     @Column({ default: '', type: 'text' })
     public masterKeyCheckHash!: string;
@@ -73,8 +76,8 @@ export class Therapist extends AbstractEntity {
         return this.languages;
     }
 
-    public getLocalKeyId(): string | null {
-        return this.localKeyId;
+    public getBiometricKeyAlias(): string | null {
+        return this.biometricKeyAlias;
     }
 
     public getMasterKeyCheckHash(): string {
@@ -133,8 +136,8 @@ export class Therapist extends AbstractEntity {
         this.languages = value;
     }
 
-    public setLocalKeyId(value: string | null): void {
-        this.localKeyId = value;
+    public setBiometricKeyAlias(value: string | null): void {
+        this.biometricKeyAlias = value;
     }
 
     public setMasterKeyCheckHash(value: string): void {

@@ -3,7 +3,6 @@
  * Tests the high-level service that combines SpeakerEmbedder and BiocodeFactory
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { SpeakerProcessor } from '@/Service/SpeakerId/SpeakerProcessor';
@@ -20,7 +19,7 @@ describe('SpeakerProcessor', () => {
     beforeEach(() => {
         mockBiocodeFactory = new BiocodeFactory();
         mockSpeakerEmbedder = {
-            extract: vi.fn().mockResolvedValue(
+            extract: jest.fn().mockResolvedValue(
                 new SpeakerVector([0.1, 0.2, 0.3, 0.4, 0.5], 0.95)
             ),
         };

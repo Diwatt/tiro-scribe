@@ -9,7 +9,6 @@
  * E - Exceptions: Test error handling and edge cases
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { AudioFeatureExtractor } from '../../src/Math/AudioFeatureExtractor';
 
 describe('AudioFeatureExtractor - ZOMBIE Tests', () => {

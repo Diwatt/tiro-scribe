@@ -9,17 +9,16 @@
  * E - Exceptions: Test error handling and edge cases
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectionMatrixFactory } from '../../src/Math/ProjectionMatrixFactory';
 import { VectorProjection } from '../../src/Math/VectorProjection';
 import { CryptoEngine } from '../../src/Security/CryptoEngine';
 import { AppConfig } from '@/Core/AppConfig';
 
-vi.mock('../../src/Config/AppConfig', () => {
+jest.mock('@/Core/AppConfig', () => {
     const instance = { projectionSalt: 'biocode_projection' };
     return {
         AppConfig: {
-            getInstance: vi.fn(() => instance),
+            getInstance: jest.fn(() => instance),
         },
     };
 });

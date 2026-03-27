@@ -1,6 +1,6 @@
 import { useAudioRecording } from '@Service/AudioRecording';
 import { observer } from '@legendapp/state/react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecureSessionButton } from '@/Components';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
+import { AppRouter } from '@/Core/AppRouter';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 const LOGGER = Container.get(AppLogger);
@@ -16,7 +17,6 @@ export const RecordingScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const { autoStart: autoStartParam } = useLocalSearchParams<{ autoStart?: string }>();
     const autoStart = autoStartParam === 'true';
-    const router = useRouter();
     const audioRecording = useAudioRecording();
     const insets = useSafeAreaInsets();
 
@@ -38,7 +38,7 @@ export const RecordingScreen = observer((): React.JSX.Element => {
     const handleStop = async () => {
         LOGGER.debug('⏹️ [RecordingScreen] Stop recording requested');
         await audioRecording.stopRecording();
-        router.back();
+        Container.get(AppRouter).back();
     };
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>

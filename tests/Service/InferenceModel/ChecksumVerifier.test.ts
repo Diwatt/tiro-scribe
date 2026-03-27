@@ -4,23 +4,22 @@
  * Includes "zombie method" tests for edge cases and error conditions.
  */
 
-import { vi } from 'vitest';
 import { ChecksumVerifier } from '@/Service/InferenceModelDownload/ChecksumVerifier';
 import { InferenceModelDownloaderException } from '@/Exception';
 
 // Create mock instances
 const mockHashInstance = {
-    update: vi.fn().mockReturnThis(),
-    digest: vi.fn(),
+    update: jest.fn().mockReturnThis(),
+    digest: jest.fn(),
 };
 
 // Mock react-native-quick-crypto with factory function
-vi.mock('react-native-quick-crypto', () => ({
-    createHash: vi.fn().mockImplementation(() => mockHashInstance),
+jest.mock('react-native-quick-crypto', () => ({
+    createHash: jest.fn().mockImplementation(() => mockHashInstance),
 }));
 
 // Mock expo-file-system
-vi.mock('expo-file-system', () => ({}));
+jest.mock('expo-file-system', () => ({}));
 
 describe('ChecksumVerifier', () => {
     let verifier: ChecksumVerifier;
@@ -28,12 +27,12 @@ describe('ChecksumVerifier', () => {
 
     beforeEach(() => {
         verifier = new ChecksumVerifier();
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         
         // Create fresh mock file for each test
         mockFile = {
             uri: 'file://test/model.bin',
-            base64: vi.fn().mockResolvedValue('dGVzdCBkYXRh'), // "test data" in base64
+            base64: jest.fn().mockResolvedValue('dGVzdCBkYXRh'), // "test data" in base64
         };
         
         // Reset mock hash instance
@@ -175,7 +174,7 @@ describe('ChecksumVerifier', () => {
             ).resolves.not.toThrow();
 
             // Reset for next test
-            vi.clearAllMocks();
+            jest.clearAllMocks();
             mockHashInstance.update.mockReturnThis();
             
             // Test Uint8Array return

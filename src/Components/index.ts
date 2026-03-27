@@ -5,7 +5,7 @@ export type { CheckboxProps, SelectMenuOption, SelectMenuProps, TextInputProps }
 export { Checkbox, SelectMenu, TextInput } from './Form';
 export type { GlobalActivityBarProps } from './GlobalActivityBar';
 export { GlobalActivityBar } from './GlobalActivityBar';
-export { ObservedGlobalActivityBar } from './GlobalActivityBar.observed';
+export { default as ObservedGlobalActivityBar } from './GlobalActivityBar';
 export { SecureSessionButton } from './SecureSessionButton/SecureSessionButton';
 export { StatusBatchWaiting } from './Status/StatusBatchWaiting';
 export { StatusError } from './Status/StatusError';

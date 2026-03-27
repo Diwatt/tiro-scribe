@@ -12,7 +12,6 @@ import type { ForeignKeyOptions } from '@/Database/Decorator';
 import type { EntityClass } from '@/Database/Type';
 import { DatabaseException } from '@/Exception';
 import { TableDefinition } from '@/Database/Schema/TableDefinition';
-import { describe, it, expect, vi } from 'vitest';
 
 function createMockMetadata(overrides: {
     getTableName?: () => string;
@@ -22,11 +21,11 @@ function createMockMetadata(overrides: {
     getForeignKeyTargetTableName?: (propertyName: string) => string | null;
 }): EntityMetadata {
     return {
-        getTableName: overrides.getTableName ?? vi.fn(),
-        getPrimaryKeyColumnField: overrides.getPrimaryKeyColumnField ?? vi.fn(),
-        getColumnFields: overrides.getColumnFields ?? vi.fn(() => []),
-        getForeignKeyOptions: overrides.getForeignKeyOptions ?? vi.fn(() => undefined),
-        getForeignKeyTargetTableName: overrides.getForeignKeyTargetTableName ?? vi.fn(() => null),
+        getTableName: overrides.getTableName ?? jest.fn(),
+        getPrimaryKeyColumnField: overrides.getPrimaryKeyColumnField ?? jest.fn(),
+        getColumnFields: overrides.getColumnFields ?? jest.fn(() => []),
+        getForeignKeyOptions: overrides.getForeignKeyOptions ?? jest.fn(() => undefined),
+        getForeignKeyTargetTableName: overrides.getForeignKeyTargetTableName ?? jest.fn(() => null),
     } as unknown as EntityMetadata;
 }
 
@@ -328,8 +327,8 @@ describe('DefinitionBuilder', () => {
 
     describe('I — Interface (reader contract)', () => {
         it('constructor calls getEntity and getPrimaryKeyColumn exactly once', () => {
-            const getEntity = vi.fn(() => createEntityDecorator('t'));
-            const getPrimaryKeyColumn = vi.fn(() => createPrimaryKeyColumnField('id', 'text'));
+            const getEntity = jest.fn(() => createEntityDecorator('t'));
+            const getPrimaryKeyColumn = jest.fn(() => createPrimaryKeyColumnField('id', 'text'));
             const metadata = metadataFromReaderLike({
                 getEntity,
                 getPrimaryKeyColumn,
@@ -341,7 +340,7 @@ describe('DefinitionBuilder', () => {
         });
 
         it('constructor calls getPropertiesByDecorator with "Column"', () => {
-            const getPropertiesByDecorator = vi.fn(() => []);
+            const getPropertiesByDecorator = jest.fn(() => []);
             const metadata = metadataFromReaderLike({
                 getEntity: () => createEntityDecorator('t'),
                 getPrimaryKeyColumn: () => createPrimaryKeyColumnField('id', 'text'),

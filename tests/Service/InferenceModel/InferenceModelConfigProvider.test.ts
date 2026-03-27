@@ -4,25 +4,22 @@
  * Includes "zombie method" tests for edge cases and error conditions.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the Api module
-vi.mock('@/Api', () => ({
+jest.mock('@/Api', () => ({
     apiClientRegistry: {
-        get: vi.fn(),
+        get: jest.fn(),
     },
     InferenceModelClient: class InferenceModelClient {},
 }));
 
 // NOW import modules after mocks are in place
-import { describe as testDescribe, it as testIt, expect as testExpect } from 'vitest';
 import { InferenceModelConfigProvider } from '@/Service/InferenceModelConfigProvider';
-import { apiClientRegistry, InferenceModelClient } from '@/Api';
+import { InferenceModelClient } from '@/Api';
 import { ApiClientException, InferenceModelDownloaderException } from '@/Exception';
 import type { ModelConfig } from '@/Api';
 import { Container } from '@/Core/Container';
 import { AppLogger } from '@/Core/AppLogger';
-import { ApiClientRegistry } from '@/Api/ApiClientRegistry';
 
 describe('InferenceModelConfigProvider', () => {
     let configProvider: InferenceModelConfigProvider;
@@ -33,18 +30,18 @@ describe('InferenceModelConfigProvider', () => {
 
     beforeEach(() => {
         mockLogger = {
-            debug: vi.fn(),
-            info: vi.fn(),
-            warn: vi.fn(),
-            error: vi.fn(),
+            debug: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
         };
         mockInferenceModelClient = {
-            getInferenceModels: vi.fn(),
+            getInferenceModels: jest.fn(),
         };
         
         // Create a mock ApiClientRegistry instance
         mockApiClientRegistry = {
-            get: vi.fn((clientType: any) => {
+            get: jest.fn((clientType: any) => {
                 if (clientType === InferenceModelClient) {
                     return mockInferenceModelClient;
                 }
@@ -53,7 +50,7 @@ describe('InferenceModelConfigProvider', () => {
         };
         
         // Spy on Container.get and mock it to return our mock registry
-        containerGetSpy = vi.spyOn(Container, 'get').mockReturnValue(mockApiClientRegistry);
+        containerGetSpy = jest.spyOn(Container, 'get').mockReturnValue(mockApiClientRegistry);
         
         configProvider = new InferenceModelConfigProvider(mockLogger);
     });
@@ -243,10 +240,10 @@ describe('InferenceModelConfigProvider', () => {
         expect(totalSize).toBe(0);
     });
 
-    it('should verify apiClientRegistry.get mock', () => {
+    it('should verify mockApiClientRegistry.get mock', () => {
         // Set up the mock return value for this test
-        (apiClientRegistry.get as any).mockReturnValue(mockInferenceModelClient);
-        const client = apiClientRegistry.get('inference');
+        (mockApiClientRegistry.get as any).mockReturnValue(mockInferenceModelClient);
+        const client = mockApiClientRegistry.get('inference');
         expect(client).toBe(mockInferenceModelClient);
         expect(client.getInferenceModels).toBeDefined();
     });

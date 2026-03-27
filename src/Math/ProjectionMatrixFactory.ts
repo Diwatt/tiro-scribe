@@ -17,16 +17,19 @@ import { CryptoEngine } from '../Security/CryptoEngine';
 export class ProjectionMatrixFactory {
     public constructor(
         private readonly crypto: CryptoEngine,
-        private readonly projectionSalt: string,
+        private readonly projectionSalt: string = 'biocode_projection',
     ) {}
 
     /**
      * Create an orthonormal projection matrix from a master key
      */
-    public create(masterKey: string, inputDim = 192, outputDim = 128): number[][] {
+    public create(masterKey: string | null | undefined, inputDim = 192, outputDim = 128): number[][] {
+        // Handle null/undefined masterKey gracefully
+        const safeKey = masterKey ?? '';
+        
         const rows = Math.floor(outputDim);
         const cols = Math.floor(inputDim);
-        const flat = this.convertBytesToFloats(masterKey, rows * cols);
+        const flat = this.convertBytesToFloats(safeKey, rows * cols);
 
         const raw = reshape(flat, [rows, cols]);
         const matrix = this.ensure2DArray(raw);

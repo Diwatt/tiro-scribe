@@ -56,8 +56,20 @@ export class PropertyDecorator<TOptions extends Record<string, unknown> = Record
             // which throw when called without `new`.  we only treat the value as
             // a factory if it looks like a plain function.
             const str = Function.prototype.toString.call(value);
-            if (!str.startsWith('class')) {
+            if (str.startsWith('class') || str.includes('_classCallCheck')) {
+                return value;
+            }
+            try {
                 return (value as () => unknown)();
+            } catch (e: any) {
+                if (
+                    e instanceof TypeError &&
+                    (e.message.includes('Cannot call a class as a function') ||
+                        e.message.includes('class constructor'))
+                ) {
+                    return value;
+                }
+                throw e;
             }
         }
         return value;

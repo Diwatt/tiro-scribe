@@ -9,7 +9,6 @@
  * E - Exceptions: Write before initialize, double close, lock errors
  */
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { StreamWriter } from '@/Service/InferenceModelDownload/StreamWriter';
 import { InferenceModelDownloaderException } from '@/Exception';
 
@@ -21,18 +20,18 @@ describe('StreamWriter', () => {
 
     beforeEach(() => {
         mockWriter = {
-            write: vi.fn().mockResolvedValue(undefined),
-            close: vi.fn().mockResolvedValue(undefined),
-            releaseLock: vi.fn(),
+            write: jest.fn().mockResolvedValue(undefined),
+            close: jest.fn().mockResolvedValue(undefined),
+            releaseLock: jest.fn(),
         };
 
         mockWritableStream = {
-            getWriter: vi.fn().mockReturnValue(mockWriter),
+            getWriter: jest.fn().mockReturnValue(mockWriter),
         };
 
         mockFile = {
             uri: 'file:///test/download.bin',
-            writableStream: vi.fn().mockReturnValue(mockWritableStream),
+            writableStream: jest.fn().mockReturnValue(mockWritableStream),
         };
 
         streamWriter = new StreamWriter(mockFile);

@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import { getStatusColors } from '@/theme/AppTheme';
 import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
@@ -52,6 +51,8 @@ describe('GlobalActivityBar component', () => {
     let globalActivityStatus: GlobalActivityStatus;
 
     beforeEach(() => {
+        // Register a fresh instance so Container.get(GlobalActivityStatus) works in each test
+        Container.register(GlobalActivityStatus, () => new GlobalActivityStatus(), true);
         globalActivityStatus = Container.get(GlobalActivityStatus) as GlobalActivityStatus;
     });
 

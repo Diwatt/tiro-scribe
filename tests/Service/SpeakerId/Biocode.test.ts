@@ -3,7 +3,6 @@
  * Tests the Biocode value object and BiocodeFactory
  */
 
-import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { Biocode } from '@/Service/SpeakerId/Biocode';

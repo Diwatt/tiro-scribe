@@ -5,30 +5,29 @@
  * the expected shape logic.
  */
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // we will mock the underlying onnxruntime-react-native module
-const mockDispose = vi.fn();
+const mockDispose = jest.fn();
 const mockSession = {
   inputNames: ['input'],
   outputNames: ['output'],
-  run: vi.fn(),
+  run: jest.fn(),
   dispose: mockDispose,
 };
 
-const mockInferenceSession = vi.fn().mockResolvedValue(mockSession);
+const mockInferenceSession = jest.fn().mockResolvedValue(mockSession);
 // Ensure InferenceSession is callable (as it is in the real native binding)
-mockInferenceSession.create = vi.fn().mockResolvedValue(mockSession);
+mockInferenceSession.create = jest.fn().mockResolvedValue(mockSession);
 
 const mockOrt = {
   InferenceSession: mockInferenceSession,
-  Tensor: vi.fn().mockImplementation(function(this: any, type: any, data: any, shape: any) {
+  Tensor: jest.fn().mockImplementation(function(this: any, type: any, data: any, shape: any) {
     this.data = data;
     this.shape = shape;
   }),
 };
 
-vi.mock('onnxruntime-react-native', () => mockOrt);
+jest.mock('onnxruntime-react-native', () => mockOrt);
 
 // nothing to mock from util any more; runtime class loads orth directly
 
@@ -38,9 +37,9 @@ import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exce
 
 describe('OnnxRuntime', () => {
   let runtime: OnnxRuntime;
-  const mockDownloader = { getLocalPath: vi.fn(), download: vi.fn(), getLocalPathForFile: vi.fn() };
+  const mockDownloader = { getLocalPath: jest.fn(), download: jest.fn(), getLocalPathForFile: jest.fn() };
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     // default downloader returns path immediately
     mockDownloader.getLocalPath.mockReturnValue('/m.onnx');
@@ -53,7 +52,7 @@ describe('OnnxRuntime', () => {
     });
     mockDownloader.getLocalPathForFile.mockReturnValue('/m.onnx');
 
-    runtime = new OnnxRuntime({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as any, mockDownloader as any);
+    runtime = new OnnxRuntime({ debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any, mockDownloader as any);
   });
 
   it('load creates a session once', async () => {

@@ -11,9 +11,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { AppConfig } from '@/Core/AppConfig';
+import { Container } from '@/Core/Container';
 import { Database } from '@/Database/Database';
 import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
-import { Container } from '@/Core/Container';
 
 async function hideSplash(): Promise<void> {
     try {

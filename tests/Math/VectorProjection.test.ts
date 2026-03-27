@@ -9,7 +9,6 @@
  * E - Exceptions: Test error handling and edge cases
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { VectorProjection } from '../../src/Math/VectorProjection';
 import { InvalidDimensionError, VectorLengthMismatchError } from '@/Exception';
 

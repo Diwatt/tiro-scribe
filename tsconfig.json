@@ -15,7 +15,10 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "isolatedModules": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "baseUrl": ".",
+    "types": ["jest", "@testing-library/jest-native"],
     "paths": {
       "@/*": [
         "src/*"
@@ -30,8 +33,8 @@
     "app/**/*",
     "tests/**/*",
     "index.js",
-    "vitest.config.ts",
-    "vitest.setup.ts"
+    "jest.config.js",
+    "jest.setup.ts"
   ],
   "exclude": [
     "node_modules",

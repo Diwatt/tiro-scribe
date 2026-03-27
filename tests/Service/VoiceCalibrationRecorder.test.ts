@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Device from 'expo-device';
 import { SecureRecorder } from 'secure-recorder';
 import { AppLogger } from '@/Core/AppLogger';
@@ -9,10 +8,10 @@ import { Timer } from '@/Util/Timer';
 
 // simple logger stub, we only care that methods exist
 const mockLogger: AppLogger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
+    debug: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
 };
 
 describe('VoiceCalibrationRecorder', () => {
@@ -20,7 +19,7 @@ describe('VoiceCalibrationRecorder', () => {
     const fakeChunks: Uint8Array[] = [];
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         listenerCallback = () => {};
         fakeChunks.length = 0;
 
@@ -33,18 +32,18 @@ describe('VoiceCalibrationRecorder', () => {
         }
 
         // stub Timer.sleep so tests don't actually wait
-        vi.spyOn(Timer, 'sleep').mockResolvedValue(undefined as any);
+        jest.spyOn(Timer, 'sleep').mockResolvedValue(undefined as any);
 
         // default permission granted
-        vi.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
-        vi.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true);
+        jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
+        jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true);
 
-        vi.spyOn(SecureRecorder, 'addDecryptionListener').mockImplementation((cb) => {
+        jest.spyOn(SecureRecorder, 'addDecryptionListener').mockImplementation((cb) => {
             listenerCallback = cb as any;
             return { remove: () => {} };
         });
 
-        vi.spyOn(SecureRecorder, 'stream').mockImplementation(async () => {
+        jest.spyOn(SecureRecorder, 'stream').mockImplementation(async () => {
             // emit all fake chunks then a last event
             for (const data of fakeChunks) {
                 listenerCallback({ data, isLast: false });
@@ -64,10 +63,10 @@ describe('VoiceCalibrationRecorder', () => {
         fakeChunks.push(new Uint8Array(int16.buffer));
 
         const fakeRecorder = {
-            initialize: vi.fn().mockResolvedValue(undefined),
-            start: vi.fn().mockResolvedValue(undefined),
-            stop: vi.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: vi.fn(),
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
         } as unknown as SecureRecorder;
 
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
@@ -96,14 +95,14 @@ describe('VoiceCalibrationRecorder', () => {
     });
 
     it('throws RecordingPermissionError when permission denied', async () => {
-        vi.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
-        vi.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(false);
+        jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
+        jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(false);
 
         const fakeRecorder = {
-            initialize: vi.fn().mockResolvedValue(undefined),
-            start: vi.fn().mockResolvedValue(undefined),
-            stop: vi.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: vi.fn(),
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
@@ -116,10 +115,10 @@ describe('VoiceCalibrationRecorder', () => {
         fakeChunks.push(new Uint8Array(int16.buffer));
 
         const fakeRecorder = {
-            initialize: vi.fn().mockResolvedValue(undefined),
-            start: vi.fn().mockResolvedValue(undefined),
-            stop: vi.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: vi.fn(),
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
@@ -148,10 +147,10 @@ describe('VoiceCalibrationRecorder', () => {
         fakeChunks.push(new Uint8Array(int16.buffer));
 
         const fakeRecorder = {
-            initialize: vi.fn().mockResolvedValue(undefined),
-            start: vi.fn().mockResolvedValue(undefined),
-            stop: vi.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: vi.fn(),
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
@@ -174,10 +173,10 @@ describe('VoiceCalibrationRecorder', () => {
 
         // no PCM chunks at all
         const fakeRecorder = {
-            initialize: vi.fn().mockResolvedValue(undefined),
-            start: vi.fn().mockResolvedValue(undefined),
-            stop: vi.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: vi.fn(),
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
@@ -192,13 +191,13 @@ describe('VoiceCalibrationRecorder', () => {
     it('forwards errors from SecureRecorder.stream', async () => {
         const error = new Error('stream fail');
         // override the default stream mock for this test only
-        (SecureRecorder as any).stream = vi.fn().mockRejectedValueOnce(error);
+        (SecureRecorder as any).stream = jest.fn().mockRejectedValueOnce(error);
 
         const fakeRecorder = {
-            initialize: vi.fn().mockResolvedValue(undefined),
-            start: vi.fn().mockResolvedValue(undefined),
-            stop: vi.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: vi.fn(),
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
         } as unknown as SecureRecorder;
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 

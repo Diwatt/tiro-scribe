@@ -13,6 +13,7 @@ import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import type { StatusColors } from '@/Components/Status/Status';
 import { ActivityStatus } from '@/State/GlobalActivityStatus';
 import { SemanticStatusColors } from '@/theme/SemanticStatusColors';
+import { StatusState } from '@/Components/Status/StatusTypes';
 
 extend([mixPlugin]);
 
@@ -323,15 +324,73 @@ export type AppTheme = typeof APP_LIGHT_THEME;
 export type ExtendedTheme = MD3Theme & { colors: ExtendedColors };
 export const APP_THEME = APP_LIGHT_THEME;
 
-// Add `getStatusColors` to the theme module
-const COLOR_MAP: Partial<Record<ActivityStatus, (theme: ExtendedTheme) => StatusColors>> = {
-    [ActivityStatus.Pending]: (theme) => theme.colors.statusProcessing,
-    [ActivityStatus.Success]: (theme) => theme.colors.statusIdle,
-    [ActivityStatus.Warning]: (theme) => theme.colors.statusWarning,
-    [ActivityStatus.Error]: (theme) => theme.colors.statusError,
+/**
+ * Canonical mapping from StatusState -> ExtendedColors keyname.
+ * This replaces dynamic string-building and provides compile-time safety.
+ */
+export const STATUS_STATE_TO_COLOR_KEY: Record<StatusState, keyof ExtendedColors> = {
+    [StatusState.Ready]: 'statusIdle',
+    [StatusState.Processing]: 'statusProcessing',
+    [StatusState.BatchWaiting]: 'statusBatchWaiting',
+    [StatusState.Setup]: 'statusSetup',
+    [StatusState.Error]: 'statusError',
+    [StatusState.Warning]: 'statusWarning',
 };
 
+/**
+ * Returns the `StatusColors` from the theme for a given `StatusState`.
+ * Uses the typed `STATUS_STATE_TO_COLOR_KEY` map and falls back to `statusIdle`.
+ */
+export function getThemeColorsForStatusState(theme: ExtendedTheme, state: StatusState): StatusColors {
+    const key = STATUS_STATE_TO_COLOR_KEY[state] ?? 'statusIdle';
+    // Narrow the dynamic lookup to `StatusColors`. `theme.colors[key]` can otherwise
+    // be a union including unrelated keys (strings, action groups, etc.), which
+    // causes TypeScript errors. Cast the indexed lookup to `StatusColors | undefined`
+    // and provide a safe fallback.
+    const colors = (theme.colors as Record<string, unknown>)[key] as StatusColors | undefined;
+    return colors ?? theme.colors.statusIdle;
+}
+
+// Map ActivityStatus -> StatusState so COLOR_MAP can be derived from a single source of truth.
+// This is a complete mapping (not partial). All ActivityStatus values must map to
+// a StatusState to ensure callers of `getStatusColors` never receive null or
+// experience a silent fallback.
+export const ACTIVITY_STATUS_TO_STATE: Record<ActivityStatus, StatusState> = {
+    [ActivityStatus.Ready]: StatusState.Ready,
+    [ActivityStatus.Pending]: StatusState.Processing,
+    [ActivityStatus.Success]: StatusState.Ready,
+    [ActivityStatus.Warning]: StatusState.Warning,
+    [ActivityStatus.Error]: StatusState.Error,
+};
+
+/**
+ * Derive COLOR_MAP from ACTIVITY_STATUS_TO_STATE so we don't duplicate
+ * status key logic across the codebase. Each entry is a getter that returns
+ * the appropriate `StatusColors` for the theme.
+ *
+ * Exported so other modules can inspect or reuse the mapping if needed.
+ */
+export const COLOR_MAP: Record<ActivityStatus, (theme: ExtendedTheme) => StatusColors> = Object.fromEntries(
+    Object.entries(ACTIVITY_STATUS_TO_STATE).map(([activityKey, statusState]) => [
+        activityKey as ActivityStatus,
+        (theme: ExtendedTheme) => getThemeColorsForStatusState(theme, statusState as StatusState),
+    ]),
+) as Record<ActivityStatus, (theme: ExtendedTheme) => StatusColors>;
+
+/**
+ * Returns the `StatusColors` for an ActivityStatus. This is strict and will
+ * throw if an ActivityStatus does not have a mapping (programming error).
+ */
 export function getStatusColors(theme: ExtendedTheme, status: ActivityStatus): StatusColors | null {
+    // For the Ready/idle activity state we intentionally return null so callers
+    // can treat it as "no active status" (UI components may hide the activity bar).
+    if (status === ActivityStatus.Ready) {
+        return null;
+    }
+
     const getter = COLOR_MAP[status];
-    return getter ? getter(theme) : null;
+    if (!getter) {
+        throw new Error(`Missing color mapping for ActivityStatus: ${status}`);
+    }
+    return getter(theme);
 }

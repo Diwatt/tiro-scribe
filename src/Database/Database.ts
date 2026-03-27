@@ -8,13 +8,15 @@
 // desired by the user. We cast the module when accessing documentDirectory to
 // satisfy TypeScript.
 import { deleteDatabaseAsync } from 'expo-sqlite';
+
+import type { Kysely } from 'kysely';
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { EntityMetadata } from '@/Database/Decorator';
 import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
 import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
-import type { EntityClass } from '@/Database/Type';
+import type { DatabaseSchema, EntityClass } from '@/Database/Type';
 import type { MetadataConstructor } from '@/Decorator/Type';
 import { ENTITY_CLASSES } from '@/Entity/index';
 import { DatabaseException } from '@/Exception';
@@ -78,8 +80,8 @@ export class Database {
 
     private async openAndSync(entityClasses: EntityClass[]): Promise<void> {
         // Use Kysely transaction for schema creation
-        const queryBuilder = Container.get(QueryBuilder);
-        await queryBuilder.transaction().execute(async (trx) => {
+        const queryBuilder = Container.get(QueryBuilder) as Kysely<DatabaseSchema>;
+        await queryBuilder.transaction().execute(async (trx: Kysely<DatabaseSchema>) => {
             const writer = new DefinitionLanguageWriter(trx, Container.get(AppLogger));
             for (const entityCls of entityClasses) {
                 const definition = new DefinitionBuilder(

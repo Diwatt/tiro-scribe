@@ -1,4 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { Container } from '@/Core/Container';
+import { AppRouter } from '@/Core/AppRouter';
 import { ArrowLeft, Download, Share2 } from 'lucide-react-native';
 import type React from 'react';
 import { useCallback } from 'react';
@@ -9,7 +11,7 @@ import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export function TranscriptDetailScreen(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
-    const router = useRouter();
+    const appRouter = Container.get(AppRouter);
     const { LL } = useLocalization();
     const params = useLocalSearchParams<{
         id?: string;
@@ -31,8 +33,8 @@ export function TranscriptDetailScreen(): React.JSX.Element {
     const date = params.date || '2 hours ago';
 
     const handleBackPress = useCallback(() => {
-        router.back();
-    }, [router]);
+        appRouter.back();
+    }, [appRouter]);
 
     const handleDownloadPress = useCallback(() => {
         /* TODO: implement download */
