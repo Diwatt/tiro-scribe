@@ -251,6 +251,22 @@ export class InferenceModelDownloader {
         return this.configProvider.getTotalSize(appLanguage);
     }
 
+    /**
+     * Check if a model's files are already downloaded locally.
+     * Does NOT trigger a download - use download() for that.
+     * @param capability - Model capability (e.g. 'vad', 'asr', 'pitch')
+     * @param appLanguage - Optional language for config resolution
+     * @returns true if all model files exist locally
+     */
+    public async isModelDownloaded(capability: string, appLanguage?: string): Promise<boolean> {
+        try {
+            const config = await this.getConfig(capability, appLanguage);
+            return this.artifactStorage.hasAllFiles(config);
+        } catch {
+            return false;
+        }
+    }
+
     private async getLocalConfigs(): Promise<Record<string, ModelConfig>> {
         // Scan file system for downloaded models via ModelArtifactStorage
         // This is a simplified implementation - in reality we would need to scan the artifact directory

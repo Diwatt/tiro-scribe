@@ -3,13 +3,10 @@ import type React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Card, ProgressBar, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SecureSessionButton, StatusProcessing, StatusState } from '@/Components';
+import { SecureSessionButton, StatusProcessing, StatusReady } from '@/Components';
 import { Container } from '@/Core/Container';
 import { useLocalization } from '@/Localization';
 import { HomeState } from '@/State/HomeState';
-
-import { Status } from '@/Components/Status/Status';
-import { Sparkles } from 'lucide-react-native';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export const Home = observer((): React.JSX.Element => {
@@ -29,7 +26,10 @@ export const Home = observer((): React.JSX.Element => {
     };
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
-            <ScrollView contentContainerStyle={[STYLES.scrollContent, { paddingTop: insets.top }]} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={[STYLES.scrollContent, { paddingTop: insets.top }]}
+                showsVerticalScrollIndicator={false}
+            >
                 {!!isDownloading && (
                     <Card style={[STYLES.banner, { backgroundColor: theme.colors.surfaceVariant }]}>
                         <Card.Content>
@@ -50,12 +50,7 @@ export const Home = observer((): React.JSX.Element => {
                 {isDownloading ? (
                     <StatusProcessing progress={Math.round(progress * 100)} currentTask={bannerMessage ?? undefined} />
                 ) : (
-                    <Status
-                        title={LL.status.readyTitle()}
-                        subtitle={LL.status.readySubtitle()}
-                        icon={<Sparkles size={24} color={theme.colors.statusIdle.text} />}
-                        state={StatusState.Ready}
-                    />
+                    <StatusReady />
                 )}
                 <View style={{ height: 100 }} />
             </ScrollView>
