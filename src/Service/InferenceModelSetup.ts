@@ -6,6 +6,7 @@
 
 import { Container } from '@/Core/Container';
 import { Localization } from '@/Localization';
+import { ExecutorCollection } from './InferenceModelDownload/ExecutorCollection';
 import type { DownloadTaskExecutor } from './InferenceModelDownload/DownloadTaskExecutor';
 import { InferenceModelDownloader } from './InferenceModelDownloader';
 
@@ -38,11 +39,24 @@ export class InferenceModelSetup {
     }
 
     /**
-     * Get executors for all required models.
-     * The caller subscribes to executor.state$ and executor.progress$ for updates.
+     * Get estimated total download size in MB.
      */
-    public async getExecutors(): Promise<DownloadTaskExecutor[]> {
+    public async getTotalDownloadSizeMB(): Promise<number> {
+        try {
+            const appLanguage = this.localization.getLocale();
+            const sizeBytes = await this.modelDownloader.getTotalSize(appLanguage);
+            return sizeBytes / (1024 * 1024);
+        } catch {
+            return 0;
+        }
+    }
+
+    /**
+     * Get executor collection for all required models.
+     */
+    public async getExecutors(): Promise<ExecutorCollection> {
         const appLanguage = this.localization.getLocale();
+        const executorCollection = new ExecutorCollection();
         const executors: DownloadTaskExecutor[] = [];
 
         for (const capability of InferenceModelSetup.CAPABILITIES) {
@@ -50,7 +64,8 @@ export class InferenceModelSetup {
             executors.push(executor);
         }
 
-        return executors;
+        executorCollection.setExecutors(executors);
+        return executorCollection;
     }
 }
 
