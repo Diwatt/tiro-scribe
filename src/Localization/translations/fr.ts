@@ -73,6 +73,17 @@ const fr: Translation = {
     home: {
         initializingAi: "Initialisation du moteur d'inférence…",
         processingDelayed: "Le traitement sera retardé jusqu'à ce que les artefacts soient prêts.",
+        setupBannerTitle: 'Configuration incomplète',
+        setupBannerSubtitle: 'Transcription indisponible',
+        setupButton: 'Configurer',
+        dismissButton: 'Ignorer',
+        modalTitle: 'Important : Téléchargement de fichiers volumineux',
+        modalDownloadDescription: "L'application doit télécharger environ {downloadSizeMB} Mo de modèles d'IA pour fonctionner hors ligne.",
+        modalModelsDescription: 'Cela inclut les modèles de transcription et de détection dactivité vocale.',
+        wifiRequired: 'Connexion Wi-Fi requise pour télécharger les modèles',
+        openWifiSettings: 'Ouvrir les paramètres Wi-Fi',
+        downloadAnyway: 'Télécharger en cellular',
+        remindMeLater: 'Me le rappeler plus tard',
     },
     transcript: {
         title: 'Transcription',

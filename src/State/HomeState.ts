@@ -20,8 +20,6 @@ export class HomeState {
     public readonly setupModalVisible: Observable<boolean> = observable(false);
     public readonly setupBannerVisible: Observable<boolean> = observable(false);
     public readonly downloadSizeMB: Observable<number> = observable(0);
-    public readonly isWifiConnected: Observable<boolean | null> = observable(null);
-    public readonly showCellularWarning: Observable<boolean> = observable(false);
     public readonly initialized: Observable<boolean> = observable(false);
 
     private readonly wifiVerifier: WifiVerifier;
@@ -36,8 +34,11 @@ export class HomeState {
     }
 
     /**
-     * Ensure setup is complete - checks if models are downloaded,
-     * shows setup modal if not. Safe to call multiple times - only runs once.
+     * Ensure setup is complete - checks if models are downloaded.
+     * If models are needed:
+     *   - If Wi-Fi is connected: start download immediately
+     *   - If Wi-Fi is NOT connected: show modal to prompt user to enable Wi-Fi
+     * Safe to call multiple times - only runs once.
      */
     public async ensureSetupComplete(): Promise<void> {
         if (this.initialized.get()) {
@@ -46,24 +47,25 @@ export class HomeState {
 
         const modelsReady = await this.areModelsReady();
         if (!modelsReady) {
-            this.presentSetupModal();
-            this.downloadSizeMB.set(Math.round(await this.modelSetup.getTotalDownloadSizeMB()));
-            this.isWifiConnected.set(await this.wifiVerifier.isConnected());
+            // Check Wi-Fi status and determine next action
+            await this.checkWifiAndProceed();
         }
         this.initialized.set(true);
     }
 
     /**
-     * Initiate model download - checks Wi-Fi first and handles the flow.
+     * Check Wi-Fi status and either start download or show modal.
      */
-    public async initiateModelDownload(): Promise<void> {
-        const wifi = await this.wifiVerifier.isConnected();
-        this.isWifiConnected.set(wifi);
+    private async checkWifiAndProceed(): Promise<void> {
+        const isConnected = await this.wifiVerifier.isConnected();
 
-        if (wifi) {
+        if (isConnected) {
+            // Wi-Fi is available - start download immediately
             await this.beginModelDownload();
         } else {
-            this.showCellularWarning.set(true);
+            // Wi-Fi not available - show modal to prompt user
+            this.downloadSizeMB.set(Math.round(await this.modelSetup.getTotalDownloadSizeMB()));
+            this.presentSetupModal();
         }
     }
 
@@ -75,10 +77,9 @@ export class HomeState {
     }
 
     /**
-     * Proceed with download on cellular network.
+     * Proceed with download on cellular network (user confirmed).
      */
     public async proceedWithCellularDownload(): Promise<void> {
-        this.showCellularWarning.set(false);
         await this.beginModelDownload();
     }
 
@@ -94,6 +95,7 @@ export class HomeState {
      */
     public async beginModelDownload(): Promise<void> {
         this.setupModalVisible.set(false);
+        this.setupBannerVisible.set(false);
         this.executors = await this.modelSetup.getExecutors();
     }
 
@@ -105,7 +107,8 @@ export class HomeState {
     }
 
     /**
-     * Close the setup modal and show banner.
+     * Close the setup modal without starting download.
+     * Shows the setup banner as fallback.
      */
     public closeSetupModal(): void {
         this.setupModalVisible.set(false);

@@ -16,3 +16,4 @@ export { StatusState } from './Status/StatusTypes';
 export { StatusWarning } from './Status/StatusWarning';
 export type { WaveformBackgroundProps } from './WaveformBackground';
 export { WaveformBackground } from './WaveformBackground';
+export { WifiRequiredModal } from './WifiRequiredModal';

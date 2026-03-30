@@ -73,6 +73,17 @@ const en: BaseTranslation = {
     home: {
         initializingAi: 'Initializing inference engine…',
         processingDelayed: 'Processing will be delayed until artifacts are ready.',
+        setupBannerTitle: 'Setup incomplete',
+        setupBannerSubtitle: 'Transcription unavailable',
+        setupButton: 'Setup',
+        dismissButton: 'Dismiss',
+        modalTitle: 'Important: Large Files Download',
+        modalDownloadDescription: 'The app needs to download approximately {downloadSizeMB} MB of AI models to work offline.',
+        modalModelsDescription: 'This includes models for transcription and voice activity detection.',
+        wifiRequired: 'Wi-Fi connection required to download models',
+        openWifiSettings: 'Open Wi-Fi Settings',
+        downloadAnyway: 'Download on cellular',
+        remindMeLater: 'Remind Me Later',
     },
     transcript: {
         title: 'Transcript',

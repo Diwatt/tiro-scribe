@@ -20,6 +20,7 @@ export { RecordingPermissionError } from './RecordingPermissionError';
 export { RecordingUriUnavailableError } from './RecordingUriUnavailableError';
 export { OnnxRuntimeError } from './OnnxRuntimeError';
 export { SessionNotInitializedError } from './SessionNotInitializedError';
+export { SystemVerifierException } from './SystemVerifierException';
 export { TiroScribeException } from './TiroScribeException';
 export { TranscriptionNotImplementedError } from './TranscriptionNotImplementedError';
 export { VectorLengthMismatchError } from './VectorLengthMismatchError';

@@ -146,6 +146,28 @@ type RootTranslation = {
         initializingAi: string;
         /** Processing will be delayed until artifacts are ready. */
         processingDelayed: string;
+        /** Setup incomplete */
+        setupBannerTitle: string;
+        /** Transcription unavailable */
+        setupBannerSubtitle: string;
+        /** Setup */
+        setupButton: string;
+        /** Dismiss */
+        dismissButton: string;
+        /** Important: Large Files Download */
+        modalTitle: string;
+        /** The app needs to download approximately {downloadSizeMB} MB of AI models to work offline. */
+        modalDownloadDescription: RequiredParams<'downloadSizeMB'>;
+        /** This includes models for transcription and voice activity detection. */
+        modalModelsDescription: string;
+        /** Wi-Fi connection required to download models */
+        wifiRequired: string;
+        /** Open Wi-Fi Settings */
+        openWifiSettings: string;
+        /** Download on cellular */
+        downloadAnyway: string;
+        /** Remind Me Later */
+        remindMeLater: string;
     };
     transcript: {
         /** Transcript */
@@ -329,6 +351,28 @@ export type TranslationFunctions = {
         initializingAi: () => LocalizedString;
         /** Processing will be delayed until artifacts are ready. */
         processingDelayed: () => LocalizedString;
+        /** Setup incomplete */
+        setupBannerTitle: () => LocalizedString;
+        /** Transcription unavailable */
+        setupBannerSubtitle: () => LocalizedString;
+        /** Setup */
+        setupButton: () => LocalizedString;
+        /** Dismiss */
+        dismissButton: () => LocalizedString;
+        /** Important: Large Files Download */
+        modalTitle: () => LocalizedString;
+        /** The app needs to download approximately {downloadSizeMB} MB of AI models to work offline. */
+        modalDownloadDescription: (arg0: { downloadSizeMB: unknown }) => LocalizedString;
+        /** This includes models for transcription and voice activity detection. */
+        modalModelsDescription: () => LocalizedString;
+        /** Wi-Fi connection required to download models */
+        wifiRequired: () => LocalizedString;
+        /** Open Wi-Fi Settings */
+        openWifiSettings: () => LocalizedString;
+        /** Download on cellular */
+        downloadAnyway: () => LocalizedString;
+        /** Remind Me Later */
+        remindMeLater: () => LocalizedString;
     };
     transcript: {
         /** Transcript */

@@ -1,4 +1,3 @@
-
 jest.mock('expo-device', () => {
   return {
     osName: 'unknown',
@@ -8,12 +7,14 @@ jest.mock('expo-device', () => {
 
 jest.mock('expo-file-system', () => {
   return {
-    getFreeDiskStorageAsync: jest.fn(async () => 0),
+    Paths: {
+      availableDiskSpace: 0,
+    },
   };
 });
 
 import * as Device from 'expo-device';
-import * as FileSystem from 'expo-file-system';
+import { Paths } from 'expo-file-system';
 import { SystemVerifier } from '../../src/Service/SystemVerifier';
 
 type LoggerStub = {
@@ -40,8 +41,7 @@ describe('SystemVerifier (unit)', () => {
     delete (Device as any).getName;
     delete (Device as any).thrower;
 
-    (FileSystem as any).getFreeDiskStorageAsync.mockReset();
-    (FileSystem as any).getFreeDiskStorageAsync.mockResolvedValue(0);
+    (Paths as any).availableDiskSpace = 0;
 
     logger = createLogger();
     jest.clearAllMocks();
@@ -75,25 +75,20 @@ describe('SystemVerifier (unit)', () => {
     expect(await verifier.isSupported({ 'Device.osName': '=="iOS"' })).toBe(false);
   });
 
-  it('invokes FileSystem.getFreeDiskStorageAsync and compares numeric result', async () => {
-    (FileSystem as any).getFreeDiskStorageAsync.mockResolvedValue(4096);
+  it('evaluates Paths.availableDiskSpace and compares numeric result', async () => {
+    (Paths as any).availableDiskSpace = 4096;
     const verifier = new SystemVerifier(logger as any);
-    expect(await verifier.isSupported({ 'FileSystem.getFreeDiskStorageAsync': '>= 1024' })).toBe(true);
-    expect((FileSystem as any).getFreeDiskStorageAsync).toHaveBeenCalled();
+    expect(await verifier.isSupported({ 'Paths.availableDiskSpace': '>= 1024' })).toBe(true);
   });
 
   it('supports async module methods (promise-returning) and binding (zombie method)', async () => {
-    // async promise
-    (FileSystem as any).getFreeDiskStorageAsync.mockResolvedValue(5000);
-    const verifier = new SystemVerifier(logger as any);
-    expect(await verifier.isSupported({ 'FileSystem.getFreeDiskStorageAsync': '>= 5000' })).toBe(true);
-
-    // method that uses this
+    // Paths.availableDiskSpace is a sync property, test Device.getName instead
     (Device as any).osName = 'ZOMBIE';
     (Device as any).getName = function () {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (this as any).osName;
     };
+    const verifier = new SystemVerifier(logger as any);
     expect(await verifier.isSupported({ 'Device.getName': '=="ZOMBIE"' })).toBe(true);
   });
 
@@ -127,13 +122,13 @@ describe('SystemVerifier (unit)', () => {
   it('evaluates multiple requirements: all satisfied -> true', async () => {
     (Device as any).osName = 'Android';
     (Device as any).totalMemory = 8;
-    (FileSystem as any).getFreeDiskStorageAsync.mockResolvedValue(2048);
+    (Paths as any).availableDiskSpace = 2048;
 
     const verifier = new SystemVerifier(logger as any);
     const ok = await verifier.isSupported({
       'Device.osName': '=="Android"',
       'Device.totalMemory': '>= 4',
-      'FileSystem.getFreeDiskStorageAsync': '>= 1024',
+      'Paths.availableDiskSpace': '>= 1024',
     });
     expect(ok).toBe(true);
   });
@@ -141,13 +136,13 @@ describe('SystemVerifier (unit)', () => {
   it('evaluates multiple requirements: one fails -> false', async () => {
     (Device as any).osName = 'Android';
     (Device as any).totalMemory = 2;
-    (FileSystem as any).getFreeDiskStorageAsync.mockResolvedValue(2048);
+    (Paths as any).availableDiskSpace = 2048;
 
     const verifier = new SystemVerifier(logger as any);
     const ok = await verifier.isSupported({
       'Device.osName': '=="Android"',
       'Device.totalMemory': '>= 4',
-      'FileSystem.getFreeDiskStorageAsync': '>= 1024',
+      'Paths.availableDiskSpace': '>= 1024',
     });
     expect(ok).toBe(false);
   });

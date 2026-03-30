@@ -1,27 +1,28 @@
 import * as Device from 'expo-device';
-import * as FileSystem from 'expo-file-system';
+import { Paths } from 'expo-file-system';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
+import { SystemVerifierException } from '@/Exception';
 
 /**
  * SystemVerifier
  *
- * Replaces the previous DeviceConstraintEvaluator. It evaluates a set of
- * simple constraints expressed as dotted paths into a small set of supported
- * modules (expo-device, expo-file-system). Each requirement value must begin
- * with one of: >=, <=, ==, !=, >, < followed by a JSON-like literal. Single
- * quoted strings are supported (they are converted to double-quoted for parsing).
+ * Evaluates a set of simple constraints expressed as dotted paths into a small
+ * set of supported modules (expo-device, expo-file-system via Paths).
+ * Each requirement value must begin with one of: >=, <=, ==, !=, >, < followed
+ * by a JSON-like literal. Single quoted strings are supported (they are converted
+ * to double-quoted for parsing).
  *
  * Example:
- *   { "Device.osName": "==\"Android\"", "Device.totalMemory": ">= 2", "FileSystem.getFreeDiskStorageAsync": ">= 1024" }
+ *   { "Device.osName": "==\"Android\"", "Device.totalMemory": ">= 2", "Paths.availableDiskSpace": ">= 1024" }
  */
 export class SystemVerifier {
     // Supported modules mapping
-    private readonly supportedModules: Record<string, typeof Device | typeof FileSystem> = {
+    private readonly supportedModules: Record<string, typeof Device | typeof Paths> = {
         // biome-ignore lint/style/useNamingConvention: Device key intentionally uses PascalCase to mirror expo-device API
         Device,
-        // biome-ignore lint/style/useNamingConvention: FileSystem key intentionally uses PascalCase to mirror expo-file-system API
-        FileSystem,
+        // biome-ignore lint/style/useNamingConvention: Paths key intentionally uses PascalCase to mirror expo-file-system API
+        Paths,
     };
 
     private readonly operators = ['>=', '<=', '==', '!=', '>', '<'] as const;
@@ -76,32 +77,32 @@ export class SystemVerifier {
      * If the resolved value is a function it will be invoked (with the module bound
      * as `this`) and awaited if it returns a Promise.
      *
-     * Throws an Error on invalid format, unsupported module, missing property, or invocation failure.
+     * Throws SystemVerifierException on invalid format, unsupported module, missing property, or invocation failure.
      */
     private async resolveModuleProperty(path: string): Promise<unknown> {
         const parts = path.split('.');
 
         if (parts.length !== 2) {
-            throw new Error(`Invalid path format: '${path}'. Expected format 'Module.Property'`);
+            throw SystemVerifierException.invalidPathFormat(path, 'Module.Property');
         }
 
         const [moduleName, propertyName] = parts;
         const targetModule = this.supportedModules[moduleName as keyof typeof this.supportedModules];
         if (!targetModule) {
-            throw new Error(`Unsupported module in path: '${path}'`);
+            throw SystemVerifierException.unsupportedModule(moduleName);
         }
 
         const property = Reflect.get(targetModule, propertyName);
         if (property === undefined) {
-            throw new Error(`Missing property '${propertyName}' on module '${moduleName}'`);
+            throw SystemVerifierException.missingProperty(propertyName, moduleName);
         }
 
         if (typeof property === 'function') {
             try {
                 return await property.call(targetModule);
             } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
-                throw new Error(`Failed to execute method at path ${path}: ${msg}`);
+                const cause = err instanceof Error ? err : new Error(String(err));
+                throw SystemVerifierException.methodInvocationFailed(path, cause);
             }
         }
 

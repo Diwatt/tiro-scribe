@@ -57,7 +57,7 @@
                 "version": "1.0.0",
                 "requirements": {
                     "Device.totalMemory": ">=6000000000",
-                    "FileSystem.getFreeDiskStorageAsync": ">=1500000000"
+                    "Paths.availableDiskSpace": ">=1500000000"
                 },
                 "files": [
                   {
@@ -100,7 +100,7 @@
                 "version": "1.0.0",
                 "requirements": {
                     "Device.totalMemory": ">=3000000000",
-                    "FileSystem.getFreeDiskStorageAsync": ">=600000000"
+                    "Paths.availableDiskSpace": ">=600000000"
                 },
                 "files": [
                   {
@@ -142,7 +142,7 @@
                 "id": "whisper_v2_base",
                 "version": "1.0.0",
                 "requirements": {
-                    "FileSystem.getFreeDiskStorageAsync": ">= 200000000"
+                    "Paths.availableDiskSpace": ">= 200000000"
                 },
                 "files": [
                   {

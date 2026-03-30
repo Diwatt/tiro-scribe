@@ -39,6 +39,7 @@ You have access to MCP servers. Use them proactively:
 
 - **NO Utils folders** — Logic belongs to classes (Service or Entity)
 - **NO standalone functions** — All logic in classes
+- **NO Built-in Errors** — Always use custom exceptions with descriptive messages inherited from The project exception base class or the Domain-specific exception base class (e.g., `RecordingException`, `ValidationException`, etc.)
 - **NO `*Service` suffix** — Use capability names (e.g., `VoiceCalibration`)
 - **NO object literals in classes** — Use `const INITIAL_STATE` or static factory
 - **NO `export const` singletons** — Use `Container.camelCase` pattern

@@ -1,11 +1,10 @@
 import { observer } from '@legendapp/state/react';
-import { AlertTriangle, Wifi, WifiOff } from 'lucide-react-native';
 import type React from 'react';
 import { useEffect } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, ProgressBar, Surface, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, ProgressBar, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SecureSessionButton, StatusProcessing, StatusReady } from '@/Components';
+import { SecureSessionButton, WifiRequiredModal, StatusProcessing, StatusReady } from '@/Components';
 import { Container } from '@/Core/Container';
 import { useLocalization } from '@/Localization';
 import { HomeState } from '@/State/HomeState';
@@ -23,8 +22,6 @@ export const Home = observer((): React.JSX.Element => {
     const setupModalVisible = homeState.setupModalVisible.get();
     const setupBannerVisible = homeState.setupBannerVisible.get();
     const downloadSizeMB = homeState.downloadSizeMB.get();
-    const isWifiConnected = homeState.isWifiConnected.get();
-    const showCellularWarning = homeState.showCellularWarning.get();
 
     useEffect(() => {
         homeState.ensureSetupComplete();
@@ -45,10 +42,10 @@ export const Home = observer((): React.JSX.Element => {
                         <Card.Content style={STYLES.setupBannerContent}>
                             <View style={STYLES.setupBannerText}>
                                 <Text style={[STYLES.setupBannerTitle, { color: theme.colors.statusWarning.text }]}>
-                                    Setup incomplete
+                                    {LL.home.setupBannerTitle()}
                                 </Text>
                                 <Text style={[STYLES.setupBannerSubtitle, { color: theme.colors.statusWarning.text }]}>
-                                    Transcription unavailable
+                                    {LL.home.setupBannerSubtitle()}
                                 </Text>
                             </View>
                             <Button
@@ -57,14 +54,14 @@ export const Home = observer((): React.JSX.Element => {
                                 buttonColor={theme.colors.statusWarning.accent}
                                 textColor={theme.colors.statusWarning.text}
                             >
-                                Setup
+                                {LL.home.setupButton()}
                             </Button>
                             <Button
                                 mode="text"
                                 onPress={() => homeState.hideSetupBanner()}
                                 textColor={theme.colors.statusWarning.text}
                             >
-                                Dismiss
+                                {LL.home.dismissButton()}
                             </Button>
                         </Card.Content>
                     </Card>
@@ -108,105 +105,14 @@ export const Home = observer((): React.JSX.Element => {
                 />
             </View>
 
-            {/* Setup Modal */}
-            <Modal visible={setupModalVisible} animationType="slide" transparent>
-                <View style={STYLES.modalOverlay}>
-                    <Surface style={[STYLES.modalContent, { backgroundColor: theme.colors.surface }]}>
-                        <View style={STYLES.modalHeader}>
-                            <AlertTriangle size={32} color={theme.colors.primary} />
-                            <Text style={[STYLES.modalTitle, { color: theme.colors.onSurface }]}>
-                                Important: Large Files Download
-                            </Text>
-                        </View>
-
-                        <View style={STYLES.modalBody}>
-                            <Text style={[STYLES.modalText, { color: theme.colors.onSurfaceVariant }]}>
-                                The app needs to download approximately{' '}
-                                <Text style={STYLES.bold}>{downloadSizeMB} MB</Text> of AI models to work offline.
-                            </Text>
-
-                            <Text style={[STYLES.modalText, { color: theme.colors.onSurfaceVariant }]}>
-                                This includes models for transcription and voice activity detection.
-                            </Text>
-
-                            <View style={[STYLES.wifiStatus, { backgroundColor: theme.colors.surfaceVariant }]}>
-                                {isWifiConnected === true ? (
-                                    <>
-                                        <Wifi size={20} color={theme.colors.statusIdle.accent} />
-                                        <Text style={[STYLES.wifiText, { color: theme.colors.statusIdle.text }]}>
-                                            Wi-Fi Connected
-                                        </Text>
-                                    </>
-                                ) : isWifiConnected === false ? (
-                                    <>
-                                        <WifiOff size={20} color={theme.colors.statusWarning.text} />
-                                        <Text style={[STYLES.wifiText, { color: theme.colors.statusWarning.text }]}>
-                                            Cellular Network
-                                        </Text>
-                                    </>
-                                ) : (
-                                    <Text style={[STYLES.wifiText, { color: theme.colors.onSurfaceVariant }]}>
-                                        Checking network...
-                                    </Text>
-                                )}
-                            </View>
-
-                            {showCellularWarning && (
-                                <View
-                                    style={[
-                                        STYLES.cellularWarning,
-                                        { backgroundColor: theme.colors.statusWarning.background },
-                                    ]}
-                                >
-                                    <Text style={[STYLES.cellularText, { color: theme.colors.statusWarning.text }]}>
-                                        You are currently on a cellular network. Downloading these files may consume a
-                                        large amount of data.
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-
-                        <View style={STYLES.modalActions}>
-                            {showCellularWarning ? (
-                                <>
-                                    <Button
-                                        mode="contained"
-                                        onPress={() => homeState.openWifiSettings()}
-                                        style={STYLES.modalButton}
-                                    >
-                                        Open Wi-Fi Settings
-                                    </Button>
-                                    <Button
-                                        mode="outlined"
-                                        onPress={() => homeState.proceedWithCellularDownload()}
-                                        style={STYLES.modalButton}
-                                    >
-                                        Download Anyway
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <Button
-                                        mode="contained"
-                                        onPress={() => homeState.initiateModelDownload()}
-                                        style={STYLES.modalButton}
-                                        disabled={isWifiConnected === null}
-                                    >
-                                        Download Models
-                                    </Button>
-                                    <Button
-                                        mode="text"
-                                        onPress={() => homeState.closeSetupModal()}
-                                        style={STYLES.modalButton}
-                                    >
-                                        Remind Me Later
-                                    </Button>
-                                </>
-                            )}
-                        </View>
-                    </Surface>
-                </View>
-            </Modal>
+            {/* Wi-Fi Required Modal */}
+            <WifiRequiredModal
+                visible={setupModalVisible}
+                downloadSizeMB={downloadSizeMB}
+                onOpenWifiSettings={() => homeState.openWifiSettings()}
+                onDownloadAnyway={() => homeState.proceedWithCellularDownload()}
+                onClose={() => homeState.closeSetupModal()}
+            />
         </View>
     );
 });
@@ -224,23 +130,4 @@ const STYLES = StyleSheet.create({
     bannerProgress: { height: 6, borderRadius: 3 },
     bannerPercent: { fontSize: 12, marginTop: 4 },
     buttonContainer: { position: 'absolute', left: 20, right: 20, bottom: 30, alignItems: 'center' },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    modalContent: { width: '100%', maxWidth: 400, borderRadius: 16, padding: 24 },
-    modalHeader: { alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontWeight: '700', marginTop: 12, textAlign: 'center' },
-    modalBody: { marginBottom: 24 },
-    modalText: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
-    bold: { fontWeight: '700' },
-    wifiStatus: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, marginTop: 8 },
-    wifiText: { fontSize: 14, marginLeft: 8, fontWeight: '500' },
-    cellularWarning: { padding: 12, borderRadius: 8, marginTop: 16 },
-    cellularText: { fontSize: 13, lineHeight: 18 },
-    modalActions: { gap: 12 },
-    modalButton: { width: '100%' },
 });
