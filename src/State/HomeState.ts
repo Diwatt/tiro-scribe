@@ -16,20 +16,21 @@ import { WifiVerifier } from '@/Service/WifiVerifier';
  * This is intentionally small and focused - keep business logic in services.
  */
 export class HomeState {
-    public executors: ExecutorCollection;
+    public readonly executors: Observable<ExecutorCollection> = observable(new ExecutorCollection());
     public readonly setupModalVisible: Observable<boolean> = observable(false);
     public readonly setupBannerVisible: Observable<boolean> = observable(false);
     public readonly downloadSizeMB: Observable<number> = observable(0);
     public readonly initialized: Observable<boolean> = observable(false);
 
     private readonly wifiVerifier: WifiVerifier;
+    private wifiCheckInterval: ReturnType<typeof setInterval> | null = null;
+    private readonly wifiCheckIntervalMs = 2000;
 
     public constructor(
         private readonly logger: AppLogger,
         private readonly appRouter: AppRouter,
         private readonly modelSetup: InferenceModelSetup,
     ) {
-        this.executors = new ExecutorCollection();
         this.wifiVerifier = new WifiVerifier();
     }
 
@@ -70,10 +71,41 @@ export class HomeState {
     }
 
     /**
-     * Open Wi-Fi settings.
+     * Open Wi-Fi settings and start monitoring for Wi-Fi availability.
+     * When Wi-Fi becomes available, the download will start automatically.
      */
     public async openWifiSettings(): Promise<void> {
+        this.setupModalVisible.set(false);
         await this.wifiVerifier.openSettings();
+        await this.startWifiMonitoring();
+    }
+
+    /**
+     * Start periodically checking for Wi-Fi connectivity.
+     * When Wi-Fi becomes available, automatically begins the model download.
+     */
+    private async startWifiMonitoring(): Promise<void> {
+        if (this.wifiCheckInterval !== null) {
+            return;
+        }
+
+        this.wifiCheckInterval = setInterval(async () => {
+            const isConnected = await this.wifiVerifier.isConnected();
+            if (isConnected) {
+                await this.stopWifiMonitoring();
+                await this.beginModelDownload();
+            }
+        }, this.wifiCheckIntervalMs);
+    }
+
+    /**
+     * Stop the Wi-Fi connectivity check interval.
+     */
+    private async stopWifiMonitoring(): Promise<void> {
+        if (this.wifiCheckInterval !== null) {
+            clearInterval(this.wifiCheckInterval);
+            this.wifiCheckInterval = null;
+        }
     }
 
     /**
@@ -96,7 +128,7 @@ export class HomeState {
     public async beginModelDownload(): Promise<void> {
         this.setupModalVisible.set(false);
         this.setupBannerVisible.set(false);
-        this.executors = await this.modelSetup.getExecutors();
+        this.executors.set(await this.modelSetup.getExecutors());
     }
 
     /**

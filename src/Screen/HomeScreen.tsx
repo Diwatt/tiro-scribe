@@ -2,7 +2,7 @@ import { observer } from '@legendapp/state/react';
 import type React from 'react';
 import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, ProgressBar, useTheme } from 'react-native-paper';
+import { Button, Card, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecureSessionButton, WifiRequiredModal, StatusProcessing, StatusReady } from '@/Components';
 import { Container } from '@/Core/Container';
@@ -17,8 +17,9 @@ export const Home = observer((): React.JSX.Element => {
     const insets = useSafeAreaInsets();
 
     // Bind to observables
-    const isDownloading = homeState.executors.isDownloading.get();
-    const progress = homeState.executors.progress.get();
+    const executors = homeState.executors.get();
+    const isDownloading = executors.isDownloading.get();
+    const progress = executors.progress.get();
     const setupModalVisible = homeState.setupModalVisible.get();
     const setupBannerVisible = homeState.setupBannerVisible.get();
     const downloadSizeMB = homeState.downloadSizeMB.get();
@@ -67,25 +68,6 @@ export const Home = observer((): React.JSX.Element => {
                     </Card>
                 )}
 
-                {/* Download Progress Banner */}
-                {isDownloading && (
-                    <Card style={[STYLES.progressBanner, { backgroundColor: theme.colors.surfaceVariant }]}>
-                        <Card.Content>
-                            <Text style={[STYLES.bannerTitle, { color: theme.colors.onSurface }]}>
-                                {LL.home.initializingAi()}
-                            </Text>
-                            <ProgressBar
-                                progress={progress}
-                                color={theme.colors.primary}
-                                style={STYLES.bannerProgress}
-                            />
-                            <Text style={[STYLES.bannerPercent, { color: theme.colors.onSurfaceVariant }]}>
-                                {progressPercent}%
-                            </Text>
-                        </Card.Content>
-                    </Card>
-                )}
-
                 {/* Status Display */}
                 {isDownloading ? (
                     <StatusProcessing progress={progressPercent} currentTask={bannerMessage} />
@@ -125,9 +107,6 @@ const STYLES = StyleSheet.create({
     setupBannerText: { flex: 1 },
     setupBannerTitle: { fontSize: 16, fontWeight: '600' },
     setupBannerSubtitle: { fontSize: 12, marginTop: 2 },
-    progressBanner: { marginBottom: 16 },
-    bannerTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-    bannerProgress: { height: 6, borderRadius: 3 },
-    bannerPercent: { fontSize: 12, marginTop: 4 },
+
     buttonContainer: { position: 'absolute', left: 20, right: 20, bottom: 30, alignItems: 'center' },
 });

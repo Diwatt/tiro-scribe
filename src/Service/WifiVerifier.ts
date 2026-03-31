@@ -4,8 +4,18 @@
 
 import * as Network from 'expo-network';
 import { Linking, Platform } from 'react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
+import { ActivityAction } from 'expo-intent-launcher';
+import { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
 
 export class WifiVerifier {
+    private readonly logger: AppLogger;
+
+    public constructor() {
+        this.logger = Container.get(AppLogger);
+    }
+
     /**
      * Check if Wi-Fi is currently connected.
      */
@@ -20,14 +30,18 @@ export class WifiVerifier {
 
     /**
      * Open system Wi-Fi settings.
-     * - iOS: Opens Wi-Fi settings via deep link
-     * - Android: Opens Wi-Fi settings intent
+     * - iOS: Opens Wi-Fi settings via deep link (App-Prefs:root=WIFI)
+     * - Android: Opens Wi-Fi settings directly via expo-intent-launcher
      */
     public async openSettings(): Promise<void> {
-        if (Platform.OS === 'ios') {
-            await Linking.openURL('App-Prefs:root=WIFI');
-        } else {
-            await Linking.openURL('android.settings.WIFI_SETTINGS');
+        try {
+            if (Platform.OS === 'ios') {
+                await Linking.openURL('App-Prefs:root=WIFI');
+            } else {
+                await IntentLauncher.startActivityAsync(ActivityAction.WIFI_SETTINGS);
+            }
+        } catch (error) {
+            this.logger.warn('[WifiVerifier] Could not open Wi-Fi settings', { error });
         }
     }
 }
