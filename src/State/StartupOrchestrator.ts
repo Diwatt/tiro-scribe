@@ -11,10 +11,10 @@ import { Registry } from '@/Database/Registry';
 import { Localization } from '@/Localization';
 import type { TherapistRepository } from '@/Repository/TherapistRepository';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
-import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import { Downloader } from '@/InferenceModel/Downloader';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { Therapist } from '../Entity/Therapist';
-import { DownloadState } from '../Service/InferenceModelDownload/Type';
+import { DownloadState } from '../InferenceModel/Download/Type';
 import { ActivityStatus } from './GlobalActivityStatus';
 
 export enum StartupState {
@@ -86,7 +86,7 @@ export class StartupOrchestrator {
         Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Pending, ll.download.speakerModel());
 
         try {
-            const executor = await Container.get(InferenceModelDownloader).download('speaker_id');
+            const executor = await Container.get(Downloader).download('speaker_id');
 
             // update UI as progress events arrive
             executor.progress$.onChange(({ value: progress }) => {

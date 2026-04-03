@@ -28,8 +28,8 @@ export type CompatibilityMatrix = {
 };
 
 export const DEFAULT_MATRIX: CompatibilityMatrix = {
-    ios: { minRamGigabytes: 3.8, minSemver: '12.0.0' },
-    android: { minRamGigabytes: 3.3, minSemver: '9.0.0' },
+    ios: { minRamGigabytes: 1.5, minSemver: '12.0.0' },
+    android: { minRamGigabytes: 1.5, minSemver: '9.0.0' },
 };
 
 export class DeviceCompatibilityGate {

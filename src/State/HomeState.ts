@@ -3,8 +3,8 @@ import { observable } from '@legendapp/state';
 import { AppLogger } from '@/Core/AppLogger';
 import { AppRouter } from '@/Core/AppRouter';
 import { Container } from '@/Core/Container';
-import { ExecutorCollection } from '@/Service/InferenceModelDownload/ExecutorCollection';
-import { InferenceModelSetup } from '@/Service/InferenceModelSetup';
+import { ExecutorCollection } from '@/InferenceModel/Download/ExecutorCollection';
+import { Setup } from '@/InferenceModel/Setup';
 import { WifiVerifier } from '@/Service/WifiVerifier';
 
 /**
@@ -29,7 +29,7 @@ export class HomeState {
     public constructor(
         private readonly logger: AppLogger,
         private readonly appRouter: AppRouter,
-        private readonly modelSetup: InferenceModelSetup,
+        private readonly modelSetup: Setup,
     ) {
         this.wifiVerifier = new WifiVerifier();
     }
@@ -75,7 +75,6 @@ export class HomeState {
      * When Wi-Fi becomes available, the download will start automatically.
      */
     public async openWifiSettings(): Promise<void> {
-        this.setupModalVisible.set(false);
         await this.wifiVerifier.openSettings();
         await this.startWifiMonitoring();
     }
@@ -174,6 +173,6 @@ Container.register(HomeState, () => {
     return new HomeState(
         Container.get(AppLogger),
         Container.get(AppRouter),
-        Container.get(InferenceModelSetup),
+        Container.get(Setup),
     );
 });

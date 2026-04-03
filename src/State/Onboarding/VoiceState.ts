@@ -5,9 +5,9 @@ import { Container } from '@/Core/Container';
 import { Localization } from '@/Localization';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { VoiceCalibrator } from '@/Service';
-import type { DownloadTaskExecutor } from '@/Service/InferenceModelDownload/DownloadTaskExecutor';
-import { DownloadState } from '@/Service/InferenceModelDownload/Type';
-import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import type { DownloadTaskExecutor } from '@/InferenceModel/Download/DownloadTaskExecutor';
+import { DownloadState } from '@/InferenceModel/Download/Type';
+import { Downloader } from '@/InferenceModel/Downloader';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { ErrorMessage } from '@/Util/ErrorMessage';
 import { EventLoop } from '@/Util/EventLoop';
@@ -27,7 +27,7 @@ export class VoiceState extends AbstractState {
     public constructor(
         logger: AppLogger,
         private readonly localization: Localization,
-        private readonly inferenceModelDownloader: InferenceModelDownloader,
+        private readonly inferenceModelDownloader: Downloader,
         private readonly globalActivityStatus: GlobalActivityStatus,
         private readonly masterKeyVault: MasterKeyVault,
         private readonly appConfig: AppConfig,
@@ -205,7 +205,7 @@ export class VoiceState extends AbstractState {
 Container.register(VoiceState, () => {
     const logger = Container.get(AppLogger);
     const localization = Container.get(Localization);
-    const downloader = Container.get(InferenceModelDownloader);
+    const downloader = Container.get(Downloader);
     const globalActivityStatus = Container.get(GlobalActivityStatus);
     const masterKeyVault = Container.get(MasterKeyVault);
     const appConfig = Container.get(AppConfig);

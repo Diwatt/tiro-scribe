@@ -62,8 +62,8 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest
 import { Container } from '@/Core/Container';
 import { OnboardingState } from '@/State/Onboarding/State';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
-import { DownloadState } from '@/Service/InferenceModelDownload/Type';
-import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import { DownloadState } from '@/InferenceModel/Download/Type';
+import { InferenceModelDownloader } from '@/InferenceModel/Downloader';
 import { Localization } from '@/Localization';
 
 jest.mock('@/Core/AppLogger', () => {

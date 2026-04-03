@@ -6,7 +6,7 @@ import { createContext, useContext } from 'react';
 import type { Anonymizer } from '../Service/Anonymizer';
 import type { AudioProcessing } from '../Service/AudioProcessing';
 
-import type { SpeakerProcessor } from '../Service/SpeakerId/SpeakerProcessor';
+import type { SpeakerProcessor } from '../InferenceModel/Speaker/SpeakerProcessor';
 
 /**
  * Types only—Biocode, Anonymizer, AudioProcessing are not loaded at app start.

@@ -61,12 +61,12 @@ jest.mock('@legendapp/state', () => {
 import { VoiceState } from '@/State/Onboarding/VoiceState';
 import { AppLogger } from '@/Core/AppLogger';
 import { Localization } from '@/Localization';
-import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
+import { InferenceModelDownloader } from '@/InferenceModel/Downloader';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { AppConfig } from '@/Core/AppConfig';
-import { VoiceCalibrator } from '@/Service/SpeakerId/VoiceCalibrator';
-import { Biocode } from '@/Service/SpeakerId/Biocode';
+import { VoiceCalibrator } from '@/InferenceModel/Speaker/VoiceCalibrator';
+import { Biocode } from '@/InferenceModel/Speaker/Biocode';
 
 jest.mock('@/Core/Container', () => ({
     Container: { get: jest.fn(), register: jest.fn() },

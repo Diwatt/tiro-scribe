@@ -9,7 +9,7 @@ import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
 import { AbstractEntity } from '../Database/AbstractEntity';
 import { Column, Entity, PrimaryKey } from '../Decorator';
-import type { DownloadTask } from '../Service/InferenceModelDownload/Type';
+import type { DownloadTask } from '../InferenceModel/Download/Type';
 import { DownloadQueueStatus } from './Type';
 
 dayjs.extend(utc);

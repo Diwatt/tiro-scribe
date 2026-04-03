@@ -12,7 +12,7 @@ import { Repository } from '@/Database/Repository';
 import type { DatabaseSchema } from '@/Database/Type';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
 import { DownloadQueueStatus } from '@/Entity/Type';
-import type { QueueStats } from '@/Service/InferenceModelDownload/Type';
+import type { QueueStats } from '@/InferenceModel/Download/Type';
 
 export class DownloadQueueRepository extends Repository<DownloadQueue> {
     public constructor(db?: Kysely<DatabaseSchema> | Transaction<DatabaseSchema>) {

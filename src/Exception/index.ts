@@ -3,7 +3,7 @@
  * Centralized export point for all exceptions and error types
  */
 
-export { SpeakerVectorExtractionError } from '../Service/SpeakerId/SpeakerVectorExtractionError';
+export { SpeakerVectorExtractionError } from '../InferenceModel/Speaker/SpeakerVectorExtractionError';
 export { ApiClientException } from './ApiClientException';
 export { DatabaseException } from './DatabaseException';
 export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';

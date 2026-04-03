@@ -3,8 +3,8 @@ import { Localization } from '@/Localization';
 import { StartupOrchestrator, StartupState } from '@/State/StartupOrchestrator';
 import { GlobalActivityStatus, ActivityStatus } from '@/State/GlobalActivityStatus';
 import { Registry } from '@/Database/Registry';
-import { InferenceModelDownloader } from '@/Service/InferenceModelDownloader';
-import { DownloadState } from '@/Service/InferenceModelDownload/Type';
+import { Downloader } from '@/InferenceModel/Downloader';
+import { DownloadState } from '@/InferenceModel/Download/Type';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import type { TherapistRepository } from '@/Repository';
 import { Therapist } from '@/Entity/Therapist';
@@ -30,7 +30,7 @@ describe('StartupOrchestrator', () => {
 
         Container.register(GlobalActivityStatus, () => new GlobalActivityStatus(), true);
         Container.register(Registry, () => ({ getRepository: jest.fn() } as any), true);
-        Container.register(InferenceModelDownloader, () => ({ download: jest.fn() } as any), true);
+        Container.register(Downloader, () => ({ download: jest.fn() } as any), true);
         Container.register(DeviceCompatibilityGate as any, () => ({ ensureCompatible: jest.fn(), isCompatible: jest.fn(() => true) } as any), true);
         Container.register(StartupOrchestrator, () => new StartupOrchestrator(), true);
 
@@ -46,7 +46,7 @@ describe('StartupOrchestrator', () => {
         });
 
         // stub downloader behaviour; simulate downloading state initially
-        jest.spyOn(Container.get(InferenceModelDownloader), 'download').mockResolvedValue({
+        jest.spyOn(Container.get(Downloader), 'download').mockResolvedValue({
             state$: { onChange: (cb: any) => {
                 // Initially in downloading state
                 setTimeout(() => cb({ value: DownloadState.Completed }), 100);
@@ -102,7 +102,7 @@ describe('StartupOrchestrator', () => {
         // we can simulate progress later if needed.
         let stateCb: ((arg: { value: DownloadState }) => void) | undefined;
         let currentState = DownloadState.Downloading;
-        jest.spyOn(Container.get(InferenceModelDownloader), 'download').mockResolvedValue({
+        jest.spyOn(Container.get(Downloader), 'download').mockResolvedValue({
             state$: { onChange: (cb: any) => { stateCb = cb; } },
             progress$: { onChange: () => {} },
             getState: () => currentState,
