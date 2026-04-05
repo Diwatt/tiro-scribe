@@ -19,11 +19,13 @@ import { DownloadState } from './Type';
 export class DownloadTaskExecutor {
     /** Error message used to identify user‑cancelled downloads */
     private static readonly CANCELLATION_ERROR_MESSAGE = 'Download cancelled by user';
-    private readonly _completedAt$ = observable<Dayjs | undefined>();
-    private readonly _error$: Observable<string | undefined>;
-    private readonly _progress$: Observable<number>;
+    private readonly _completedAt$ = observable<Dayjs | undefined>(undefined);
+    private readonly _currentFileName$ = observable<string | undefined>(undefined);
+    private readonly _currentFileProgress$ = observable<number>(0);
+    private readonly _error$ = observable<string | undefined>(undefined);
+    private readonly _progress$ = observable<number>(0);
     private readonly _startedAt: Dayjs;
-    private readonly _state$: Observable<DownloadState>;
+    private readonly _state$ = observable<DownloadState>(DownloadState.Pending);
 
     public constructor(
         private readonly logger: AppLogger,
@@ -37,11 +39,9 @@ export class DownloadTaskExecutor {
         startedAt: Dayjs = dayjs(),
     ) {
         this._startedAt = startedAt;
-
-        // Create observables from entity's current state
-        this._state$ = observable<DownloadState>(queueEntity.status as unknown as DownloadState);
-        this._progress$ = observable<number>(queueEntity.progressPercent);
         this._error$ = observable<string | undefined>(queueEntity.errorMessage || undefined);
+        this._progress$ = observable<number>(queueEntity.progressPercent);
+        this._state$ = observable<DownloadState>(queueEntity.status as unknown as DownloadState);
     }
 
     /**
@@ -64,6 +64,14 @@ export class DownloadTaskExecutor {
 
     public get completedAt$() {
         return this._completedAt$;
+    }
+
+    public get currentFileName$(): Observable<string | undefined> {
+        return this._currentFileName$;
+    }
+
+    public get currentFileProgress$(): Observable<number> {
+        return this._currentFileProgress$;
     }
 
     public get config(): ModelConfig {
@@ -129,6 +137,13 @@ export class DownloadTaskExecutor {
     }
 
     /**
+     * Total bytes for all files in this executor's model config.
+     */
+    public get totalBytes(): number {
+        return this.modelConfig.files.reduce((sum, file) => sum + file.sizeBytes, 0);
+    }
+
+    /**
      * Check if executor is in downloading state.
      */
     public isDownloading(): boolean {
@@ -152,8 +167,8 @@ export class DownloadTaskExecutor {
         // Ensure directories exist and wait for completion
         await this.artifactStorage.ensureDirectories(this.modelConfig);
 
-        let totalDownloaded = 0;
-        const totalFiles = this.modelConfig.files.length;
+        let totalBytesDownloaded = 0;
+        const totalModelBytes = this.totalBytes;
 
         try {
             // Update state to Downloading
@@ -161,9 +176,9 @@ export class DownloadTaskExecutor {
             this.logger.debug('[DownloadTaskExecutor] Starting download task execution');
 
             for (const file of this.modelConfig.files) {
-                await this.downloadFile(file, totalDownloaded, totalFiles);
-                totalDownloaded += 1;
-                const progressAfterFile = (totalDownloaded / totalFiles) * 100;
+                await this.downloadFile(file, totalBytesDownloaded, totalModelBytes);
+                totalBytesDownloaded += file.sizeBytes;
+                const progressAfterFile = (totalBytesDownloaded / totalModelBytes) * 100;
                 // Update progress after each file
                 this.setProgress(progressAfterFile);
 
@@ -217,14 +232,28 @@ export class DownloadTaskExecutor {
     /**
      * Download a single file with progress tracking and hash verification.
      */
-    private async downloadFile(file: InferenceModelFile, totalDownloaded: number, totalFiles: number): Promise<void> {
+    private async downloadFile(
+        file: InferenceModelFile,
+        totalBytesDownloaded: number,
+        totalModelBytes: number,
+    ): Promise<void> {
+        // Extract filename from URL since InferenceModelFile doesn't have a name field
+        const filename = new URL(file.url).pathname.split('/').pop() ?? 'unknown';
+        this._currentFileName$.set(filename);
+        this._currentFileProgress$.set(0);
+
         const destination = this.artifactStorage.getFile(this.modelConfig, file);
         // Create downloader for this file and download with progress tracking
         const downloader = new FileDownloader(destination, this.logger);
+
+        let fileBytesDownloaded = 0;
         for await (const chunkProgress of downloader.download(file.url, file.sizeBytes)) {
+            fileBytesDownloaded = Math.floor(chunkProgress * file.sizeBytes);
+            const currentFileProgress = (fileBytesDownloaded / file.sizeBytes) * 100;
+            this._currentFileProgress$.set(currentFileProgress);
+
             // chunkProgress is 0‑1, convert to overall progress
-            const fileProgress = chunkProgress;
-            const overallProgress = (totalDownloaded + fileProgress) / totalFiles;
+            const overallProgress = (totalBytesDownloaded + fileBytesDownloaded) / totalModelBytes;
             const progressPercent = overallProgress * 100;
 
             // Update progress observable (0‑100)

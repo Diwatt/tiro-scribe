@@ -108,6 +108,8 @@ const fr: Translation = {
         readySubtitle: 'Aucune tâche en attente.',
     },
     download: {
+        downloading: 'Téléchargement de {capability}…',
+        downloadingProgress: 'Téléchargement… {percentage}%',
         speakerModel: "Téléchargement du modèle d'identification du locuteur…",
         speakerModelProgress: "Téléchargement du modèle d'identification du locuteur… {percentage}%",
         speakerModelSuccess: 'Modèle de locuteur téléchargé avec succès',

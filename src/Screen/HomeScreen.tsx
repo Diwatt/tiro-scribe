@@ -20,6 +20,10 @@ export const Home = observer((): React.JSX.Element => {
     const executors = homeState.executors.get();
     const isDownloading = executors.isDownloading.get();
     const progress = executors.progress.get();
+    const currentCapability = executors.currentCapability$.get();
+    const currentCapabilityProgress = executors.currentCapabilityProgress$.get();
+    const currentFileName = executors.currentFileName$.get();
+    const currentFileProgress = executors.currentFileProgress$.get();
     const setupModalVisible = homeState.setupModalVisible.get();
     const setupBannerVisible = homeState.setupBannerVisible.get();
     const downloadSizeMB = homeState.downloadSizeMB.get();
@@ -28,8 +32,10 @@ export const Home = observer((): React.JSX.Element => {
         homeState.ensureSetupComplete();
     }, [homeState]);
 
-    const progressPercent = Math.round(progress * 100);
-    const bannerMessage = isDownloading ? `Downloading... ${progressPercent}%` : undefined;
+    const currentFilePercent = Math.round(currentFileProgress);
+    const bannerMessage = isDownloading
+        ? `${currentFilePercent}% - ${currentFileName}`
+        : undefined;
 
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
@@ -70,7 +76,11 @@ export const Home = observer((): React.JSX.Element => {
 
                 {/* Status Display */}
                 {isDownloading ? (
-                    <StatusProcessing progress={progressPercent} currentTask={bannerMessage} />
+                    <StatusProcessing
+                        title={currentCapability ? LL.download.downloading({ capability: currentCapability }) : undefined}
+                        progress={Math.round(currentCapabilityProgress)}
+                        currentTask={bannerMessage}
+                    />
                 ) : (
                     <StatusReady />
                 )}

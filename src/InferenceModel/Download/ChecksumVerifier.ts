@@ -18,17 +18,10 @@ export class ChecksumVerifier {
         const hash = createHash('sha256');
         const expectedHex = expectedHash.toLowerCase();
         const stream = file.readableStream();
-        const reader = stream.getReader();
 
         try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) {
-                    break;
-                }
-                if (value != null) {
-                    hash.update(value);
-                }
+            for await (const chunk of stream) {
+                hash.update(chunk as Uint8Array);
             }
         } catch (originalError) {
             throw new InferenceModelDownloaderException(

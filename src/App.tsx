@@ -1,6 +1,6 @@
 import { Container } from '@/Core/Container';
 import StorybookUiRoot from '../.rnstorybook';
-import RootLayout from '../app/_layout';
+import RootLayout from '../assets/app/_layout';
 import { AppConfig } from './Core/AppConfig';
 
 export function App(): React.ReactElement {

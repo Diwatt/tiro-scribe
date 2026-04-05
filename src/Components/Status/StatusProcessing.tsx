@@ -6,17 +6,18 @@ import { Status } from './Status';
 import { StatusState } from './StatusTypes';
 
 interface StatusProcessingProps {
+    title?: string;
     progress?: number;
     currentTask?: string;
     timeEstimate?: string;
 }
 
-export function StatusProcessing({ progress, currentTask, timeEstimate }: StatusProcessingProps): React.JSX.Element {
+export function StatusProcessing({ title = 'Processing...', progress, currentTask, timeEstimate }: StatusProcessingProps): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const statusColors = theme.colors.statusProcessing;
     return (
         <Status
-            title="Processing..."
+            title={title}
             subtitle={currentTask}
             icon={<ActivityIndicator size={20} color={statusColors.accent} />}
             iconBgOverride={statusColors.iconBackground}

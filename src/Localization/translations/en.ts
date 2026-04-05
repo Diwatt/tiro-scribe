@@ -108,6 +108,8 @@ const en: BaseTranslation = {
         readySubtitle: 'No pending tasks.',
     },
     download: {
+        downloading: 'Downloading {capability}…',
+        downloadingProgress: 'Downloading… {percentage}%',
         speakerModel: 'Downloading speaker identification model…',
         speakerModelProgress: 'Downloading speaker identification model… {percentage}%',
         speakerModelSuccess: 'Speaker model downloaded successfully',

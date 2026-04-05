@@ -204,6 +204,10 @@ type RootTranslation = {
         readySubtitle: string;
     };
     download: {
+        /** Downloading {capability}… */
+        downloading: RequiredParams<'capability'>;
+        /** Downloading… {percentage}% */
+        downloadingProgress: RequiredParams<'percentage'>;
         /** Downloading speaker identification model… */
         speakerModel: string;
         /** Downloading speaker identification model… {percentage}% */
@@ -409,6 +413,10 @@ export type TranslationFunctions = {
         readySubtitle: () => LocalizedString;
     };
     download: {
+        /** Downloading {capability}… */
+        downloading: (arg: { capability: unknown }) => LocalizedString;
+        /** Downloading… {percentage}% */
+        downloadingProgress: (arg: { percentage: unknown }) => LocalizedString;
         /** Downloading speaker identification model… */
         speakerModel: () => LocalizedString;
         /** Downloading speaker identification model… {percentage}% */

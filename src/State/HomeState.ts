@@ -1,3 +1,12 @@
+/**
+ * HomeState
+ *
+ * Manages UI state related to the Home screen (banner, download progress,
+ * "initializing AI" indicator, and interactions with the global activity bar).
+ *
+ * This is intentionally small and focused - keep business logic in services.
+ */
+
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import { AppLogger } from '@/Core/AppLogger';
@@ -7,20 +16,14 @@ import { ExecutorCollection } from '@/InferenceModel/Download/ExecutorCollection
 import { Setup } from '@/InferenceModel/Setup';
 import { WifiVerifier } from '@/Service/WifiVerifier';
 
-/**
- * HomeState
- *
- * Manages UI state related to the Home screen (banner, download progress,
- * "initializing AI" indicator, and interactions with the global activity bar).
- *
- * This is intentionally small and focused - keep business logic in services.
- */
 export class HomeState {
     public readonly executors: Observable<ExecutorCollection> = observable(new ExecutorCollection());
     public readonly setupModalVisible: Observable<boolean> = observable(false);
     public readonly setupBannerVisible: Observable<boolean> = observable(false);
     public readonly downloadSizeMB: Observable<number> = observable(0);
     public readonly initialized: Observable<boolean> = observable(false);
+    public readonly currentFileName: Observable<string | undefined> = observable(undefined);
+    public readonly currentCapability: Observable<string | undefined> = observable(undefined);
 
     private readonly wifiVerifier: WifiVerifier;
     private wifiCheckInterval: ReturnType<typeof setInterval> | null = null;
