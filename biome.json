@@ -239,8 +239,7 @@
             "includes": [
                 "src/Service/Anonymizer.ts",
                 "src/Service/AudioPipelineAdapter.ts",
-                "src/Service/AudioProcessing.ts",
-                "src/Service/AudioRecording.ts"
+                "src/Service/AudioProcessing.ts"
             ],
             "linter": {
                 "enabled": false

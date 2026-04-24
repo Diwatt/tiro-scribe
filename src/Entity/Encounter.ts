@@ -139,4 +139,11 @@ export class Encounter extends AbstractEntity {
     public setUuid(value: string): void {
         this.uuid = value;
     }
+
+    public static create(therapistId: string, isIncognito = false): Encounter {
+        return new Encounter({
+            therapistId,
+            isIncognito,
+        });
+    }
 }

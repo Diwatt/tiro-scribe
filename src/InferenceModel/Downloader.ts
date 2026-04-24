@@ -3,16 +3,15 @@ import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { Registry } from '@/Database/Registry';
 import type { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
-import type { InferenceModelFile, ModelConfig } from '../Api';
-import { DownloadQueue, DownloadQueueStatus } from '../Entity';
+import type { ModelConfig } from '../Api';
+import { DownloadQueue } from '../Entity';
 import { ConfigProvider } from './ConfigProvider';
 import { ChecksumVerifier } from './Download/ChecksumVerifier';
 import { DownloadTaskExecutor } from './Download/DownloadTaskExecutor';
 import { DownloadTaskManager } from './Download/DownloadTaskManager';
 import { ModelArtifactStorage } from './Download/ModelArtifactStorage';
-import { DownloadState } from './Download/Type';
 
-// Re-export types from Type.ts
+// Re-export types from Api
 export type { ModelConfig } from '../Api';
 
 export class Downloader {
@@ -22,32 +21,6 @@ export class Downloader {
         private readonly downloadTaskManager: DownloadTaskManager,
         private readonly configProvider: ConfigProvider,
     ) {}
-
-    // Core operations
-
-    public async delete(capability: string, version?: string): Promise<void> {
-        const config = await this.getConfig(capability);
-
-        if (version && config.version !== version) {
-            this.logger.warn(`Version ${version} not found for ${capability}, deleting all versions`);
-        }
-
-        await this.artifactStorage.deleteModelConfig(config);
-        const session = this.downloadTaskManager.getActiveSession(capability);
-        if (session) {
-            this.downloadTaskManager.removeSession(session.capability);
-        }
-
-        const queueItems = await this.downloadTaskManager.getByCapability(capability);
-        for (const item of queueItems) {
-            if (
-                item.getStatus() === DownloadQueueStatus.Pending ||
-                item.getStatus() === DownloadQueueStatus.Downloading
-            ) {
-                await this.downloadTaskManager.remove(item.getUuid());
-            }
-        }
-    }
 
     /**
      * Download a model bundle for the given capability.
@@ -85,15 +58,6 @@ export class Downloader {
         return executor;
     }
 
-    public async enqueueDownload(capability: string, language?: string): Promise<void> {
-        await this.configProvider.getConfig(capability, language);
-
-        await this.downloadTaskManager.add(capability, language);
-        await this.downloadTaskManager.processQueue((cap: string, lang2?: string) =>
-            this.configProvider.getConfig(cap, lang2),
-        );
-    }
-
     public async getConfig(key: string, appLanguage?: string): Promise<ModelConfig> {
         return this.configProvider.getConfig(key, appLanguage);
     }
@@ -102,14 +66,9 @@ export class Downloader {
         return this.configProvider.getConfigs(appLanguage);
     }
 
-    public async getLocalUris(capability: string, appLanguage?: string): Promise<string[]> {
+    public async isModelDownloaded(capability: string, appLanguage?: string): Promise<boolean> {
         const config = await this.getConfig(capability, appLanguage);
-        return config.files.map((file) => this.artifactStorage.getUri(config, file));
-    }
-
-    public async getPrimaryLocalUri(capability: string, appLanguage?: string): Promise<string> {
-        const config = await this.getConfig(capability, appLanguage);
-        return this.artifactStorage.getModelUri(config);
+        return this.artifactStorage.hasAllFiles(config);
     }
 
     public getLocalPath(capability: string, _version?: string): string | undefined {
@@ -131,55 +90,8 @@ export class Downloader {
         return uri;
     }
 
-    public getLocalPathForFile(config: ModelConfig, file: InferenceModelFile): string {
-        let uri = this.artifactStorage.getUri(config, file);
-
-        if (!uri.startsWith('file://') && !uri.startsWith('/')) {
-            uri = this.artifactStorage.toAbsoluteUri(uri);
-        }
-
-        return uri;
-    }
-
     public async getTotalSize(appLanguage?: string): Promise<number> {
         return this.configProvider.getTotalSize(appLanguage);
-    }
-
-    public async isModelDownloaded(capability: string, appLanguage?: string): Promise<boolean> {
-        try {
-            const config = await this.getConfig(capability, appLanguage);
-            return this.artifactStorage.hasAllFiles(config);
-        } catch {
-            return false;
-        }
-    }
-
-    public async getConfigByLocalPath(localPath: string): Promise<ModelConfig | undefined> {
-        const localConfigs = await this.getLocalConfigs();
-
-        for (const config of Object.values(localConfigs)) {
-            for (const file of config.files) {
-                const filePath = this.artifactStorage.resolvePath(config, file);
-                if (filePath === localPath || filePath.endsWith(localPath)) {
-                    return config;
-                }
-            }
-        }
-
-        return undefined;
-    }
-
-    private async getLocalConfigs(): Promise<Record<string, ModelConfig>> {
-        const sessions = this.downloadTaskManager.getActiveSessions();
-        const configs: Record<string, ModelConfig> = {};
-
-        for (const session of sessions) {
-            if (session.getState() === DownloadState.Completed) {
-                configs[session.capability] = session.config;
-            }
-        }
-
-        return configs;
     }
 }
 

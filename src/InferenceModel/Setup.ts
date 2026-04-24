@@ -1,17 +1,15 @@
 /**
  * Setup - Handles inference model download orchestration.
- *
- * Single Responsibility: Download required inference models (vad, asr, pitch).
  */
 
 import { Container } from '@/Core/Container';
 import { Localization } from '@/Localization';
-import { ExecutorCollection } from './Download/ExecutorCollection';
 import type { DownloadTaskExecutor } from './Download/DownloadTaskExecutor';
+import { ExecutorCollection } from './Download/ExecutorCollection';
 import { Downloader } from './Downloader';
 
 export class Setup {
-    private static readonly CAPABILITIES = ['vad', 'asr', 'pitch'] as const;
+    private static readonly CAPABILITIES = ['vad', 'asr', 'pitch', 'speaker_id'] as const;
 
     private readonly localization: Localization;
     private readonly modelDownloader: Downloader;

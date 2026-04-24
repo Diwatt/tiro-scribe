@@ -38,7 +38,7 @@
                         "targetSdkVersion": 35,
                         "buildToolsVersion": "35.0.0",
                         "kotlinVersion": "2.0.21",
-                        "jvmArgs": ["-Xmx4096m", "-XX:MaxMetaspaceSize=1024m"]
+                        "jvmArgs": ["-Xmx2048m", "-XX:MaxMetaspaceSize=512m"]
                     },
                     "ios": {
                         "deploymentTarget": "16.0",
@@ -54,6 +54,7 @@
             ],
             "expo-file-system",
             "expo-asset",
+            "./plugins/withGradleLimits",
             "./plugins/withOnnxruntime",
             "onnxruntime-react-native"
         ],

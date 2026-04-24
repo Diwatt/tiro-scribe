@@ -41,16 +41,6 @@ export class StartupOrchestrator {
         this.state.set(StartupState.Booting);
 
         // show an initial pending status during app boot; hide it after 5 seconds
-        const startupDelayMs = 5000;
-        const l11n = Container.get(Localization);
-        const ll = l11n.getTranslationFunctions(l11n.getLocale());
-        Container.get(GlobalActivityStatus).setStatus(
-            ActivityStatus.Pending,
-            ll.activity.starting(),
-            undefined,
-            startupDelayMs,
-        );
-
         const compatible = Container.get(DeviceCompatibilityGate).isCompatible();
         if (!compatible) {
             this.state.set(StartupState.HardwareRejected);
@@ -67,7 +57,6 @@ export class StartupOrchestrator {
         }
 
         this.state.set(StartupState.Onboarding);
-        // don't await - download continues in background
         this.downloadSpeakerId(bootStart);
     }
 

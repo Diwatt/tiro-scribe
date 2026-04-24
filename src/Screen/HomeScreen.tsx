@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SecureSessionButton, WifiRequiredModal, StatusProcessing, StatusReady } from '@/Components';
+import { SecureSessionButton, StatusProcessing, StatusReady, WifiRequiredModal } from '@/Components';
 import { Container } from '@/Core/Container';
 import { useLocalization } from '@/Localization';
 import { HomeState } from '@/State/HomeState';
@@ -19,7 +19,7 @@ export const Home = observer((): React.JSX.Element => {
     // Bind to observables
     const executors = homeState.executors.get();
     const isDownloading = executors.isDownloading.get();
-    const progress = executors.progress.get();
+    const _progress = executors.progress.get();
     const currentCapability = executors.currentCapability$.get();
     const currentCapabilityProgress = executors.currentCapabilityProgress$.get();
     const currentFileName = executors.currentFileName$.get();
@@ -33,9 +33,7 @@ export const Home = observer((): React.JSX.Element => {
     }, [homeState]);
 
     const currentFilePercent = Math.round(currentFileProgress);
-    const bannerMessage = isDownloading
-        ? `${currentFilePercent}% - ${currentFileName}`
-        : undefined;
+    const bannerMessage = isDownloading ? `${currentFilePercent}% - ${currentFileName}` : undefined;
 
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
@@ -77,7 +75,9 @@ export const Home = observer((): React.JSX.Element => {
                 {/* Status Display */}
                 {isDownloading ? (
                     <StatusProcessing
-                        title={currentCapability ? LL.download.downloading({ capability: currentCapability }) : undefined}
+                        title={
+                            currentCapability ? LL.download.downloading({ capability: currentCapability }) : undefined
+                        }
                         progress={Math.round(currentCapabilityProgress)}
                         currentTask={bannerMessage}
                     />

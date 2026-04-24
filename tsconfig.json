@@ -15,8 +15,8 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "isolatedModules": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false,
     "baseUrl": ".",
     "types": ["jest", "@testing-library/jest-native"],
     "paths": {

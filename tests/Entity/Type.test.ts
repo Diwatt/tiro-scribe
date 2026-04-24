@@ -4,10 +4,11 @@ describe('Entity Type enums', () => {
     describe('EncounterStatus', () => {
         it('has expected values', () => {
             expect(EncounterStatus.Recording).toBe('recording');
-            expect(EncounterStatus.Waiting).toBe('waiting');
-            expect(EncounterStatus.Processing).toBe('processing');
-            expect(EncounterStatus.Ready).toBe('ready');
-            expect(EncounterStatus.Archived).toBe('archived');
+            expect(EncounterStatus.Paused).toBe('paused');
+            expect(EncounterStatus.ToProcess).toBe('to_process');
+            expect(EncounterStatus.ProcessingLocal).toBe('processing_local');
+            expect(EncounterStatus.ProcessingRemote).toBe('processing_remote');
+            expect(EncounterStatus.Completed).toBe('completed');
         });
     });
 

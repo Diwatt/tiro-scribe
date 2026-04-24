@@ -9,10 +9,11 @@
 // --- ENUMS ---
 export enum EncounterStatus {
     Recording = 'recording',
-    Waiting = 'waiting',
-    Processing = 'processing',
-    Ready = 'ready',
-    Archived = 'archived',
+    Paused = 'paused',
+    ToProcess = 'to_process',
+    ProcessingLocal = 'processing_local',
+    ProcessingRemote = 'processing_remote',
+    Completed = 'completed',
 }
 export enum QueueItemStatus {
     Pending = 'pending',
