@@ -4,4 +4,5 @@
  * Add a re-export here when you add a new custom repository.
  */
 
+export { EncounterRepository } from './EncounterRepository';
 export { TherapistRepository } from './TherapistRepository';

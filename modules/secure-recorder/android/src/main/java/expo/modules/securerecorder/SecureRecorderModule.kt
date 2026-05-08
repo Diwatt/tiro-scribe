@@ -18,6 +18,10 @@ import java.io.FileDescriptor
  * starting/stopping recordings, checking permissions, and decrypting audio files.
  * Manages session lifecycle and emits status change events.
  * 
+ * ISOMORPHIC: Matches iOS SecureRecorderModule exactly
+ * - Both: startRecording, stopRecording, pauseRecording, resumeRecording, getStatus
+ * - Both: Emits onRecordingStatusChanged with state, sessionId, filePath
+ * 
  * ANDROID SPECIFICITY:
  * - Synchronous methods (Kotlin, wrapped in AsyncFunction by Expo)
  * - Uses Context.filesDir for file storage
@@ -54,6 +58,14 @@ class SecureRecorderModule : Module() {
 
     AsyncFunction("stopRecording") {
       stopRecordingInternal()
+    }
+
+    AsyncFunction("pauseRecording") {
+      pauseRecordingInternal()
+    }
+
+    AsyncFunction("resumeRecording") {
+      resumeRecordingInternal()
     }
 
     AsyncFunction("getStatus") {
@@ -165,6 +177,48 @@ class SecureRecorderModule : Module() {
     }
   }
 
+  private fun pauseRecordingInternal(): String {
+    val session = currentSession
+      ?: throw NoRecordingException()
+
+    if (!session.recordingTimer.isActive) {
+      throw NoRecordingException()
+    }
+
+    val sessionInfo = session.getInfo()
+
+    return try {
+      val filePath = session.pause()
+      emitStatusChanged(RecorderState.PAUSED, sessionInfo.sessionId, filePath)
+      filePath
+    } catch (e: SecureRecorderException) {
+      throw e
+    } catch (e: Exception) {
+      throw InitializationException("Failed to pause recording: ${e.message}", e)
+    }
+  }
+
+  private fun resumeRecordingInternal(): String {
+    val session = currentSession
+      ?: throw NoRecordingException()
+
+    if (session.recordingTimer.isActive) {
+      throw RecordingInProgressException()
+    }
+
+    val sessionInfo = session.getInfo()
+
+    return try {
+      val filePath = session.resume()
+      emitStatusChanged(RecorderState.RECORDING, sessionInfo.sessionId, filePath)
+      filePath
+    } catch (e: SecureRecorderException) {
+      throw e
+    } catch (e: Exception) {
+      throw InitializationException("Failed to resume recording: ${e.message}", e)
+    }
+  }
+
   private fun getStatusInternal(): Map<String, Any?> {
     val session = currentSession ?: return mapOf(
       "state" to RecorderState.INACTIVE.toJsString(),
@@ -173,7 +227,9 @@ class SecureRecorderModule : Module() {
     )
 
     val info = session.getInfo()
-    val state = RecorderState.fromState(info.isActive, info.filePath)
+    // Session exists but not active = paused
+    val isPaused = !info.isActive
+    val state = RecorderState.fromState(isRecording = info.isActive, isPaused = isPaused, filePath = info.filePath)
     return mapOf(
       "state" to state.toJsString(),
       "sessionId" to info.sessionId,

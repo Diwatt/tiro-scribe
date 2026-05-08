@@ -47,6 +47,14 @@ public class SecureRecorderModule: Module {
       return try await self.stopRecordingInternal()
     }
     
+    AsyncFunction("pauseRecording") { () -> String in
+      return try await self.pauseRecordingInternal()
+    }
+    
+    AsyncFunction("resumeRecording") { () -> String in
+      return try await self.resumeRecordingInternal()
+    }
+    
     AsyncFunction("getStatus") { () -> [String: Any] in
       return self.getStatusInternal()
     }
@@ -161,6 +169,50 @@ public class SecureRecorderModule: Module {
     }
   }
   
+  private func pauseRecordingInternal() async throws -> String {
+    guard let session = currentSession else {
+      throw SecureRecorderError.noRecordingInProgress
+    }
+    
+    guard session.recordingTimer.isActive else {
+      throw SecureRecorderError.noRecordingInProgress
+    }
+    
+    let sessionInfo = session.getInfo()
+    
+    do {
+      let filePath = try session.pause()
+      emitStatusChanged(state: .paused, sessionId: sessionInfo.sessionId, filePath: filePath)
+      return filePath
+    } catch let error as SecureRecorderError {
+      throw error
+    } catch {
+      throw SecureRecorderError.stopFailed(error.localizedDescription)
+    }
+  }
+  
+  private func resumeRecordingInternal() async throws -> String {
+    guard let session = currentSession else {
+      throw SecureRecorderError.noRecordingInProgress
+    }
+    
+    guard !session.recordingTimer.isActive else {
+      throw SecureRecorderError.recordingInProgress
+    }
+    
+    let sessionInfo = session.getInfo()
+    
+    do {
+      let filePath = try session.resume()
+      emitStatusChanged(state: .recording, sessionId: sessionInfo.sessionId, filePath: filePath)
+      return filePath
+    } catch let error as SecureRecorderError {
+      throw error
+    } catch {
+      throw SecureRecorderError.initializationFailed(error.localizedDescription)
+    }
+  }
+  
   private func getStatusInternal() -> [String: Any] {
     guard let session = currentSession else {
       return [
@@ -171,7 +223,9 @@ public class SecureRecorderModule: Module {
     }
     
     let info = session.getInfo()
-    let state = RecorderState.fromState(isRecording: info.isActive, filePath: info.filePath)
+    // Session exists but not active = paused
+    let isPaused = !info.isActive
+    let state = RecorderState.fromState(isRecording: info.isActive, isPaused: isPaused, filePath: info.filePath)
     return [
       "state": state.toJsString(),
       "sessionId": info.sessionId,

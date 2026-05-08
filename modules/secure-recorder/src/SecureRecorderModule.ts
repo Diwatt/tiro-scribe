@@ -40,6 +40,14 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         return this.nativeModule.startRecording(sessionId);
     }
 
+    public pauseRecording(): Promise<string> {
+        return this.nativeModule.pauseRecording();
+    }
+
+    public resumeRecording(): Promise<string> {
+        return this.nativeModule.resumeRecording();
+    }
+
     public stopRecording(): Promise<string> {
         return this.nativeModule.stopRecording();
     }

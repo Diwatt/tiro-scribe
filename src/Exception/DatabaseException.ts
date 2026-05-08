@@ -16,3 +16,23 @@ export class DatabaseException extends TiroScribeException {
         }
     }
 }
+
+/**
+ * NoActiveTherapistException - Thrown when no active therapist is found in the database.
+ *
+ * This is typically thrown when attempting to start an encounter recording
+ * but no therapist has been set up in the system.
+ */
+export class NoActiveTherapistException extends DatabaseException {
+    public constructor() {
+        super(
+            'No active therapist found. Please set up a therapist profile before recording encounters.',
+            'NO_ACTIVE_THERAPIST',
+        );
+        this.name = 'NoActiveTherapistException';
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, NoActiveTherapistException);
+        }
+    }
+}

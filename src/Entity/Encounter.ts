@@ -18,6 +18,7 @@ dayjs.extend(utc);
 
 @Entity({ tableName: 'encounters' })
 export class Encounter extends AbstractEntity {
+    private static readonly SESSION_PREFIX = 'encounter';
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     public createdAt!: Dayjs;
@@ -56,6 +57,14 @@ export class Encounter extends AbstractEntity {
 
     public addEncryptedAudioPath(path: string): void {
         this.encryptedAudioPaths = [...this.encryptedAudioPaths, path];
+    }
+
+    /**
+     * Returns the session ID for SecureRecorder.
+     * Format: encounter-{uuid}
+     */
+    public getSessionId(): string {
+        return `${Encounter.SESSION_PREFIX}-${this.uuid}`;
     }
 
     /** Add an encrypted audio path and optionally update total duration. */

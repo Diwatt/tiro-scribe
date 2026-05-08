@@ -150,4 +150,47 @@ class SessionTests: XCTestCase {
     XCTAssertEqual(outputFile.path, info.filePath, "File path should match")
     XCTAssertFalse(info.isActive, "Session should not be active initially")
   }
+  
+  // MARK: - Pause/Resume Tests
+  
+  func testPauseThrowsWhenNotRecording() {
+    XCTAssertThrowsError(try session.pause()) { error in
+      if let recorderError = error as? SecureRecorderError {
+        XCTAssertEqual(recorderError.code, "NO_RECORDING_IN_PROGRESS")
+      } else {
+        XCTFail("Expected SecureRecorderError.noRecordingInProgress")
+      }
+    }
+  }
+  
+  func testResumeThrowsWhenNotPaused() {
+    // Resume without prior start should throw because encryption stream is nil
+    XCTAssertThrowsError(try session.resume()) { error in
+      if let recorderError = error as? SecureRecorderError {
+        XCTAssertEqual(recorderError.code, "INITIALIZATION_FAILED")
+      } else {
+        XCTFail("Expected SecureRecorderError.initializationFailed")
+      }
+    }
+  }
+  
+  func testResumeThrowsWhenEncryptionStreamNotInitialized() {
+    // Create a session that was never started
+    let freshSession = Session(
+      sessionId: "fresh-session",
+      outputFile: outputFile,
+      keyManager: keyManager,
+      audioRecorder: audioRecorder,
+      audioConfig: audioConfig
+    )
+    
+    XCTAssertThrowsError(try freshSession.resume()) { error in
+      if let recorderError = error as? SecureRecorderError,
+         case .initializationFailed(let message) = recorderError {
+        XCTAssertTrue(message.contains("No encryption stream"), "Should mention missing encryption stream")
+      } else {
+        XCTFail("Expected SecureRecorderError.initializationFailed")
+      }
+    }
+  }
 }

@@ -58,56 +58,12 @@ export class HomeState {
     }
 
     /**
-     * Check Wi-Fi status and either start download or show modal.
-     */
-    private async checkWifiAndProceed(): Promise<void> {
-        const isConnected = await this.wifiVerifier.isConnected();
-
-        if (isConnected) {
-            // Wi-Fi is available - start download immediately
-            await this.beginModelDownload();
-        } else {
-            // Wi-Fi not available - show modal to prompt user
-            this.downloadSizeMB.set(Math.round(await this.modelSetup.getTotalDownloadSizeMB()));
-            this.presentSetupModal();
-        }
-    }
-
-    /**
      * Open Wi-Fi settings and start monitoring for Wi-Fi availability.
      * When Wi-Fi becomes available, the download will start automatically.
      */
     public async openWifiSettings(): Promise<void> {
         await this.wifiVerifier.openSettings();
         await this.startWifiMonitoring();
-    }
-
-    /**
-     * Start periodically checking for Wi-Fi connectivity.
-     * When Wi-Fi becomes available, automatically begins the model download.
-     */
-    private async startWifiMonitoring(): Promise<void> {
-        if (this.wifiCheckInterval !== null) {
-            return;
-        }
-
-        this.wifiCheckInterval = setInterval(async () => {
-            const isConnected = await this.wifiVerifier.isConnected();
-            if (isConnected) {
-                await this.stopWifiMonitoring();
-                await this.beginModelDownload();
-            }
-        }, this.wifiCheckIntervalMs);
-    }
-
-    /**
-     * Stop the Wi-Fi connectivity check interval.
-     */
-    private async stopWifiMonitoring(): Promise<void> {
-        if (this.wifiCheckInterval !== null) {
-            clearInterval(this.wifiCheckInterval);
-            this.wifiCheckInterval = null;
-        }
     }
 
     /**
@@ -167,15 +123,55 @@ export class HomeState {
             this.logger.error('[HomeState] navigation to recording failed', { error: err });
         }
     }
+
+    /**
+     * Check Wi-Fi status and either start download or show modal.
+     */
+    private async checkWifiAndProceed(): Promise<void> {
+        const isConnected = await this.wifiVerifier.isConnected();
+
+        if (isConnected) {
+            // Wi-Fi is available - start download immediately
+            await this.beginModelDownload();
+        } else {
+            // Wi-Fi not available - show modal to prompt user
+            this.downloadSizeMB.set(Math.round(await this.modelSetup.getTotalDownloadSizeMB()));
+            this.presentSetupModal();
+        }
+    }
+
+    /**
+     * Start periodically checking for Wi-Fi connectivity.
+     * When Wi-Fi becomes available, automatically begins the model download.
+     */
+    private async startWifiMonitoring(): Promise<void> {
+        if (this.wifiCheckInterval !== null) {
+            return;
+        }
+
+        this.wifiCheckInterval = setInterval(async () => {
+            const isConnected = await this.wifiVerifier.isConnected();
+            if (isConnected) {
+                await this.stopWifiMonitoring();
+                await this.beginModelDownload();
+            }
+        }, this.wifiCheckIntervalMs);
+    }
+
+    /**
+     * Stop the Wi-Fi connectivity check interval.
+     */
+    private async stopWifiMonitoring(): Promise<void> {
+        if (this.wifiCheckInterval !== null) {
+            clearInterval(this.wifiCheckInterval);
+            this.wifiCheckInterval = null;
+        }
+    }
 }
 
 /**
  * Register HomeState in the app Container.
  */
 Container.register(HomeState, () => {
-    return new HomeState(
-        Container.get(AppLogger),
-        Container.get(AppRouter),
-        Container.get(Setup),
-    );
+    return new HomeState(Container.get(AppLogger), Container.get(AppRouter), Container.get(Setup));
 });

@@ -229,4 +229,60 @@ class EncryptionStreamTests: XCTestCase {
     let fileBytes = try Data(contentsOf: outputFile)
     XCTAssertFalse(fileBytes.isEmpty, "File should contain encrypted data after close")
   }
+  
+  func testFlushWritesBufferedDataToDisk() throws {
+    let smallChunk = Data(repeating: 42, count: 1024) // 1KB, well below 16KB threshold
+
+    try encryptionStream.initialize()
+    try encryptionStream.write(data: smallChunk)
+
+    // Below threshold: no data should have been written yet
+    let attributesBefore = try FileManager.default.attributesOfItem(atPath: outputFile.path)
+    let fileSizeBefore = attributesBefore[.size] as? NSNumber
+    XCTAssertEqual(0, fileSizeBefore?.intValue ?? -1, "File should still be empty before flush")
+
+    // After flush, buffered data should be written to disk
+    try encryptionStream.flush()
+    let fileBytes = try Data(contentsOf: outputFile)
+    XCTAssertFalse(fileBytes.isEmpty, "File should contain encrypted data after flush")
+
+    // Verify the data can be decrypted
+    let symmetricKey = SymmetricKey(data: secretKey)
+    let sizeData = fileBytes[0..<4]
+    let chunkSize = sizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+    let sealedData = fileBytes[4..<4 + Int(chunkSize)]
+    let sealedBox = try AES.GCM.SealedBox(combined: sealedData)
+    let decrypted = try AES.GCM.open(sealedBox, using: symmetricKey)
+    XCTAssertEqual(smallChunk, decrypted, "Decrypted data should match original")
+
+    // Stream should still be usable after flush
+    let secondChunk = Data(repeating: 99, count: 1024)
+    try encryptionStream.write(data: secondChunk)
+    encryptionStream.close()
+
+    let fileBytesAfterClose = try Data(contentsOf: outputFile)
+    XCTAssertGreaterThan(fileBytesAfterClose.count, fileBytes.count, "File should have more data after second write and close")
+  }
+  
+  func testFlushThrowsWhenNotInitialized() {
+    XCTAssertThrowsError(try encryptionStream.flush()) { error in
+      if let recorderError = error as? SecureRecorderError,
+         case .recordingFailed(let message) = recorderError {
+        XCTAssertEqual("Encryption stream not initialized", message)
+      } else {
+        XCTFail("Expected SecureRecorderError.recordingFailed")
+      }
+    }
+  }
+  
+  func testFlushOnEmptyBufferIsNoOp() throws {
+    try encryptionStream.initialize()
+    
+    // flush on empty buffer should not throw and not write anything
+    try encryptionStream.flush()
+    
+    let attributes = try FileManager.default.attributesOfItem(atPath: outputFile.path)
+    let fileSize = attributes[.size] as? NSNumber
+    XCTAssertEqual(0, fileSize?.intValue ?? -1, "File should still be empty after flushing empty buffer")
+  }
 }

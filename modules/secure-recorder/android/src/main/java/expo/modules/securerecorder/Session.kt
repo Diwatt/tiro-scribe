@@ -17,6 +17,10 @@ import java.io.File
  * encryption, state management, and event handling. Manages session lifecycle from
  * initialization through cleanup.
  * 
+ * ISOMORPHIC: Matches iOS Session exactly
+ * - Both: start, pause, resume, stop, cleanup, startAudioCapture
+ * - Both: 1 encounter = 1 file (pause keeps file open)
+ * 
  * ANDROID SPECIFICITY:
  * - Uses Kotlin coroutines (CoroutineScope) for asynchronous operations
  * - start() is synchronous (no throws)
@@ -65,10 +69,27 @@ class Session(
     // Get or create encryption key
     val secretKey = keyManager.getOrCreateKey(keyAlias)
     
+    // Remove file ONLY on fresh start (not resume)
+    if (outputFile.exists()) {
+      outputFile.delete()
+    }
+    
     // Initialize encryption stream
     encryptionStream = EncryptionStream(secretKey, outputFile)
     encryptionStream.initialize()
     
+    startAudioCapture()
+    
+    return outputFile.absolutePath
+  }
+  
+  /**
+   * Start audio capture and pipeline processing
+   * 
+   * Extracted from start() to allow reuse by resume().
+   * Creates pipeline, starts audio recording, and launches processing coroutine.
+   */
+  private fun startAudioCapture() {
     // Start audio recording
     val audioRecord = audioRecorder.start()
     audioRecord.startRecording()
@@ -97,6 +118,56 @@ class Session(
     recordingJob = recordingScope.launch {
       pipeline.process()
     }
+  }
+  
+  /**
+   * Pause recording session
+   * Stops audio capture but keeps encryption stream open for resume
+   * 
+   * @return File path where encrypted audio is written
+   * @throws NoRecordingException if not currently recording
+   */
+  internal fun pause(): String {
+    if (!recordingTimer.isActive) {
+      throw expo.modules.securerecorder.exception.NoRecordingException()
+    }
+    
+    // Cancel recording job
+    recordingJob?.cancel()
+    recordingJob = null
+    
+    // Stop audio recording
+    if (::currentAudioRecord.isInitialized) {
+      audioRecorder.stop(currentAudioRecord)
+    }
+    
+    // Flush buffered audio to disk (encryption stream stays open)
+    encryptionStream.flush()
+    
+    // Deactivate state
+    recordingTimer.deactivate()
+    
+    return outputFile.absolutePath
+  }
+  
+  /**
+   * Resume recording session
+   * Restarts audio capture to existing encryption stream
+   * 
+   * @return File path where encrypted audio is written
+   * @throws RecordingInProgressException if already recording
+   * @throws InitializationException if no encryption stream to resume
+   */
+  internal fun resume(): String {
+    if (recordingTimer.isActive) {
+      throw expo.modules.securerecorder.exception.RecordingInProgressException()
+    }
+    
+    if (!::encryptionStream.isInitialized) {
+      throw expo.modules.securerecorder.exception.InitializationException("No encryption stream to resume")
+    }
+    
+    startAudioCapture()
     
     return outputFile.absolutePath
   }

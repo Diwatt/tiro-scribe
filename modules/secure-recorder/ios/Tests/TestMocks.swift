@@ -13,9 +13,11 @@ class MockEncryptionStream: EncryptionStreamProtocol {
   var initializeCallCount = 0
   var writeCallCount = 0
   var closeCallCount = 0
+  var flushCallCount = 0
   var writeData: [Data] = []
   var shouldThrowOnWrite = false
   var shouldThrowOnInitialize = false
+  var shouldThrowOnFlush = false
   
   func initialize() throws {
     initializeCallCount += 1
@@ -32,6 +34,13 @@ class MockEncryptionStream: EncryptionStreamProtocol {
     }
   }
   
+  func flush() throws {
+    flushCallCount += 1
+    if shouldThrowOnFlush {
+      throw SecureRecorderError.recordingFailed("Mock flush error")
+    }
+  }
+  
   func close() {
     closeCallCount += 1
   }
@@ -41,6 +50,7 @@ class MockEncryptionStream: EncryptionStreamProtocol {
     writeData = []
     initializeCallCount = 0
     closeCallCount = 0
+    flushCallCount = 0
   }
 }
 

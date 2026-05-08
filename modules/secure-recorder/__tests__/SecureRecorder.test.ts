@@ -47,6 +47,18 @@ describe('SecureRecorder - Comprehensive Tests', () => {
                     ensure('onRecordingStatusChanged').forEach((cb) => cb({ ...status }));
                     return status.filePath!;
                 }),
+                pauseRecording: jest.fn(async () => {
+                    status.state = RecorderState.PAUSED;
+                    fake.getStatus.mockResolvedValue({ ...status });
+                    ensure('onRecordingStatusChanged').forEach((cb) => cb({ ...status }));
+                    return status.filePath!;
+                }),
+                resumeRecording: jest.fn(async () => {
+                    status.state = RecorderState.RECORDING;
+                    fake.getStatus.mockResolvedValue({ ...status });
+                    ensure('onRecordingStatusChanged').forEach((cb) => cb({ ...status }));
+                    return status.filePath!;
+                }),
                 stopRecording: jest.fn(async () => {
                     status.state = RecorderState.STOPPED;
                     // Update getStatus to return current state (important for _syncState)
@@ -221,6 +233,52 @@ describe('SecureRecorder - Comprehensive Tests', () => {
             await recorder.start();
             expect(recorder.recording).toBe(true);
         });
+
+        it('pause should return file path and transition to paused state', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await recorder.start();
+            const filePath = await recorder.pause();
+            expect(filePath).toBe('/tmp/test.dat');
+            expect(recorder.state).toBe(RecorderState.Paused);
+        });
+
+        it('resume should return file path and transition to recording state', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await recorder.start();
+            await recorder.pause();
+            const filePath = await recorder.resume();
+            expect(filePath).toBe('/tmp/test.dat');
+            expect(recorder.state).toBe(RecorderState.Recording);
+        });
+
+        it('full lifecycle: start → pause → resume → pause → resume → stop', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+
+            await recorder.start();
+            expect(recorder.state).toBe(RecorderState.Recording);
+
+            await recorder.pause();
+            expect(recorder.state).toBe(RecorderState.Paused);
+
+            await recorder.resume();
+            expect(recorder.state).toBe(RecorderState.Recording);
+
+            await recorder.pause();
+            expect(recorder.state).toBe(RecorderState.Paused);
+
+            await recorder.resume();
+            expect(recorder.state).toBe(RecorderState.Recording);
+
+            const filePath = await recorder.stop();
+            expect(filePath).toBe('/tmp/test.dat');
+            expect(recorder.state).toBe(RecorderState.Stopped);
+        });
     });
 
     describe('M - Many Cases (Multiple Instances, Race Conditions)', () => {
@@ -323,6 +381,47 @@ describe('SecureRecorder - Comprehensive Tests', () => {
             await recorder.start();
             await recorder.stop();
             await expect(recorder.start()).rejects.toMatchObject({ code: ErrorCode.RECORDER_STOPPED });
+        });
+
+        it('should handle state transition: INACTIVE -> RECORDING -> PAUSED -> (attempt start)', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await recorder.start();
+            await recorder.pause();
+            // start() should throw when paused — must use resume()
+            await expect(recorder.start()).rejects.toMatchObject({ code: ErrorCode.INVALID_STATE });
+        });
+
+        it('should handle pause() called when inactive', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await expect(recorder.pause()).rejects.toMatchObject({ code: ErrorCode.NO_RECORDING_IN_PROGRESS });
+        });
+
+        it('should handle resume() called when inactive', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await expect(recorder.resume()).rejects.toMatchObject({ code: ErrorCode.INVALID_STATE });
+        });
+
+        it('should handle resume() called when recording (not paused)', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await recorder.start();
+            await expect(recorder.resume()).rejects.toMatchObject({ code: ErrorCode.INVALID_STATE });
+        });
+
+        it('should handle pause() called twice in a row', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await recorder.start();
+            await recorder.pause();
+            await expect(recorder.pause()).rejects.toMatchObject({ code: ErrorCode.NO_RECORDING_IN_PROGRESS });
         });
 
         it('should handle start() called immediately after constructor', async () => {

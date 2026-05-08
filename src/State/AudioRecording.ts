@@ -1,8 +1,12 @@
 import { computed, type Observable, type ObservableComputed, observable } from '@legendapp/state';
+import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration';
 import { RecorderState } from 'secure-recorder';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { EncounterRecorder } from '@/Service/EncounterRecorder';
+
+dayjs.extend(duration);
 
 /**
  * AudioRecording: State class (ViewModel) for audio recording.
@@ -25,11 +29,13 @@ export class AudioRecording {
     public readonly isPaused: Observable<boolean> = observable(false);
 
     private readonly _isRecording$: ObservableComputed<boolean>;
+    private readonly _formattedDuration$: ObservableComputed<string>;
     private readonly recorder: EncounterRecorder;
     private readonly logger: AppLogger;
 
     private durationIntervalId: ReturnType<typeof setInterval> | null = null;
     private recordingStartTime: number | null = null;
+    private accumulatedDuration = 0;
 
     public constructor(recorder: EncounterRecorder, logger: AppLogger) {
         this.recorder = recorder;
@@ -37,6 +43,10 @@ export class AudioRecording {
 
         this._isRecording$ = computed(() => {
             return this.state.get() === RecorderState.Recording;
+        });
+
+        this._formattedDuration$ = computed(() => {
+            return AudioRecording.formatDuration(this.durationMs.get());
         });
     }
 
@@ -52,11 +62,15 @@ export class AudioRecording {
         return computed(() => this.encounterUuid.get());
     }
 
+    public get formattedDuration$(): ObservableComputed<string> {
+        return this._formattedDuration$;
+    }
+
     public async start(): Promise<void> {
         this.logger.debug('▶️ [AudioRecording] start called');
 
         try {
-            const encounterUuid = await this.recorder.startRecording();
+            const encounterUuid = await this.recorder.start();
             this.encounterUuid.set(encounterUuid);
             this.state.set(RecorderState.Recording);
 
@@ -71,9 +85,10 @@ export class AudioRecording {
             });
         } catch (error: unknown) {
             this.logger.error('❌ [AudioRecording] Failed to start recording', {
-                error: error instanceof Error ? error.message : String(error),
+                error: this.serializeError(error),
             });
-            throw error;
+            // Don't re-throw - let State layer handle errors gracefully
+            // View layer should not need to catch errors
         }
     }
 
@@ -86,7 +101,7 @@ export class AudioRecording {
         this.logger.debug('⏸️ [AudioRecording] pause called');
 
         try {
-            await this.recorder.pauseRecording(this.durationMs.get());
+            await this.recorder.pause(this.durationMs.get());
             this.stopDurationTicker();
             this.isPaused.set(true);
 
@@ -95,9 +110,9 @@ export class AudioRecording {
             });
         } catch (error: unknown) {
             this.logger.error('❌ [AudioRecording] Failed to pause recording', {
-                error: error instanceof Error ? error.message : String(error),
+                error: this.serializeError(error),
             });
-            throw error;
+            // Don't re-throw - let State layer handle errors gracefully
         }
     }
 
@@ -110,7 +125,7 @@ export class AudioRecording {
         this.logger.debug('▶️ [AudioRecording] resume called');
 
         try {
-            const filePath = await this.recorder.resumeRecording();
+            const filePath = await this.recorder.resume();
             this.filePath.set(filePath);
             this.isPaused.set(false);
 
@@ -121,36 +136,43 @@ export class AudioRecording {
             });
         } catch (error: unknown) {
             this.logger.error('❌ [AudioRecording] Failed to resume recording', {
-                error: error instanceof Error ? error.message : String(error),
+                error: this.serializeError(error),
             });
-            throw error;
+            // Don't re-throw - let State layer handle errors gracefully
         }
     }
 
-    public async stop(): Promise<string> {
+    public async stop(): Promise<string | null> {
         this.logger.debug('⏹️ [AudioRecording] stop called');
 
         try {
             this.stopDurationTicker();
 
-            const filePath = await this.recorder.stopRecording(this.durationMs.get());
+            const finalDuration = this.durationMs.get();
+            const filePath = await this.recorder.stop(finalDuration);
 
             this.state.set(RecorderState.Stopped);
             this.isPaused.set(false);
             this.filePath.set(filePath);
             this.durationMs.set(0);
+            this.accumulatedDuration = 0;
 
             this.logger.debug('📝 [AudioRecording] Recording stopped', {
                 filePath,
-                durationMs: this.durationMs.get(),
+                durationMs: finalDuration,
             });
 
             return filePath;
         } catch (error: unknown) {
             this.logger.error('❌ [AudioRecording] Failed to stop recording', {
-                error: error instanceof Error ? error.message : String(error),
+                error: this.serializeError(error),
             });
-            throw error;
+            // Handle NoActiveRecordingError gracefully - recording may already be stopped
+            // Don't re-throw - let State layer handle errors gracefully
+            this.state.set(RecorderState.Stopped);
+            this.isPaused.set(false);
+            this.stopDurationTicker();
+            return this.filePath.get();
         }
     }
 
@@ -164,14 +186,27 @@ export class AudioRecording {
         this.durationMs.set(0);
         this.encounterUuid.set(null);
         this.isPaused.set(false);
+        this.accumulatedDuration = 0;
+    }
+
+    private static formatDuration(durationMs: number): string {
+        const dur = dayjs.duration(durationMs);
+        const hours = dur.hours();
+
+        if (hours > 0) {
+            return dur.format('HH:mm:ss');
+        }
+        return dur.format('mm:ss');
     }
 
     private startDurationTicker(): void {
         this.stopDurationTicker();
+        this.accumulatedDuration = this.durationMs.get();
         this.recordingStartTime = Date.now();
         this.durationIntervalId = setInterval(() => {
             if (this.recordingStartTime !== null) {
-                this.durationMs.set(Date.now() - this.recordingStartTime);
+                const currentSessionDuration = Date.now() - this.recordingStartTime;
+                this.durationMs.set(this.accumulatedDuration + currentSessionDuration);
             }
         }, AudioRecording.DURATION_TICK_MS);
     }
@@ -182,9 +217,26 @@ export class AudioRecording {
             this.durationIntervalId = null;
         }
         if (this.recordingStartTime !== null) {
-            this.durationMs.set(Date.now() - this.recordingStartTime);
+            const currentSessionDuration = Date.now() - this.recordingStartTime;
+            this.durationMs.set(this.accumulatedDuration + currentSessionDuration);
             this.recordingStartTime = null;
         }
+    }
+
+    private serializeError(error: unknown): string {
+        if (error instanceof Error) {
+            return error.message;
+        }
+
+        if (typeof error === 'object' && error !== null) {
+            const errorObj = error as Record<string, unknown>;
+            if ('code' in errorObj && 'message' in errorObj) {
+                return `Code: ${errorObj.code}, Message: ${errorObj.message}`;
+            }
+            return JSON.stringify(error);
+        }
+
+        return String(error);
     }
 }
 

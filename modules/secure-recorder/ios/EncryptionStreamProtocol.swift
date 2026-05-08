@@ -8,6 +8,7 @@ import Foundation
 internal protocol EncryptionStreamProtocol {
   func initialize() throws
   func write(data: Data) throws
+  func flush() throws
   func close()
 }
 

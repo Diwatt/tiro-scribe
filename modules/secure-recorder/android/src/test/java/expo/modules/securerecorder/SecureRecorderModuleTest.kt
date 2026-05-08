@@ -375,6 +375,161 @@ class SecureRecorderModuleTest {
   }
 
   @Test
+  fun `pauseRecordingInternal throws when no session exists`() {
+    // Access private method via reflection
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("pauseRecordingInternal")
+    method.isAccessible = true
+    
+    val invocationException = try {
+      method.invoke(module)
+      null
+    } catch (e: java.lang.reflect.InvocationTargetException) {
+      e
+    }
+    
+    val cause = invocationException?.cause
+    assertTrue("Should throw NoRecordingException", cause is NoRecordingException)
+  }
+
+  @Test
+  fun `pauseRecordingInternal throws when session not active`() {
+    // Set up inactive session
+    every { mockSession.recordingTimer.isActive } returns false
+    
+    // Inject mock session
+    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
+    sessionField.isAccessible = true
+    sessionField.set(module, mockSession)
+    
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("pauseRecordingInternal")
+    method.isAccessible = true
+    
+    val invocationException = try {
+      method.invoke(module)
+      null
+    } catch (e: java.lang.reflect.InvocationTargetException) {
+      e
+    }
+    
+    val cause = invocationException?.cause
+    assertTrue("Should throw NoRecordingException", cause is NoRecordingException)
+  }
+
+  @Test
+  fun `resumeRecordingInternal throws when no session exists`() {
+    // Access private method via reflection
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("resumeRecordingInternal")
+    method.isAccessible = true
+    
+    val invocationException = try {
+      method.invoke(module)
+      null
+    } catch (e: java.lang.reflect.InvocationTargetException) {
+      e
+    }
+    
+    val cause = invocationException?.cause
+    assertTrue("Should throw NoRecordingException", cause is NoRecordingException)
+  }
+
+  @Test
+  fun `resumeRecordingInternal throws when session is active`() {
+    // Set up active session
+    every { mockSession.recordingTimer.isActive } returns true
+    
+    // Inject mock session
+    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
+    sessionField.isAccessible = true
+    sessionField.set(module, mockSession)
+    
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("resumeRecordingInternal")
+    method.isAccessible = true
+    
+    val invocationException = try {
+      method.invoke(module)
+      null
+    } catch (e: java.lang.reflect.InvocationTargetException) {
+      e
+    }
+    
+    val cause = invocationException?.cause
+    assertTrue("Should throw RecordingInProgressException", cause is RecordingInProgressException)
+  }
+
+  @Test
+  fun `pauseRecordingInternal emits paused state event`() {
+    // Set up active session with pause support
+    every { mockSession.recordingTimer.isActive } returns true
+    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", true)
+    every { mockSession.pause() } returns "/path/to/file.dat"
+    
+    // Inject mock session
+    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
+    sessionField.isAccessible = true
+    sessionField.set(module, mockSession)
+    
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("pauseRecordingInternal")
+    method.isAccessible = true
+    
+    method.invoke(module)
+    
+    assertEquals("Should emit one event", 1, emittedEvents.size)
+    assertEquals("onRecordingStatusChanged", emittedEvents[0].first)
+    val eventData = emittedEvents[0].second
+    assertEquals("paused", eventData["state"])
+    assertEquals("test-session", eventData["sessionId"])
+    assertEquals("/path/to/file.dat", eventData["filePath"])
+    assertFalse("Should not contain reason", eventData.containsKey("reason"))
+  }
+
+  @Test
+  fun `resumeRecordingInternal emits recording state event`() {
+    // Set up paused session (not active, but has filePath)
+    every { mockSession.recordingTimer.isActive } returns false
+    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
+    every { mockSession.resume() } returns "/path/to/file.dat"
+    
+    // Inject mock session
+    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
+    sessionField.isAccessible = true
+    sessionField.set(module, mockSession)
+    
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("resumeRecordingInternal")
+    method.isAccessible = true
+    
+    method.invoke(module)
+    
+    assertEquals("Should emit one event", 1, emittedEvents.size)
+    assertEquals("onRecordingStatusChanged", emittedEvents[0].first)
+    val eventData = emittedEvents[0].second
+    assertEquals("recording", eventData["state"])
+    assertEquals("test-session", eventData["sessionId"])
+    assertEquals("/path/to/file.dat", eventData["filePath"])
+    assertFalse("Should not contain reason", eventData.containsKey("reason"))
+  }
+
+  @Test
+  fun `getStatusInternal returns paused when session exists but not active`() {
+    // Set up paused session
+    every { mockSession.recordingTimer.isActive } returns false
+    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
+    
+    // Inject mock session
+    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
+    sessionField.isAccessible = true
+    sessionField.set(module, mockSession)
+    
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("getStatusInternal")
+    method.isAccessible = true
+    @Suppress("UNCHECKED_CAST")
+    val result = method.invoke(module) as Map<String, Any?>
+    
+    assertEquals("paused", result["state"])
+    assertEquals("test-session", result["sessionId"])
+    assertEquals("/path/to/file.dat", result["filePath"])
+  }
+
+  @Test
   fun `all exceptions include code property`() {
     // Verify all custom exceptions have code property
     val recordingInProgress = RecordingInProgressException()

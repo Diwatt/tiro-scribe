@@ -13,6 +13,7 @@ import Foundation
 enum RecorderState {
   case inactive
   case recording
+  case paused
   case stopped
   
   /**
@@ -24,6 +25,8 @@ enum RecorderState {
       return "inactive"
     case .recording:
       return "recording"
+    case .paused:
+      return "paused"
     case .stopped:
       return "stopped"
     }
@@ -41,6 +44,8 @@ enum RecorderState {
       return .inactive
     case "recording":
       return .recording
+    case "paused":
+      return .paused
     case "stopped":
       return .stopped
     default:
@@ -49,12 +54,14 @@ enum RecorderState {
   }
   
   /**
-   * Calculate state from isRecording flag and filePath
+   * Calculate state from isRecording flag, isPaused flag, and filePath
    * Used internally to convert from State struct to RecorderState enum
    */
-  internal static func fromState(isRecording: Bool, filePath: String?) -> RecorderState {
+  internal static func fromState(isRecording: Bool, isPaused: Bool = false, filePath: String?) -> RecorderState {
     if isRecording {
       return .recording
+    } else if isPaused {
+      return .paused
     } else if filePath != nil {
       return .stopped
     } else {

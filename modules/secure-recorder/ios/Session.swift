@@ -77,7 +77,7 @@ class Session {
     // Get or create encryption key
     let key = try keyManager.getOrCreateKey(alias: keyAlias)
     
-    // Remove file if it exists
+    // Remove file ONLY on fresh start (not resume)
     if FileManager.default.fileExists(atPath: outputFile.path) {
       try FileManager.default.removeItem(at: outputFile)
     }
@@ -86,16 +86,24 @@ class Session {
     encryptionStream = EncryptionStream(secretKey: key, outputFile: outputFile)
     try encryptionStream.initialize()
     
-    // Start audio recording (returns AudioRecord wrapper - isomorphic with Android)
+    try startAudioCapture()
+    
+    return outputFile.path
+  }
+  
+  /**
+   * Start audio capture and pipeline processing
+   * 
+   * Extracted from start() to allow reuse by resume().
+   * Creates pipeline, starts audio recording, and launches processing loop.
+   */
+  private func startAudioCapture() throws {
     audioRecord = try audioRecorder.start()
     
-    // Initialize event handler
     initializeEventHandler()
     
-    // Activate state
     recordingTimer.activate()
     
-    // Create pipeline for audio processing (isomorphic with Android)
     pipeline = Pipeline(
       audioRecord: audioRecord,
       encryptionStream: encryptionStream,
@@ -111,10 +119,8 @@ class Session {
       }
     )
     
-    // Start recording (isomorphic: matches Android AudioRecord.startRecording())
     try audioRecord.startRecording()
     
-    // Start pipeline processing loop in background queue (isomorphic with Android coroutine)
     guard let pipelineRef = pipeline else {
       recordingTimer.deactivate()
       throw SecureRecorderError.initializationFailed("Pipeline not initialized")
@@ -125,9 +131,54 @@ class Session {
     
     queue.async { [weak pipelineRef] in
       pipelineRef?.process()
-      // Pipeline loop completed (limit reached or error)
-      // EventHandler will handle cleanup via onLimitReached/onError
     }
+  }
+  
+  /**
+   * Pause recording session
+   * Stops audio capture but keeps encryption stream open for resume
+   * 
+   * @return File path where encrypted audio is written
+   * @throws SecureRecorderError if pause fails
+   */
+  internal func pause() throws -> String {
+    guard recordingTimer.isActive else {
+      throw SecureRecorderError.noRecordingInProgress
+    }
+    
+    // Stop audio recording
+    if audioRecord != nil {
+      audioRecorder.stop(record: audioRecord)
+    }
+    
+    // Flush buffered audio to disk (encryption stream stays open)
+    try encryptionStream.flush()
+    
+    recordingTimer.deactivate()
+    pipeline = nil
+    recordingQueue = nil
+    audioRecord = nil
+    
+    return outputFile.path
+  }
+  
+  /**
+   * Resume recording session
+   * Restarts audio capture to existing encryption stream
+   * 
+   * @return File path where encrypted audio is written
+   * @throws SecureRecorderError if resume fails
+   */
+  internal func resume() throws -> String {
+    guard !recordingTimer.isActive else {
+      throw SecureRecorderError.recordingInProgress
+    }
+    
+    guard encryptionStream != nil else {
+      throw SecureRecorderError.initializationFailed("No encryption stream to resume")
+    }
+    
+    try startAudioCapture()
     
     return outputFile.path
   }

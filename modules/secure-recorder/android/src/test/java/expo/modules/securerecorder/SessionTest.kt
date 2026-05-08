@@ -716,6 +716,234 @@ class SessionTest {
 
   // MARK: - Helper Methods
 
+  // MARK: - Pause/Resume Tests
+
+  @Test
+  fun `pause throws when not recording`() {
+    val session = createSession()
+    
+    try {
+      session.pause()
+      fail("Should throw NoRecordingException")
+    } catch (e: expo.modules.securerecorder.exception.NoRecordingException) {
+      assertEquals("No recording in progress", e.message)
+    }
+  }
+
+  @Test
+  fun `pause throws when recording timer is not active`() {
+    val session = createSession()
+    session.start("test-alias")
+    session.stop()
+    
+    try {
+      session.pause()
+      fail("Should throw NoRecordingException")
+    } catch (e: expo.modules.securerecorder.exception.NoRecordingException) {
+      assertEquals("No recording in progress", e.message)
+    }
+  }
+
+  @Test
+  fun `resume throws when not paused`() {
+    val session = createSession()
+    
+    try {
+      session.resume()
+      fail("Should throw InitializationException")
+    } catch (e: expo.modules.securerecorder.exception.InitializationException) {
+      assertTrue(e.message!!.contains("No encryption stream"))
+    }
+  }
+
+  @Test
+  fun `resume throws when recording is active`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    try {
+      session.resume()
+      fail("Should throw RecordingInProgressException")
+    } catch (e: expo.modules.securerecorder.exception.RecordingInProgressException) {
+      assertEquals("Recording already in progress", e.message)
+    }
+  }
+
+  @Test
+  fun `pause flushes encryption stream`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    // Access the encryptionStream field to verify flush was called
+    val encryptionStreamField = Session::class.java.getDeclaredField("encryptionStream")
+    encryptionStreamField.isAccessible = true
+    val realStream = encryptionStreamField.get(session) as EncryptionStream
+    
+    // Write some small data (below threshold, so it stays buffered)
+    realStream.write(ByteArray(1024) { 1 })
+    
+    val filePathBeforePause = outputFile.absolutePath
+    
+    val filePath = session.pause()
+    
+    assertEquals(filePathBeforePause, filePath)
+    assertFalse("Timer should be inactive after pause", session.recordingTimer.isActive)
+    
+    // Verify data was flushed to disk (file should have content)
+    assertTrue("File should have encrypted data after pause", outputFile.length() > 0)
+  }
+
+  @Test
+  fun `pause cancels recording job`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    val recordingJobField = Session::class.java.getDeclaredField("recordingJob")
+    recordingJobField.isAccessible = true
+    val jobBefore = recordingJobField.get(session) as? Job
+    assertNotNull("Job should exist before pause", jobBefore)
+    
+    session.pause()
+    
+    val jobAfter = recordingJobField.get(session) as? Job
+    assertNull("Job should be null after pause", jobAfter)
+  }
+
+  @Test
+  fun `pause stops audio recording`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    session.pause()
+    
+    // AudioRecorder.stop should have been called twice: once from pause
+    verify(atLeast = 1) { mockAudioRecorder.stop(mockAudioRecord) }
+  }
+
+  @Test
+  fun `pause deactivates recording timer`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    assertTrue("Timer should be active before pause", session.recordingTimer.isActive)
+    
+    session.pause()
+    
+    assertFalse("Timer should be inactive after pause", session.recordingTimer.isActive)
+  }
+
+  @Test
+  fun `pause returns correct file path`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    val filePath = session.pause()
+    
+    assertEquals(outputFile.absolutePath, filePath)
+  }
+
+  @Test
+  fun `resume restarts audio capture to same file`() {
+    val session = createSession()
+    session.start("test-alias")
+    session.pause()
+    
+    // Reset mock counters
+    clearMocks(mockAudioRecorder, answers = false)
+    every { mockAudioRecorder.start() } returns mockAudioRecord
+    
+    val filePath = session.resume()
+    
+    assertEquals(outputFile.absolutePath, filePath)
+    assertTrue("Timer should be active after resume", session.recordingTimer.isActive)
+    verify(exactly = 1) { mockAudioRecorder.start() }
+    verify(exactly = 1) { mockAudioRecord.startRecording() }
+  }
+
+  @Test
+  fun `resume creates new recording job`() {
+    val session = createSession()
+    session.start("test-alias")
+    session.pause()
+    
+    val recordingJobField = Session::class.java.getDeclaredField("recordingJob")
+    recordingJobField.isAccessible = true
+    val jobAfterPause = recordingJobField.get(session) as? Job
+    assertNull("Job should be null after pause", jobAfterPause)
+    
+    session.resume()
+    
+    val jobAfterResume = recordingJobField.get(session) as? Job
+    assertNotNull("Job should exist after resume", jobAfterResume)
+  }
+
+  @Test
+  fun `pause and resume cycle preserves same file`() {
+    val session = createSession()
+    val filePath1 = session.start("test-alias")
+    val filePath2 = session.pause()
+    val filePath3 = session.resume()
+    
+    assertEquals("All paths should be the same", filePath1, filePath2)
+    assertEquals("All paths should be the same", filePath2, filePath3)
+    assertTrue("Timer should be active after resume", session.recordingTimer.isActive)
+  }
+
+  @Test
+  fun `multiple pause resume cycles work`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    repeat(3) {
+      session.pause()
+      assertFalse("Timer should be inactive after pause", session.recordingTimer.isActive)
+      
+      // Reset mock counters for next resume
+      clearMocks(mockAudioRecorder, answers = false)
+      every { mockAudioRecorder.start() } returns mockAudioRecord
+      
+      session.resume()
+      assertTrue("Timer should be active after resume", session.recordingTimer.isActive)
+    }
+    
+    // Can still stop after multiple cycles
+    val filePath = session.stop()
+    assertEquals(outputFile.absolutePath, filePath)
+    assertFalse("Timer should be inactive after stop", session.recordingTimer.isActive)
+  }
+
+  @Test
+  fun `getInfo returns correct info when paused`() {
+    val session = createSession()
+    session.start("test-alias")
+    
+    val infoActive = session.getInfo()
+    assertTrue("Should be active when recording", infoActive.isActive)
+    
+    session.pause()
+    
+    val infoPaused = session.getInfo()
+    assertFalse("Should not be active when paused", infoPaused.isActive)
+    assertEquals("test-session", infoPaused.sessionId)
+    assertEquals(outputFile.absolutePath, infoPaused.filePath)
+  }
+
+  @Test
+  fun `start deletes existing file before starting`() {
+    val session = createSession()
+    
+    // Write some content to the output file
+    outputFile.writeBytes(ByteArray(100) { 0xFF.toByte() })
+    assertTrue("File should exist", outputFile.exists())
+    assertTrue("File should have content", outputFile.length() > 0)
+    
+    session.start("test-alias")
+    
+    // File should have been deleted and recreated by EncryptionStream.initialize()
+    // The new file will be created by EncryptionStream.initialize()
+    assertTrue("File should still exist after start", outputFile.exists())
+  }
+
   private fun createSession(
     onLimitReached: (suspend (StopReason, String, String) -> Unit)? = null
   ): Session {

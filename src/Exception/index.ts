@@ -5,14 +5,15 @@
 
 export { SpeakerVectorExtractionError } from '../InferenceModel/Speaker/SpeakerVectorExtractionError';
 export { ApiClientException } from './ApiClientException';
-export { DatabaseException } from './DatabaseException';
+export { DatabaseException, NoActiveTherapistException } from './DatabaseException';
+export { EncounterNotFound } from './EncounterNotFound';
 export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
 export { FileOperationError } from './FileOperationError';
 export { HardwareGuardException } from './HardwareGuardException';
 export { InferenceModelDownloaderException } from './InferenceModelDownloaderException';
 export { InvalidAudioFormatError } from './InvalidAudioFormatError';
 export { InvalidDimensionError } from './InvalidDimensionError';
-export { NoActiveRecordingError } from './NoActiveRecordingError';
+export { NoActiveRecordingError, RecordingFilePathNotAvailableError } from './NoActiveRecordingError';
 export { NoActiveSubscriptionError } from './NoActiveSubscriptionError';
 export type { RecordingError } from './RecordingError';
 export { RecordingErrorType } from './RecordingErrorType';

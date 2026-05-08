@@ -8,5 +8,6 @@ package expo.modules.securerecorder
 interface EncryptionStreamInterface {
   fun initialize()
   fun write(data: ByteArray)
+  fun flush()
   fun close()
 }

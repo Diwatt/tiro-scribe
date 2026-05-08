@@ -160,10 +160,60 @@ export class SecureRecorder {
             );
         }
 
+        if (currentState === RecorderState.Paused) {
+            throw this.createError(
+                ErrorCode.InvalidState,
+                'Recording is paused. Use resume() instead.',
+            );
+        }
+
         try {
             const filePath = await this.nativeModule.startRecording(this._sessionId);
             this._filePath = filePath;
             // State will be updated via event listener
+        } catch (error) {
+            const normalizedError = this.errorNormalizer.normalize(error);
+            this.handleError(normalizedError);
+            throw normalizedError;
+        }
+    }
+
+    /**
+     * Pauses the current recording. File remains open.
+     * Call resume() to continue recording to the same file.
+     *
+     * @returns Promise that resolves to the absolute path of the encrypted file
+     * @throws {SecureRecorderError} If no recording is active or pausing fails
+     */
+    public async pause(): Promise<string> {
+        if (this.state !== RecorderState.Recording) {
+            throw this.createError(ErrorCode.NoRecordingInProgress, 'No recording is currently in progress');
+        }
+
+        try {
+            const filePath = await this.nativeModule.pauseRecording();
+            return filePath;
+        } catch (error) {
+            const normalizedError = this.errorNormalizer.normalize(error);
+            this.handleError(normalizedError);
+            throw normalizedError;
+        }
+    }
+
+    /**
+     * Resumes a paused recording. Continues writing to the same file.
+     *
+     * @returns Promise that resolves to the absolute path of the encrypted file
+     * @throws {SecureRecorderError} If recording is not paused or resuming fails
+     */
+    public async resume(): Promise<string> {
+        if (this.state !== RecorderState.Paused) {
+            throw this.createError(ErrorCode.InvalidState, 'Recording is not paused. Use start() to begin a new recording.');
+        }
+
+        try {
+            const filePath = await this.nativeModule.resumeRecording();
+            return filePath;
         } catch (error) {
             const normalizedError = this.errorNormalizer.normalize(error);
             this.handleError(normalizedError);

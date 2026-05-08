@@ -123,6 +123,16 @@ class EncryptionStream {
   }
   
   /**
+   * Flush buffered plaintext to disk as encrypted chunk(s)
+   * 
+   * Used during pause to ensure all buffered audio data is persisted
+   * before stopping audio capture, keeping the encryption stream open.
+   */
+  internal func flush() throws {
+    try flushBufferToDisk()
+  }
+  
+  /**
    * Close encryption stream
    * 
    * Safe to call multiple times (idempotent)

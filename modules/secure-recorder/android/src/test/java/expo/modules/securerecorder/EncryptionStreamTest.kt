@@ -212,6 +212,51 @@ class EncryptionStreamTest {
   }
 
   @Test
+  fun `flush writes buffered data to disk`() {
+    val smallChunk = ByteArray(1024) { 7 } // 1KB, well below 16KB threshold
+
+    encryptionStream.initialize()
+    encryptionStream.write(smallChunk)
+
+    // Below threshold: no data should have been written yet
+    assertEquals("File should still be empty before flushing threshold", 0L, outputFile.length())
+
+    // Flush should write the buffered data
+    encryptionStream.flush()
+
+    val fileBytes = outputFile.readBytes()
+    assertTrue("File should contain encrypted data after flush", fileBytes.isNotEmpty())
+
+    // Verify the sealed box structure: 4 (size) + 12 (IV) + data + 16 (tag)
+    val expectedSize = 4 + 12 + smallChunk.size + 16
+    assertEquals("File should contain one sealed box after flush", expectedSize, fileBytes.size)
+
+    // Decrypt and verify
+    val iv = fileBytes.copyOfRange(4, 16)
+    val ciphertextWithTag = fileBytes.copyOfRange(16, fileBytes.size)
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, iv))
+    val decrypted = cipher.doFinal(ciphertextWithTag)
+    assertArrayEquals("Decrypted data should match original", smallChunk, decrypted)
+  }
+
+  @Test
+  fun `flush can be called multiple times safely`() {
+    val smallChunk = ByteArray(1024) { 7 }
+
+    encryptionStream.initialize()
+    encryptionStream.write(smallChunk)
+    encryptionStream.flush()
+    encryptionStream.flush() // Should not throw or corrupt
+    encryptionStream.flush()
+
+    // Verify file is still valid (one sealed box)
+    val fileBytes = outputFile.readBytes()
+    val expectedSize = 4 + 12 + smallChunk.size + 16
+    assertEquals("File should contain one sealed box", expectedSize, fileBytes.size)
+  }
+
+  @Test
   fun `data is only written after threshold or close`() {
     val smallChunk = ByteArray(1024) { 7 } // 1KB, well below 16KB threshold
 

@@ -16,4 +16,5 @@ export enum ErrorCode {
     DecryptionFailed = 'DecryptionFailed',
     PermissionCheckFailed = 'PermissionCheckFailed',
     PermissionRequestFailed = 'PermissionRequestFailed',
+    InvalidState = 'InvalidState',
 }
