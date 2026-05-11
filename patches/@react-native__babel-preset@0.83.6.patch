@@ -1,0 +1,13 @@
+diff --git a/src/configs/main.js b/src/configs/main.js
+index a2f5e1e53a663c07ce8fa3def3a1d6d7828a4557..b5a5fa1a5a81e06d9afcf25ea2a69c2d7bea1e64 100644
+--- a/src/configs/main.js
++++ b/src/configs/main.js
+@@ -98,7 +98,7 @@ const getPreset = (src, options) => {
+     );
+   }
+ 
+-  if (hasClass && !preserveClasses) {
++  if (hasClass && !preserveClasses && !isHermes) {
+     extraPlugins.push([require('@babel/plugin-transform-classes')]);
+   }
+ 
