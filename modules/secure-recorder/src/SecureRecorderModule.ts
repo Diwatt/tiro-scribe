@@ -1,4 +1,3 @@
-import { requireNativeModule } from 'expo-modules-core';
 import type { NativeSecureRecorderModule, RecordingStatus } from './Type';
 
 export type { DecryptedChunkEvent, RecordingStatus } from './Type';
@@ -7,17 +6,14 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
     public readonly eventAudioChunkDecrypted = 'onAudioChunkDecrypted';
     private _nativeModule: NativeSecureRecorderModule | null = null;
 
-    private get nativeModule(): NativeSecureRecorderModule {
-        // lazy-load the native implementation; expo-modules-core will throw if the
-        // module isn't registered (e.g. when running in Expo Go). We catch that
-        // and rephrase the message so developers know what to do instead of
-        // staring at a cryptic "Cannot find native module" error.
+    // Lazily loads the native module via await import() to prevent PlatformConstants
+    // TurboModule crash during module evaluation. Cached after first call.
+    private async getNativeModule(): Promise<NativeSecureRecorderModule> {
         if (this._nativeModule == null) {
             try {
+                const { requireNativeModule } = await import('expo-modules-core');
                 this._nativeModule = requireNativeModule('SecureRecorder');
             } catch (err) {
-                // original error message may already be descriptive, but we add
-                // guidance about the build environment.
                 const original = err instanceof Error ? err.message : String(err);
                 throw new Error(
                     `SecureRecorder native module unavailable. ` +
@@ -36,43 +32,43 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         return this._nativeModule;
     }
 
-    public startRecording(sessionId: string): Promise<string> {
-        return this.nativeModule.startRecording(sessionId);
+    public async start(sessionId: string): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.start(sessionId));
     }
 
-    public pauseRecording(): Promise<string> {
-        return this.nativeModule.pauseRecording();
+    public async pause(): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.pause());
     }
 
-    public resumeRecording(): Promise<string> {
-        return this.nativeModule.resumeRecording();
+    public async resume(): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.resume());
     }
 
-    public stopRecording(): Promise<string> {
-        return this.nativeModule.stopRecording();
+    public async stop(): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.stop());
     }
 
-    public getStatus(): Promise<RecordingStatus> {
-        return this.nativeModule.getStatus();
+    public async getStatus(): Promise<RecordingStatus> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.getStatus());
     }
 
-    public hasPermission(): Promise<boolean> {
-        return this.nativeModule.hasPermission();
+    public async hasPermission(): Promise<boolean> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.hasPermission());
     }
 
-    public stream(encryptedPath: string): Promise<void> {
-        return this.nativeModule.stream(encryptedPath);
+    public async stream(encryptedPath: string): Promise<void> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.stream(encryptedPath));
     }
 
-    public addListener<TEventPayload = unknown>(
+    public async addListener<TEventPayload = unknown>(
         event: string,
         listener: (data: TEventPayload) => void,
-    ): { remove: () => void } {
-        return this.nativeModule.addListener(event, listener);
+    ): Promise<{ remove: () => void }> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.addListener(event, listener));
     }
 
-    public removeAllListeners(event?: string): void {
-        this.nativeModule.removeAllListeners(event);
+    public async removeAllListeners(event?: string): Promise<void> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.removeAllListeners(event));
     }
 }
 

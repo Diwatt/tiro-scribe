@@ -16,9 +16,10 @@ import { EncounterStatus } from './Type';
 
 dayjs.extend(utc);
 
+const SESSION_PREFIX = 'encounter';
+
 @Entity({ tableName: 'encounters' })
 export class Encounter extends AbstractEntity {
-    private static readonly SESSION_PREFIX = 'encounter';
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     public createdAt!: Dayjs;
@@ -64,7 +65,7 @@ export class Encounter extends AbstractEntity {
      * Format: encounter-{uuid}
      */
     public getSessionId(): string {
-        return `${Encounter.SESSION_PREFIX}-${this.uuid}`;
+        return `${SESSION_PREFIX}-${this.uuid}`;
     }
 
     /** Add an encrypted audio path and optionally update total duration. */

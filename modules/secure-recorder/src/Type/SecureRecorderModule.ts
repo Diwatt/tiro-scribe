@@ -5,10 +5,10 @@ import type { RecordingStatus } from './RecordingStatus';
  * Used by the forwarding object in SecureRecorderModule and by NativeModuleProxy.
  */
 export interface NativeSecureRecorderModule {
-    startRecording(sessionId: string): Promise<string>;
-    pauseRecording(): Promise<string>;
-    resumeRecording(): Promise<string>;
-    stopRecording(): Promise<string>;
+    start(sessionId: string): Promise<string>;
+    pause(): Promise<string>;
+    resume(): Promise<string>;
+    stop(): Promise<string>;
     getStatus(): Promise<RecordingStatus>;
     hasPermission(): Promise<boolean>;
     stream(encryptedPath: string): Promise<void>;

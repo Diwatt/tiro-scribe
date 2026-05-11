@@ -52,24 +52,24 @@ class SecureRecorderModule : Module() {
 
     Events("onRecordingStatusChanged", "onAudioChunkDecrypted")
 
-    AsyncFunction("startRecording") { sessionId: String ->
-      startRecordingInternal(sessionId)
+    AsyncFunction("start") { sessionId: String ->
+      start(sessionId)
     }
 
-    AsyncFunction("stopRecording") {
-      stopRecordingInternal()
+    AsyncFunction("stop") {
+      stop()
     }
 
-    AsyncFunction("pauseRecording") {
-      pauseRecordingInternal()
+    AsyncFunction("pause") {
+      pause()
     }
 
-    AsyncFunction("resumeRecording") {
-      resumeRecordingInternal()
+    AsyncFunction("resume") {
+      resume()
     }
 
     AsyncFunction("getStatus") {
-      getStatusInternal()
+      status()
     }
 
     AsyncFunction("hasPermission") {
@@ -77,7 +77,7 @@ class SecureRecorderModule : Module() {
     }
 
     AsyncFunction("stream") { encryptedPath: String ->
-      streamDecryptionInternal(encryptedPath)
+      stream(encryptedPath)
     }
   }
   
@@ -96,15 +96,23 @@ class SecureRecorderModule : Module() {
     currentSession = null
   }
 
-  private fun startRecordingInternal(sessionId: String): String {
+  /**
+   * Checks if recording is currently in progress.
+   * @return true if a session exists and is actively recording
+   */
+  private fun isRecording(): Boolean {
+    val session = currentSession ?: return false
+    return session.recordingTimer.isActive
+  }
+
+  private fun start(sessionId: String): String {
     // Validate session ID
     if (sessionId.isBlank()) {
       throw InitializationException("Session ID cannot be empty")
     }
 
     // Check if already recording
-    val existingSession = currentSession
-    if (existingSession != null && existingSession.recordingTimer.isActive) {
+    if (isRecording()) {
       throw RecordingInProgressException()
     }
 
@@ -150,15 +158,11 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun stopRecordingInternal(): String {
-    val session = currentSession
-      ?: throw NoRecordingException()
-
-    if (!session.recordingTimer.isActive) {
+  private fun stop(): String {
+    if (!isRecording()) {
       throw NoRecordingException()
     }
-
-    // Get session info before stopping
+    val session = currentSession!!
     val sessionInfo = session.getInfo()
 
     try {
@@ -177,14 +181,11 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun pauseRecordingInternal(): String {
-    val session = currentSession
-      ?: throw NoRecordingException()
-
-    if (!session.recordingTimer.isActive) {
+  private fun pause(): String {
+    if (!isRecording()) {
       throw NoRecordingException()
     }
-
+    val session = currentSession!!
     val sessionInfo = session.getInfo()
 
     return try {
@@ -198,14 +199,11 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun resumeRecordingInternal(): String {
-    val session = currentSession
-      ?: throw NoRecordingException()
-
+  private fun resume(): String {
+    val session = currentSession ?: throw NoRecordingException()
     if (session.recordingTimer.isActive) {
       throw RecordingInProgressException()
     }
-
     val sessionInfo = session.getInfo()
 
     return try {
@@ -219,7 +217,7 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun getStatusInternal(): Map<String, Any?> {
+  private fun status(): Map<String, Any?> {
     val session = currentSession ?: return mapOf(
       "state" to RecorderState.INACTIVE.toJsString(),
       "sessionId" to null,
@@ -251,7 +249,7 @@ class SecureRecorderModule : Module() {
    * 
    * @throws SecureRecorderException if decryption fails
    */
-  private fun streamDecryptionInternal(encryptedPath: String) {
+  private fun stream(encryptedPath: String) {
     try {
       val encryptedFile = File(encryptedPath)
       

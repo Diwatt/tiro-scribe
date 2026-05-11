@@ -848,8 +848,8 @@ class SessionTest {
     session.start("test-alias")
     session.pause()
     
-    // Reset mock counters
-    clearMocks(mockAudioRecorder, answers = false)
+    // Reset mock counters and call history
+    clearMocks(mockAudioRecorder, mockAudioRecord)
     every { mockAudioRecorder.start() } returns mockAudioRecord
     
     val filePath = session.resume()

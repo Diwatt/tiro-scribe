@@ -85,37 +85,47 @@ export class VoiceCalibrationRecorder {
         let offset = 0;
 
         try {
+            // Create the promise first, then register the listener that can resolve it
             const pcmPromise = new Promise<Float32Array>((resolve, reject) => {
-                const subscription = SecureRecorder.addDecryptionListener((event) => {
-                    const bytes = event.data as Uint8Array;
-                    const int16Array = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.length / 2);
+                // Use an async IIFE to handle the async addDecryptionListener
+                (async () => {
+                    try {
+                        let offset = 0;
+                        const buffer = new Float32Array(expectedSamples);
 
-                    // log chunk info to help debug short recordings
-                    this.logger.debug('[VoiceCalibrationRecorder] decryption chunk', {
-                        bytes: bytes.length,
-                        isLast: event.isLast,
-                        offsetBefore: offset,
-                    });
+                        const subscription = await SecureRecorder.addDecryptionListener((event) => {
+                            const bytes = event.data as Uint8Array;
+                            const int16Array = new Int16Array(
+                                bytes.buffer,
+                                bytes.byteOffset,
+                                bytes.length / 2,
+                            );
 
-                    for (const sample of int16Array) {
-                        if (offset < expectedSamples) {
-                            buffer[offset++] = sample / VoiceCalibrationRecorder.MAX_INT16;
-                        }
+                            this.logger.debug('[VoiceCalibrationRecorder] decryption chunk', {
+                                bytes: bytes.length,
+                                isLast: event.isLast,
+                                offsetBefore: offset,
+                            });
+
+                            for (const sample of int16Array) {
+                                if (offset < expectedSamples) {
+                                    buffer[offset++] = sample / VoiceCalibrationRecorder.MAX_INT16;
+                                }
+                            }
+
+                            this.logger.debug('[VoiceCalibrationRecorder] offset updated', { offset });
+
+                            if (event.isLast) {
+                                subscription.remove();
+                                resolve(buffer);
+                            }
+                        });
+
+                        await SecureRecorder.stream(encryptedFilePath);
+                    } catch (error) {
+                        reject(error);
                     }
-
-                    // log after processing the chunk so we can see growth
-                    this.logger.debug('[VoiceCalibrationRecorder] offset updated', { offset });
-
-                    if (event.isLast) {
-                        subscription.remove();
-                        resolve(buffer);
-                    }
-                });
-
-                SecureRecorder.stream(encryptedFilePath).then(undefined, (err: unknown) => {
-                    subscription.remove();
-                    reject(err);
-                });
+                })();
             });
 
             const pcm = await pcmPromise;

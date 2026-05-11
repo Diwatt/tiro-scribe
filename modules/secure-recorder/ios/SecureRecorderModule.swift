@@ -39,32 +39,32 @@ public class SecureRecorderModule: Module {
     
     Events("onRecordingStatusChanged", "onAudioChunkDecrypted")
     
-    AsyncFunction("startRecording") { (sessionId: String) -> String in
-      return try await self.startRecordingInternal(sessionId: sessionId)
+    AsyncFunction("start") { (sessionId: String) -> String in
+      return try await self.start(sessionId: sessionId)
     }
     
-    AsyncFunction("stopRecording") { () -> String in
-      return try await self.stopRecordingInternal()
+    AsyncFunction("stop") {
+      return try await self.stop()
     }
     
-    AsyncFunction("pauseRecording") { () -> String in
-      return try await self.pauseRecordingInternal()
+    AsyncFunction("pause") {
+      return try await self.pause()
     }
     
-    AsyncFunction("resumeRecording") { () -> String in
-      return try await self.resumeRecordingInternal()
+    AsyncFunction("resume") {
+      return try await self.resume()
     }
     
-    AsyncFunction("getStatus") { () -> [String: Any] in
-      return self.getStatusInternal()
+    AsyncFunction("getStatus") {
+      return self.status()
     }
     
-    AsyncFunction("hasPermission") { () -> Bool in
+    AsyncFunction("hasPermission") {
       return self.hasPermission()
     }
     
     AsyncFunction("stream") { (encryptedPath: String) -> Void in
-      try await self.streamDecryptionInternal(encryptedPath: encryptedPath)
+      try await self.stream(encryptedPath: encryptedPath)
     }
   }
   
@@ -86,15 +86,26 @@ public class SecureRecorderModule: Module {
     }
     currentSession = nil
   }
+
+  /**
+   * Checks if recording is currently in progress.
+   * - Returns: true if a session exists and is actively recording
+   */
+  private func isRecording() -> Bool {
+    guard let session = currentSession else {
+      return false
+    }
+    return session.recordingTimer.isActive
+  }
   
-  private func startRecordingInternal(sessionId: String) async throws -> String {
+  private func start(sessionId: String) async throws -> String {
     // Validate session ID
     guard !sessionId.isEmpty else {
       throw SecureRecorderError.initializationFailed("Session ID cannot be empty")
     }
     
     // Check if already recording
-    if let session = currentSession, session.recordingTimer.isActive {
+    if isRecording() {
       throw SecureRecorderError.recordingInProgress
     }
     
@@ -141,24 +152,19 @@ public class SecureRecorderModule: Module {
     }
   }
   
-  private func stopRecordingInternal() async throws -> String {
-    guard let session = currentSession else {
+  private func stop() async throws -> String {
+    guard isRecording() else {
       throw SecureRecorderError.noRecordingInProgress
     }
-    
-    guard session.recordingTimer.isActive else {
-      throw SecureRecorderError.noRecordingInProgress
-    }
-    
-    // Get session info before stopping
+    let session = currentSession!
     let sessionInfo = session.getInfo()
-    
+
     do {
       let filePath = try session.stop()
       currentSession = nil
-      
+
       emitStatusChanged(state: .stopped, sessionId: sessionInfo.sessionId, filePath: filePath, reason: .userStopped)
-      
+
       return filePath
     } catch let error as SecureRecorderError {
       cleanupSession()
@@ -169,17 +175,13 @@ public class SecureRecorderModule: Module {
     }
   }
   
-  private func pauseRecordingInternal() async throws -> String {
-    guard let session = currentSession else {
+  private func pause() async throws -> String {
+    guard isRecording() else {
       throw SecureRecorderError.noRecordingInProgress
     }
-    
-    guard session.recordingTimer.isActive else {
-      throw SecureRecorderError.noRecordingInProgress
-    }
-    
+    let session = currentSession!
     let sessionInfo = session.getInfo()
-    
+
     do {
       let filePath = try session.pause()
       emitStatusChanged(state: .paused, sessionId: sessionInfo.sessionId, filePath: filePath)
@@ -191,17 +193,15 @@ public class SecureRecorderModule: Module {
     }
   }
   
-  private func resumeRecordingInternal() async throws -> String {
+  private func resume() async throws -> String {
     guard let session = currentSession else {
       throw SecureRecorderError.noRecordingInProgress
     }
-    
-    guard !session.recordingTimer.isActive else {
+    guard session.recordingTimer.isActive == false else {
       throw SecureRecorderError.recordingInProgress
     }
-    
     let sessionInfo = session.getInfo()
-    
+
     do {
       let filePath = try session.resume()
       emitStatusChanged(state: .recording, sessionId: sessionInfo.sessionId, filePath: filePath)
@@ -213,7 +213,7 @@ public class SecureRecorderModule: Module {
     }
   }
   
-  private func getStatusInternal() -> [String: Any] {
+  private func status() -> [String: Any] {
     guard let session = currentSession else {
       return [
         "state": RecorderState.inactive.toJsString(),
@@ -253,7 +253,7 @@ public class SecureRecorderModule: Module {
    * 
    * @throws SecureRecorderError if decryption fails
    */
-  private func streamDecryptionInternal(encryptedPath: String) async throws -> Void {
+  private func stream(encryptedPath: String) async throws -> Void {
     let encryptedFileURL = URL(fileURLWithPath: encryptedPath)
     
     // Validate encrypted file exists

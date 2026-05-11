@@ -70,7 +70,7 @@ class SecureRecorderModuleTests: XCTestCase {
       // Access private method via reflection or test helper
       // Since we can't easily access private methods, we test through public interface
       // This test documents the expected behavior
-      let result = try await module.startRecording(sessionId: "")
+      let result = try await module.start(sessionId: "")
       XCTFail("Should throw InitializationException for empty sessionId, got: \(result)")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "INITIALIZATION_FAILED", "Should throw initializationFailed")
@@ -82,7 +82,7 @@ class SecureRecorderModuleTests: XCTestCase {
   
   func testStartRecordingInternalThrowsWhenSessionIdIsBlank() async {
     do {
-      let result = try await module.startRecording(sessionId: "   ")
+      let result = try await module.start(sessionId: "   ")
       XCTFail("Should throw for blank sessionId, got: \(result)")
     } catch {
       // Expected - blank sessionId should fail validation
@@ -92,7 +92,7 @@ class SecureRecorderModuleTests: XCTestCase {
   
   func testStopRecordingInternalThrowsWhenNoSessionExists() async {
     do {
-      let result = try await module.stopRecording()
+      let result = try await module.stop()
       XCTFail("Should throw NoRecordingException when no session, got: \(result)")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
@@ -176,18 +176,18 @@ class SecureRecorderModuleTests: XCTestCase {
     
     // First, try to start a recording (may fail without permissions)
     do {
-      _ = try await module.startRecording(sessionId: "session-1")
+      _ = try await module.start(sessionId: "session-1")
       
       // Try to start again
       do {
-        _ = try await module.startRecording(sessionId: "session-2")
+        _ = try await module.start(sessionId: "session-2")
         XCTFail("Should throw RecordingInProgressException when already recording")
       } catch let error as SecureRecorderError {
         XCTAssertEqual(error.code, "RECORDING_IN_PROGRESS", "Should throw recordingInProgress")
       }
       
       // Clean up
-      _ = try? await module.stopRecording()
+      _ = try? await module.stop()
     } catch {
       // Expected in test environment without permissions
       // Test structure is what matters
@@ -199,7 +199,7 @@ class SecureRecorderModuleTests: XCTestCase {
     // Since we can't easily set internal state, we document the behavior
     
     do {
-      _ = try await module.stopRecording()
+      _ = try await module.stop()
       XCTFail("Should throw when no active session")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
@@ -226,8 +226,8 @@ class SecureRecorderModuleTests: XCTestCase {
     // Test that special characters are handled
     // May fail without permissions, but structure should be correct
     do {
-      _ = try await module.startRecording(sessionId: sessionId)
-      _ = try? await module.stopRecording()
+      _ = try await module.start(sessionId: sessionId)
+      _ = try? await module.stop()
       XCTAssertTrue(true, "Special characters handled")
     } catch {
       // Expected in test environment
@@ -239,8 +239,8 @@ class SecureRecorderModuleTests: XCTestCase {
     let sessionId = "session-测试-файл"
     
     do {
-      _ = try await module.startRecording(sessionId: sessionId)
-      _ = try? await module.stopRecording()
+      _ = try await module.start(sessionId: sessionId)
+      _ = try? await module.stop()
       XCTAssertTrue(true, "Unicode characters handled")
     } catch {
       // Expected in test environment
@@ -252,8 +252,8 @@ class SecureRecorderModuleTests: XCTestCase {
     let longSessionId = String(repeating: "a", count: 1000)
     
     do {
-      _ = try await module.startRecording(sessionId: longSessionId)
-      _ = try? await module.stopRecording()
+      _ = try await module.start(sessionId: longSessionId)
+      _ = try? await module.stop()
       XCTAssertTrue(true, "Long sessionId handled")
     } catch {
       // Expected in test environment
@@ -335,9 +335,9 @@ class SecureRecorderModuleTests: XCTestCase {
     // we test the behavior
     
     do {
-      _ = try await module.startRecording(sessionId: "test-session")
+      _ = try await module.start(sessionId: "test-session")
       // May succeed if permissions are granted in test environment
-      _ = try? await module.stopRecording()
+      _ = try? await module.stop()
     } catch let error as SecureRecorderError {
       if error.code == "PERMISSION_DENIED" {
         XCTAssertEqual(error.code, "PERMISSION_DENIED", "Should throw permissionDenied")
@@ -352,8 +352,8 @@ class SecureRecorderModuleTests: XCTestCase {
     // Since Session is created internally, we test the error handling structure
     
     do {
-      _ = try await module.startRecording(sessionId: "test-session")
-      _ = try? await module.stopRecording()
+      _ = try await module.start(sessionId: "test-session")
+      _ = try? await module.stop()
     } catch let error as SecureRecorderError {
       // May throw initializationFailed if setup fails
       XCTAssertNotNil(error.code, "Error should have code")
@@ -367,7 +367,7 @@ class SecureRecorderModuleTests: XCTestCase {
     // Since we can't easily mock internal Session, we document the behavior
     
     do {
-      _ = try await module.stopRecording()
+      _ = try await module.stop()
       XCTFail("Should throw when no session")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
@@ -437,7 +437,7 @@ class SecureRecorderModuleTests: XCTestCase {
   
   func testPauseRecordingInternalThrowsWhenNoSessionExists() async {
     do {
-      _ = try await module.pauseRecording()
+      _ = try await module.pause()
       XCTFail("Should throw when no session exists")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
@@ -449,7 +449,7 @@ class SecureRecorderModuleTests: XCTestCase {
   func testPauseRecordingInternalThrowsWhenSessionNotActive() async {
     // No active session exists, so pause should fail
     do {
-      _ = try await module.pauseRecording()
+      _ = try await module.pause()
       XCTFail("Should throw when session not active")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
@@ -460,7 +460,7 @@ class SecureRecorderModuleTests: XCTestCase {
   
   func testResumeRecordingInternalThrowsWhenNoSessionExists() async {
     do {
-      _ = try await module.resumeRecording()
+      _ = try await module.resume()
       XCTFail("Should throw when no session exists")
     } catch let error as SecureRecorderError {
       XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
@@ -472,18 +472,18 @@ class SecureRecorderModuleTests: XCTestCase {
   func testResumeRecordingInternalThrowsWhenSessionIsActive() async throws {
     // Start a recording first
     do {
-      _ = try await module.startRecording(sessionId: "test-pause-session")
+      _ = try await module.start(sessionId: "test-pause-session")
       
       // Now try to resume while recording is active
       do {
-        _ = try await module.resumeRecording()
+        _ = try await module.resume()
         XCTFail("Should throw when session is already active")
       } catch let error as SecureRecorderError {
         XCTAssertEqual(error.code, "RECORDING_IN_PROGRESS", "Should throw recordingInProgress")
       }
       
       // Clean up
-      _ = try? await module.stopRecording()
+      _ = try? await module.stop()
     } catch {
       // Expected in test environment without permissions
       XCTAssertNotNil(error)

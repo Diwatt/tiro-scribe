@@ -1,4 +1,3 @@
-import { requestRecordingPermissionsAsync } from 'expo-audio';
 import type { EventSubscription } from 'expo-modules-core';
 import { DecryptionManager } from './DecryptionManager';
 import { ErrorCode } from './ErrorCode';
@@ -86,13 +85,7 @@ export class SecureRecorder {
 
         this._sessionId = sessionId;
 
-        // Subscribe to native status changes
-        this.eventSubscription = this.eventEmitter.addListener(
-            'onRecordingStatusChanged',
-            (status: RecordingStatus) => {
-                this.updateStateFromStatus(status);
-            },
-        ) as EventSubscription;
+        // Event subscription moved to initialize() since addListener is now async
     }
 
     /**
@@ -106,6 +99,16 @@ export class SecureRecorder {
      * ```
      */
     public async initialize(): Promise<void> {
+        // Subscribe to native status changes (async since addListener is now async)
+        if (this.eventSubscription === null) {
+            this.eventSubscription = (await this.eventEmitter.addListener(
+                'onRecordingStatusChanged',
+                (status: RecordingStatus) => {
+                    this.updateStateFromStatus(status);
+                },
+            )) as EventSubscription;
+        }
+
         await this.syncState();
     }
 
@@ -168,7 +171,7 @@ export class SecureRecorder {
         }
 
         try {
-            const filePath = await this.nativeModule.startRecording(this._sessionId);
+            const filePath = await this.nativeModule.start(this._sessionId);
             this._filePath = filePath;
             // State will be updated via event listener
         } catch (error) {
@@ -191,7 +194,7 @@ export class SecureRecorder {
         }
 
         try {
-            const filePath = await this.nativeModule.pauseRecording();
+            const filePath = await this.nativeModule.pause();
             return filePath;
         } catch (error) {
             const normalizedError = this.errorNormalizer.normalize(error);
@@ -212,7 +215,7 @@ export class SecureRecorder {
         }
 
         try {
-            const filePath = await this.nativeModule.resumeRecording();
+            const filePath = await this.nativeModule.resume();
             return filePath;
         } catch (error) {
             const normalizedError = this.errorNormalizer.normalize(error);
@@ -233,7 +236,7 @@ export class SecureRecorder {
         }
 
         try {
-            const filePath = await this.nativeModule.stopRecording();
+            const filePath = await this.nativeModule.stop();
             // State will be updated via event listener
             return filePath;
         } catch (error) {
@@ -259,7 +262,7 @@ export class SecureRecorder {
      * Static utility method (like MediaDevices.getUserMedia).
      */
     public static async hasPermission(): Promise<boolean> {
-        return await SecureRecorder.getPermissionManager().hasPermission();
+        return await (await SecureRecorder.getPermissionManager()).hasPermission();
     }
 
     /**
@@ -271,7 +274,7 @@ export class SecureRecorder {
      * @throws {SecureRecorderError} If permission request fails
      */
     public static async requestPermission(): Promise<boolean> {
-        return await SecureRecorder.getPermissionManager().requestPermission();
+        return await (await SecureRecorder.getPermissionManager()).requestPermission();
     }
 
     /**
@@ -292,8 +295,8 @@ export class SecureRecorder {
      *
      * await SecureRecorder.stream(filePath);
      */
-    public static addDecryptionListener(listener: (event: DecryptedChunkEvent) => void): EventSubscription {
-        return SecureRecorderModule.addListener(SecureRecorderModule.eventAudioChunkDecrypted, listener);
+    public static async addDecryptionListener(listener: (event: DecryptedChunkEvent) => void): Promise<EventSubscription> {
+        return await SecureRecorderModule.addListener(SecureRecorderModule.eventAudioChunkDecrypted, listener);
     }
 
     /**
@@ -356,10 +359,16 @@ export class SecureRecorder {
     }
 
     // Static factory for PermissionManager (for backward compatibility)
-    private static getPermissionManager(): PermissionManager {
+    // Lazy-imports expo-audio to prevent PlatformConstants TurboModule crash
+    // during module evaluation (the static import chain forces expo-audio to
+    // initialize before the native module registry is ready).
+    private static async getPermissionManager(): Promise<PermissionManager> {
         SecureRecorder.permissionManager ??= new PermissionManager(
             SecureRecorderModule,
-            requestRecordingPermissionsAsync,
+            async () => {
+                const { requestRecordingPermissionsAsync } = await import('expo-audio');
+                return await requestRecordingPermissionsAsync();
+            },
         );
 
         return SecureRecorder.permissionManager;

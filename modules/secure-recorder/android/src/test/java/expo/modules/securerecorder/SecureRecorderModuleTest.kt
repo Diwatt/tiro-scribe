@@ -104,30 +104,30 @@ class SecureRecorderModuleTest {
   // MARK: - Z - Zero Cases (Empty/Null/Missing Data)
 
   @Test
-  fun `startRecordingInternal throws when sessionId is empty`() {
-    // Note: startRecordingInternal is private and async, so we test through public interface
+  fun `start throws when sessionId is empty`() {
+    // Note: start is private and async, so we test through public interface
     // This test documents expected behavior - actual testing requires public API or refactoring
     // The method should throw InitializationException with message containing "empty"
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `startRecordingInternal throws when sessionId is blank`() {
-    // Note: startRecordingInternal is private and async
+  fun `start throws when sessionId is blank`() {
+    // Note: start is private and async
     // This test documents expected behavior
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `stopRecordingInternal throws when no session exists`() {
-    // Note: stopRecordingInternal is private and async
+  fun `stop throws when no session exists`() {
+    // Note: stop is private and async
     // This test documents expected behavior - should throw NoRecordingException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `getStatusInternal returns inactive when no session`() {
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("getStatusInternal")
+  fun `status returns inactive when no session`() {
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("status")
     method.isAccessible = true
     @Suppress("UNCHECKED_CAST")
     val result = method.invoke(module) as Map<String, Any?>
@@ -138,15 +138,15 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `streamDecryptionInternal throws when file does not exist`() {
-    // Note: streamDecryptionInternal is private and async
+  fun `stream throws when file does not exist`() {
+    // Note: stream is private and async
     // This test documents expected behavior - should throw InitializationException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `streamDecryptionInternal throws when encryptedPath is empty`() {
-    // Note: streamDecryptionInternal is private and async
+  fun `stream throws when encryptedPath is empty`() {
+    // Note: stream is private and async
     // This test documents expected behavior
     assertTrue("Test documents expected behavior", true)
   }
@@ -154,8 +154,8 @@ class SecureRecorderModuleTest {
   // MARK: - O - One Cases (Happy Path)
 
   @Test
-  fun `startRecordingInternal successfully starts recording`() {
-    // Note: startRecordingInternal is private and creates Session internally
+  fun `start successfully starts recording`() {
+    // Note: start is private and creates Session internally
     // This test documents expected behavior - Session should be created and started
     // Full testing requires refactoring SecureRecorderModule to accept Session factory
     // For now, we verify the structure exists
@@ -194,23 +194,23 @@ class SecureRecorderModuleTest {
   // MARK: - M - Many Cases (Multiple Calls, Race Conditions)
 
   @Test
-  fun `startRecordingInternal throws when already recording`() {
-    // Note: startRecordingInternal is private and async
+  fun `start throws when already recording`() {
+    // Note: start is private and async
     // This test documents expected behavior - should throw RecordingInProgressException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `stopRecordingInternal throws when session not active`() {
-    // Note: stopRecordingInternal is private and async
+  fun `stop throws when session not active`() {
+    // Note: stop is private and async
     // This test documents expected behavior - should throw NoRecordingException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `getStatusInternal returns correct state when session exists`() {
-    // Note: getStatusInternal is private
-    // getStatus() is defined as AsyncFunction in definition(), not a direct method
+  fun `status returns correct state when session exists`() {
+    // Note: status is private
+    // status() is defined as AsyncFunction in definition(), not a direct method
     // This test documents expected behavior - when no session, should return inactive state
     assertTrue("Test documents expected behavior - getStatusInternal returns inactive when no session", true)
   }
@@ -218,7 +218,7 @@ class SecureRecorderModuleTest {
   // MARK: - B - Boundary Cases (Edge Cases)
 
   @Test
-  fun `startRecordingInternal handles sessionId with special characters`() {
+  fun `start handles sessionId with special characters`() {
     // Note: createOutputFile is private
     // This test documents expected behavior - special characters should be handled
     val sessionId = "session-123 (test) [2024]"
@@ -227,7 +227,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `startRecordingInternal handles sessionId with unicode characters`() {
+  fun `start handles sessionId with unicode characters`() {
     // Note: createOutputFile is private
     // This test documents expected behavior - unicode should be handled
     val sessionId = "session-测试-файл"
@@ -236,7 +236,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `startRecordingInternal handles very long sessionId`() {
+  fun `start handles very long sessionId`() {
     // Note: createOutputFile is private
     // This test documents expected behavior - long sessionId should be handled
     val longSessionId = "a".repeat(1000)
@@ -247,7 +247,7 @@ class SecureRecorderModuleTest {
   // MARK: - I - Interface Cases (Mock Verification)
 
   @Test
-  fun `startRecordingInternal calls keyManager getOrCreateKey with correct alias`() {
+  fun `start calls keyManager getOrCreateKey with correct alias`() {
     // Note: keyManager is private and lazy-initialized
     // This test documents expected behavior - keyManager.getOrCreateKey("secure_recorder_key") should be called
     assertTrue("Test documents expected behavior", true)
@@ -333,51 +333,51 @@ class SecureRecorderModuleTest {
   // MARK: - E - Exception Cases (Error Handling)
 
   @Test
-  fun `startRecordingInternal throws PermissionDeniedException when no permission`() {
+  fun `start throws PermissionDeniedException when no permission`() {
     // Note: hasPermission is private and uses Context
     // This test documents expected behavior - should throw PermissionDeniedException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `startRecordingInternal throws InitializationException when KeyManager fails`() {
+  fun `start throws InitializationException when KeyManager fails`() {
     // Note: KeyManager is private and lazy-initialized
     // This test documents expected behavior - KeyStoreException should be wrapped in InitializationException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `startRecordingInternal calls cleanupSession on SecureRecorderException`() {
+  fun `start calls cleanupSession on SecureRecorderException`() {
     // Note: cleanupSession is private
     // This test documents expected behavior - cleanupSession should be called on errors
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `stopRecordingInternal calls cleanupSession on exception`() {
+  fun `stop calls cleanupSession on exception`() {
     // Note: stopRecordingInternal is private and async
     // This test documents expected behavior - cleanupSession should be called on errors
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `streamDecryptionInternal throws InitializationException when KeyManager fails`() {
+  fun `stream throws InitializationException when KeyManager fails`() {
     // Note: streamDecryptionInternal is private and async
     // This test documents expected behavior - KeyStoreException should be wrapped in InitializationException
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `streamDecryptionInternal handles FileShredder errors gracefully`() {
+  fun `stream handles FileShredder errors gracefully`() {
     // Note: streamDecryptionInternal is private and async
     // This test documents expected behavior - FileShredder errors should be silently ignored (try?)
     assertTrue("Test documents expected behavior", true)
   }
 
   @Test
-  fun `pauseRecordingInternal throws when no session exists`() {
+  fun `pause throws when no session exists`() {
     // Access private method via reflection
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("pauseRecordingInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("pause")
     method.isAccessible = true
     
     val invocationException = try {
@@ -392,7 +392,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `pauseRecordingInternal throws when session not active`() {
+  fun `pause throws when session not active`() {
     // Set up inactive session
     every { mockSession.recordingTimer.isActive } returns false
     
@@ -401,7 +401,7 @@ class SecureRecorderModuleTest {
     sessionField.isAccessible = true
     sessionField.set(module, mockSession)
     
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("pauseRecordingInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("pause")
     method.isAccessible = true
     
     val invocationException = try {
@@ -416,9 +416,9 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `resumeRecordingInternal throws when no session exists`() {
+  fun `resume throws when no session exists`() {
     // Access private method via reflection
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("resumeRecordingInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("resume")
     method.isAccessible = true
     
     val invocationException = try {
@@ -433,7 +433,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `resumeRecordingInternal throws when session is active`() {
+  fun `resume throws when session is active`() {
     // Set up active session
     every { mockSession.recordingTimer.isActive } returns true
     
@@ -442,7 +442,7 @@ class SecureRecorderModuleTest {
     sessionField.isAccessible = true
     sessionField.set(module, mockSession)
     
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("resumeRecordingInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("resume")
     method.isAccessible = true
     
     val invocationException = try {
@@ -457,7 +457,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `pauseRecordingInternal emits paused state event`() {
+  fun `pause emits paused state event`() {
     // Set up active session with pause support
     every { mockSession.recordingTimer.isActive } returns true
     every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", true)
@@ -468,7 +468,7 @@ class SecureRecorderModuleTest {
     sessionField.isAccessible = true
     sessionField.set(module, mockSession)
     
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("pauseRecordingInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("pause")
     method.isAccessible = true
     
     method.invoke(module)
@@ -483,7 +483,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `resumeRecordingInternal emits recording state event`() {
+  fun `resume emits recording state event`() {
     // Set up paused session (not active, but has filePath)
     every { mockSession.recordingTimer.isActive } returns false
     every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
@@ -494,7 +494,7 @@ class SecureRecorderModuleTest {
     sessionField.isAccessible = true
     sessionField.set(module, mockSession)
     
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("resumeRecordingInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("resume")
     method.isAccessible = true
     
     method.invoke(module)
@@ -509,7 +509,7 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `getStatusInternal returns paused when session exists but not active`() {
+  fun `status returns paused when session exists but not active`() {
     // Set up paused session
     every { mockSession.recordingTimer.isActive } returns false
     every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
@@ -519,7 +519,7 @@ class SecureRecorderModuleTest {
     sessionField.isAccessible = true
     sessionField.set(module, mockSession)
     
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("getStatusInternal")
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("status")
     method.isAccessible = true
     @Suppress("UNCHECKED_CAST")
     val result = method.invoke(module) as Map<String, Any?>

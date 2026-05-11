@@ -5,10 +5,10 @@ import type { RecordingStatus } from './RecordingStatus';
  * Enables dependency inversion and testability.
  */
 export interface NativeRecorderModule {
-    startRecording(sessionId: string): Promise<string>;
-    pauseRecording(): Promise<string>;
-    resumeRecording(): Promise<string>;
-    stopRecording(): Promise<string>;
+    start(sessionId: string): Promise<string>;
+    pause(): Promise<string>;
+    resume(): Promise<string>;
+    stop(): Promise<string>;
     getStatus(): Promise<RecordingStatus>;
     hasPermission(): Promise<boolean>;
     stream(encryptedPath: string): Promise<void>;
