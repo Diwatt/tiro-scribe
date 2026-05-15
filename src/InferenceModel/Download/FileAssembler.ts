@@ -1,5 +1,6 @@
 
 import type { File, FileHandle } from 'expo-file-system';
+import type { AppLogger } from '@/Core/AppLogger';
 
 /**
  * FileAssembler – Stateful file I/O manager that tracks download progress.
@@ -13,9 +14,21 @@ export class FileAssembler {
     public constructor(
         private readonly file: File,
         private readonly totalBytes: number,
+        private readonly logger?: AppLogger,
     ) {
-        this.handle = this.file.open();
+        // Ensure a clean slate: delete any stale file from a previous
+        // failed download so we never append to or overwrite partial data.
+        if (file.exists) {
+            file.delete();
+        }
+        file.create();
+
+        this.handle = file.open();
         this.downloadedBytes = 0;
+
+        if (this.logger) {
+            this.logger.debug(`FileAssembler: opened ${file.uri}, handle offset=${this.handle.offset}, file size=${file.size}`);
+        }
     }
 
     /**
@@ -53,6 +66,11 @@ export class FileAssembler {
      * Write a chunk of bytes to the file and update progress.
      */
     public writeChunk(bytes: Uint8Array): void {
+        // Defensive: ensure the handle offset matches our tracked position.
+        // This catches any silent offset drift caused by the platform.
+        if (this.handle.offset !== this.downloadedBytes) {
+            this.handle.offset = this.downloadedBytes;
+        }
         this.handle.writeBytes(bytes);
         this.downloadedBytes += bytes.length;
     }

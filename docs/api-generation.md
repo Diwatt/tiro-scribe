@@ -36,9 +36,9 @@ export default {
 Install and run:
 
 ```bash
-bun add -D @hey-api/openapi-ts
-bun add @hey-api/client-axios
-bunx openapi-ts -c openapi-ts.config.js
+pnpm add -D @hey-api/openapi-ts
+pnpm add @hey-api/client-axios
+pnpm dlx openapi-ts -c openapi-ts.config.js
 ```
 
 No post-processing of generated files is required; casing is controlled by the generator config.

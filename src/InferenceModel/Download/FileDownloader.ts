@@ -1,35 +1,32 @@
-import type { File } from 'expo-file-system';
+import { Directory, File } from 'expo-file-system';
 import type { AppLogger } from '@/Core/AppLogger';
 import { InferenceModelDownloaderException } from '@/Exception';
-import { FileNetworkClient } from './FileNetworkClient';
-import { FileAssembler } from './FileAssembler';
 
 /**
- * FileDownloader – High-level orchestrator for chunked file downloads.
- * Single Responsibility: Coordinate FileNetworkClient and FileAssembler, yield progress to caller.
+ * FileDownloader – Downloads files using native expo-file-system downloadFileAsync.
+ *
+ * Uses `File.downloadFileAsync()` which performs the download entirely at the
+ * native layer, bypassing the buggy `expo/fetch` ReadableStream on Android
+ * (Hermes) that silently drops 8192 bytes per 5 MB chunk.
+ *
+ * Single Responsibility: Download a file from URL to disk, yield progress.
  */
 export class FileDownloader {
     public constructor(
         private readonly destinationFile: File,
         private readonly logger: AppLogger,
-        private readonly chunkSize: number = 5 * 1024 * 1024, // 5 MB
     ) {}
 
     /**
-     * Download a file from a URL with progress tracking.
+     * Download a file from a URL using native download.
      * Async generator that yields progress updates (0-1).
      * @param url - The URL to download from
-     * @param totalBytes - The total file size in bytes (from API)
+     * @param totalBytes - The total file size in bytes (from API, used for progress)
      * @returns Async generator that yields progress updates (0-1) and completes when download finishes
      * @throws {InferenceModelDownloaderException} If download fails
      */
     public async *download(url: string, totalBytes: number): AsyncGenerator<number, void, void> {
         this.logger.debug(`Downloading file from ${url} to ${this.destinationFile.uri} (${totalBytes} bytes)`);
-
-        this.ensureDestinationFileExists();
-
-        const fileNetworkClient = new FileNetworkClient();
-        const fileAssembler = new FileAssembler(this.destinationFile, totalBytes);
 
         try {
             yield 0;
@@ -40,68 +37,64 @@ export class FileDownloader {
                 return;
             }
 
-            // Small file bypass — fetch without Range headers
-            if (totalBytes <= this.chunkSize) {
-                yield* this.downloadSmallFile(url, fileNetworkClient, fileAssembler);
-                return;
+            // Ensure destination is clean (delete stale file from previous attempt)
+            if (this.destinationFile.exists) {
+                this.destinationFile.delete();
             }
 
-            this.logger.debug(`Large file (${totalBytes} bytes), downloading in chunks`);
+            // Get parent directory and ensure it exists
+            const parentDir = this.destinationFile.parentDirectory;
+            if (parentDir && !parentDir.exists) {
+                parentDir.create();
+            }
 
-            // Large file — download in chunks using Range headers
-            while (!fileAssembler.isComplete()) {
-                const start = fileAssembler.getBytesWritten();
-                const end = Math.min(start + this.chunkSize - 1, totalBytes - 1);
+            this.logger.debug(`Starting native download: ${url}`);
 
-                this.logger.debug(`Fetching range: bytes=${start}-${end} for ${url}`);
+            // Use the native download API — downloads directly to disk without
+            // going through the JS ReadableStream that drops bytes on Android.
+            const downloadedFile = await File.downloadFileAsync(
+                url,
+                parentDir ?? new Directory(this.destinationFile.uri.substring(0, this.destinationFile.uri.lastIndexOf('/'))),
+            );
 
-                const chunkBytes = await fileNetworkClient.fetchRange(url, start, end);
+            // Native download creates a file with the remote filename.
+            // If the name differs from our destination, rename/move it.
+            if (downloadedFile.uri !== this.destinationFile.uri) {
+                this.logger.debug(`Renaming ${downloadedFile.uri} -> ${this.destinationFile.uri}`);
+                // Copy the downloaded file to our destination path
+                downloadedFile.copy(this.destinationFile);
+                // Delete the original
+                if (downloadedFile.exists) {
+                    downloadedFile.delete();
+                }
+            }
 
-                fileAssembler.writeChunk(chunkBytes);
+            // Verify the file exists and has content
+            if (!this.destinationFile.exists) {
+                throw new InferenceModelDownloaderException(
+                    `Download completed but file does not exist: ${this.destinationFile.uri}`,
+                );
+            }
 
-                const progress = fileAssembler.getProgress();
-                this.logger.debug(`Progress: ${(progress * 100).toFixed(1)}%`);
-                yield progress;
+            const actualSize = this.destinationFile.size;
+            this.logger.debug(`Download completed: ${url} -> ${this.destinationFile.uri} (${actualSize} bytes)`);
+
+            if (actualSize !== totalBytes) {
+                this.logger.warn(
+                    `Size mismatch after native download: expected ${totalBytes}, got ${actualSize} (delta ${totalBytes - actualSize})`,
+                );
             }
 
             yield 1;
-
-            this.logger.debug(`Download completed: ${url} -> ${this.destinationFile.uri}`);
         } catch (error) {
+            if (error instanceof InferenceModelDownloaderException) {
+                throw error;
+            }
             this.logger.error(`Failed to download file from ${url}:`, error);
             throw new InferenceModelDownloaderException(
                 `Failed to download file from ${url}: ${error}`,
                 error instanceof Error ? error : new Error(String(error)),
             );
-        } finally {
-            fileAssembler.close();
         }
-    }
-
-    private ensureDestinationFileExists(): void {
-        if (!this.destinationFile.exists) {
-            try {
-                this.destinationFile.create();
-            } catch (err) {
-                throw new InferenceModelDownloaderException(
-                    `Failed to create output file ${this.destinationFile.uri}`,
-                    err instanceof Error ? err : new Error(String(err)),
-                );
-            }
-        }
-    }
-
-    private async *downloadSmallFile(
-        url: string,
-        fileNetworkClient: FileNetworkClient,
-        fileAssembler: FileAssembler,
-    ): AsyncGenerator<number, void, void> {
-        this.logger.debug(`Small file, fetching without Range headers`);
-
-        const bytes = await fileNetworkClient.fetch(url);
-        fileAssembler.writeChunk(bytes);
-
-        yield 1;
-        this.logger.debug(`Download completed (small file): ${url} -> ${this.destinationFile.uri}`);
     }
 }

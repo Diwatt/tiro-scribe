@@ -37,15 +37,22 @@ describe('FileNetworkClient', () => {
     describe('fetchRange', () => {
         describe('Z - Zero Cases', () => {
             it('should handle zero-length range (start equals end)', async () => {
+                const reader = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '1' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array([0])),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange('https://example.com/file.bin', 0, 0);
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/file.bin', 0, 0, (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toBeInstanceOf(Uint8Array);
+                expect(receivedChunks).toEqual([]);
                 expect(mockFetch).toHaveBeenCalledWith(
                     'https://example.com/file.bin',
                     expect.objectContaining({ headers: expect.any(Object) }),
@@ -53,55 +60,86 @@ describe('FileNetworkClient', () => {
             });
 
             it('should handle single byte range', async () => {
+                const reader = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: new Uint8Array([42]) })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '1' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array([42])),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange('https://example.com/file.bin', 5, 5);
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/file.bin', 5, 5, (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toHaveLength(1);
-                expect(result[0]).toBe(42);
+                expect(receivedChunks).toEqual([new Uint8Array([42])]);
+                expect(receivedChunks[0]).toHaveLength(1);
+                expect(receivedChunks[0][0]).toBe(42);
             });
 
             it('should return empty Uint8Array for empty response', async () => {
+                const reader = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '0' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array(0)),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange('https://example.com/empty.bin', 0, 0);
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/empty.bin', 0, 0, (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toBeInstanceOf(Uint8Array);
-                expect(result).toHaveLength(0);
+                expect(receivedChunks).toEqual([]);
+                expect(receivedChunks).toHaveLength(0);
             });
         });
 
         describe('O - One Cases (Happy Path)', () => {
             it('should successfully fetch a range and return bytes', async () => {
                 const chunkData = new Uint8Array([1, 2, 3, 4, 5]);
+                const reader = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2]) })
+                        .mockResolvedValueOnce({ done: false, value: new Uint8Array([3, 4, 5]) })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '5' },
-                    bytes: jest.fn().mockResolvedValue(chunkData),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange('https://example.com/model.onnx', 0, 4);
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/model.onnx', 0, 4, (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toEqual(chunkData);
-                expect(mockFetch).toHaveBeenCalledTimes(1);
+                expect(receivedChunks).toEqual([new Uint8Array([1, 2]), new Uint8Array([3, 4, 5])]);
+                expect(reader.releaseLock).toHaveBeenCalled();
             });
 
             it('should include Range header in request', async () => {
+                const reader = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '100' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array(100)),
+                    body: { getReader: () => reader },
                 });
 
-                await client.fetchRange('https://example.com/file.bin', 1000, 1999);
+                await client.fetchRange('https://example.com/file.bin', 1000, 1999, () => {});
 
                 expect(mockFetch).toHaveBeenCalledWith(
                     'https://example.com/file.bin',
@@ -118,75 +156,122 @@ describe('FileNetworkClient', () => {
                 const chunk2 = new Uint8Array([4, 5, 6]);
                 const chunk3 = new Uint8Array([7, 8, 9]);
 
+                const reader1 = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: chunk1 })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+                const reader2 = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: chunk2 })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+                const reader3 = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: chunk3 })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+
                 mockFetch
                     .mockResolvedValueOnce({
                         status: 206,
                         headers: { get: () => '3' },
-                        bytes: jest.fn().mockResolvedValue(chunk1),
+                        body: { getReader: () => reader1 },
                     })
                     .mockResolvedValueOnce({
                         status: 206,
                         headers: { get: () => '3' },
-                        bytes: jest.fn().mockResolvedValue(chunk2),
+                        body: { getReader: () => reader2 },
                     })
                     .mockResolvedValueOnce({
                         status: 206,
                         headers: { get: () => '3' },
-                        bytes: jest.fn().mockResolvedValue(chunk3),
+                        body: { getReader: () => reader3 },
                     });
 
-                const result1 = await client.fetchRange('https://example.com/file.bin', 0, 2);
-                const result2 = await client.fetchRange('https://example.com/file.bin', 3, 5);
-                const result3 = await client.fetchRange('https://example.com/file.bin', 6, 8);
+                const result1: Uint8Array[] = [];
+                const result2: Uint8Array[] = [];
+                const result3: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/file.bin', 0, 2, (chunk) => result1.push(chunk));
+                await client.fetchRange('https://example.com/file.bin', 3, 5, (chunk) => result2.push(chunk));
+                await client.fetchRange('https://example.com/file.bin', 6, 8, (chunk) => result3.push(chunk));
 
-                expect(result1).toEqual(chunk1);
-                expect(result2).toEqual(chunk2);
-                expect(result3).toEqual(chunk3);
+                expect(result1).toEqual([chunk1]);
+                expect(result2).toEqual([chunk2]);
+                expect(result3).toEqual([chunk3]);
                 expect(mockFetch).toHaveBeenCalledTimes(3);
             });
         });
 
         describe('B - Boundary Cases', () => {
             it('should handle large starting byte value', async () => {
+                const reader = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '5' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array(5)),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange(
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange(
                     'https://example.com/large.bin',
                     Number.MAX_SAFE_INTEGER - 10,
                     Number.MAX_SAFE_INTEGER - 6,
+                    (chunk) => receivedChunks.push(chunk),
                 );
 
-                expect(result).toBeInstanceOf(Uint8Array);
+                expect(receivedChunks).toEqual([]);
             });
 
             it('should handle very small file at boundary', async () => {
+                const reader = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: new Uint8Array([255]) })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '1' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array([255])),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange('https://example.com/single-byte.bin', 0, 0);
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/single-byte.bin', 0, 0, (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toHaveLength(1);
-                expect(result[0]).toBe(255);
+                expect(receivedChunks).toHaveLength(1);
+                expect(receivedChunks[0]).toHaveLength(1);
+                expect(receivedChunks[0][0]).toBe(255);
             });
 
             it('should handle large chunk sizes at boundary', async () => {
                 const largeChunk = new Uint8Array(10 * 1024 * 1024);
+                const reader = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: largeChunk })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => String(largeChunk.length) },
-                    bytes: jest.fn().mockResolvedValue(largeChunk),
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetchRange('https://example.com/large.bin', 0, 10 * 1024 * 1024 - 1);
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetchRange('https://example.com/large.bin', 0, 10 * 1024 * 1024 - 1, (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toHaveLength(10 * 1024 * 1024);
+                expect(receivedChunks[0]).toHaveLength(10 * 1024 * 1024);
             });
         });
 
@@ -198,7 +283,7 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => '10485760' },
                 });
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 1023)).rejects.toThrow('Server ignored Range header');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 1023, () => {})).rejects.toThrow('Server ignored Range header');
             });
 
             it('should throw for 400 Bad Request', async () => {
@@ -208,7 +293,7 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => '0' },
                 });
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 100)).rejects.toThrow('400');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 100, () => {})).rejects.toThrow('400');
             });
 
             it('should throw for 401 Unauthorized', async () => {
@@ -218,7 +303,7 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => '0' },
                 });
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 100)).rejects.toThrow('401');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 100, () => {})).rejects.toThrow('401');
             });
 
             it('should throw for 404 Not Found', async () => {
@@ -228,7 +313,7 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => '0' },
                 });
 
-                await expect(client.fetchRange('https://example.com/nonexistent.bin', 0, 100)).rejects.toThrow('404');
+                await expect(client.fetchRange('https://example.com/nonexistent.bin', 0, 100, () => {})).rejects.toThrow('404');
             });
 
             it('should throw for 500 Internal Server Error', async () => {
@@ -238,19 +323,19 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => '0' },
                 });
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 100)).rejects.toThrow('500');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 100, () => {})).rejects.toThrow('500');
             });
 
             it('should throw when fetch throws network error', async () => {
                 mockFetch.mockRejectedValue(new Error('Network is unreachable'));
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 100)).rejects.toThrow('Network is unreachable');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 100, () => {})).rejects.toThrow('Network is unreachable');
             });
 
             it('should throw when fetch throws timeout', async () => {
                 mockFetch.mockRejectedValue(new Error('Request timeout'));
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 100)).rejects.toThrow('Request timeout');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 100, () => {})).rejects.toThrow('Request timeout');
             });
 
             it('should include content-length in error message when server returns 200', async () => {
@@ -260,7 +345,7 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => '52428800' },
                 });
 
-                await expect(client.fetchRange('https://example.com/large.bin', 0, 1023)).rejects.toThrow('52428800');
+                await expect(client.fetchRange('https://example.com/large.bin', 0, 1023, () => {})).rejects.toThrow('52428800');
             });
 
             it('should handle unknown content-length in error message', async () => {
@@ -270,19 +355,23 @@ describe('FileNetworkClient', () => {
                     headers: { get: () => null as unknown as string },
                 });
 
-                await expect(client.fetchRange('https://example.com/file.bin', 0, 1023)).rejects.toThrow('unknown');
+                await expect(client.fetchRange('https://example.com/file.bin', 0, 1023, () => {})).rejects.toThrow('unknown');
             });
         });
 
         describe('I - Interface Verification', () => {
             it('should pass correct URL to fetch', async () => {
+                const reader = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 206,
                     headers: { get: () => '10' },
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array(10)),
+                    body: { getReader: () => reader },
                 });
 
-                await client.fetchRange('https://cdn.example.com/models/vad.onnx', 1024, 2048);
+                await client.fetchRange('https://cdn.example.com/models/vad.onnx', 1024, 2048, () => {});
 
                 expect(mockFetch).toHaveBeenCalledWith(
                     'https://cdn.example.com/models/vad.onnx',
@@ -293,33 +382,44 @@ describe('FileNetworkClient', () => {
 
         describe('S - Sequencing and Reentrancy', () => {
             it('should handle concurrent requests', async () => {
+                const reader1 = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+                const reader2 = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+                const reader3 = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+
                 mockFetch
                     .mockResolvedValueOnce({
                         status: 206,
                         headers: { get: () => '10' },
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(10)),
+                        body: { getReader: () => reader1 },
                     })
                     .mockResolvedValueOnce({
                         status: 206,
                         headers: { get: () => '10' },
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(10)),
+                        body: { getReader: () => reader2 },
                     })
                     .mockResolvedValueOnce({
                         status: 206,
                         headers: { get: () => '10' },
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(10)),
+                        body: { getReader: () => reader3 },
                     });
 
                 const promises = [
-                    client.fetchRange('https://example.com/file.bin', 0, 9),
-                    client.fetchRange('https://example.com/file.bin', 10, 19),
-                    client.fetchRange('https://example.com/file.bin', 20, 29),
+                    client.fetchRange('https://example.com/file.bin', 0, 9, () => {}),
+                    client.fetchRange('https://example.com/file.bin', 10, 19, () => {}),
+                    client.fetchRange('https://example.com/file.bin', 20, 29, () => {}),
                 ];
 
-                const results = await Promise.all(promises);
+                await Promise.all(promises);
 
-                expect(results).toHaveLength(3);
-                expect(results.every((r) => r instanceof Uint8Array)).toBe(true);
                 expect(mockFetch).toHaveBeenCalledTimes(3);
             });
 
@@ -328,17 +428,22 @@ describe('FileNetworkClient', () => {
                 let resolveCount = 0;
 
                 mockFetch.mockImplementation(() => {
-                    callOrder.push(resolveCount++);
+                    const idx = resolveCount++;
+                    callOrder.push(idx);
+                    const reader = {
+                        read: jest.fn().mockResolvedValue({ done: true }),
+                        releaseLock: jest.fn(),
+                    };
                     return Promise.resolve({
                         status: 206,
                         headers: { get: () => '10' },
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(10)),
+                        body: { getReader: () => reader },
                     });
                 });
 
-                await client.fetchRange('https://example.com/file.bin', 0, 9);
-                await client.fetchRange('https://example.com/file.bin', 10, 19);
-                await client.fetchRange('https://example.com/file.bin', 20, 29);
+                await client.fetchRange('https://example.com/file.bin', 0, 9, () => {});
+                await client.fetchRange('https://example.com/file.bin', 10, 19, () => {});
+                await client.fetchRange('https://example.com/file.bin', 20, 29, () => {});
 
                 expect(callOrder).toEqual([0, 1, 2]);
             });
@@ -349,27 +454,42 @@ describe('FileNetworkClient', () => {
         describe('O - One Cases (Happy Path)', () => {
             it('should successfully fetch a full file and return bytes', async () => {
                 const fileData = new Uint8Array([1, 2, 3, 4, 5]);
+                const reader = {
+                    read: jest.fn()
+                        .mockResolvedValueOnce({ done: false, value: fileData })
+                        .mockResolvedValueOnce({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 200,
                     statusText: 'OK',
                     ok: true,
-                    bytes: jest.fn().mockResolvedValue(fileData),
+                    headers: { get: jest.fn() },
+                    body: { getReader: () => reader },
                 });
 
-                const result = await client.fetch('https://example.com/model.onnx');
+                const receivedChunks: Uint8Array[] = [];
+                await client.fetch('https://example.com/model.onnx', (chunk) => {
+                    receivedChunks.push(chunk);
+                });
 
-                expect(result).toEqual(fileData);
+                expect(receivedChunks).toEqual([fileData]);
                 expect(mockFetch).toHaveBeenCalledTimes(1);
             });
 
             it('should make a simple GET request without headers', async () => {
+                const reader = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
                 mockFetch.mockResolvedValueOnce({
                     status: 200,
                     ok: true,
-                    bytes: jest.fn().mockResolvedValue(new Uint8Array(100)),
+                    headers: { get: jest.fn() },
+                    body: { getReader: () => reader },
                 });
 
-                await client.fetch('https://example.com/file.bin');
+                await client.fetch('https://example.com/file.bin', () => {});
 
                 expect(mockFetch).toHaveBeenCalledWith('https://example.com/file.bin');
             });
@@ -383,7 +503,7 @@ describe('FileNetworkClient', () => {
                     ok: false,
                 });
 
-                await expect(client.fetch('https://example.com/file.bin')).rejects.toThrow('400');
+                await expect(client.fetch('https://example.com/file.bin', () => {})).rejects.toThrow('400');
             });
 
             it('should throw for 401 Unauthorized', async () => {
@@ -393,7 +513,7 @@ describe('FileNetworkClient', () => {
                     ok: false,
                 });
 
-                await expect(client.fetch('https://example.com/file.bin')).rejects.toThrow('401');
+                await expect(client.fetch('https://example.com/file.bin', () => {})).rejects.toThrow('401');
             });
 
             it('should throw for 404 Not Found', async () => {
@@ -403,7 +523,7 @@ describe('FileNetworkClient', () => {
                     ok: false,
                 });
 
-                await expect(client.fetch('https://example.com/nonexistent.bin')).rejects.toThrow('404');
+                await expect(client.fetch('https://example.com/nonexistent.bin', () => {})).rejects.toThrow('404');
             });
 
             it('should throw for 500 Internal Server Error', async () => {
@@ -413,13 +533,13 @@ describe('FileNetworkClient', () => {
                     ok: false,
                 });
 
-                await expect(client.fetch('https://example.com/file.bin')).rejects.toThrow('500');
+                await expect(client.fetch('https://example.com/file.bin', () => {})).rejects.toThrow('500');
             });
 
             it('should throw when fetch throws network error', async () => {
                 mockFetch.mockRejectedValue(new Error('Network is unreachable'));
 
-                await expect(client.fetch('https://example.com/file.bin')).rejects.toThrow('Network is unreachable');
+                await expect(client.fetch('https://example.com/file.bin', () => {})).rejects.toThrow('Network is unreachable');
             });
 
             it('should include URL in error message', async () => {
@@ -429,41 +549,53 @@ describe('FileNetworkClient', () => {
                     ok: false,
                 });
 
-                await expect(client.fetch('https://example.com/missing.bin')).rejects.toThrow('https://example.com/missing.bin');
+                await expect(client.fetch('https://example.com/missing.bin', () => {})).rejects.toThrow('https://example.com/missing.bin');
             });
         });
 
         describe('S - Sequencing and Reentrancy', () => {
             it('should handle concurrent full file requests', async () => {
+                const reader1 = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+                const reader2 = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+                const reader3 = {
+                    read: jest.fn().mockResolvedValue({ done: true }),
+                    releaseLock: jest.fn(),
+                };
+
                 mockFetch
                     .mockResolvedValueOnce({
                         status: 200,
                         ok: true,
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(10)),
+                        headers: { get: jest.fn() },
+                        body: { getReader: () => reader1 },
                     })
                     .mockResolvedValueOnce({
                         status: 200,
                         ok: true,
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(20)),
+                        headers: { get: jest.fn() },
+                        body: { getReader: () => reader2 },
                     })
                     .mockResolvedValueOnce({
                         status: 200,
                         ok: true,
-                        bytes: jest.fn().mockResolvedValue(new Uint8Array(30)),
+                        headers: { get: jest.fn() },
+                        body: { getReader: () => reader3 },
                     });
 
                 const promises = [
-                    client.fetch('https://example.com/file1.bin'),
-                    client.fetch('https://example.com/file2.bin'),
-                    client.fetch('https://example.com/file3.bin'),
+                    client.fetch('https://example.com/file1.bin', () => {}),
+                    client.fetch('https://example.com/file2.bin', () => {}),
+                    client.fetch('https://example.com/file3.bin', () => {}),
                 ];
 
-                const results = await Promise.all(promises);
+                await Promise.all(promises);
 
-                expect(results).toHaveLength(3);
-                expect(results[0]).toHaveLength(10);
-                expect(results[1]).toHaveLength(20);
-                expect(results[2]).toHaveLength(30);
                 expect(mockFetch).toHaveBeenCalledTimes(3);
             });
         });

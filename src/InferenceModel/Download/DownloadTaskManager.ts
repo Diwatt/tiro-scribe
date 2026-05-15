@@ -26,7 +26,7 @@ export class DownloadTaskManager {
         private readonly repository: DownloadQueueRepository,
         private readonly checksumVerifier: ChecksumVerifier,
         private readonly artifactStorage: ModelArtifactStorage,
-        private maxConcurrentDownloads = 2,
+        private maxConcurrentDownloads = 1,
     ) {}
 
     /**
@@ -331,6 +331,10 @@ export class DownloadTaskManager {
 
             this.logger.debug(`Processing ${toProcess.length} download tasks`);
 
+            // Process downloads sequentially to avoid concurrent stream conflicts
+            // on Android (expo's fetch polyfill cannot handle parallel streaming
+            // and throws ConcurrentModificationException / "stream is not in a state
+            // that permits enqueue").
             for (const task of toProcess) {
                 const capability = task.getCapability();
                 const language = task.getLanguage();
@@ -365,10 +369,12 @@ export class DownloadTaskManager {
                 );
 
                 this.activeSessions.set(capability, session);
-                session.start().catch((error) => {
+                try {
+                    await session.start();
+                } catch (error) {
                     this.logger.error(`Download session for ${capability} failed`, error);
                     this.activeSessions.delete(capability);
-                });
+                }
             }
         } catch (error) {
             this.logger.error('Failed to process download queue', error);

@@ -54,7 +54,7 @@ You have access to MCP servers. Use them proactively:
 
 ### Tooling & Formatting
 
-- **NO terminal formatting** — DO NOT run `bun run biome` or `bun run lint`. User handles formatting via `Shift+Alt+S`
+- **NO terminal formatting** — DO NOT run `pnpm run biome` or `pnpm run lint`. User handles formatting via `Shift+Alt+S`
 - **NO ignore Biome/ESLint errors** — Fix styling, import, or typing issues before finalizing
 
 ### Architecture
@@ -96,7 +96,7 @@ You have access to MCP servers. Use them proactively:
 - **Engine:** Hermes only — No support for JSC, V8, or web environments
 - **State Management:** @legendapp/state — Observable-based reactive state
 - **Build System:** Metro bundler with TypeScript support
-- **Package Manager:** Bun with workspace configuration
+- **Package Manager:** pnpm with workspace configuration
 - **Platform Support:** iOS and Android only
 
 ### Swift

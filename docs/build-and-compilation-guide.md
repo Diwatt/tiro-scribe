@@ -18,8 +18,8 @@ release builds, etc.) but the "happy path" is just those three steps.
 Run these once after cloning the repository or whenever dependencies change:
 
 ```bash
-bun install                   # install JS packages in root + workspaces
-bun run pods:install          # install CocoaPods for the iOS project
+pnpm install                   # install JS packages in root + workspaces
+pnpm run pods:install          # install CocoaPods for the iOS project
 ```
 
 > You can skip `pods:install` on Android – the Gradle build will handle
@@ -37,7 +37,7 @@ clean before continuing.  This step is safe to run at any time and is the
 recommended starting point for CI pipelines.
 
 ```bash
-bun run clean
+pnpm run clean
 ```
 
 The `clean` script does the following:
@@ -61,7 +61,7 @@ the main app.  You should rebuild it whenever you modify code under
 ### quick one‑time compile
 
 ```bash
-bun run module:build       # from project root
+pnpm run module:build       # from project root
 ```
 
 This compiles the module sources and exits.  It is **not** a watch mode; use
@@ -71,22 +71,22 @@ only for CI or manual checks.
 
 ```bash
 cd modules/secure-recorder
-bunx expo-module tsc -p tsconfig.json
+pnpm dlx expo-module tsc -p tsconfig.json
 ```
 
 ### verify the build (high confidence)
 
 ```bash
 cd modules/secure-recorder
-bun run verify             # runs both TypeScript and native tests
+pnpm run verify             # runs both TypeScript and native tests
 ```
 
 Native‑only checks are available too:
 
 ```bash
 cd modules/secure-recorder
-bun run verify:android
-bun run verify:ios
+pnpm run verify:android
+pnpm run verify:ios
 ```
 
 > **Important:** if the native module is not compiled & linked, the
@@ -104,10 +104,10 @@ corresponding `expo` commands:
 
 ```bash
 # iOS development client (runs `expo run:ios` under the hood)
-bun run ios:dev
+pnpm run ios:dev
 
 # Android development client
-bun run android:dev
+pnpm run android:dev
 ```
 
 These commands will:
@@ -119,8 +119,8 @@ These commands will:
 You can also explicitly regenerate the native folders beforehand:
 
 ```bash
-bun run prebuild           # normal regeneration
-bun run prebuild:clean     # force a clean regen of ios/ and android/
+pnpm run prebuild           # normal regeneration
+pnpm run prebuild:clean     # force a clean regen of ios/ and android/
 ```
 
 Typically you only need `prebuild` if you've edited `app.json` or added a
@@ -154,16 +154,16 @@ cd android
 When a build error occurs, follow this sequence:
 
 ```bash
-bun run clean
-bun run module:build
-bun run ios:dev    # or bun run android:dev
+pnpm run clean
+pnpm run module:build
+pnpm run ios:dev    # or pnpm run android:dev
 ```
 
 If an iOS build still fails, try:
 
 ```bash
-bun run pods:clean
-bun run ios:dev
+pnpm run pods:clean
+pnpm run ios:dev
 ```
 
 Those three steps – **clean, build native, run app** – resolve the vast
