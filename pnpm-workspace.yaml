@@ -4,3 +4,22 @@
 # Matches the `workspaces` entry that used to live in package.json.
 packages:
   - 'modules/*'
+
+# Use hoisted node_modules layout to avoid duplicate native module instances.
+# pnpm's isolated mode creates separate copies of react-native, expo, etc.
+# in workspace member node_modules/, which causes Metro to resolve a
+# duplicate react-native not wired to the native TurboModule registry.
+nodeLinker: hoisted
+
+# Allow build scripts for these dependencies (pnpm 11 syntax)
+allowBuilds:
+  esbuild: true
+  msw: true
+  "@nestjs/core": true
+  "@openapitools/openapi-generator-cli": true
+
+overrides:
+  hermes-compiler: "250829098.0.4"
+  react: "19.2.0"
+  react-dom: "19.2.0"
+  react-test-renderer: "19.2.0"

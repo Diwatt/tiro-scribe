@@ -74,6 +74,10 @@ type RootTranslation = {
         voiceCalibrationDesc: string;
         /** Start calibration */
         startCalibration: string;
+        /** Grant microphone access */
+        grantPermission: string;
+        /** Microphone access is required for voice calibration. */
+        permissionRequired: string;
         /** Please confirm you have saved your recovery code. */
         errorConfirmSaveCode: string;
         /** Session lost. Please start over. */
@@ -82,6 +86,8 @@ type RootTranslation = {
         errorAccountCreation: string;
         /** Voice calibration failed. */
         errorVoiceCalibration: string;
+        /** Microphone permission was denied. */
+        errorPermissionDenied: string;
         /** Recording in progress... */
         voiceRecording: string;
         /** Generating voice profile... */
@@ -283,6 +289,10 @@ export type TranslationFunctions = {
         voiceCalibrationDesc: () => LocalizedString;
         /** Start calibration */
         startCalibration: () => LocalizedString;
+        /** Grant microphone access */
+        grantPermission: () => LocalizedString;
+        /** Microphone access is required for voice calibration. */
+        permissionRequired: () => LocalizedString;
         /** Please confirm you have saved your recovery code. */
         errorConfirmSaveCode: () => LocalizedString;
         /** Session lost. Please start over. */
@@ -291,6 +301,8 @@ export type TranslationFunctions = {
         errorAccountCreation: () => LocalizedString;
         /** Voice calibration failed. */
         errorVoiceCalibration: () => LocalizedString;
+        /** Microphone permission was denied. */
+        errorPermissionDenied: () => LocalizedString;
         /** Recording in progress. */
         voiceRecording: () => LocalizedString;
         /** Generating voice profile. */

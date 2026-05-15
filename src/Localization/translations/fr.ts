@@ -32,10 +32,13 @@ const fr: Translation = {
         voiceCalibrationDesc:
             "Lisez ce texte pour calibrer votre profil sécurisé. Nous enregistrerons environ 5 secondes, puis utiliserons l'embedding vocal sur l'appareil pour créer votre profil. L'enregistrement est supprimé immédiatement.",
         startCalibration: 'Démarrer la calibration',
+        grantPermission: 'Autoriser l\'accès au microphone',
+        permissionRequired: 'L\'accès au microphone est requis pour la calibration vocale.',
         errorConfirmSaveCode: 'Veuillez confirmer que vous avez sauvegardé votre code de récupération.',
         errorSessionLost: 'Session perdue. Veuillez recommencer.',
         errorAccountCreation: 'Échec de la création du compte.',
         errorVoiceCalibration: 'Échec de la calibration vocale.',
+        errorPermissionDenied: 'L\'autorisation du microphone a été refusée. Veuillez l\'activer dans les Réglages pour continuer.',
         voiceRecording: 'Enregistrement…',
         voiceProcessing: 'Création du profil vocal…',
         errorSaveAccount: "Échec de l'enregistrement du compte.",

@@ -1,4 +1,5 @@
 import { observable } from '@legendapp/state';
+import { SecureRecorder } from 'secure-recorder';
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
@@ -16,9 +17,10 @@ import type { PendingTherapistProvider } from './Types';
 
 export class VoiceState extends AbstractState {
     public readonly calibrationPhase = observable<'idle' | 'recording' | 'processing'>('idle');
+    public readonly hasPermission = observable<boolean>(false);
     public readonly isSpeakerModelDownloading = observable<boolean>(false);
-    public readonly speakerModelProgress = observable<number>(0);
     public readonly isSpeakerModelReady = observable<boolean>(false);
+    public readonly speakerModelProgress = observable<number>(0);
 
     private modelDownloadExecutor: DownloadTaskExecutor | null = null;
     private pendingTherapistProvider: PendingTherapistProvider | null = null;
@@ -51,9 +53,15 @@ export class VoiceState extends AbstractState {
     public async calibrateVoice(): Promise<void> {
         this.logger.debug('[VoiceState] calibrateVoice', {
             hasPendingTherapist: this.pendingTherapistProvider?.getPendingTherapist() != null,
+            hasPermission: this.hasPermission.get(),
         });
 
         if (this.isSpeakerModelDownloading.get()) {
+            return;
+        }
+
+        if (!this.hasPermission.get()) {
+            this.logger.error('[VoiceState] calibrateVoice called without permission');
             return;
         }
 
@@ -99,6 +107,30 @@ export class VoiceState extends AbstractState {
             this.error.set(ll.onboarding.errorVoiceCalibration());
         } finally {
             this.calibrationPhase.set('idle');
+        }
+    }
+
+    public async checkPermission(): Promise<void> {
+        try {
+            const granted = await SecureRecorder.hasPermission();
+            this.hasPermission.set(granted);
+        } catch (error: unknown) {
+            this.logger.error('[VoiceState] permission check failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            this.hasPermission.set(false);
+        }
+    }
+
+    public async requestPermission(): Promise<void> {
+        try {
+            const granted = await SecureRecorder.requestPermission();
+            this.hasPermission.set(granted);
+        } catch (error: unknown) {
+            this.logger.error('[VoiceState] permission request failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            this.hasPermission.set(false);
         }
     }
 
@@ -182,9 +214,11 @@ export class VoiceState extends AbstractState {
             }
         }
 
+        this.calibrationPhase.set('idle');
+        this.hasPermission.set(false);
         this.isSpeakerModelDownloading.set(false);
-        this.speakerModelProgress.set(0);
         this.isSpeakerModelReady.set(false);
+        this.speakerModelProgress.set(0);
         this.modelDownloadExecutor = null;
     }
 

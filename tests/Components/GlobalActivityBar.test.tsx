@@ -2,7 +2,6 @@ import { getStatusColors } from '@/theme/AppTheme';
 import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { ActivityStatus } from '@/State/GlobalActivityStatus';
-import { Text } from 'react-native';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 
 // minimal fake theme containing the required color sections
@@ -14,17 +13,6 @@ const fakeTheme = {
         statusError: { background: '', text: '', accent: '', iconBackground: '', shadowColor: '' },
     },
 } as unknown as ExtendedTheme;
-
-// fake translation functions that return the key for visibility
-const fakeLL = {
-    activity: {
-        loading: () => 'loading',
-        starting: () => 'starting',
-        done: () => 'done',
-        warning: () => 'warning',
-        error: () => 'error',
-    },
-} as any;
 
 describe('GlobalActivityBar helpers', () => {
     it('provides non-null colors for all statuses', () => {
@@ -71,8 +59,8 @@ describe('GlobalActivityBar component', () => {
     });
 
     it('renders custom icon from store when provided', () => {
-        globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading', <Text>⭐</Text>);
+        globalActivityStatus.setStatus(ActivityStatus.Pending, 'Downloading', '⭐');
         const { icon } = globalActivityStatus.readFromStore();
-        expect(icon).toEqual(<Text>⭐</Text>);
+        expect(icon).toBe('⭐');
     });
 });

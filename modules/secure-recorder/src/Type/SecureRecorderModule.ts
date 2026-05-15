@@ -15,6 +15,6 @@ export interface NativeSecureRecorderModule {
     addListener<TEventPayload = unknown>(
         event: string,
         listener: (data: TEventPayload) => void,
-    ): { remove: () => void };
-    removeAllListeners(event?: string): void;
+    ): Promise<{ remove: () => void }>;
+    removeAllListeners(event?: string): Promise<void>;
 }

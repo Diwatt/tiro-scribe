@@ -160,19 +160,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
-  "overrides": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "react-test-renderer": "19.2.0",
-    "hermes-compiler": "250829098.0.4"
-  },
-  "resolutions": {
-    "hermes-compiler": "250829098.0.4"
-  },
   "pnpm": {
-    "overrides": {
-      "hermes-compiler": "250829098.0.4"
-    },
     "patchedDependencies": {
       "@react-native/babel-preset@0.83.6": "patches/@react-native__babel-preset@0.83.6.patch"
     }
@@ -180,7 +168,7 @@
   "trustedDependencies": [
     "esbuild"
   ],
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.1.2",
   "engines": {
     "node": ">=20.0.0"
   }

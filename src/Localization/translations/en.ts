@@ -32,10 +32,13 @@ const en: BaseTranslation = {
         voiceCalibrationDesc:
             "Read this text to calibrate your secure profile. We'll record about 5 seconds, then use the on-device speaker embedding to create your voice profile. The recording is deleted immediately.",
         startCalibration: 'Start calibration',
+        grantPermission: 'Grant microphone access',
+        permissionRequired: 'Microphone access is required for voice calibration.',
         errorConfirmSaveCode: 'Please confirm you have saved your recovery code.',
         errorSessionLost: 'Session lost. Please start over.',
         errorAccountCreation: 'Account creation failed.',
         errorVoiceCalibration: 'Voice calibration failed.',
+        errorPermissionDenied: 'Microphone permission was denied. Please enable it in Settings to continue.',
         voiceRecording: 'Recording…',
         voiceProcessing: 'Creating voice profile…',
         errorSaveAccount: 'Failed to save account.',

@@ -75,6 +75,7 @@ export class OnboardingState implements PendingTherapistProvider {
         this.logger.debug('[OnboardingState] goToStep', { step, stepBefore: this.step.get() });
         this.step.set(step);
         if (step === OnboardingStep.Voice) {
+            this.voice.checkPermission().catch(() => {});
             this.voice.ensureSpeakerModel().catch(() => {
                 // swallow; voice state already updates global activity status
             });
@@ -95,6 +96,7 @@ export class OnboardingState implements PendingTherapistProvider {
         this.pendingTherapist.set(result.therapist);
         this.recovery.recoveryCode.set(result.recoveryCode);
         this.step.set(OnboardingStep.Voice);
+        this.voice.checkPermission().catch(() => {});
         this.voice.ensureSpeakerModel().catch(() => {
             // errors are surfaced by the voice state itself
         });

@@ -34,9 +34,9 @@ describe('VoiceCalibrationRecorder', () => {
         // stub Timer.sleep so tests don't actually wait
         jest.spyOn(Timer, 'sleep').mockResolvedValue(undefined as any);
 
-        // default permission granted
+        // default permission granted (requestPermission is no longer called by recorder)
         jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
-        jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true);
+        jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true); // stub for other tests that might call it
 
         jest.spyOn(SecureRecorder, 'addDecryptionListener').mockImplementation((cb) => {
             listenerCallback = cb as any;
@@ -94,9 +94,10 @@ describe('VoiceCalibrationRecorder', () => {
         );
     });
 
-    it('throws RecordingPermissionError when permission denied', async () => {
+    it('throws RecordingPermissionError when permission denied (no request)', async () => {
+        // After the permission gate refactor, ensureRecordingPermission only checks,
+        // it never requests permission. requestPermission() is now called from VoiceState.
         jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
-        jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(false);
 
         const fakeRecorder = {
             initialize: jest.fn().mockResolvedValue(undefined),
@@ -107,6 +108,30 @@ describe('VoiceCalibrationRecorder', () => {
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         await expect(recorder.capture(0)).rejects.toBeInstanceOf(RecordingPermissionError);
+        // Verify that requestPermission was never called (not part of the recorder's responsibility)
+        expect(SecureRecorder.requestPermission).not.toHaveBeenCalled();
+    });
+
+    it('proceeds when permission is granted', async () => {
+        // Permission check passes, recording should proceed
+        jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
+
+        const int16 = new Int16Array(16);
+        fakeChunks.push(new Uint8Array(int16.buffer));
+
+        const fakeRecorder = {
+            initialize: jest.fn().mockResolvedValue(undefined),
+            start: jest.fn().mockResolvedValue(undefined),
+            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
+            dispose: jest.fn(),
+        } as unknown as SecureRecorder;
+        const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
+
+        await recorder.capture(1);
+        await recorder.getPcm();
+
+        expect(fakeRecorder.start).toHaveBeenCalled();
+        expect(fakeRecorder.stop).toHaveBeenCalled();
     });
 
     it('throws RecordingTooShortError when the recovered PCM is shorter than expected', async () => {

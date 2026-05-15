@@ -15,5 +15,5 @@ export interface NativeRecorderModule {
     addListener<TEventPayload = unknown>(
         event: string,
         listener: (data: TEventPayload) => void,
-    ): { remove: () => void };
+    ): Promise<{ remove: () => void }>;
 }

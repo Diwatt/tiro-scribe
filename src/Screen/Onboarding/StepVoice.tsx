@@ -20,11 +20,13 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
     const actions = theme.colors.actions;
     const onboarding = Container.get(OnboardingState);
     const error = onboarding.voice.error.get();
+    const hasPermission = onboarding.voice.hasPermission.get();
     const isBusy = onboarding.voice.isBusy.get();
     const phase = onboarding.voice.calibrationPhase.get();
     const isDownloading = onboarding.voice.isSpeakerModelDownloading.get();
 
     const startCalibration = useCallback(() => onboarding.voice.calibrateVoice(), [onboarding]);
+    const handleGrantPermission = useCallback(() => onboarding.voice.requestPermission(), [onboarding]);
     const resetOnboarding = useCallback(() => onboarding.reset(), [onboarding]);
 
     // Shared value that animates 0 <-> 1 while recording.
@@ -123,7 +125,31 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                 </View>
             ) : null}
 
-            {!isBusy && !isDownloading ? (
+            {!isBusy && !isDownloading && !hasPermission ? (
+                <>
+                    <HelperText type="info" visible>
+                        {LL.onboarding.permissionRequired()}
+                    </HelperText>
+                    <Button
+                        mode="contained"
+                        onPress={handleGrantPermission}
+                        style={[STYLES.primaryButton, { backgroundColor: actions.primary.background }]}
+                        contentStyle={STYLES.primaryButtonContent}
+                    >
+                        {LL.onboarding.grantPermission()}
+                    </Button>
+                    <Button
+                        mode="text"
+                        onPress={resetOnboarding}
+                        style={STYLES.backButton}
+                        contentStyle={STYLES.primaryButtonContent}
+                    >
+                        {LL.onboarding.back()}
+                    </Button>
+                </>
+            ) : null}
+
+            {!isBusy && !isDownloading && hasPermission ? (
                 <>
                     <Button
                         mode="contained"

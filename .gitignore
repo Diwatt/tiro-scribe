@@ -109,3 +109,4 @@ pnpm-lock.yaml
 # Bun (legacy — project now uses pnpm)
 bun.lock
 bun.lockb
+.gstack/

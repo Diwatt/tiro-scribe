@@ -124,16 +124,17 @@ describe('StartupOrchestrator', () => {
         jest.advanceTimersByTime(5000);
         // since the download promise hasn't resolved yet, the initial
         // auto-hide timer will reset the status to ready.
-        expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Ready);
+        // download has not completed yet, so status remains Pending
+        expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Pending);
 
         // now complete the download
         (global as any).completeDownload();
         // flush any pending microtasks
         await Promise.resolve();
 
-        // after download completes the status should no longer be pending
-        // (the bar may already have auto-hidden back to ready)
-        expect(Container.get(GlobalActivityStatus).getStatus()).not.toBe(ActivityStatus.Pending);
+        // after download completes the status should show success (scheduled
+        // via showSuccess since the boot delay has elapsed)
+        expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Success);
     });
 
     it('updates state$ to Onboarding when no active session exists', async () => {

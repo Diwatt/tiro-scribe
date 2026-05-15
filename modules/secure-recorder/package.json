@@ -43,9 +43,7 @@
   "license": "MIT",
   "homepage": "https://github.com/Diwatt/tiro-scribe",
   "devDependencies": {
-    "expo-audio": "~55.0.0",
-    "expo-module-scripts": "^5.0.8",
-    "expo-modules-core": "~55.0.0"
+    "expo-module-scripts": "^5.0.8"
   },
   "peerDependencies": {
     "expo": "~55.0.0",
