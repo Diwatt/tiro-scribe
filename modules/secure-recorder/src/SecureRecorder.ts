@@ -231,7 +231,7 @@ export class SecureRecorder {
      * @throws {SecureRecorderError} If no recording is active or stopping fails
      */
     public async stop(): Promise<string> {
-        if (this.state !== RecorderState.Recording) {
+        if (this.state !== RecorderState.Recording && this.state !== RecorderState.Paused) {
             throw this.createError(ErrorCode.NoRecordingInProgress, 'No recording is currently in progress');
         }
 

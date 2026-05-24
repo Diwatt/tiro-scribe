@@ -153,10 +153,9 @@ public class SecureRecorderModule: Module {
   }
   
   private func stop() async throws -> String {
-    guard isRecording() else {
+    guard let session = currentSession else {
       throw SecureRecorderError.noRecordingInProgress
     }
-    let session = currentSession!
     let sessionInfo = session.getInfo()
 
     do {

@@ -71,8 +71,8 @@ export class AutomaticSpeechRecognizer implements InferenceModel<[Float32Array, 
 
             // Step 2: Load encoder and decoder sessions
             // The encoder is typically files[0], decoder is files[1]
-            const encoderPath = this.downloader.getLocalPathForFile(executor.config, files[0]);
-            const decoderPath = this.downloader.getLocalPathForFile(executor.config, files[1]);
+            const encoderPath = await this.downloader.getLocalPath('asr');
+            const decoderPath = encoderPath;
 
             if (!encoderPath || !decoderPath) {
                 throw new Error('Failed to resolve encoder or decoder paths');

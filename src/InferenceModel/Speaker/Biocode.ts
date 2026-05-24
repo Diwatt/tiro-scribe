@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { dot, sqrt } from 'mathjs';
+import * as math from 'mathjs';
 
 dayjs.extend(utc);
 
@@ -35,9 +35,9 @@ export class Biocode {
             throw new Error(`Vector length mismatch: ${v1.length} vs ${v2.length}`);
         }
 
-        const dotProduct = dot(v1, v2) as number;
-        const mag1 = sqrt(dot(v1, v1)) as number;
-        const mag2 = sqrt(dot(v2, v2)) as number;
+        const dotProduct = math.dot(v1, v2) as number;
+        const mag1 = math.sqrt(math.dot(v1, v1)) as number;
+        const mag2 = math.sqrt(math.dot(v2, v2)) as number;
 
         if (mag1 === 0 || mag2 === 0) {
             return 0;

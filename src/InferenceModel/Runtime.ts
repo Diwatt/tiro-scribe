@@ -99,10 +99,10 @@ export class Runtime implements InferenceModel {
             }
         }
 
-        let modelPath = this.downloader.getLocalPath(capability);
+        let modelPath = await this.downloader.getLocalPath(capability);
         if (!modelPath) {
-            const executor = await this.downloader.download(capability);
-            modelPath = this.downloader.getLocalPathForFile(executor.config, executor.config.files[0]);
+            await this.downloader.download(capability);
+            modelPath = await this.downloader.getLocalPath(capability);
         }
 
         if (!modelPath) {

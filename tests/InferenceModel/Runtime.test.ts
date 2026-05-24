@@ -37,12 +37,12 @@ import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exce
 
 describe('Runtime', () => {
   let runtime: Runtime;
-  const mockDownloader = { getLocalPath: jest.fn(), download: jest.fn(), getLocalPathForFile: jest.fn() };
+  const mockDownloader = { getLocalPath: jest.fn(), download: jest.fn() };
   beforeEach(() => {
     jest.clearAllMocks();
 
     // default downloader returns path immediately
-    mockDownloader.getLocalPath.mockReturnValue('/m.onnx');
+    mockDownloader.getLocalPath.mockResolvedValue('/m.onnx');
 
     // Ensure model initialization does not crash when downloader is used
     mockDownloader.download.mockResolvedValue({
@@ -50,7 +50,7 @@ describe('Runtime', () => {
         files: ['dummy_encoder.onnx', 'dummy_decoder.onnx'],
       },
     });
-    mockDownloader.getLocalPathForFile.mockReturnValue('/m.onnx');
+
 
     runtime = new Runtime({ debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any, mockDownloader as any);
   });
@@ -76,7 +76,7 @@ describe('Runtime', () => {
     expect((runtime as any).sessions.has('speaker_id')).toBe(true);
 
     // change downloader path to simulate a different model being fetched
-    mockDownloader.getLocalPath.mockReturnValueOnce('/other.onnx');
+    mockDownloader.getLocalPath.mockResolvedValue('/other.onnx');
     await runtime.load('asr');
 
     expect((runtime as any).sessions.has('speaker_id')).toBe(false);

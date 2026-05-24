@@ -10,7 +10,7 @@
  * See: https://github.com/k2-fsa/sherpa-onnx (has speaker embedding + fbank built-in)
  */
 
-import { fft } from 'mathjs';
+import * as math from 'mathjs';
 
 export class AudioFeatureExtractor {
     private readonly melFilterBank: number[][];
@@ -124,7 +124,7 @@ export class AudioFeatureExtractor {
         }
 
         // FFT returns Complex[] with .re and .im properties
-        const fftResult = fft(padded) as Array<{ re: number; im: number }>;
+        const fftResult = math.fft(padded) as Array<{ re: number; im: number }>;
 
         // Power spectrum: |X(k)|² = re² + im² (one-sided: first N/2+1 bins)
         for (let k = 0; k < spectrum.length; k++) {

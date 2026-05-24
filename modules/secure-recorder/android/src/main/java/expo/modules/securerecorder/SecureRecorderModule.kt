@@ -159,10 +159,7 @@ class SecureRecorderModule : Module() {
   }
 
   private fun stop(): String {
-    if (!isRecording()) {
-      throw NoRecordingException()
-    }
-    val session = currentSession!!
+    val session = currentSession ?: throw NoRecordingException()
     val sessionInfo = session.getInfo()
 
     try {

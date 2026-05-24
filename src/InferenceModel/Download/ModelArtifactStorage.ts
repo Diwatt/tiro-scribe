@@ -136,14 +136,19 @@ export class ModelArtifactStorage {
     }
 
     /**
-     * Gets the URI for a specific model artifact.
+     * Gets the absolute file URI for a specific model artifact.
+     * Ensures the result always starts with `file://` or `/`.
      *
      * @param config - The model configuration
      * @param file - The artifact file metadata
-     * @returns The full URI to the artifact file
+     * @returns The absolute URI to the artifact file
      */
     public getUri(config: ModelConfig, file: InferenceModelFile): string {
-        return this.getFile(config, file).uri;
+        let uri = this.getFile(config, file).uri;
+        if (!uri.startsWith('file://') && !uri.startsWith('/')) {
+            uri = this.toAbsoluteUri(uri);
+        }
+        return uri;
     }
 
     /**

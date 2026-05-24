@@ -929,6 +929,17 @@ class SessionTest {
   }
 
   @Test
+  fun `stop succeeds when session is paused`() {
+    val session = createSession()
+    session.start("test-alias")
+    session.pause()
+
+    val filePath = session.stop()
+
+    assertEquals("Should return correct file path", outputFile.absolutePath, filePath)
+  }
+
+  @Test
   fun `start deletes existing file before starting`() {
     val session = createSession()
     

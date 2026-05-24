@@ -442,6 +442,18 @@ describe('SecureRecorder - Comprehensive Tests', () => {
             expect(recorder.state).toBe(RecorderState.STOPPED);
         });
 
+        it('should allow stop() when recording is paused', async () => {
+            const fake = createFakeNative();
+            const recorder = new SecureRecorder('test', fake, fake);
+            await waitForSync();
+            await recorder.start();
+            await recorder.pause();
+            expect(recorder.state).toBe(RecorderState.Paused);
+            const filePath = await recorder.stop();
+            expect(filePath).toBe('/tmp/test.dat');
+            expect(recorder.state).toBe(RecorderState.Stopped);
+        });
+
         it('should handle filePath changes between start() and stop()', async () => {
             const fake = createFakeNative();
             const recorder = new SecureRecorder('test', fake, fake);

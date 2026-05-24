@@ -1,5 +1,7 @@
 /**
- * QueueItem entity: property declarations; @Column wires access via _state.
+ * QueueItem entity: a processing job for an Encounter.
+ * Tracks the pipeline stage (transcribe → anonymize → sync) and execution state.
+ * Created when an Encounter is marked ToProcess; removed when processing completes.
  */
 
 import type { Dayjs } from 'dayjs';
@@ -10,7 +12,7 @@ import { AbstractEntity } from '../Database/AbstractEntity';
 import { ForeignKey } from '../Database/Decorator';
 import { Column, Entity, PrimaryKey } from '../Decorator';
 import { Encounter } from './Encounter';
-import { PipelineStage, QueueItemStatus, QueueItemType } from './Type';
+import { PipelineStage, QueueItemStatus } from './Type';
 
 dayjs.extend(utc);
 
@@ -18,9 +20,6 @@ const MAX_RETRY_COUNT = 3;
 
 @Entity({ tableName: 'queue_items' })
 export class QueueItem extends AbstractEntity {
-    @Column({ default: '', type: 'varchar', length: 64 })
-    public capability!: string;
-
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
     public createdAt!: Dayjs;
 
@@ -32,10 +31,7 @@ export class QueueItem extends AbstractEntity {
     public errorMessage!: string;
 
     @Column({ default: '', type: 'text' })
-    public filePath!: string;
-
-    @Column({ default: '', type: 'varchar', length: 8 })
-    public language!: string;
+    public encryptedAudioPath!: string;
 
     @Column({ default: 3, type: 'integer' })
     public maxRetries!: number;
@@ -55,9 +51,6 @@ export class QueueItem extends AbstractEntity {
     @Column({ default: 0, type: 'integer' })
     public progressPercent!: number;
 
-    @Column({ default: QueueItemType.Download, type: 'varchar', length: 16 })
-    public queueType!: QueueItemType;
-
     @Column({ default: 0, type: 'integer' })
     public retryCount!: number;
 
@@ -71,8 +64,14 @@ export class QueueItem extends AbstractEntity {
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
     public uuid!: string;
 
-    public getCapability(): string {
-        return this.capability;
+    public get isProcessable(): boolean {
+        if (this.status === QueueItemStatus.Pending) {
+            return true;
+        }
+        if (this.status === QueueItemStatus.Failed && this.retryCount < MAX_RETRY_COUNT) {
+            return true;
+        }
+        return false;
     }
 
     public getCreatedAt(): Dayjs {
@@ -83,16 +82,12 @@ export class QueueItem extends AbstractEntity {
         return this.encounterId;
     }
 
+    public getEncryptedAudioPath(): string {
+        return this.encryptedAudioPath;
+    }
+
     public getErrorMessage(): string {
         return this.errorMessage;
-    }
-
-    public getFilePath(): string {
-        return this.filePath;
-    }
-
-    public getLanguage(): string {
-        return this.language;
     }
 
     public getMaxRetries(): number {
@@ -119,10 +114,6 @@ export class QueueItem extends AbstractEntity {
         return this.progressPercent;
     }
 
-    public getQueueType(): QueueItemType {
-        return this.queueType;
-    }
-
     public getRetryCount(): number {
         return this.retryCount;
     }
@@ -139,20 +130,6 @@ export class QueueItem extends AbstractEntity {
         return this.uuid;
     }
 
-    public get isProcessable(): boolean {
-        if (this.status === QueueItemStatus.Pending) {
-            return true;
-        }
-        if (this.status === QueueItemStatus.Failed && this.retryCount < MAX_RETRY_COUNT) {
-            return true;
-        }
-        return false;
-    }
-
-    public setCapability(value: string): void {
-        this.capability = value;
-    }
-
     public setCreatedAt(value: Dayjs): void {
         this.createdAt = value;
     }
@@ -161,16 +138,12 @@ export class QueueItem extends AbstractEntity {
         this.encounterId = value;
     }
 
+    public setEncryptedAudioPath(value: string): void {
+        this.encryptedAudioPath = value;
+    }
+
     public setErrorMessage(value: string): void {
         this.errorMessage = value;
-    }
-
-    public setFilePath(value: string): void {
-        this.filePath = value;
-    }
-
-    public setLanguage(value: string): void {
-        this.language = value;
     }
 
     public setMaxRetries(value: number): void {
@@ -197,10 +170,6 @@ export class QueueItem extends AbstractEntity {
         this.progressPercent = value;
     }
 
-    public setQueueType(value: QueueItemType): void {
-        this.queueType = value;
-    }
-
     public setRetryCount(value: number): void {
         this.retryCount = value;
     }
@@ -215,5 +184,17 @@ export class QueueItem extends AbstractEntity {
 
     public setUuid(value: string): void {
         this.uuid = value;
+    }
+
+    public static createForEncounter(
+        encounterId: string,
+        encryptedAudioPath: string,
+    ): QueueItem {
+        const item = new QueueItem();
+
+        item.encounterId = encounterId;
+        item.encryptedAudioPath = encryptedAudioPath;
+
+        return item;
     }
 }

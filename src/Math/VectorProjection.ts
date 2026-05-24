@@ -2,7 +2,7 @@
  * VectorProjection - Immutable linear algebra operations for voice biocode projection
  */
 
-import { dot, multiply, sqrt } from 'mathjs';
+import * as math from 'mathjs';
 import { InvalidDimensionError, VectorLengthMismatchError } from '../Exception';
 
 export class VectorProjection {
@@ -31,9 +31,9 @@ export class VectorProjection {
             throw new VectorLengthMismatchError(`Vector lengths don't match: ${v1.length} vs ${v2.length}`);
         }
 
-        const dotProduct = dot(v1, v2) as number;
-        const magnitude1 = sqrt(dot(v1, v1)) as number;
-        const magnitude2 = sqrt(dot(v2, v2)) as number;
+        const dotProduct = math.dot(v1, v2) as number;
+        const magnitude1 = math.sqrt(math.dot(v1, v1)) as number;
+        const magnitude2 = math.sqrt(math.dot(v2, v2)) as number;
 
         if (magnitude1 === 0 || magnitude2 === 0) {
             return 0;
@@ -42,11 +42,11 @@ export class VectorProjection {
     }
 
     public normalize(vector: number[]): number[] {
-        const magnitude = sqrt(dot(vector, vector)) as number;
+        const magnitude = math.sqrt(math.dot(vector, vector)) as number;
         if (magnitude === 0) {
             return vector;
         }
-        return multiply(vector, 1 / magnitude) as number[];
+        return math.multiply(vector, 1 / magnitude) as number[];
     }
 
     public project(vector: number[]): number[] {
@@ -57,6 +57,6 @@ export class VectorProjection {
         }
 
         // Single matrix-vector multiply — replaces manual row-by-row loop
-        return multiply(this.projectionMatrix, vector);
+        return math.multiply(this.projectionMatrix, vector);
     }
 }

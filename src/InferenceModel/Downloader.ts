@@ -71,23 +71,26 @@ export class Downloader {
         return this.artifactStorage.hasAllFiles(config);
     }
 
-    public getLocalPath(capability: string, _version?: string): string | undefined {
+    public async getLocalPath(capability: string, _version?: string): Promise<string | undefined> {
+        // Try active session first
         const session = this.downloadTaskManager.getActiveSession(capability);
-        if (!session) {
-            return undefined;
+        if (session) {
+            const file = session.config.files[0];
+            if (file) {
+                return this.artifactStorage.getUri(session.config, file);
+            }
         }
 
-        const file = session.config.files[0];
-        if (!file) {
-            return undefined;
+        // Fallback: check if model files exist on disk without an active session
+        const config = await this.configProvider.getConfig(capability);
+        if (this.artifactStorage.hasAllFiles(config)) {
+            const file = config.files[0];
+            if (file) {
+                return this.artifactStorage.getUri(config, file);
+            }
         }
 
-        let uri = this.artifactStorage.getUri(session.config, file);
-        if (!uri.startsWith('file://') && !uri.startsWith('/')) {
-            uri = this.artifactStorage.toAbsoluteUri(uri);
-        }
-
-        return uri;
+        return undefined;
     }
 
     public async getTotalSize(appLanguage?: string): Promise<number> {

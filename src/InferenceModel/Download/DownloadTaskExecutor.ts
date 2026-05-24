@@ -178,14 +178,6 @@ export class DownloadTaskExecutor {
             for (const file of this.modelConfig.files) {
                 await this.downloadFile(file, totalBytesDownloaded, totalModelBytes);
                 totalBytesDownloaded += file.sizeBytes;
-                const progressAfterFile = (totalBytesDownloaded / totalModelBytes) * 100;
-                // Update progress after each file
-                this.setProgress(progressAfterFile);
-
-                // Call progress callback if provided
-                if (this.onProgress) {
-                    this.onProgress(progressAfterFile);
-                }
             }
 
             // Mark as completed
@@ -230,42 +222,37 @@ export class DownloadTaskExecutor {
     }
 
     /**
-     * Download a single file with progress tracking and hash verification.
+     * Download a single file and verify its checksum.
      */
     private async downloadFile(
         file: InferenceModelFile,
         totalBytesDownloaded: number,
         totalModelBytes: number,
     ): Promise<void> {
-        // Extract filename from URL since InferenceModelFile doesn't have a name field
         const filename = new URL(file.url).pathname.split('/').pop() ?? 'unknown';
         this._currentFileName$.set(filename);
         this._currentFileProgress$.set(0);
 
         const destination = this.artifactStorage.getFile(this.modelConfig, file);
-        // Create downloader for this file and download with progress tracking
         const downloader = new FileDownloader(destination, this.logger);
 
-        let fileBytesDownloaded = 0;
-        for await (const chunkProgress of downloader.download(file.url, file.sizeBytes)) {
-            fileBytesDownloaded = Math.floor(chunkProgress * file.sizeBytes);
-            const currentFileProgress = (fileBytesDownloaded / file.sizeBytes) * 100;
+        await downloader.download(file.url, file.sizeBytes, (chunkProgress: number) => {
+            const fileBytesDownloaded = chunkProgress * file.sizeBytes;
+            const currentFileProgress = chunkProgress * 100;
+
             this._currentFileProgress$.set(currentFileProgress);
 
-            // chunkProgress is 0‑1, convert to overall progress
             const overallProgress = (totalBytesDownloaded + fileBytesDownloaded) / totalModelBytes;
             const progressPercent = overallProgress * 100;
 
-            // Update progress observable (0‑100)
             this.setProgress(progressPercent);
 
-            // Call progress callback if provided
             if (this.onProgress) {
                 this.onProgress(progressPercent);
             }
-        }
+        });
 
-        // Verify file hash
+        // Verify hash using the strict 64KB chunk reader
         await this.checksumVerifier.verify(destination, file.hash);
     }
 

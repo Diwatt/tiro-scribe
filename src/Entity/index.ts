@@ -56,5 +56,4 @@ export {
     EntityType,
     PipelineStage,
     QueueItemStatus,
-    QueueItemType,
 } from './Type';

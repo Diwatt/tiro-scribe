@@ -1,12 +1,12 @@
-
 /**
  * ChecksumVerifier tests.
  * Verifies SHA256 checksum validation with mocked crypto and file system.
- * Uses Web Streams API (readableStream) for chunked async reading.
+ * Uses Expo 55 FileHandle API (readBytes / close) for chunked reading.
  */
 
 import { ChecksumVerifier } from '@/InferenceModel/Download/ChecksumVerifier';
 import { InferenceModelDownloaderException } from '@/Exception';
+import type { File } from 'expo-file-system';
 
 // ---------------------------------------------------------------------------
 // Mock control – mutable shared state per test
@@ -15,61 +15,47 @@ import { InferenceModelDownloaderException } from '@/Exception';
 const sharedState: {
     hashUpdateCalls: Uint8Array[];
     digestResult: string;
-    readResults: Array<{ done: boolean; value?: Uint8Array }>;
-    readError?: Error;
-    readCallCount: number;
+    readBytesResults: Uint8Array[];
+    readBytesError?: Error;
+    readBytesCallCount: number;
+    closeCallCount: number;
 } = {
     hashUpdateCalls: [],
     digestResult: '',
-    readResults: [],
-    readError: undefined,
-    readCallCount: 0,
+    readBytesResults: [],
+    readBytesError: undefined,
+    readBytesCallCount: 0,
+    closeCallCount: 0,
 };
 
 function resetSharedState(): void {
     sharedState.hashUpdateCalls = [];
     sharedState.digestResult = '';
-    sharedState.readResults = [];
-    sharedState.readError = undefined;
-    sharedState.readCallCount = 0;
+    sharedState.readBytesResults = [];
+    sharedState.readBytesError = undefined;
+    sharedState.readBytesCallCount = 0;
+    sharedState.closeCallCount = 0;
 }
 
-const mockHash = {
+const mockHandle = {
+    readBytes: jest.fn((_size: number): Uint8Array => {
+        sharedState.readBytesCallCount++;
+        if (sharedState.readBytesError) {
+            throw sharedState.readBytesError;
+        }
+        return sharedState.readBytesResults[sharedState.readBytesCallCount - 1] ?? new Uint8Array(0);
+    }),
+    close: jest.fn(() => {
+        sharedState.closeCallCount++;
+    }),
+};
+
+const mockHash: { update: jest.Mock; digest: jest.Mock } = {
     update: jest.fn((chunk: Uint8Array) => {
         sharedState.hashUpdateCalls.push(chunk);
         return mockHash;
     }),
     digest: jest.fn(() => sharedState.digestResult),
-};
-
-const mockReader = {
-    read: jest.fn(async () => {
-        sharedState.readCallCount++;
-        if (sharedState.readError) {
-            throw sharedState.readError;
-        }
-        const result = sharedState.readResults[sharedState.readCallCount - 1] ?? { done: true };
-        return result;
-    }),
-};
-
-const mockStream = {
-    getReader: jest.fn(() => mockReader),
-    [Symbol.asyncIterator]: jest.fn(function* () {
-        let index = 0;
-        while (true) {
-            if (sharedState.readError) {
-                throw sharedState.readError;
-            }
-            const result = sharedState.readResults[index++] ?? { done: true };
-            if (result.done) {
-                break;
-            }
-            if (result.value != null) {
-                yield result.value;
-            }
-        }
-    }),
 };
 
 // ---------------------------------------------------------------------------
@@ -92,6 +78,13 @@ const CHUNK_A = new Uint8Array([0x01, 0x02, 0x03]);
 const CHUNK_B = new Uint8Array([0x04, 0x05, 0x06]);
 const CHUNK_C = new Uint8Array([0x07, 0x08, 0x09]);
 
+function createMockFile(): File {
+    return {
+        uri: FILE_URI,
+        open: jest.fn(() => mockHandle),
+    } as unknown as File;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -100,7 +93,7 @@ describe('ChecksumVerifier', () => {
     let verifier: ChecksumVerifier;
 
     beforeEach(() => {
-        jest.resetModules();
+        jest.clearAllMocks();
         resetSharedState();
         verifier = new ChecksumVerifier();
     });
@@ -108,99 +101,84 @@ describe('ChecksumVerifier', () => {
     describe('verify', () => {
         it('should compute hash from a single chunk and return digest on match', async () => {
             sharedState.digestResult = VALID_HASH;
-            sharedState.readResults = [{ done: false, value: CHUNK_A }, { done: true }];
+            sharedState.readBytesResults = [CHUNK_A, new Uint8Array(0)];
 
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
-
-            await verifier.verify(mockFile, VALID_HASH);
+            await verifier.verify(createMockFile(), VALID_HASH);
 
             expect(mockHash.update).toHaveBeenCalledTimes(1);
             expect(mockHash.update).toHaveBeenCalledWith(CHUNK_A);
             expect(mockHash.digest).toHaveBeenCalledWith('hex');
+            expect(mockHandle.close).toHaveBeenCalled();
         });
 
         it('should accumulate multiple chunks before finalizing the hash', async () => {
             sharedState.digestResult = VALID_HASH;
-            sharedState.readResults = [
-                { done: false, value: CHUNK_A },
-                { done: false, value: CHUNK_B },
-                { done: false, value: CHUNK_C },
-                { done: true },
-            ];
+            sharedState.readBytesResults = [CHUNK_A, CHUNK_B, CHUNK_C, new Uint8Array(0)];
 
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
-
-            await verifier.verify(mockFile, VALID_HASH);
+            await verifier.verify(createMockFile(), VALID_HASH);
 
             expect(mockHash.update).toHaveBeenCalledTimes(3);
             expect(mockHash.update).toHaveBeenNthCalledWith(1, CHUNK_A);
             expect(mockHash.update).toHaveBeenNthCalledWith(2, CHUNK_B);
             expect(mockHash.update).toHaveBeenNthCalledWith(3, CHUNK_C);
             expect(mockHash.digest).toHaveBeenCalledWith('hex');
+            expect(mockHandle.close).toHaveBeenCalled();
         });
 
         it('should throw InferenceModelDownloaderException on hash mismatch', async () => {
             sharedState.digestResult = MISMATCH_HASH;
-            sharedState.readResults = [{ done: false, value: CHUNK_A }, { done: true }];
+            sharedState.readBytesResults = [CHUNK_A, new Uint8Array(0)];
 
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
-
-            await expect(verifier.verify(mockFile, VALID_HASH)).rejects.toThrow(
+            await expect(verifier.verify(createMockFile(), VALID_HASH)).rejects.toThrow(
                 InferenceModelDownloaderException,
             );
-            await expect(verifier.verify(mockFile, VALID_HASH)).rejects.toThrow(/Hash mismatch/);
+            await expect(verifier.verify(createMockFile(), VALID_HASH)).rejects.toThrow(/Hash mismatch/);
         });
 
-        it('should throw InferenceModelDownloaderException when stream read fails', async () => {
-            sharedState.readError = new Error('readable stream closed unexpectedly');
-            sharedState.readResults = [];
+        it('should throw InferenceModelDownloaderException when readBytes fails', async () => {
+            sharedState.readBytesError = new Error('disk I/O error');
+            sharedState.readBytesResults = [];
 
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
-
-            await expect(verifier.verify(mockFile, VALID_HASH)).rejects.toThrow(
+            await expect(verifier.verify(createMockFile(), VALID_HASH)).rejects.toThrow(
                 InferenceModelDownloaderException,
             );
-            await expect(verifier.verify(mockFile, VALID_HASH)).rejects.toThrow(/Failed to read file/);
+            await expect(verifier.verify(createMockFile(), VALID_HASH)).rejects.toThrow(/Failed to read file/);
+            // handle.close must still be called even on error (via finally)
+            expect(mockHandle.close).toHaveBeenCalled();
         });
 
-        it('should handle empty file (no value chunks before done)', async () => {
+        it('should handle empty file (readBytes returns zero-length on first call)', async () => {
             sharedState.digestResult = VALID_HASH;
-            sharedState.readResults = [{ done: true }];
+            sharedState.readBytesResults = [new Uint8Array(0)];
 
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
-
-            await expect(verifier.verify(mockFile, VALID_HASH)).resolves.toBeUndefined();
+            await expect(verifier.verify(createMockFile(), VALID_HASH)).resolves.toBeUndefined();
             expect(mockHash.update).not.toHaveBeenCalled();
             expect(mockHash.digest).toHaveBeenCalledWith('hex');
-        });
-
-        it('should skip null value and continue reading', async () => {
-            sharedState.digestResult = VALID_HASH;
-            sharedState.readResults = [
-                { done: false, value: CHUNK_A },
-                { done: false, value: null as unknown as Uint8Array },
-                { done: false, value: CHUNK_B },
-                { done: true },
-            ];
-
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
-
-            await verifier.verify(mockFile, VALID_HASH);
-
-            // update should only be called for non-null values
-            expect(mockHash.update).toHaveBeenCalledTimes(2);
-            expect(mockHash.update).toHaveBeenNthCalledWith(1, CHUNK_A);
-            expect(mockHash.update).toHaveBeenNthCalledWith(2, CHUNK_B);
+            expect(mockHandle.close).toHaveBeenCalled();
         });
 
         it('should use lowercase hash for comparison regardless of input casing', async () => {
             sharedState.digestResult = VALID_HASH;
-            sharedState.readResults = [{ done: false, value: CHUNK_A }, { done: true }];
-
-            const mockFile = { uri: FILE_URI, readableStream: () => mockStream } as any;
+            sharedState.readBytesResults = [CHUNK_A, new Uint8Array(0)];
 
             const mixedCaseHash = 'A3F5C2D1E9B4A6C8F0E1D3B5A7C9E0F2A4B6C8D0E1F3A5B7C9D0E1F2A3B4C';
-            await expect(verifier.verify(mockFile, mixedCaseHash)).resolves.toBeUndefined();
+            await expect(verifier.verify(createMockFile(), mixedCaseHash)).resolves.toBeUndefined();
+        });
+
+        it('should always close the file handle even when an error occurs mid-read', async () => {
+            // First call succeeds, second call throws
+            let callCount = 0;
+            mockHandle.readBytes.mockImplementation((_size: number) => {
+                callCount++;
+                if (callCount === 1) return CHUNK_A;
+                throw new Error('unexpected EOF');
+            });
+
+            await expect(verifier.verify(createMockFile(), VALID_HASH)).rejects.toThrow(
+                InferenceModelDownloaderException,
+            );
+
+            expect(mockHandle.close).toHaveBeenCalledTimes(1);
         });
     });
 });

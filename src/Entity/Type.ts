@@ -30,10 +30,7 @@ export enum DownloadQueueStatus {
     Failed = 'failed',
     Cancelled = 'cancelled',
 }
-export enum QueueItemType {
-    Download = 'download',
-    Processing = 'processing',
-}
+
 export enum PipelineStage {
     Waiting = 'waiting',
     Transcribing = 'transcribing',

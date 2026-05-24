@@ -5,7 +5,7 @@
  * projection matrix for speaker voice identity projection.
  */
 
-import { reshape } from 'mathjs';
+import * as math from 'mathjs';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
 import { CryptoEngine } from '../Security/CryptoEngine';
@@ -31,7 +31,7 @@ export class ProjectionMatrixFactory {
         const cols = Math.floor(inputDim);
         const flat = this.convertBytesToFloats(safeKey, rows * cols);
 
-        const raw = reshape(flat, [rows, cols]);
+        const raw = math.reshape(flat, [rows, cols]);
         const matrix = this.ensure2DArray(raw);
 
         //return this.orthonormalize(matrix);

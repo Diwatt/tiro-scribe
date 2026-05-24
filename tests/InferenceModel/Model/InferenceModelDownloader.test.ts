@@ -297,7 +297,7 @@ describe('Downloader', () => {
     // CONTRACT: getLocalPath(capability, version?) → string | undefined
     // -------------------------------------------------------------------------
     describe('getLocalPath', () => {
-        it('should return path when session exists', () => {
+        it('should return path when session exists', async () => {
             const mockSession = { config: speakerConfig, capability: 'speaker_id' };
             const mockTaskManager = createMockTaskManager({
                 getActiveSession: jest.fn().mockReturnValue(mockSession),
@@ -313,30 +313,33 @@ describe('Downloader', () => {
                 createMockConfigProvider() as Parameters<typeof Downloader>[3],
             );
 
-            const path = downloader.getLocalPath('speaker_id');
+            const path = await downloader.getLocalPath('speaker_id');
 
             expect(path).toBe('file://models/speaker_id/speaker-v1');
             expect(mockTaskManager.getActiveSession).toHaveBeenCalledWith('speaker_id');
         });
 
-        it('should return undefined when no session exists', () => {
+        it('should return undefined when no session exists', async () => {
             const mockTaskManager = createMockTaskManager({
                 getActiveSession: jest.fn().mockReturnValue(undefined),
             });
             const mockStorage = createMockArtifactStorage();
+            const mockConfigProvider = createMockConfigProvider({
+                getConfig: jest.fn().mockResolvedValue(speakerConfig),
+            });
 
             const downloader = new Downloader(
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                mockConfigProvider as Parameters<typeof Downloader>[3],
             );
 
-            const path = downloader.getLocalPath('speaker_id');
+            const path = await downloader.getLocalPath('speaker_id');
             expect(path).toBeUndefined();
         });
 
-        it('should return undefined when config has no files', () => {
+        it('should return undefined when config has no files', async () => {
             const emptyConfig = { ...speakerConfig, files: [] };
             const mockSession = { config: emptyConfig, capability: 'speaker_id' };
             const mockTaskManager = createMockTaskManager({
@@ -353,32 +356,11 @@ describe('Downloader', () => {
                 createMockConfigProvider() as Parameters<typeof Downloader>[3],
             );
 
-            const path = downloader.getLocalPath('speaker_id');
+            const path = await downloader.getLocalPath('speaker_id');
             expect(path).toBeUndefined();
         });
 
-        it('should add file:// prefix when missing', () => {
-            const mockSession = { config: speakerConfig, capability: 'speaker_id' };
-            const mockTaskManager = createMockTaskManager({
-                getActiveSession: jest.fn().mockReturnValue(mockSession),
-            });
-            const mockStorage = createMockArtifactStorage({
-                getUri: jest.fn().mockReturnValue('models/speaker_id/speaker-v1'),
-                toAbsoluteUri: jest.fn((uri: string) => `file://${uri}`),
-            });
-
-            const downloader = new Downloader(
-                createMockLogger(),
-                mockStorage,
-                mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
-            );
-
-            const path = downloader.getLocalPath('speaker_id');
-            expect(path).toBe('file://models/speaker_id/speaker-v1');
-        });
-
-        it('should accept version parameter without throwing', () => {
+        it('should return absolute uri from artifact storage', async () => {
             const mockSession = { config: speakerConfig, capability: 'speaker_id' };
             const mockTaskManager = createMockTaskManager({
                 getActiveSession: jest.fn().mockReturnValue(mockSession),
@@ -394,7 +376,27 @@ describe('Downloader', () => {
                 createMockConfigProvider() as Parameters<typeof Downloader>[3],
             );
 
-            const path = downloader.getLocalPath('speaker_id', '1.0.0');
+            const path = await downloader.getLocalPath('speaker_id');
+            expect(path).toBe('file://models/speaker_id/speaker-v1');
+        });
+
+        it('should accept version parameter without throwing', async () => {
+            const mockSession = { config: speakerConfig, capability: 'speaker_id' };
+            const mockTaskManager = createMockTaskManager({
+                getActiveSession: jest.fn().mockReturnValue(mockSession),
+            });
+            const mockStorage = createMockArtifactStorage({
+                getUri: jest.fn().mockReturnValue('file://models/speaker_id/speaker-v1'),
+            });
+
+            const downloader = new Downloader(
+                createMockLogger(),
+                mockStorage,
+                mockTaskManager,
+                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+            );
+
+            const path = await downloader.getLocalPath('speaker_id', '1.0.0');
             expect(path).toBe('file://models/speaker_id/speaker-v1');
         });
     });
@@ -516,20 +518,23 @@ describe('Downloader', () => {
             expect(configs).toBeNull();
         });
 
-        it('should handle getLocalPath with empty capability string', () => {
+        it('should handle getLocalPath with empty capability string', async () => {
             const mockTaskManager = createMockTaskManager({
                 getActiveSession: jest.fn().mockReturnValue(undefined),
             });
             const mockStorage = createMockArtifactStorage();
+            const mockConfigProvider = createMockConfigProvider({
+                getConfig: jest.fn().mockResolvedValue(speakerConfig),
+            });
 
             const downloader = new Downloader(
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                mockConfigProvider as Parameters<typeof Downloader>[3],
             );
 
-            const path = downloader.getLocalPath('');
+            const path = await downloader.getLocalPath('');
             expect(path).toBeUndefined();
         });
 
@@ -569,14 +574,13 @@ describe('Downloader', () => {
             expect(size).toBe(-100);
         });
 
-        it('should handle artifact storage getUri returning non-URI path', () => {
+        it('should handle artifact storage getUri returning absolute path', async () => {
             const mockSession = { config: speakerConfig, capability: 'speaker_id' };
             const mockTaskManager = createMockTaskManager({
                 getActiveSession: jest.fn().mockReturnValue(mockSession),
             });
             const mockStorage = createMockArtifactStorage({
-                getUri: jest.fn().mockReturnValue('not-a-uri'),
-                toAbsoluteUri: jest.fn((uri: string) => `file://${uri}`),
+                getUri: jest.fn().mockReturnValue('/absolute/path/to/model.onnx'),
             });
 
             const downloader = new Downloader(
@@ -586,8 +590,8 @@ describe('Downloader', () => {
                 createMockConfigProvider() as Parameters<typeof Downloader>[3],
             );
 
-            const path = downloader.getLocalPath('speaker_id');
-            expect(path).toBe('file://not-a-uri');
+            const path = await downloader.getLocalPath('speaker_id');
+            expect(path).toBe('/absolute/path/to/model.onnx');
         });
 
         it('should handle download executor rejecting without breaking', async () => {

@@ -201,10 +201,24 @@ class SecureRecorderModuleTest {
   }
 
   @Test
-  fun `stop throws when session not active`() {
-    // Note: stop is private and async
-    // This test documents expected behavior - should throw NoRecordingException
-    assertTrue("Test documents expected behavior", true)
+  fun `stop succeeds when session is paused`() {
+    // Set up paused session (not active, but exists)
+    every { mockSession.recordingTimer.isActive } returns false
+    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
+    every { mockSession.stop() } returns "/path/to/file.dat"
+
+    // Inject mock session
+    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
+    sessionField.isAccessible = true
+    sessionField.set(module, mockSession)
+
+    val method = SecureRecorderModule::class.java.getDeclaredMethod("stop")
+    method.isAccessible = true
+
+    val result = method.invoke(module)
+
+    assertEquals("Should return file path", "/path/to/file.dat", result)
+    verify { mockSession.stop() }
   }
 
   @Test

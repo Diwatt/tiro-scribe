@@ -20,6 +20,10 @@ const SESSION_PREFIX = 'encounter';
 
 @Entity({ tableName: 'encounters' })
 export class Encounter extends AbstractEntity {
+    @PrimaryKey()
+    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
+    public uuid!: string;
+  
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     public createdAt!: Dayjs;
@@ -52,9 +56,7 @@ export class Encounter extends AbstractEntity {
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
     public updatedAt!: Dayjs;
 
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+
 
     public addEncryptedAudioPath(path: string): void {
         this.encryptedAudioPaths = [...this.encryptedAudioPaths, path];
