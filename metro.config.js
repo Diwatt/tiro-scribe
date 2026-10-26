@@ -12,8 +12,7 @@ const config = getDefaultConfig(__dirname);
 // Pnpm workspace specific configuration
 config.resolver.nodeModulesPaths = [path.resolve(__dirname, 'node_modules')];
 
-// Enable symlink support for pnpm
-config.resolver.unstable_enableSymlinks = true;
+// Symlink support is built into @expo/metro-config since SDK 56.
 config.resolver.unstable_enablePackageExports = true;
 
 // Allow ONNX model files to be bundled as assets

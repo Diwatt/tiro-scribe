@@ -76,7 +76,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                                 {/* start color overlay */}
                                 <Animated.View
                                     style={[
-                                        StyleSheet.absoluteFillObject,
+                                        StyleSheet.absoluteFill,
                                         {
                                             borderRadius: MIC_PULSE_RADIUS,
                                             backgroundColor: startColor,
@@ -87,7 +87,7 @@ export const StepVoice = observer(function stepVoice(): React.JSX.Element {
                                 {/* end color overlay */}
                                 <Animated.View
                                     style={[
-                                        StyleSheet.absoluteFillObject,
+                                        StyleSheet.absoluteFill,
                                         {
                                             borderRadius: MIC_PULSE_RADIUS,
                                             backgroundColor: endColor,

@@ -17,9 +17,14 @@ allowBuilds:
   msw: true
   "@nestjs/core": true
   "@openapitools/openapi-generator-cli": true
+  "@parcel/watcher": true
+  unrs-resolver: true
 
 overrides:
-  hermes-compiler: "250829098.0.4"
-  react: "19.2.0"
-  react-dom: "19.2.0"
-  react-test-renderer: "19.2.0"
+  react: "19.3.0"
+  react-dom: "19.3.0"
+  react-test-renderer: "19.3.0"
+
+patchedDependencies:
+  '@react-native/babel-preset@0.85.3': patches/@react-native__babel-preset@0.85.3.patch
+  kysely@0.28.17: patches/kysely@0.28.17.patch

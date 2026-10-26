@@ -1,8 +1,8 @@
 diff --git a/src/configs/main.js b/src/configs/main.js
-index a2f5e1e53a663c07ce8fa3def3a1d6d7828a4557..b5a5fa1a5a81e06d9afcf25ea2a69c2d7bea1e64 100644
+index ad3dfe4628035ac99447e5364275447c5026bee4..d7c8f963c70b24fc631efc62ac8e9c066df0000f 100644
 --- a/src/configs/main.js
 +++ b/src/configs/main.js
-@@ -98,7 +98,7 @@ const getPreset = (src, options) => {
+@@ -111,7 +111,7 @@ const getPreset = (src, options, babel) => {
      );
    }
  

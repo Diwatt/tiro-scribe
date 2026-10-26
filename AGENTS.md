@@ -4,11 +4,27 @@
 
 ## AI Assistant Workflow
 
+### Language
+
+All agent output addressed to the user is **French** — chat, explanations, questions, plans, summaries, documentation, README, commit messages, branch names. Never produce English prose for the user. Code identifiers and comments follow the existing codebase conventions (English). User-facing product strings go through `Localization/` (en/fr), never hardcoded.
+
+### Delivery boundary — human in the loop (critical)
+
+The agent **never sends code and never deploys by itself**, and this generalizes to **every outbound action**: anything that leaves the local workspace or mutates an external system — `git commit` / `push` / `merge`, posting comments or approvals, publishing artifacts — requires an explicit, per-action "go" from the user in the current conversation. The agent prepares, explains, and proposes; **the user executes the decision**. A past authorization never carries over. Purely read-only inspection (`git status`, `git log`, `git diff`, `git show`, `git blame`) never requires approval.
+
+### Git
+
+Never run mutating git commands (`commit`, `push`, `pull`, `branch`, `stash`, `merge`, `rebase`, `tag`) unless the user explicitly asks for that exact operation in the current conversation. Read-only inspection is allowed and must use `--no-pager`.
+
+### Terminal
+
+Never append `| tail`, `| head`, or other output-truncation modifiers to terminal commands — execute them raw so output streams to the UI.
+
 ### MCP Tools (Zero-Hallucination Policy)
 
 You have access to MCP servers. Use them proactively:
 
-- **Context7:** ALWAYS use this tool to read the latest official documentation for `expo`, `react-native`, `onnxruntime-react-native`, `kysely`, and `@legendapp/state` before using their APIs to prevent hallucinations
+- **Context7:** ALWAYS use this tool to read the latest official documentation for `expo`, `expo-router`, `react-native`, `react-native-paper`, `onnxruntime-react-native`, `kysely`, `@legendapp/state`, and `zod` before using their APIs to prevent hallucinations
 - **Sequential Thinking:** Use this tool to break down complex architectural changes or MVVM refactoring before writing the code
 
 ### Native Coding Style (Swift/Kotlin)
@@ -34,6 +50,8 @@ You have access to MCP servers. Use them proactively:
 - **NO unencrypted disk I/O** — All audio encrypted chunked with AES-256-GCM
 - **NO PII in logs** — Log only relevant identifiers/state
 - **NO timestamps in logs** — Logger handles `dateFormat: 'time'`, never add `new Date()`
+- **NO secrets or cryptographic material in logs** — keys, tokens, IVs, signatures stay out
+- **NO hardcoded paths** — resolve from config (`AppConfig`) or environment
 
 ### Code Structure
 
@@ -45,12 +63,17 @@ You have access to MCP servers. Use them proactively:
 - **NO `export const` singletons** — Use `Container.camelCase` pattern
 - **NO methods on Container** — Passive holder only; no `init()`, `dispose()`, factories
 - **NO `useState`/`useEffect` for business logic** — Use Legend-State observables in State classes
+- **NO module-level constants** — Every domain constant (including primitives) lives on the class that owns it as a `public static readonly` member (e.g. `AudioSegment.SAMPLES_PER_MS`), never as a free-floating module-level `const`. A constant describing a type lives as a static member of that type. Only wiring (clients, config, instantiation) is allowed at module scope in entrypoints
+- **NO tuple returns** — Multiple return values become a named class/interface with one field per value, never a bare `[a, b]`
+- **NO inline imports** — All `import` statements at the top of the file, never inside a function body (dynamic `import()` only with strong, explicit justification)
+- **NO all-optional types** — A shape where every property is optional describes no real state; use state classes with real fields built by a static factory validated with Zod at the boundary
 
 ### React & TypeScript
 
 - **NO React.FC** — Use `interface Props` and return `React.JSX.Element`
 - **NO abbreviations** (`pk`, `fk`) — Full words only. Exceptions: `id`, `uid`
 - **NO JSDoc for simple methods** — Self-documenting code preferred
+- **NO hand-written `interface`/`type` for untrusted payloads** — Define a Zod schema and infer (`z.infer<typeof Schema>`): API responses, form input, any external JSON. Trusted internal domain data uses classes with `readonly` fields + static factory, never bare `type`/`interface` aliases
 
 ### Tooling & Formatting
 
@@ -120,7 +143,7 @@ You have access to MCP servers. Use them proactively:
 
 #### Encryption Standards (AES-256-GCM)
 - **Algorithm:** AES-256-GCM (NoPadding)
-- **Chunked Encryption:** Audio MUST be encrypted in independent chunks (~4-8KB)
+- **Chunked Encryption:** Audio MUST be encrypted in independent chunks (~16KB, `EncryptionStream` buffers plaintext to 16 KB before sealing)
 - **IV/Nonce:** A unique 12-byte IV MUST be generated for *every* chunk
 - **File Format:** `[4-byte length][12-byte IV][Encrypted Data + 16-byte Tag]`
 - **Hardware Keys:** Keys must be stored in Keychain/AndroidKeyStore and accessible only after first unlock
@@ -135,13 +158,13 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 
 **Required Isomorphic Classes (One file per class):**
 1. `SecureRecorderModule` (Main Entry)
-2. `RecordingSession` (Orchestrator)
+2. `Session` (Orchestrator)
 3. `AudioRecorder` (AVAudioEngine / AudioRecord)
-4. `EncryptionStreamManager` (Writes chunked sealed boxes)
+4. `EncryptionStream` (Writes chunked sealed boxes)
 5. `StreamDecryptionManager` (Reads & decrypts to RAM)
 6. `KeyManager` (Keychain / Keystore)
 7. `PermissionManager`
-8. `RecordingState` (Immutable State)
+8. `RecorderState` (Immutable State)
 
 ### ONNX Runtime
 - Cross-platform neural network inference
@@ -156,7 +179,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 ### UI Components
 - **Library:** React Native Paper (Material Design 3)
 - **Icons:** Lucide Icons
-- **Navigation:** React Navigation with type-safe routing
+- **Navigation:** expo-router (file-based, `app/`) — `src/Navigation/` is legacy React Navigation and must not be extended
 - **Localization:** typesafe-i18n with compile-time validation
 - **Typography:** Material Design 3 type scale via `Text variant="..."`
 
@@ -167,16 +190,19 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 ### Biome
 - Unified toolchain for linting and formatting
 - Enforces: formatting, naming, imports, visibility
+- **Line width: 120 columns** (`lineWidth: 120`), never format or wrap at 80
 - **Important:** Do not ignore errors flagged by Biome or ESLint. Fix styling, import, or typing issues before finalizing code
-- **NO Terminal Formatting:** DO NOT run `bun run biome` or `bun run lint`. The user handles formatting locally via `Shift+Alt+S`
+- **NO Terminal Formatting:** DO NOT run `pnpm run biome` or `pnpm run lint`. The user handles formatting locally via `Shift+Alt+S`
 
 ### Kysely
 - Query builder for Expo SQLite
 - Used for database schema and queries
 
-### Vitest / Jest
-- Vitest for unit tests
-- Jest for native modules
+### Jest
+- Jest (jest-expo) for TypeScript unit tests, Jest for native modules
+- **Every public method has a test.** A public method without a test is a bug in the test suite, not an acceptable gap
+- **1 `if` = 1 test:** each branch of a conditional gets its own test with its own assertion — a happy path plus one assertion does not cover an `if`
+- **Error paths are behavior:** `catch` blocks, fallbacks, and guard clauses each get a test proving the failure is handled as intended
 
 ---
 
@@ -212,6 +238,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
   - DO NOT move constants/exports to separate files unless they are themselves classes
 - **No "Utils" / Standalone Functions:** Logic belongs to a class (Service or Entity)
 - **Service Naming:** Use capability names (e.g. `VoiceCalibration`), NEVER append `*Service`
+- **No pattern-speak in class names:** never suffix a class with `Gateway`, `Resolver`, `Handler`, `Manager`, `Wrapper`, or similar organizational labels — name the capability it performs
 - **Dependency Injection:** Inject via constructor using Interfaces/Types. Never instantiate inside a class
 - **No Object Literals in Classes:** Use a `const INITIAL_STATE` or static factory instead
 - **No standalone `const` object literals as module-level exports**
@@ -224,6 +251,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - **Constructor / Initializers**
 - **Methods:** `public → protected → private`, then alphabetically. Getters/Setters are methods
 - **One property per statement**
+- **Blank line before the final return:** when a function body ends with a `return` preceded by other statements, insert a blank line before it (where possible)
 
 ### MVVM / Logic Separation
 
@@ -252,6 +280,10 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 
 - No abbreviations (`pk`, `fk`). Use full words. Exceptions: `id`, `uid`
 - Do not repeat the folder name in identifiers (e.g. in `Entity/`, use `primaryKey` not `entityPrimaryKey`)
+- **No plurals in type names:** a type grouping several things takes a singular role name (`Bootstrap`, never `RuntimeAssets`). Same for directories: `Tool/`, never `Tools/`
+- **Booleans read like sentences:** prefix boolean values with `is`/`has` (`isComplete`, `hasOverrides`)
+- **Getters carry the verb:** a value getter reads `getExpiresAt()`, never `expiresAt()`; boolean predicates stay `is*`/`has*`
+- **Method verbs describe the real contract:** no generic domain verbs — name the destination and the purpose (`fillUntilDelimiter`, not `readNext`). A callee never borrows the caller's vocabulary
 
 ### Logging
 
@@ -261,13 +293,13 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 
 ### Service Container
 
-All runtime singleton instances live in `src/Container.ts` as static properties of the `Container` class:
+All runtime singleton instances live in `src/Core/Container.ts`, registered as class-keyed factories:
 
-- **Access:** `Container.logger`, `Container.recoveryKit`, etc.
+- **Access:** `Container.get(DevFileEncryptor)` — classes register themselves at the bottom of their file (`Container.register(X, () => new X(...))`)
 - **No `export const` singletons:** Never export a singleton as a module-level `const`. Use Container
-- **Primitive constants stay in domain files:** `MAX_LENGTH`, `PASSWORD_MIN_LENGTH`, etc. remain as `CONSTANT_CASE` in their own files
+- **Constants live on their owning class** as `public static readonly` members (`AudioSegment.SAMPLES_PER_MS`) — not in domain files as free `CONSTANT_CASE`, and never on `Container`
 - **Constructor injection preferred:** For testability, classes should receive dependencies via constructor params
-- **No methods on Container:** It is a passive holder. No `init()`, no `dispose()`, no factories
+- **No methods on Container:** It is a passive holder. Registration side effects only, in the classes' own files
 - **Property naming:** camelCase, no prefixes. `logger` not `appLogger`
 
 ### Documentation
@@ -275,11 +307,14 @@ All runtime singleton instances live in `src/Container.ts` as static properties 
 - **No JSDoc** for self-explanatory methods, constructors, or properties
 - Use JSDoc **only** for: class-level purpose, complex business logic, `@throws`, public API boundaries
 - Prefer **self-documenting code** over comments
+- **A large block of comments signals poor decomposition:** extract a named method instead of commenting further — a good name replaces the explanation. Legitimate comments: `// SAFETY:`, pedagogical `// TODO`, formal JSDoc, and non-obvious invariants (1-2 lines)
 - Exception messages should be clear and descriptive
 
-### Backwards Compatibility & Deprecations
+### Repository & Persistence (Doctrine-style)
 
-**Do not implement backward-compatibility layers until the code is ready for release.** During development you are free to rename APIs and refactor callers without leaving aliases or guard clauses behind.
+- **Rich entities:** derived behavior lives on entities (`isActive()`, `getCostUsd()`-style getters), not in query classes or free functions
+- **One repository per aggregate root:** a repository covers an aggregate and its graph (`Encounter` → transcriptions, prosody metrics), not a table. Only the owning repository touches the database for its aggregate
+- **Named classes over anonymous shapes:** no bare `type`/`interface` aliases for domain data, no positional-argument constructor bursts — named classes, `readonly` fields, static factories
 
 ---
 
@@ -306,7 +341,7 @@ All runtime singleton instances live in `src/Container.ts` as static properties 
 - Expo SQLite with Kysely query builder
 
 ### File Storage
-- Expo FileSystem for encrypted audio (.enc files)
+- Expo FileSystem for encrypted audio (.dat files, EncryptionStream format)
 
 ### Preferences
 - Expo SecureStore for sensitive configuration

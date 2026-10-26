@@ -14,14 +14,11 @@
  * See: node_modules/jest-expo/src/preset/setup.js for jest-expo's built-in mocks
  */
 
-// Mock expo-modules-core before any modules that depend on it are imported.
-// This prevents the "The global process.env.EXPO_OS is not defined" warning
-// from expo-modules-core/src/Platform.ts during test initialization.
-jest.mock('expo-modules-core', () => ({
-  requireNativeModule: jest.fn((name: string) => ({})),
-  NativeModulesProxy: {},
-  EventEmitter: jest.fn(),
-}));
+// NOTE: do NOT mock 'expo-modules-core' here. Since SDK 56, jest-expo installs
+// the expo/fetch winter runtime which relies on the real requireNativeModule +
+// its own ExpoFetchModule stubs; replacing the module makes
+// `class FetchResponse extends ExpoFetchModule.NativeResponse` crash
+// (Class extends undefined). jest-expo provides all needed mocks itself.
 
 import { TextEncoder, TextDecoder } from "util";
 
@@ -428,7 +425,7 @@ jest.mock('react-native-toast-message', () => ({
  * jest-expo doesn't provide this.
  */
 jest.mock('react-native-logs', () => {
-  const mockLoggerInstance = {
+  const mockLoggerInstance: Record<string, jest.Mock> = {
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
@@ -437,7 +434,7 @@ jest.mock('react-native-logs', () => {
     enable: jest.fn(() => true),
     disable: jest.fn(() => true),
     getExtensions: jest.fn(() => []),
-    setSeverity: jest.fn((s) => s),
+    setSeverity: jest.fn((severity: string) => severity),
     getSeverity: jest.fn(() => 'debug'),
     patchConsole: jest.fn(),
   };
@@ -465,26 +462,8 @@ jest.mock('react-native-logs', () => {
  * own test files or test-specific setup modules.
  */
 
-// ============================================================================
-// GLOBAL FETCH POLYFILL (FALLBACK)
-// ============================================================================
-
-/**
- * Jest-expo provides a fetch polyfill, but we ensure it's available as a fallback.
- * This shouldn't be needed if jest-expo is set up correctly, but it's here for safety.
- */
-if (typeof (global as any).fetch === 'undefined') {
-  (global as any).fetch = jest.fn(() =>
-    Promise.resolve({
-      ok: true,
-      status: 200,
-      json: jest.fn(() => Promise.resolve({})),
-      text: jest.fn(() => Promise.resolve('')),
-      arrayBuffer: jest.fn(() => Promise.resolve(new ArrayBuffer(0))),
-      blob: jest.fn(() => Promise.resolve(new Blob())),
-      clone: jest.fn(function() { return this; }),
-    })
-  );
-}
+// NOTE: no global fetch fallback here. Since SDK 56, expo installs expo/fetch
+// as a lazy getter on globalThis; even reading `typeof global.fetch` triggers
+// its initialization, which crashes under Jest (Class extends undefined).
 
 export {};

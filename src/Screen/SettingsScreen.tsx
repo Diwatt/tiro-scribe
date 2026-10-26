@@ -1,16 +1,15 @@
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { Bell, Moon, Settings, Shield, User } from 'lucide-react-native';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Divider, List, Surface, Switch, useTheme } from 'react-native-paper';
-import type { RootTabScreenProps } from '@/Navigation/types';
 import { useLocalization } from '@/Localization';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 
 export function SettingsScreen(): React.JSX.Element {
     const theme = useTheme<ExtendedTheme>();
     const { LL } = useLocalization();
-    const navigation = useNavigation<RootTabScreenProps<'Settings'>['navigation']>();
+    const router = useRouter();
     const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
     const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
     const [devTapCount, setDevTapCount] = React.useState(0);
@@ -83,7 +82,7 @@ export function SettingsScreen(): React.JSX.Element {
                             left={(p) => <List.Icon {...p} icon={Settings} />}
                             onPress={() => {
                                 setShowDevTrigger(false);
-                                navigation.navigate('DevSeed');
+                                router.push('/dev-seed');
                             }}
                         />
                     )}

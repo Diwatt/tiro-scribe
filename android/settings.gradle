@@ -47,6 +47,7 @@ project(':onnxruntime-react-native').projectDir = new File(
   }.standardOutput.asText.get().trim()
 ).getParentFile()
 // onnxruntime-react-native @end
+// @generated begin expo-build-properties-react-native-source - expo prebuild (DO NOT MODIFY)
 includeBuild(expoAutolinking.reactNative) {
   dependencySubstitution {
     substitute(module("com.facebook.react:react-android")).using(project(":packages:react-native:ReactAndroid"))
@@ -55,3 +56,4 @@ includeBuild(expoAutolinking.reactNative) {
     substitute(module("com.facebook.react:hermes-engine")).using(project(":packages:react-native:ReactAndroid:hermes-engine"))
   }
 }
+// @generated end expo-build-properties-react-native-source

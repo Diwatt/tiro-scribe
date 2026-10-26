@@ -7,20 +7,18 @@ module.exports = function (api) {
                 'babel-preset-expo',
                 {
                     decorators: false,
-                    // Force Hermes detection so @react-native/babel-preset skips
-                    // plugin-transform-classes, which destroys the _initClass static
-                    // blocks emitted by the 2023-05 decorator transform.
+                    // Hermes natively supports classes; the class transform would destroy
+                    // the _initClass blocks emitted by the 2023-05 decorator transform.
                     unstable_transformProfile: 'hermes-stable',
                 },
             ],
         ],
         plugins: [
+            // Parse-only. Order matters: see TECH.md §0.2.
+            '@babel/plugin-syntax-jsx',
+            ['@babel/plugin-transform-typescript', { isTSX: true, allExtensions: true, allowNamespaces: true }],
             ['@babel/plugin-proposal-decorators', { version: '2023-05' }],
-            // The 2023-05 decorator transform emits static class-block syntax.
-            // This plugin lowers those blocks to IIFEs so the runtime can execute them.
             '@babel/plugin-transform-class-static-block',
-            // Transform dynamic import() calls to require() in Jest/Node (CJS) mode
-            // so that `await import('module')` works without --experimental-vm-modules.
             ...(process.env.NODE_ENV === 'test' ? ['babel-plugin-dynamic-import-node'] : []),
             [
                 'module-resolver',

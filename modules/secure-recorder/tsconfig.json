@@ -5,7 +5,7 @@
         "rootDir": "./src",
         "lib": ["ES2015", "ES2017", "DOM"],
         "skipLibCheck": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true
     },
     "include": ["src"],

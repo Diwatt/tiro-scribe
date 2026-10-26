@@ -1,5 +1,5 @@
 import { observer } from '@legendapp/state/react';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { FileAudio, FolderOpen, Lock, RefreshCw } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -16,13 +16,12 @@ import {
     useTheme,
 } from 'react-native-paper';
 import { Container } from '@/Core/Container';
-import type { RootStackScreenProps } from '@/Navigation/types';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { DevAudioState } from './DevAudioState';
 
 export const DevAudioScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
-    const navigation = useNavigation<RootStackScreenProps<'DevSeed'>['navigation']>();
+    const router = useRouter();
     const [state] = React.useState(() => Container.get(DevAudioState));
     const [inputPath, setInputPath] = React.useState('');
 
@@ -61,7 +60,7 @@ export const DevAudioScreen = observer((): React.JSX.Element => {
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
             <Surface style={STYLES.header} elevation={1}>
                 <View style={STYLES.headerRow}>
-                    <IconButton icon="arrow-left" onPress={() => navigation.goBack()} />
+                    <IconButton icon="arrow-left" onPress={() => router.back()} />
                     <Text variant="titleLarge" style={STYLES.headerTitle}>
                         Dev Audio Encryptor
                     </Text>
