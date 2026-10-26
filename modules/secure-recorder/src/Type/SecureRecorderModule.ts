@@ -12,6 +12,8 @@ export interface NativeSecureRecorderModule {
     getStatus(): Promise<RecordingStatus>;
     hasPermission(): Promise<boolean>;
     stream(encryptedPath: string): Promise<void>;
+    encryptFile(inputPath: string, outputPath: string): Promise<string>;
+    encryptBytes(data: Uint8Array, outputPath: string): Promise<string>;
     addListener<TEventPayload = unknown>(
         event: string,
         listener: (data: TEventPayload) => void,

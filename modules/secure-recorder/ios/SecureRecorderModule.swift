@@ -66,6 +66,14 @@ public class SecureRecorderModule: Module {
     AsyncFunction("stream") { (encryptedPath: String) -> Void in
       try await self.stream(encryptedPath: encryptedPath)
     }
+
+    AsyncFunction("encryptFile") { (inputPath: String, outputPath: String) -> String in
+      return try await self.encryptFile(inputPath: inputPath, outputPath: outputPath)
+    }
+    
+    AsyncFunction("encryptBytes") { (data: Data, outputPath: String) -> String in
+      return try await self.encryptBytes(data: data, outputPath: outputPath)
+    }
   }
   
   private func emitStatusChanged(state: RecorderState, sessionId: String, filePath: String, reason: StopReason? = nil) {
@@ -290,6 +298,83 @@ public class SecureRecorderModule: Module {
     }
   }
   
+  /**
+   * Encrypt an existing file using the same key as recording.
+   * Reads input file in chunks and writes encrypted output.
+   *
+   * @param inputPath Path to the unencrypted input file
+   * @param outputPath Path where the encrypted file will be written
+   * @return The output path
+   */
+  private func encryptFile(inputPath: String, outputPath: String) async throws -> String {
+    let inputURL = URL(fileURLWithPath: inputPath)
+    let outputURL = URL(fileURLWithPath: outputPath)
+
+    guard FileManager.default.fileExists(atPath: inputPath) else {
+      throw SecureRecorderError.initializationFailed("Input file not found: \(inputPath)")
+    }
+
+    do {
+      let key = try keyManager.getOrCreateKey(alias: keyAlias)
+      let encryptionStream = EncryptionStream(secretKey: key, outputFile: outputURL)
+
+      try encryptionStream.initialize()
+
+      let fileHandle = try FileHandle(forReadingFrom: inputURL)
+      defer {
+        try? fileHandle.close()
+      }
+
+      while let chunk = try? fileHandle.read(upToCount: 8192), !chunk.isEmpty {
+        try encryptionStream.write(data: chunk)
+      }
+
+      try encryptionStream.close()
+
+      return outputPath
+    } catch let error as SecureRecorderError {
+      throw error
+    } catch {
+      throw SecureRecorderError.initializationFailed("Failed to encrypt file: \(error.localizedDescription)")
+    }
+  }
+  
+  /**
+   * Encrypt a byte array using the same key and chunk format
+   * used by the recording pipeline.
+   *
+   * @param data Raw bytes to encrypt
+   * @param outputPath Path where the encrypted file will be written
+   * @return The output path
+   */
+  private func encryptBytes(data: Data, outputPath: String) async throws -> String {
+    let outputURL = URL(fileURLWithPath: outputPath)
+
+    do {
+      let key = try keyManager.getOrCreateKey(alias: keyAlias)
+      let encryptionStream = EncryptionStream(secretKey: key, outputFile: outputURL)
+
+      try encryptionStream.initialize()
+
+      let chunkSize = 16384
+      var offset = 0
+      while offset < data.count {
+        let end = min(offset + chunkSize, data.count)
+        let chunk = data.subdata(in: offset..<end)
+        try encryptionStream.write(data: chunk)
+        offset = end
+      }
+
+      try encryptionStream.close()
+
+      return outputPath
+    } catch let error as SecureRecorderError {
+      throw error
+    } catch {
+      throw SecureRecorderError.initializationFailed("Failed to encrypt bytes: \(error.localizedDescription)")
+    }
+  }
+
   /**
    * Check if microphone recording permission is granted
    * Note: Permission requests are handled via expo-audio in JavaScript

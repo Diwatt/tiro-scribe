@@ -47,6 +47,7 @@ export const ENTITY_TABLES = buildEntityTables() as readonly (readonly [string, 
 export const ENTITY_CLASSES: EntityClass[] = Array.from(ENTITY_CLASS_LIST);
 
 export { DownloadQueue, Encounter, Patient, ProsodyMetrics, QueueItem, Therapist, Transcription };
+
 export { VoiceFrame } from './ProsodyMetrics';
 export { Utterance } from './Transcription';
 export {

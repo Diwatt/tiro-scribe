@@ -8,8 +8,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.securerecorder.exception.*
 import java.io.File
-import java.io.FileOutputStream
-import java.io.FileDescriptor
+import java.io.FileInputStream
 
 /**
  * Expo module for SecureRecorder on Android
@@ -78,6 +77,14 @@ class SecureRecorderModule : Module() {
 
     AsyncFunction("stream") { encryptedPath: String ->
       stream(encryptedPath)
+    }
+
+    AsyncFunction("encryptFile") { inputPath: String, outputPath: String ->
+      encryptFile(inputPath, outputPath)
+    }
+
+    AsyncFunction("encryptBytes") { data: ByteArray, outputPath: String ->
+      encryptBytes(data, outputPath)
     }
   }
   
@@ -285,6 +292,88 @@ class SecureRecorderModule : Module() {
       throw e
     } catch (e: Exception) {
       throw InitializationException("Failed to decrypt audio: ${e.message}", e)
+    }
+  }
+
+  /**
+   * Encrypt an existing file using the same AES-256-GCM key used for recording.
+   *
+   * Reads the input file in chunks and writes encrypted chunks to the output path.
+   *
+   * @param inputPath Absolute path to the plaintext file
+   * @param outputPath Absolute path where the encrypted file will be written
+   * @return The output path
+   * @throws InitializationException if input file is missing or encryption fails
+   */
+  private fun encryptFile(inputPath: String, outputPath: String): String {
+    val inputFile = File(inputPath)
+
+    if (!inputFile.exists()) {
+      throw InitializationException("Input file not found: $inputPath")
+    }
+
+    try {
+      val secretKey = keyManager.getOrCreateKey(keyAlias)
+      val outputFile = File(outputPath)
+      val encryptionStream = EncryptionStream(secretKey, outputFile)
+
+      encryptionStream.initialize()
+
+      FileInputStream(inputFile).use { inputStream ->
+        val buffer = ByteArray(16384)
+        var bytesRead: Int
+
+        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+          if (bytesRead == buffer.size) {
+            encryptionStream.write(buffer)
+          } else {
+            encryptionStream.write(buffer.copyOfRange(0, bytesRead))
+          }
+        }
+      }
+
+      encryptionStream.close()
+
+      return outputPath
+    } catch (e: SecureRecorderException) {
+      throw e
+    } catch (e: Exception) {
+      throw InitializationException("Failed to encrypt file: ${e.message}", e)
+    }
+  }
+
+  /**
+   * Encrypt a byte array using the same AES-256-GCM key and chunk format
+   * used by the recording pipeline.
+   *
+   * @param data Raw bytes to encrypt
+   * @param outputPath Absolute path where the encrypted file will be written
+   * @return The output path
+   * @throws InitializationException if encryption fails
+   */
+  private fun encryptBytes(data: ByteArray, outputPath: String): String {
+    try {
+      val secretKey = keyManager.getOrCreateKey(keyAlias)
+      val outputFile = File(outputPath)
+      val encryptionStream = EncryptionStream(secretKey, outputFile)
+
+      encryptionStream.initialize()
+
+      val chunkSize = 16384
+      var offset = 0
+      while (offset < data.size) {
+        val end = minOf(offset + chunkSize, data.size)
+        encryptionStream.write(data.copyOfRange(offset, end))
+        offset = end
+      }
+
+      encryptionStream.close()
+
+      return outputPath
+    } catch (e: SecureRecorderException) {
+      throw e
+    } catch (e: Exception) {
+      throw InitializationException("Failed to encrypt bytes: ${e.message}", e)
     }
   }
 

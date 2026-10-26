@@ -10,3 +10,4 @@ export { RecordingScreen } from './RecordingScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { SubjectsScreen } from './SubjectsScreen';
 export { TranscriptDetailScreen } from './TranscriptDetailScreen';
+export { DevAudioScreen } from '../Dev/DevAudioScreen';

@@ -60,6 +60,14 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         return this.getNativeModule().then((nativeModule) => nativeModule.stream(encryptedPath));
     }
 
+    public async encryptFile(inputPath: string, outputPath: string): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.encryptFile(inputPath, outputPath));
+    }
+
+    public async encryptBytes(data: Uint8Array, outputPath: string): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.encryptBytes(data, outputPath));
+    }
+
     public async addListener<TEventPayload = unknown>(
         event: string,
         listener: (data: TEventPayload) => void,

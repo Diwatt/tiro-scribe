@@ -1,7 +1,7 @@
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
-import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { AppRouter } from '@/Core/AppRouter';
+import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 
 // Enhanced version with class-based keys
 

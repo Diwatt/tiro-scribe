@@ -18,8 +18,8 @@
  */
 
 import type { AppLogger } from '@/Core/AppLogger';
-import { Downloader } from '../Downloader';
-import { Runtime } from '../Runtime';
+import type { Downloader } from '../Downloader';
+import type { Runtime } from '../Runtime';
 import type { InferenceModel } from './InferenceModel';
 
 export interface SpeakerIdConfig {

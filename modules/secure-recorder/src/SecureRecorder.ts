@@ -325,6 +325,45 @@ export class SecureRecorder {
         return await SecureRecorder.getDecryptionManager().stream(encryptedPath);
     }
 
+    /**
+     * Encrypt a file using the same AES-256-GCM key and chunk format
+     * used by the recording pipeline.
+     *
+     * Reads the input file in chunks and encrypts each chunk. The resulting
+     * `.dat` file can be decrypted via {@link SecureRecorder.stream}.
+     *
+     * DEV ONLY: This exists to seed test data without requiring microphone
+     * recording. The encrypted file uses the hardware-bound key stored by
+     * SecureRecorder, so it is fully compatible with the production pipeline.
+     *
+     * @param inputPath Absolute path to the file to encrypt
+     * @param outputPath Absolute path where the encrypted `.dat` file will be written
+     * @returns Promise resolving to the output file path
+     * @throws {SecureRecorderError} If the input file does not exist or encryption fails
+     */
+    public static async encryptFile(inputPath: string, outputPath: string): Promise<string> {
+        return await SecureRecorderModule.encryptFile(inputPath, outputPath);
+    }
+
+    /**
+     * Encrypt a byte array using the same AES-256-GCM key and chunk format
+     * used by the recording pipeline.
+     *
+     * The resulting `.dat` file can be decrypted via {@link SecureRecorder.stream}.
+     *
+     * DEV ONLY: Used after converting audio to the standard recording format
+     * (16 kHz, mono, 16-bit PCM) so the encrypted output is indistinguishable
+     * from a recorded file.
+     *
+     * @param data Raw bytes to encrypt
+     * @param outputPath Absolute path where the encrypted `.dat` file will be written
+     * @returns Promise resolving to the output file path
+     * @throws {SecureRecorderError} If encryption fails
+     */
+    public static async encryptBytes(data: Uint8Array, outputPath: string): Promise<string> {
+        return await SecureRecorderModule.encryptBytes(data, outputPath);
+    }
+
     private async syncState(): Promise<void> {
         const status = await this.nativeModule.getStatus();
         this.updateStateFromStatus(status);

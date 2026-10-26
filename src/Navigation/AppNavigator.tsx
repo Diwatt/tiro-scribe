@@ -12,6 +12,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home as HomeIcon, Settings as SettingsIcon, Users } from 'lucide-react-native';
 import type React from 'react';
 import { useTheme } from 'react-native-paper';
+import { DevAudioScreen } from '@/Dev';
 import { Home, RecordingScreen, SettingsScreen, SubjectsScreen, TranscriptDetailScreen } from '@/Screen';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import type { MainTabParamList, RootStackParamList } from './types';
@@ -92,6 +93,14 @@ function RootNavigator() {
             <ROOT_STACK.Screen
                 name="TranscriptDetail"
                 component={TranscriptDetailScreen}
+                options={{
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                }}
+            />
+            <ROOT_STACK.Screen
+                name="DevSeed"
+                component={DevAudioScreen}
                 options={{
                     presentation: 'modal',
                     animation: 'slide_from_bottom',

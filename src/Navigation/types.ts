@@ -26,6 +26,7 @@ export type RootStackParamList = {
     Main: NavigatorScreenParams<MainTabParamList>;
     Recording: { autoStart: boolean };
     TranscriptDetail: { transcriptId: string };
+    DevSeed: undefined;
 };
 
 /**
