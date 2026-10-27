@@ -13,6 +13,8 @@ const SETTINGS_TAG = 'onnxruntime-react-native';
 const ORT_PODSPEC_MARKER =
     "'HEADER_SEARCH_PATHS' => '\"${PODS_ROOT}/Headers/Public/onnxruntime-extensions-c\"";
 
+const ORT_MODULE_MARKER = 'OnnxruntimeJsiRuntimeProxy';
+
 /**
  * 1. Patch the onnxruntime-react-native podspec to include the header search
  *    path for onnxruntime-extensions-c. Without this, SessionUtils.cpp fails
@@ -74,6 +76,74 @@ function findOrtPodspec(iosRoot) {
     }
 
     return null;
+}
+
+/**
+ * 2. Patch OnnxruntimeModule.mm for RN 0.88 (New Architecture): RCTCxxBridge
+ *    was removed; the JSI runtime is exposed dynamically by RCTBridgeProxy.
+ */
+function withOnnxruntimeIosInstallFix(config) {
+    return withDangerousMod(config, [
+        'ios',
+        async (cfg) => {
+            const modulePath = path.join(
+                cfg.modRequest.projectRoot,
+                'node_modules',
+                'onnxruntime-react-native',
+                'ios',
+                'OnnxruntimeModule.mm'
+            );
+            if (!fs.existsSync(modulePath)) {
+                return cfg;
+            }
+
+            let contents = fs.readFileSync(modulePath, 'utf-8');
+
+            if (contents.includes(ORT_MODULE_MARKER)) {
+                return cfg;
+            }
+
+            const legacyAccess = [
+                'RCTCxxBridge* cxxBridge = (RCTCxxBridge*)_bridge;',
+                '    if (cxxBridge == nil) {',
+                '      return @false;',
+                '    }',
+                '',
+                '    auto jsiRuntime = (facebook::jsi::Runtime*)cxxBridge.runtime;'
+            ].join('\n');
+            const patchedAccess = [
+                'if (_bridge == nil) {',
+                '      return @false;',
+                '    }',
+                '',
+                '    // RN 0.88 (New Architecture): RCTCxxBridge was removed; RCTBridgeProxy exposes runtime dynamically.',
+                '    auto jsiRuntime = (facebook::jsi::Runtime *)[_bridge runtime];'
+            ].join('\n');
+
+            if (!contents.includes(legacyAccess)) {
+                return cfg;
+            }
+
+            contents = contents.replace(legacyAccess, patchedAccess);
+
+            const category = [
+                '// ' + ORT_MODULE_MARKER + ': RCTCxxBridge was removed in RN 0.88 (New Architecture);',
+                '// the JSI runtime is exposed by RCTBridgeProxy at runtime.',
+                '@interface RCTBridge (OnnxruntimeJsiRuntime)',
+                '- (void *)runtime;',
+                '@end',
+                ''
+            ].join('\n');
+
+            contents = contents.replace(
+                '@implementation OnnxruntimeModule',
+                category + '\n@implementation OnnxruntimeModule'
+            );
+
+            fs.writeFileSync(modulePath, contents, 'utf-8');
+            return cfg;
+        },
+    ]);
 }
 
 /**
@@ -189,6 +259,7 @@ function withOnnxruntimeAndroidFix(config) {
 
 function withOnnxruntime(config) {
     config = withOnnxruntimePodspecHeaderFix(config);
+    config = withOnnxruntimeIosInstallFix(config);
     config = withOnnxruntimeSettings(config);
     config = withOnnxruntimePackage(config);
     config = withOnnxruntimeAndroidFix(config);
