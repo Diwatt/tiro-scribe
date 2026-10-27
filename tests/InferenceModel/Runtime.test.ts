@@ -32,8 +32,11 @@ const mockOrt = {
 jest.mock('onnxruntime-react-native', () => mockOrt);
 
 
+import { observable } from '@legendapp/state';
+
 import { Runtime } from '@/InferenceModel/Runtime';
 import { SessionNotInitializedError } from '@/Exception';
+import { DownloadState } from '@/InferenceModel/Download/Type';
 
 describe('Runtime', () => {
   let runtime: Runtime;
@@ -49,6 +52,7 @@ describe('Runtime', () => {
       config: {
         files: ['dummy_encoder.onnx', 'dummy_decoder.onnx'],
       },
+      state$: observable(DownloadState.Completed),
     });
 
 
@@ -70,6 +74,39 @@ describe('Runtime', () => {
 
       expect(mockDownloader.download).toHaveBeenCalledWith('speaker_id');
       expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/m.onnx', { executionProviders: ['cpu'] });
+    });
+
+    it('waits for an in-progress download to complete before creating the session', async () => {
+      const executorState$ = observable(DownloadState.Downloading);
+      const executor = { config: { files: [] }, state$: executorState$ };
+
+      // The local file only becomes available once the download completed.
+      mockDownloader.getLocalPath.mockImplementation(async () =>
+        executorState$.get() === DownloadState.Completed ? '/m.onnx' : undefined,
+      );
+      mockDownloader.download.mockImplementation(async () => {
+        setTimeout(() => executorState$.set(DownloadState.Completed), 10);
+        return executor;
+      });
+
+      await runtime.load('speaker_id');
+
+      expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/m.onnx', { executionProviders: ['cpu'] });
+    });
+
+    it('rejects when the in-progress download fails', async () => {
+      const executorState$ = observable(DownloadState.Downloading);
+      const executor = { config: { files: [] }, state$: executorState$ };
+
+      mockDownloader.getLocalPath.mockResolvedValue(undefined);
+      mockDownloader.download.mockImplementation(async () => {
+        setTimeout(() => executorState$.set(DownloadState.Failed), 10);
+        return executor;
+      });
+
+      await expect(runtime.load('speaker_id')).rejects.toThrow(`Model download ended with state ${DownloadState.Failed}`);
+
+      expect(mockOrt.InferenceSession.create).not.toHaveBeenCalled();
     });
 
     it('rejects when the model is still unavailable after downloading', async () => {

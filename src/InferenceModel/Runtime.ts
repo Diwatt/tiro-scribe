@@ -1,7 +1,9 @@
 import type * as Ort from 'onnxruntime-react-native';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { OnnxRuntimeError, SessionNotInitializedError } from '@/Exception';
+import { InferenceModelDownloaderException, OnnxRuntimeError, SessionNotInitializedError } from '@/Exception';
+import type { DownloadTaskExecutor } from './Download/DownloadTaskExecutor';
+import { DownloadState } from './Download/Type';
 import { Downloader } from './Downloader';
 import type { InferenceModel } from './Model';
 
@@ -101,7 +103,8 @@ export class Runtime implements InferenceModel {
 
         let modelPath = await this.downloader.getLocalPath(capability);
         if (!modelPath) {
-            await this.downloader.download(capability);
+            const executor = await this.downloader.download(capability);
+            await this.waitForDownload(executor);
             modelPath = await this.downloader.getLocalPath(capability);
         }
 
@@ -173,6 +176,28 @@ export class Runtime implements InferenceModel {
             default:
                 throw new Error(`Unknown model capability: ${capability}`);
         }
+    }
+
+    private async waitForDownload(executor: DownloadTaskExecutor): Promise<void> {
+        const state = executor.state$.get();
+        if (state === DownloadState.Completed) {
+            return;
+        }
+        if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
+            throw new InferenceModelDownloaderException(`Model download ended with state ${state}`);
+        }
+
+        return new Promise<void>((resolve, reject) => {
+            const unsubscribe = executor.state$.onChange(({ value }) => {
+                if (value === DownloadState.Completed) {
+                    unsubscribe();
+                    resolve();
+                } else if (value === DownloadState.Failed || value === DownloadState.Cancelled) {
+                    unsubscribe();
+                    reject(new InferenceModelDownloaderException(`Model download ended with state ${value}`));
+                }
+            });
+        });
     }
 }
 
