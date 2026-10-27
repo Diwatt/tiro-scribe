@@ -134,7 +134,9 @@ export const StepAccount = observer(function StepAccountComponent(): React.JSX.E
                     mode="contained"
                     loading={isBusy}
                     disabled={isBusy}
-                    onPress={handleSubmit(onSubmit)}
+                    onPress={() => {
+                        void handleSubmit(onSubmit)();
+                    }}
                     style={STYLES.buttonHalf}
                     contentStyle={STYLES.primaryButtonContent}
                 >

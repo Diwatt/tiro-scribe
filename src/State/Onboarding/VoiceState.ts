@@ -142,7 +142,7 @@ export class VoiceState extends AbstractState {
         const ll = this.localization.getLL();
         const downloader = this.inferenceModelDownloader;
 
-        const existing = downloader.getLocalPath('speaker_id');
+        const existing = await downloader.getLocalPath('speaker_id');
         if (existing) {
             this.isSpeakerModelReady.set(true);
             return;

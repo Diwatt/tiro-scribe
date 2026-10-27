@@ -92,11 +92,11 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 ### P0 — Figer & arbitrer *(prérequis de tout)*
 
 - [ ] **Commit du lot courant** *(→ utilisateur)* : suppression `SEED`/`STATE`/`TECH`, fix snackbar `AudioFileEncryptor` + tests DevConsole (`TherapistOnboarding`, `AudioFileEncryptor.encrypt`), commentaire `babel.config.js`, ce `TODO.md`. *(La session `encryptBytes` native est déjà committée.)*
-- [ ] **Corrections tsc urgentes `src/`** 🔎 (bugs réels repérés à l'audit, 4 fichiers) :
-  - `InferenceModel/Download/ChecksumVerifier.ts:31-33` — `Uint8Array` promesse non awaitée : **le checksum ne s'exécute pas correctement** (à corriger avant tout chantier downloader) ;
-  - `State/Onboarding/VoiceState.ts:146` — `if (existing)` sur une `Promise` (toujours truthy) ;
-  - `Exception/RecordingTooShortError.ts:10` — signature constructeur incohérente avec `TiroScribeException` ;
-  - `Screen/Onboarding/StepAccount.tsx:137` — typing `onPress` vs Paper 5.15.
+- [x] **Corrections tsc urgentes `src/`** ✅ 27/10/2026 (4 fixes TDD, 12 tests verts, tsc 134 → 128) :
+  - `InferenceModel/Download/ChecksumVerifier.ts:31-33` — `Uint8Array` promesse non awaitée : **le checksum ne s'exécutait pas** (boucle morte, tout fichier valide rejeté "Hash mismatch, 0 bytes") → `await` sur les deux `readBytes` ; 6 tests (`tests/InferenceModel/Download/ChecksumVerifier.test.ts`) ;
+  - `State/Onboarding/VoiceState.ts:146` — `if (existing)` sur une `Promise` (toujours truthy) : **le calibrage passait sans modèle téléchargé** → `await getLocalPath('speaker_id')` ; 2 tests ajoutés à `tests/State/VoiceState.test.ts` ;
+  - `Exception/RecordingTooShortError.ts` — code manquant (`undefined`) et `name` hérité `'Error'` → `RECORDING_TOO_SHORT` + `this.name` ; 4 tests (`tests/Exception/RecordingTooShortError.test.ts`) ;
+  - `Screen/Onboarding/StepAccount.tsx:137` — typing `onPress` vs Paper 5.15 → `void handleSubmit(onSubmit)()` (bug purement typographique, validé par tsc ; test d'écran reporté au chantier RNTL, cf. P6).
 - [ ] **[ARBITRAGE] Biocode** : AGENTS.md dit `Hash(SpeakerVector + Salt)` ; implémenté = projection vectorielle. Trancher et aligner spec + AGENTS.md.
 - [ ] **Sécurité — `CryptoEngine` (vault)** 🔎 *constat inchangé (CBC + PBKDF2 1 000, lignes 11-14)* : migrer vers AES-256-GCM, itérations ≥ 600 000 (ou Argon2/scrypt). Ne pas confondre avec `generateDeterministicBytes` (PRF, pas un secret).
 - [ ] **[ARBITRAGE] `Container.initialize()` / `AppConfig.getInstance()`** 🔎 *toujours en place* : double singleton, violation « passive holder ». Décider règle vs code (~44 `Container.get/register` en bas de fichiers).
@@ -131,6 +131,8 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 - [ ] **Étendre `HardwareGuard` aux seuils « recherche »** *(le gatekeeper générique existe déjà 🔎 : OS semver, RAM, arch 64-bit, deviceType, écran `incompatible`)* : RAM `>= 3.8 GB` iOS / `> 5.5 GB` Android ; iOS : rejeter tout `modelId` < `iPhone13,x` (iPhone 12 = `iPhone13,1`). Cible : iPhone 12+ (A14+, 4 GB), Android 6 GB / ≥ Snapdragon 888. Remplacer `semver` par `parseInt(Platform.Version)` (C6) si l'usage se limite à l'OS.
 
 ### P4 — Pipeline post-enregistrement *(le chaînon manquant)*
+
+- [ ] **Bug `QueueItem.isProcessable` (confirmé par la revue de tests)** : `src/Entity/QueueItem.ts:67-75` compare `retryCount < MAX_RETRY_COUNT` — constante `3` hardcodée en module (violation règle projet) — au lieu de lire le champ propre `this.maxRetries`. Fix : `this.retryCount < this.maxRetries` + constante en `public static readonly` + test marqueur (`maxRetries: 5, retryCount: 3 → true`, échoue aujourd'hui par design — cf. revue tests, Vague A).
 
 🔎 *Précision vs anciennes notes : `QueueItemRepository` existe (basique, sans méthodes) et `QueueItem` est déjà riche (`PipelineStage`, `QueueItemStatus`, `processingOffset`, `createForEncounter`) — mais **rien ne les consomme après `stop()`** (seuls les fixtures DevConsole les créent).*
 
@@ -206,6 +208,35 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 
 ### P7 — Santé du code *(après les gros chantiers)*
 
+#### Revue complète des tests (27/10/2026) — rapport : `docs/test-review-2026-10-27.md`
+
+> 59 suites relues contre les 34 règles testing-best-practices : ~55 constats (7 CRITICAL, 13 HIGH). Faits marquants : le « vrai SQLite » du Repository est un fake regex avec 7 `it.skip` noyau ; doublon mocké de `ChecksumVerifier` ; `CryptoEngine` cœur (encrypt/decrypt) jamais testé ; propriété de sécurité du biocode skippée sur justification fausse ; `Encounter` testé sur un mock divergent ; `OnboardingState` 5/5 skippés ; tests « composant » qui ne rendent rien.
+
+**Vague A — Restaurer la confiance (CRITICAL)** ✅ *exécutée le 27/10/2026 — suite complète 640 → 683 verts, 0 échec, skips 21 → 6 (restants : Math/orthonormalité, documentés)* :
+- [x] `tests/helpers/kysely.ts` → **sql.js** (WASM, JSON1 inclus) + dialect Kysely maison (`tests/helpers/SqlJsDriver.ts`, `SqlJsDialect.ts`) — 7 tests Repository dé-skipés, **verts du premier coup, aucun bug réel** (le fake était le seul coupable). ⚠️ Dép ajoutée (`sql.js`, `@types/sql.js`) → **re-prebuild natif requis avant tout build** (règle R3).
+- [x] Supprimer `tests/InferenceModel/Model/ChecksumVerifier.test.ts` (doublon mocké) — « close sur erreur mid-read » porté en version async dans `Download/`.
+- [x] Couvrir `CryptoEngine` : round-trip, IV 16 bytes + IV aléatoire, mauvaise clé, hash sha256, `generateDeterministicBytes`. 🔎 **Correctif d'infra au passage** : le mock `jest.setup.ts` d'`expo-crypto` retournait `Buffer.alloc(32)` fixe — tout IV de 16 bytes était invalide en test → mock branché sur Node crypto (getRandomBytes/digestStringAsync/getRandomValues/randomUUID).
+- [x] Réactiver les 3 `it.skip` Math — **verts** : la justification du skip (« mock PBKDF2 ») était obsolète ; la propriété « clés différentes → projections différentes » est prouvée.
+- [x] Dé-skiper `OnboardingState` — les 5 skips venaient d'un `beforeEach` cassé : **import fantôme `InferenceModelDownloader`** (export réel = `Downloader` → le vrai Downloader était injecté) + mock `AppLogger` non constructible. 6 tests verts.
+- [x] Réécrire `Encounter.test.ts` / `QueueItem.test.ts` sur les **vraies classes** (10 + 10 tests) ; `mockEntity.ts` conservé (entité générique de 4 suites Database). 🔎 **Bug confirmé en src** : `QueueItem.isProcessable` ignore `maxRetries` (constante `3` hardcodée, module-level) — tâche ajoutée en P4.
+- [x] `DownloadTaskExecutor` : transition réelle `[Pending, Downloading, Completed]` (queue réelle en Pending, souscription avant start) + `cancel()` en cours de download (`true`, `Cancelled`, message exact) + 4 branches `Runtime` (fallback download, not available, unknown capability, runRaw après release). Suite vérifiée avec `--randomize`.
+
+**Vague B — Honnêteté des tests (HIGH)** :
+- [ ] Renommer/assert les tests fantômes (nom promet, corps ne tient pas) : `Repository.test.ts:188`, `QueryCompiler.test.ts:44/58/107`, `DefinitionLanguageWriter.test.ts:214` (quote inexistante), `ProjectionMatrixFactory.test.ts:281/213`, `AudioFeatureExtractor.test.ts:261`, `AppConfig.test.ts:34`, `VoiceState.test.ts:178-194/248`, `DownloadTaskExecutor.test.ts:209`, `SpeakerEmbedder.test.ts:54`, `ClassDecorator.test.ts:26`, `SystemVerifier.test.ts:84`.
+- [ ] Inverser les contrats dangereux : `not.toThrow()` qui bénit l'absence de gardes (master key vide/`null`, `sampleRate 0/-1`) après ajout des gardes côté source.
+- [ ] `SchemaValidator.test.ts:72` : `try/catch` qui reste vert si le throw disparaît → capturer + assert type/code (1 branche = 1 test).
+- [ ] Restaurations d'état déplacées en `afterEach` : `AppConfig.isDev`, `Database.instance`, `EntityMetadata.getColumnDefaults`, `Device.isDevice` (guard conditionnel → dépendance d'ordre), fake timers (`Timer.test.ts`).
+
+**Vague C — Hygiène (~1 j)** :
+- [ ] Supprimer les doublons : `FieldDecorator.test.ts` (≡ PropertyDecorator), blocs Z ≡ E (Registry, AbstractEntity, DefinitionBuilder), `MetadataReader` vs `MetadataWriter`, `ClassDecorator.test.ts:9`, `HardwareGuard.test.ts:273`, tests de lib tierce (`GlobalActivityStatus.test.ts:19-33`).
+- [ ] Extraire le stub `@legendapp/state` en manual mock partagé (`__mocks__/`) ; à terme tester avec la vraie lib.
+- [ ] Factories : `fakeRecorder` ×7 (VoiceCalibrationRecorder), `therapist` muté (VoiceState) → `beforeEach`.
+- [ ] Mocks morts : AppLogger (MetadataReader/MetadataWriter), Container (VoiceCalibrator), imports inutilisés (Runtime, VoiceCalibrator), polyfill Symbol.metadata redondant.
+- [ ] Ajouter les branches non couvertes : `Builder` accessor + garde `isDev`, `SchemaValidator` enum/notBlank/min, `AppConfig` chemin prod, `RecoveryCode` différenciation des codes.
+- [ ] Bench `Math.integration.test.ts:414` (assert 1000 ms vs ~2700 réels) → test dédié taggé, hors feedback rapide.
+
+#### Dette existante
+
 - [ ] **134 erreurs `pnpm run type-check`** 🔎 *compte revalidé au 27/10* (majorité `tests/` driftés). Côté `src/` (~12), l'audit a confirmé et précisé :
   - `Context/ServicesContext.tsx:6-7` — importe `Service/Anonymizer` et `Service/AudioProcessing` **inexistants** (cassee à brancher en P5 ou imports à retirer) ;
   - `Database/index.ts:17` — exporte `registry` (c'est `Registry`) — prérequis fixtures ;
@@ -214,6 +245,7 @@ tar -xzf onnxruntime-react-native-<version>.tgz
   - + les 4 fichiers de la P0 (`ChecksumVerifier`, `VoiceState`, `RecordingTooShortError`, `StepAccount`).
 - [ ] **Test-sentinelles decorators** : un test Jest qui échoue explicitement si le patch babel-preset n'est plus appliqué **ou** plus nécessaire (R1). Suivre l'issue upstream ; nettoyer `Column.initializer` / `ensureColumnAccessors` (accessors posés deux fois).
 - [ ] Relancer `test:kotlin` / `test:swift` (tests natifs — non relancés depuis l'audit).
+- [ ] **Réparer l'infra des tests de composants** 🔎 *(découvert au 27/10)* : tout `render()` RNTL crashe — le mock `Text` du preset RN 0.88 charge `react-native/react-private-interface` qui **n'existe pas** dans le paquet (`jest-expo` + mapper `^react-native/.*`). Symptôme : `Could not locate module react-native/react-private-interface`. Aucun test existant ne render de composants (AsyncButton teste de la logique pure) — le trou est invisible tant qu'on n'écrit pas de test d'écran. À régler avec le bump RNTL 14 (P6) ; premier candidat : `StepAccount` (voir son fix P0).
 - [ ] `RecordNormalizer` 🔎 *existe toujours, référencé dans la doc de `EntityMetadata`* — vérifier s'il duplique `Repository.normalizeForWrite` ; exports `Repository/index.ts` incomplets ; scripts `preios`/`clean:metro` redondants.
 - [ ] `Context/ServicesProvider` — 3 services `null` : à brancher au fil de P3-P5.
 - [ ] Migrations DB : absentes (schema sync additive seulement — pas de versioning/drop).

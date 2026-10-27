@@ -6,9 +6,17 @@ import { TiroScribeException } from './TiroScribeException';
  * the resulting speaker vector will be unreliable or invalid.
  */
 export class RecordingTooShortError extends TiroScribeException {
-    constructor(requestedSamples: number, actualSamples: number) {
+    public static readonly tooShort = 'RECORDING_TOO_SHORT' as const;
+
+    public constructor(requestedSamples: number, actualSamples: number) {
         super(
             `Recording too short: requested ${requestedSamples} samples but got ${actualSamples}`,
+            RecordingTooShortError.tooShort,
         );
+        this.name = 'RecordingTooShortError';
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, RecordingTooShortError);
+        }
     }
 }

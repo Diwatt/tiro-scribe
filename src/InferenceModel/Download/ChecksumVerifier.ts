@@ -27,11 +27,11 @@ export class ChecksumVerifier {
         try {
             const handle = file.open();
             try {
-                let bytes = handle.readBytes(CHUNK_SIZE);
+                let bytes = await handle.readBytes(CHUNK_SIZE);
                 while (bytes.length > 0) {
                     hash.update(bytes);
                     totalBytes += bytes.length;
-                    bytes = handle.readBytes(CHUNK_SIZE);
+                    bytes = await handle.readBytes(CHUNK_SIZE);
                 }
             } finally {
                 handle.close();
