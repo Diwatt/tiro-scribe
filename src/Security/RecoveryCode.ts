@@ -5,6 +5,7 @@
 
 import * as ExpoCrypto from 'expo-crypto';
 import QuickCrypto from 'react-native-quick-crypto';
+import { Container } from '@/Core/Container';
 
 export class RecoveryCode {
     private static readonly CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -47,3 +48,5 @@ export class RecoveryCode {
         return derived.toString('hex');
     }
 }
+
+Container.register(RecoveryCode, () => new RecoveryCode());

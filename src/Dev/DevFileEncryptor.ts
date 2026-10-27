@@ -20,10 +20,27 @@ import { DevFile } from './Data/DevFile';
  * DEV ONLY. Not for production use.
  */
 export class DevFileEncryptor {
+    /** Raw PCM sources are assumed s16le mono 16 kHz (scanner convention): 16 000 samples/s × 2 bytes. */
+    private static readonly PCM_BYTES_PER_MS =
+        DevAudioSegmentExtractor.SAMPLES_PER_MS * DevAudioSegmentExtractor.BYTES_PER_SAMPLE;
+
     public constructor(
         private readonly logger: AppLogger,
         private readonly segmentExtractor: DevAudioSegmentExtractor,
     ) {}
+
+    public static durationFromSamples(sampleCount: number): number {
+        return sampleCount / DevAudioSegmentExtractor.SAMPLES_PER_MS;
+    }
+
+    public static durationFromMono16kPcmBytes(byteCount: number): number {
+        return byteCount / DevFileEncryptor.PCM_BYTES_PER_MS;
+    }
+
+    /** The native SecureRecorder expects bare POSIX paths, not file:// URIs. */
+    public static toNativePath(path: string): string {
+        return path.replace(/^file:\/\//, '');
+    }
 
     public async encrypt(inputPath: string): Promise<DevAudioIngest> {
         const outputPath = this.buildOutputPath();
@@ -34,6 +51,7 @@ export class DevFileEncryptor {
 
         const inputSizeBytes = inputInfo.size ?? 0;
         const isWav = inputPath.toLowerCase().endsWith('.wav');
+        let durationMs: number;
 
         try {
             if (isWav) {
@@ -41,8 +59,10 @@ export class DevFileEncryptor {
                 const int16Pcm = DevAudioSegmentExtractor.float32ToInt16(floatPcm);
                 const pcmBytes = new Uint8Array(int16Pcm.buffer);
                 await SecureRecorder.encryptBytes(pcmBytes, outputPath);
+                durationMs = DevFileEncryptor.durationFromSamples(int16Pcm.length);
             } else {
-                await SecureRecorder.encryptFile(inputPath, outputPath);
+                await SecureRecorder.encryptFile(DevFileEncryptor.toNativePath(inputPath), outputPath);
+                durationMs = DevFileEncryptor.durationFromMono16kPcmBytes(inputSizeBytes);
             }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
@@ -63,9 +83,10 @@ export class DevFileEncryptor {
             inputPath,
             outputPath,
             isWav,
+            durationMs,
         });
 
-        return new DevAudioIngest(inputFile, outputFile);
+        return new DevAudioIngest(inputFile, outputFile, durationMs);
     }
 
     public async encryptAll(paths: string[]): Promise<DevAudioIngest[]> {
@@ -84,7 +105,7 @@ export class DevFileEncryptor {
         const sessionId = `seed_${randomSuffix}`;
         const docDir = documentDirectory ?? '';
 
-        return `${docDir}${sessionId}.dat`;
+        return DevFileEncryptor.toNativePath(`${docDir}${sessionId}.dat`);
     }
 }
 

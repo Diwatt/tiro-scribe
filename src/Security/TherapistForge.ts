@@ -4,9 +4,10 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { Container } from '@/Core/Container';
 import { Therapist } from '@/Entity/Therapist';
-import type { CryptoEngine } from '@/Security/CryptoEngine';
-import type { RecoveryCode } from '@/Security/RecoveryCode';
+import { CryptoEngine } from '@/Security/CryptoEngine';
+import { RecoveryCode } from '@/Security/RecoveryCode';
 
 /** Input for creating a therapist; caller maps form/data to this shape. */
 export interface CreateTherapistInput {
@@ -106,3 +107,8 @@ export class TherapistForge {
         return masterKey;
     }
 }
+
+Container.register(
+    TherapistForge,
+    () => new TherapistForge(Container.get(CryptoEngine), Container.get(RecoveryCode)),
+);

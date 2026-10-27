@@ -18,43 +18,43 @@ dayjs.extend(utc);
 
 const SESSION_PREFIX = 'encounter';
 
-@Entity({ tableName: 'encounters' })
+@Entity({ tableName: 'encounters', repositoryClass: 'EncounterRepository' })
 export class Encounter extends AbstractEntity {
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    public accessor uuid!: string;
   
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public createdAt!: Dayjs;
+    public accessor createdAt!: Dayjs;
 
     /** File paths to encrypted audio chunks. */
     @Column({ default: '[]', type: 'text', as: 'json' })
-    public encryptedAudioPaths!: string[];
+    public accessor encryptedAudioPaths!: string[];
 
     /** Incognito (Bunker): when true, transcript is stored encrypted on the server. */
     @Column({ default: false, type: 'boolean', index: true })
-    public isIncognito!: boolean;
+    public accessor isIncognito!: boolean;
 
     @Column({ default: EncounterStatus.Recording, type: 'varchar', length: 16, index: true })
-    public status!: EncounterStatus;
+    public accessor status!: EncounterStatus;
 
     /** UTC when this encounter was synced to cloud (null = not synced). */
     @Column({ default: null, type: 'datetime', as: 'date' })
-    public syncedAt!: Dayjs | null;
+    public accessor syncedAt!: Dayjs | null;
 
     /** References Therapist (UUID). Real column for REFERENCES constraint. */
     @ForeignKey({ target: () => Therapist, onDelete: 'RESTRICT' })
     @Column({ default: '', type: 'varchar', length: 36 })
-    public therapistId!: string;
+    public accessor therapistId!: string;
 
     /** Duration in milliseconds (whole number). */
     @Column({ default: 0, type: 'integer' })
-    public totalDuration!: number;
+    public accessor totalDuration!: number;
 
     /** UTC, stored as ISO string; use dayjs in UTC mode. */
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public updatedAt!: Dayjs;
+    public accessor updatedAt!: Dayjs;
 
 
 

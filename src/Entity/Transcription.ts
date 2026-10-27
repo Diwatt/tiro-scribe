@@ -27,23 +27,23 @@ export class Utterance {
 export class Transcription extends AbstractEntity {
     @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
     @Column({ default: '', type: 'varchar', length: 36 })
-    public encounterId!: string;
+    public accessor encounterId!: string;
 
     /** ASR model name (e.g. whisper-small-en). */
     @Column({ default: '', type: 'varchar', length: 64 })
-    public modelName!: string;
+    public accessor modelName!: string;
 
     /** ASR model version (e.g. 3.1). */
     @Column({ default: '', type: 'varchar', length: 16 })
-    public modelVersion!: string;
+    public accessor modelVersion!: string;
 
     /** Time-series of utterances (raw Whisper/ASR output). */
     @Column({ default: '[]', type: 'text', as: 'json', fullText: true, fullTextPath: '$.text' })
-    public utterances!: Utterance[];
+    public accessor utterances!: Utterance[];
 
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    public accessor uuid!: string;
 
     public getEncounterId(): string {
         return this.encounterId;

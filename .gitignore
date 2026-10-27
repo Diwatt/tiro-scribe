@@ -37,7 +37,7 @@ ios/DerivedData/
 
 # Android/IntelliJ
 build/
-.idea
+.playwright-mcp/
 .gradle
 local.properties
 *.iml
@@ -110,3 +110,7 @@ pnpm-lock.yaml
 bun.lock
 bun.lockb
 .gstack/
+.claude/
+.mcp.json
+.cache/
+.screenshots/

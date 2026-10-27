@@ -99,10 +99,38 @@ class ColumnDecorator implements PropertyDecoratorConfig<ColumnOptions<unknown>>
                     return transformer != null ? transformer.fromStorage(raw) : raw;
                 },
                 set(value: unknown) {
+                    // The class-field initializer assignment (loose transform) re-assigns this
+                    // field with undefined after super() merged defaults + input; keep that value.
+                    if (value === undefined && self.getField(key) !== undefined) {
+                        return;
+                    }
                     const stored = transformer != null ? transformer.toStorage(value) : value;
                     self.setField(key, stored);
                 },
             });
+        };
+    }
+
+    /** Auto-accessor hook (`accessor x`): replaces get/set to store the value in fieldValues. */
+    public accessor(
+        context: ClassAccessorDecoratorContext<unknown>,
+        options: ColumnOptions<unknown>,
+    ): ClassAccessorDecoratorResult<unknown, unknown> {
+        const key = String(context.name);
+        const transformer = options.as != null ? TransformerRegistry.get(options.as) : undefined;
+
+        return {
+            get(this: AbstractEntity) {
+                const raw = this.getField(key);
+                return transformer != null ? transformer.fromStorage(raw) : raw;
+            },
+            set(this: AbstractEntity, value: unknown) {
+                if (value === undefined && this.getField(key) !== undefined) {
+                    return;
+                }
+                const stored = transformer != null ? transformer.toStorage(value) : value;
+                this.setField(key, stored);
+            },
         };
     }
 

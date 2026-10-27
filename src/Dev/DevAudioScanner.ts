@@ -47,6 +47,7 @@ export class DevAudioScanner {
                     sizeBytes: fileInfo.exists ? (fileInfo.size ?? 0) : 0,
                     encryptedPath: encryptedInfo.exists ? encryptedPath : null,
                     isEncrypted: encryptedInfo.exists,
+                    durationMs: null,
                 };
             }),
         );

@@ -131,10 +131,15 @@ export interface PropertyDecoratorConfig<TOptions = object> {
     errorCode?: string;
     /** Custom validate when schema is not enough. Run after schema validation when schema is set. */
     validate?(options: TOptions): void;
-    /** Run synchronously when the decorator is applied (e.g. set metadata). */
-    before?(context: ClassFieldDecoratorContext<unknown, unknown>, options: TOptions): void;
-    /** Run in addInitializer (instance is `this`). */
-    initializer(context: ClassFieldDecoratorContext<unknown, unknown>, options: TOptions): (instance: unknown) => void;
+    /** Run synchronously when the decorator is applied (e.g. set metadata). Context is a field or auto-accessor context. */
+    before?(context: ClassFieldDecoratorContext<unknown, unknown> | ClassAccessorDecoratorContext<unknown>, options: TOptions): void;
+    /** Run in addInitializer (instance is `this`). Field decorators only — auto-accessors use accessor() instead. */
+    initializer?(context: ClassFieldDecoratorContext<unknown, unknown>, options: TOptions): (instance: unknown) => void;
+    /**
+     * Auto-accessor hook (`accessor x` members). Returns replacement get/set (delegating to
+     * fieldValues) or void to keep the default accessors.
+     */
+    accessor?(context: ClassAccessorDecoratorContext<unknown>, options: TOptions): ClassAccessorDecoratorResult<unknown, unknown> | void;
     /**
      * When true, only one property of the same class can have this decorator.
      * Requires decoratorName so the builder can check metadata. Used by @PrimaryKey.
@@ -142,4 +147,17 @@ export interface PropertyDecoratorConfig<TOptions = object> {
     unique?: boolean;
     /** Name of this decorator in metadata (e.g. 'PrimaryKey', 'Column'). Required when unique is true. */
     decoratorName?: string;
+}
+
+/**
+ * Decorator factory output supporting both targets: class fields and auto-accessors.
+ * TS picks the overload from the decorated member kind; the accessor overload is generic
+ * so the result type matches the per-field `This`/`Value` (otherwise TS1270 variance errors).
+ */
+export interface PropertyDecoratorFactory {
+    (value: unknown, context: ClassFieldDecoratorContext<unknown, unknown>): void;
+    <This, Value>(
+        value: ClassAccessorDecoratorTarget<This, Value>,
+        context: ClassAccessorDecoratorContext<This>,
+    ): ClassAccessorDecoratorResult<This, Value> | void;
 }

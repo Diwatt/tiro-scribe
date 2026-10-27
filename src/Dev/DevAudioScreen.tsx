@@ -1,6 +1,6 @@
 import { observer } from '@legendapp/state/react';
 import { useRouter } from 'expo-router';
-import { FileAudio, FolderOpen, Lock, RefreshCw } from 'lucide-react-native';
+import { FileAudio, FolderOpen, Lock, RefreshCw, UserRound } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import {
@@ -24,10 +24,23 @@ export const DevAudioScreen = observer((): React.JSX.Element => {
     const router = useRouter();
     const [state] = React.useState(() => Container.get(DevAudioState));
     const [inputPath, setInputPath] = React.useState('');
+    const [therapistSourcePath, setTherapistSourcePath] = React.useState('');
+    const [segmentStart, setSegmentStart] = React.useState('0');
+    const [segmentEnd, setSegmentEnd] = React.useState('30000');
 
     const isLoading = state.state$.isLoading.get();
     const files = state.state$.files.get();
     const notification = state.state$.notification.get();
+
+    const segmentStartMs = Number.parseInt(segmentStart, 10);
+    const segmentEndMs = Number.parseInt(segmentEnd, 10);
+    const firstUnencryptedPath = files.find((file) => !file.isEncrypted)?.path ?? '';
+    const isOnboardingFormValid =
+        therapistSourcePath.length > 0 &&
+        Number.isInteger(segmentStartMs) &&
+        Number.isInteger(segmentEndMs) &&
+        segmentStartMs >= 0 &&
+        segmentEndMs > segmentStartMs;
 
     const renderFileItem = ({ item }: { item: (typeof files)[0] }) => (
         <List.Item
@@ -37,10 +50,15 @@ export const DevAudioScreen = observer((): React.JSX.Element => {
             right={(props) =>
                 item.isEncrypted ? (
                     <View style={STYLES.row} {...props}>
+                        <Button
+                            mode="contained-tonal"
+                            compact
+                            onPress={() => state.seedEncounter(item.encryptedPath ?? '', item.durationMs ?? 0)}
+                            disabled={isLoading || item.durationMs == null}
+                        >
+                            Seed
+                        </Button>
                         <Lock size={20} color={theme.colors.primary} />
-                        <Text variant="labelSmall" style={{ color: theme.colors.primary, marginLeft: 4 }}>
-                            Encrypted
-                        </Text>
                     </View>
                 ) : (
                     <Button
@@ -144,6 +162,58 @@ export const DevAudioScreen = observer((): React.JSX.Element => {
                         <ActivityIndicator size="large" />
                     </View>
                 )}
+
+                <Card style={STYLES.onboardingCard}>
+                    <Card.Content>
+                        <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+                            Dev Therapist Onboarding
+                        </Text>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                            Creates the dev therapist with a biocode from a voice-only segment of the source audio
+                        </Text>
+                        <TextInput
+                            mode="outlined"
+                            placeholder="Source audio path"
+                            value={therapistSourcePath}
+                            onChangeText={setTherapistSourcePath}
+                            right={
+                                firstUnencryptedPath.length > 0 ? (
+                                    <TextInput.Icon
+                                        icon={() => <FileAudio size={20} color={theme.colors.onSurfaceVariant} />}
+                                        onPress={() => setTherapistSourcePath(firstUnencryptedPath)}
+                                    />
+                                ) : undefined
+                            }
+                        />
+                        <View style={STYLES.segmentRow}>
+                            <TextInput
+                                mode="outlined"
+                                label="Start (ms)"
+                                keyboardType="numeric"
+                                value={segmentStart}
+                                onChangeText={setSegmentStart}
+                                style={STYLES.segmentInput}
+                            />
+                            <TextInput
+                                mode="outlined"
+                                label="End (ms)"
+                                keyboardType="numeric"
+                                value={segmentEnd}
+                                onChangeText={setSegmentEnd}
+                                style={STYLES.segmentInput}
+                            />
+                        </View>
+                        <Button
+                            mode="contained"
+                            onPress={() => state.createTherapistFromAudio(therapistSourcePath, segmentStartMs, segmentEndMs)}
+                            loading={isLoading}
+                            disabled={isLoading || !isOnboardingFormValid}
+                            icon={() => <UserRound size={18} color={theme.colors.onPrimary} />}
+                        >
+                            Create Dev Therapist
+                        </Button>
+                    </Card.Content>
+                </Card>
             </View>
 
             <Snackbar
@@ -184,6 +254,17 @@ const STYLES = StyleSheet.create({
     filesCard: {
         flex: 1,
     },
+    onboardingCard: {
+        marginTop: 16,
+    },
+    segmentInput: {
+        flex: 1,
+    },
+    segmentRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 12,
+    },
     buttonRow: {
         flexDirection: 'row',
         gap: 12,
@@ -198,5 +279,7 @@ const STYLES = StyleSheet.create({
     row: {
         alignItems: 'center',
         flexDirection: 'row',
+        gap: 8,
+        paddingRight: 8,
     },
 });

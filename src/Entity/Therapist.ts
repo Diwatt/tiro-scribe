@@ -11,50 +11,50 @@ import { Column, Entity, PrimaryKey } from '../Decorator';
 export class Therapist extends AbstractEntity {
     /** Projected-voice biocode (vector stored as JSON array). Set at calibration; same every encounter. */
     @Column({ default: '[]', type: 'text', as: 'json' })
-    public biocode!: number[];
+    public accessor biocode!: number[];
 
     @Column({ default: '', type: 'varchar' })
-    public email!: string;
+    public accessor email!: string;
 
     @Column({ default: '', type: 'text' })
-    public encryptedMasterKeyPrimary!: string;
+    public accessor encryptedMasterKeyPrimary!: string;
 
     @Column({ default: '', type: 'text' })
-    public encryptedMasterKeyRecovery!: string;
+    public accessor encryptedMasterKeyRecovery!: string;
 
     @Column({ default: '[]', type: 'text', as: 'json' })
-    public languages!: string[];
+    public accessor languages!: string[];
 
     // TODO (Post-MVP) : Here we gonnna store the alias for the hardware key (Keystore/Secure Enclave).
     // It will be use to encrypt and decrypt the Master Key with biometrics interface (FaceID/TouchID) 
     // to avoid the therapist to retype his password on every app opening
     @Column({ default: null, type: 'varchar', length: 36 })
-    public biometricKeyAlias!: string | null;
+    public accessor biometricKeyAlias!: string | null;
 
     @Column({ default: '', type: 'text' })
-    public masterKeyCheckHash!: string;
+    public accessor masterKeyCheckHash!: string;
 
     @Column({ default: null, type: 'varchar' })
-    public name!: string | null;
+    public accessor name!: string | null;
 
     @Column({ default: '', type: 'text' })
-    public passwordHash!: string;
+    public accessor passwordHash!: string;
 
     @Column({ default: null, type: 'varchar' })
-    public qualification!: string | null;
+    public accessor qualification!: string | null;
 
     @Column({ default: '', type: 'text' })
-    public recoveryCodeHash!: string;
+    public accessor recoveryCodeHash!: string;
 
     @Column({ default: null, type: 'varchar' })
-    public therapyMethod!: string | null;
+    public accessor therapyMethod!: string | null;
 
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    public accessor uuid!: string;
 
     @Column({ default: null, type: 'integer' })
-    public yearsOfExperience!: number | null;
+    public accessor yearsOfExperience!: number | null;
 
     public getBiocode(): number[] {
         return this.biocode;

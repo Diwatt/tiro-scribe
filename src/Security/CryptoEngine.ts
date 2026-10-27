@@ -5,6 +5,7 @@
 
 import * as ExpoCrypto from 'expo-crypto';
 import QuickCrypto, { Buffer } from 'react-native-quick-crypto';
+import { Container } from '@/Core/Container';
 
 export class CryptoEngine {
     private static readonly algorithm = 'aes-256-cbc';
@@ -74,3 +75,5 @@ export class CryptoEngine {
         return `scribe_${tag}_${uuid}`;
     }
 }
+
+Container.register(CryptoEngine, () => new CryptoEngine());

@@ -18,51 +18,51 @@ dayjs.extend(utc);
 
 const MAX_RETRY_COUNT = 3;
 
-@Entity({ tableName: 'queue_items' })
+@Entity({ tableName: 'queue_items', repositoryClass: 'QueueItemRepository' })
 export class QueueItem extends AbstractEntity {
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public createdAt!: Dayjs;
+    public accessor createdAt!: Dayjs;
 
     @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
     @Column({ default: '', type: 'varchar', length: 36 })
-    public encounterId!: string;
+    public accessor encounterId!: string;
 
     @Column({ default: '', type: 'text' })
-    public errorMessage!: string;
+    public accessor errorMessage!: string;
 
     @Column({ default: '', type: 'text' })
-    public encryptedAudioPath!: string;
+    public accessor encryptedAudioPath!: string;
 
     @Column({ default: 3, type: 'integer' })
-    public maxRetries!: number;
+    public accessor maxRetries!: number;
 
     @Column({ default: '{}', type: 'text', as: 'json' })
-    public metadata!: Record<string, unknown>;
+    public accessor metadata!: Record<string, unknown>;
 
     @Column({ default: PipelineStage.Waiting, type: 'varchar', length: 16 })
-    public pipelineStage!: PipelineStage;
+    public accessor pipelineStage!: PipelineStage;
 
     @Column({ default: 1, type: 'integer' })
-    public priority!: number;
+    public accessor priority!: number;
 
     @Column({ default: 0, type: 'integer' })
-    public processingOffset!: number;
+    public accessor processingOffset!: number;
 
     @Column({ default: 0, type: 'integer' })
-    public progressPercent!: number;
+    public accessor progressPercent!: number;
 
     @Column({ default: 0, type: 'integer' })
-    public retryCount!: number;
+    public accessor retryCount!: number;
 
     @Column({ default: QueueItemStatus.Pending, type: 'varchar', length: 16 })
-    public status!: QueueItemStatus;
+    public accessor status!: QueueItemStatus;
 
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public updatedAt!: Dayjs;
+    public accessor updatedAt!: Dayjs;
 
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    public accessor uuid!: string;
 
     public get isProcessable(): boolean {
         if (this.status === QueueItemStatus.Pending) {

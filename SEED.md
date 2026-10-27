@@ -1,219 +1,180 @@
-# Tiro Scribe — Realistic Encounter Seeding Plan
+# Tiro Scribe — Seeding dev : ingestion de données réalistes
 
-## Goal
+## Objectif
 
-Populate the local database with **6 realistic therapy encounters** (2 patients × 3 sessions) that reach the `ToProcess` stage with **real encrypted audio files**, a **genuine therapist biocode**, and **realistic transcriptions/prosody** so the local inference pipeline (VAD → ASR → Speaker Diarization) can be exercised end-to-end.
+Je ne peux pas réaliser de vraies séances de thérapie moi-même. L'objectif est donc une **interface de dev** qui ingère toutes les données nécessaires pour travailler sur les moteurs d'analyse :
 
----
+1. **Le footprint thérapeute** — un `Therapist` dev avec un biocode cryptographiquement valide (vecteur vocal projeté CAM++).
+2. **Des séances simulées** — ~6 encounters avec de **vrais fichiers audio multi-locuteurs** (extraits de séries TV), chiffrés au format natif, prêts pour le pipeline local : `QueueItem (Waiting)` → VAD → ASR (Whisper) → Diarization (CAM++) → Biocode Match.
 
-## Why This Is Hard
-
-| Constraint | Implication |
-|-----------|-------------|
-| `SecureRecorder` uses AES-256-GCM chunked encryption | Cannot pre-generate `.enc` files outside the app |
-| Keys live in Keychain / AndroidKeyStore | Hardware-bound, not extractable |
-| Chunk format: `[4B size][12B IV][ciphertext+tag]` | Must go through native module |
-| Biocode = projected speaker vector via CAM++ | Requires real audio + ONNX inference to generate |
-
-**Conclusion:** We must **record real audio through the app** to create valid encrypted files and a legitimate therapist biocode.
+Résultat attendu : des `Encounter` en `status = ToProcess` que la Phase 3 (le pipeline) transforme en `Transcription` + `ProsodyMetrics` + `Patient` avec biocode.
 
 ---
 
-## Two-Phase Strategy
+## Décisions (tranchées le 26/10/2026)
 
-### Phase 1: Dev Therapist Setup (One-Time)
-
-**Objective:** Create a dev therapist with a real biocode via actual voice calibration.
-
-**Flow:**
-1. Run app in dev mode
-2. Trigger hidden dev gesture → `DevSeedCoordinator.startTherapistOnboarding()`
-3. Use `TherapistForge.create()` with test credentials
-4. Persist therapist via `Registry.getRepository(Therapist).persist()`
-5. Store master key in `MasterKeyVault`
-6. Run `VoiceCalibrator.captureVoiceSample()` + `generateBiocode()` using the real microphone
-7. Save projected biocode to therapist entity
-
-**Result:** One `Therapist` row with a **real, cryptographically valid biocode** derived from actual audio.
+| Question | Décision |
+|---|---|
+| Source audio | **Extraits de séries TV** (vrais acteurs, vraie prosodie). Les voix synthétiques (TTS `say`) sont écartées : prosodie irréaliste, risque élevé que CAM++/la diarization n'en tirent rien d'utilisable. |
+| Transfert vers le device | **`adb push` vers `/sdcard/Download`** et scan direct — pas de `run-as`, on veut un outil d'ingestion simple. |
+| Seeds incognito (mode Bunker) | **Non, pour l'instant.** Tous les encounters seedés sont `isIncognito = false`. |
+| `totalDuration` | **Durée exacte**, calculée depuis les bytes PCM (voir `DevEncounterSeeder` plus bas) — le calcul est trivial, autant être exact. |
 
 ---
 
-### Phase 2: Encounter Recording (Per Encounter)
+## État au 26/10/2026
 
-**Objective:** Create 6 encounters with real encrypted audio containing distinguishable speakers (therapist vs. patient).
+| Brique | État | Fichier(s) |
+|---|---|---|
+| Forge thérapeute (identité + master key) | ✅ | `src/Security/TherapistForge.ts` |
+| Footprint (biocode) depuis un **fichier audio** | ✅ (sans UI — accès à ajouter) | `src/Dev/DevTherapistOnboarding.ts` |
+| Chiffrement d'un fichier brut → `.dat` natif (+ durée exacte) | ✅ | `src/Dev/DevFileEncryptor.ts` |
+| Extraction/normalisation WAV → PCM 16 kHz mono | ✅ | `src/Dev/DevAudioSegmentExtractor.ts` + `WavHeader.ts` |
+| Scan d'un répertoire de sources audio | ✅ (chemin avec préfixe `file://`) | `src/Dev/DevAudioScanner.ts` |
+| Écran dev (scan + encrypt + seed) | ✅ routé sur `/dev-seed` | `src/Dev/DevAudioScreen.tsx` + `DevAudioState.ts` + `app/dev-seed.tsx` |
+| **Pont vers le domaine** (Encounter/Patient/QueueItem) | ✅ implémenté + 14 tests | `src/Dev/DevEncounterSeeder.ts` |
+| Extraits de séries TV à ingérer | ❌ à sourcer + convertir | hors dépôt (voir Source audio) |
 
-**Audio Source Strategy:**
+Abandons du plan initial : ~~playback loop micro~~ et ~~`AudioPlaybackRecorder`~~ (remplacés par l'ingestion directe de fichiers), ~~voix TTS~~ (remplacées par les extraits TV), ~~`DevSeedException`~~ (`DevEncryptionException`), ~~`SyntheticDialogueGenerator`~~ (plus de dialogue synthétique à générer).
 
-Since we need real audio but cannot ship copyrighted material, we have two options:
+---
 
-| Option | Description | Pros | Cons |
-|--------|-------------|------|------|
-| **A. Synthetic Speech** | Use TTS (macOS `say`, Google TTS, or Coqui) to generate therapy dialogue with two distinct voices | Fully legal, reproducible, deterministic speaker separation | Slightly synthetic-sounding |
-| **B. Playback Loop** | Play pre-recorded audio files (TV show dialogue, podcast, Creative Commons therapy sessions) through speakers while `SecureRecorder` captures | Most realistic, natural prosody | Copyright risk unless carefully sourced; harder to guarantee speaker separation |
+## Pourquoi les fichiers ne peuvent pas être fabriqués hors de l'app — et le contournement
 
-**Recommended: Option A (Synthetic Speech)**
+| Contrainte | Implication |
+|---|---|
+| `SecureRecorder` chiffre en AES-256-GCM **chunked** (`[4B size][12B IV][ciphertext+tag]`) | Impossible de pré-générer un `.dat` valide hors du module natif |
+| Clés dans Keychain / AndroidKeyStore | Hardware-bound, non extractables |
+| Biocode = vecteur vocal projeté via CAM++ | Exige une vraie inférence ONNX sur du PCM |
 
-Generate two voice profiles:
-- **Therapist voice:** Lower pitch (~120Hz), steady pace, calm prosody
-- **Patient voice:** Higher pitch (~180Hz), more variable, hesitant patterns
+**Contournement trouvé** : le module natif expose `SecureRecorder.encryptBytes` / `SecureRecorder.encryptFile`. On peut donc chiffrer **un fichier existant** : le `.dat` produit est *indiscernable d'un enregistrement réel* et déchiffrable par l'app. C'est ce que fait `DevFileEncryptor` (DEV ONLY) — et c'est ce qui rend possible une vraie *ingestion* plutôt qu'une re-capture micro.
 
-**Recording Flow (per encounter):**
+---
+
+## Pipeline d'ingestion actuel (implémenté)
 
 ```
-1. Dev trigger → "Record Seed Encounter"
-2. App plays therapist audio through speaker (or headphones + mic bleed)
-3. Simultaneously: SecureRecorder.start(sessionId) captures from microphone
-4. Pause between speakers if needed for cleaner diarization
-5. SecureRecorder.stop() → writes encrypted .enc file
-6. Create Encounter entity with encryptedAudioPaths = [filePath]
-7. Create Patient entity with biocode = null (will be filled by pipeline)
-8. Create QueueItem for pipeline processing
-9. Set Encounter.status = ToProcess
+Extraits audio (PCM/WAV/AIFF/RAW)
+        │  adb push via run-as dans le sandbox (voir Transfert ci-dessous)
+        ▼
+app/dev-seed (DevAudioScreen) ── DevAudioScanner.scan(dir) ──► liste des entrées (+ statut chiffré)
+        │  « Encrypt » / « Encrypt All »
+        ▼
+DevFileEncryptor.encrypt(path)
+        │  WAV  ► DevAudioSegmentExtractor (float32→int16, 16 kHz mono) ► SecureRecorder.encryptBytes
+        │  PCM  ► SecureRecorder.encryptFile (direct)
+        │  + durée calculée (durée exacte, cf. Décisions) et exposée sur DevAudioIngest
+        ▼
+seed_xxxxxx.dat  (format natif AES-256-GCM chunked, dans documentDirectory)
+        │  « Seed »
+        ▼
+DevEncounterSeeder.seed ► Encounter (ToProcess) + Patient (biocode '') + QueueItem (Waiting/Pending)
 ```
 
-**Result per encounter:**
-- One `.enc` file on disk (valid AES-256-GCM, decryptable by the app)
-- One `Encounter` row (status = `ToProcess`)
-- One `Patient` row (biocode initially empty, filled by speaker recognition)
-- One `QueueItem` row (pipelineStage = `Waiting`, status = `Pending`)
+### Transfert vers l'émulateur — méthode validée le 26/10
 
----
-
-## Phase 3: Pipeline Processing (The Test)
-
-Once seeded, the existing pipeline processes each encounter:
-
-```
-QueueItem (Waiting) → VAD → ASR (Whisper) → Speaker Diarization (CAM++) → Biocode Match
-```
-
-**Expected outcomes to validate:**
-- Transcription entity created with `Utterance[]` and correct `speakerLabel`
-- ProsodyMetrics entity created with `VoiceFrame[]`
-- Patient biocode populated (matched against therapist biocode = non-match → new patient)
-- Second encounter with same patient → biocode match → same patient UUID
-
----
-
-## Data Model After Seeding
-
-```
-Therapist (1)
-  ├── Encounter 1 ── Patient A ── QueueItem ── .enc file
-  ├── Encounter 2 ── Patient A ── QueueItem ── .enc file
-  ├── Encounter 3 ── Patient A ── QueueItem ── .enc file
-  ├── Encounter 4 ── Patient B ── QueueItem ── .enc file
-  ├── Encounter 5 ── Patient B ── QueueItem ── .enc file
-  └── Encounter 6 ── Patient B ── QueueItem ── .enc file
-```
-
-All encounters: `status = ToProcess`, `isIncognito = false`
-All queue items: `pipelineStage = Waiting`, `status = Pending`
-
----
-
-## Files to Create
-
-### Core Seeder
-
-| File | Purpose |
-|------|---------|
-| `src/Dev/DevSeedCoordinator.ts` | Main orchestrator: onboarding + encounter recording |
-| `src/Dev/SyntheticDialogueGenerator.ts` | Generates therapy dialogue text in French |
-| `src/Dev/AudioPlaybackRecorder.ts` | Plays audio + drives SecureRecorder simultaneously |
-| `src/Dev/DevSeedException.ts` | Custom exception for seeding errors |
-| `src/Dev/index.ts` | Barrel export + dev trigger registration |
-
-### Dev Trigger Integration
-
-| File | Change |
-|------|--------|
-| `src/Screen/SettingsScreen.tsx` | Add hidden dev section (tap version 5×) with "Seed Data" button |
-| `src/State/SettingsState.ts` | Add `triggerSeedData()` method |
-
-### Bug Fix
-
-| File | Change |
-|------|--------|
-| `src/Database/Registry.ts` | Add `export const registry = Container.get(Registry);` |
-
----
-
-## Synthetic Dialogue Content (French)
-
-### Patient A — "Sophie" (Anxiety / Panic)
-
-**Session 1 (15 min):**
-- Opening: sleep issues, racing thoughts
-- Middle: first panic attack description (metro, physical symptoms)
-- End: homework = thought diary
-
-**Session 2 (30 min):**
-- Opening: diary review, pattern recognition
-- Middle: cognitive restructuring exercise on catastrophic thoughts
-- End: breathing technique practice
-
-**Session 3 (20 min):**
-- Opening: progress report, fewer night wakings
-- Middle: exposure hierarchy construction
-- End: next week plan
-
-### Patient B — "Marc" (Depression / Burnout)
-
-**Session 1 (20 min):**
-- Opening: fatigue, loss of interest
-- Middle: work context, overload timeline
-- End: PHQ-9 introduction
-
-**Session 2 (35 min):**
-- Opening: questionnaire review, score = 14
-- Middle: behavioral activation, activity scheduling
-- End: one pleasant activity commitment
-
-**Session 3 (25 min):**
-- Opening: activity done (walk), slight mood lift
-- Middle: cognitive patterns (all-or-nothing thinking)
-- End: sleep hygiene discussion
-
----
-
-## Audio Generation Script (External)
-
-Since the app cannot generate TTS natively, we pre-generate audio files:
+`/sdcard/Download` est **inaccessible** à l'app sans permission média (scoped storage Android) — le scan revient vide. La méthode qui marche (build debug, sans rien rebuild) :
 
 ```bash
-# macOS say command example
-say -v Thomas "Bonjour Sophie, comment vous sentez-vous depuis notre dernière séance ?" -o therapist_01.aiff
-say -v Audrey "J'ai mieux dormi cette semaine, mais le métro reste difficile." -o patient_a_01.aiff
-
-# Convert to 16kHz mono PCM (SecureRecorder format)
-ffmpeg -i therapist_01.aiff -ar 16000 -ac 1 -f s16le therapist_01.pcm
-ffmpeg -i patient_a_01.aiff -ar 16000 -ac 1 -f s16le patient_a_01.pcm
+ffmpeg -i episode_scene.mkv -ar 16000 -ac 1 scene_01.wav
+adb push scene_01.wav /data/local/tmp/
+adb shell run-as com.tiroscribe.app cp /data/local/tmp/scene_01.wav files/
 ```
 
-These PCM files are then **played back and re-recorded** through the app to create valid `.enc` files.
+Puis saisir ce chemin dans l'écran dev (⚠️ **préfixe `file://` obligatoire** — `expo-file-system` exige une URI, un chemin nu revient vide) :
+
+```
+file:///data/user/0/com.tiroscribe.app/files/
+```
+
+### Piège natif résolu : chemins sans `file://`
+
+Le module natif `SecureRecorder` exige des **chemins POSIX nus** : passer l'URI `file://` de `documentDirectory` produit `InitializationException: No such file or directory`. `DevFileEncryptor.toNativePath()` strippe le préfixe avant tout appel natif (encryptBytes/encryptFile) et sur le chemin de sortie. Le `.dat` produit est bien écrit (vérifié : 96 192 bytes pour un WAV de 96 078).
+
+⚠️ À savoir : au boot dev, la DB peut être **reset** (log `[Database] resetting database`) — le Seed exige alors un thérapeute persisté, sinon erreur explicite `THERAPIST_NOT_FOUND` (comportement voulu, message affiché dans l'écran).
+
+### Footprint thérapeute (Phase 1 — one-time)
+
+`DevTherapistOnboarding.createFromAudio(rawAudioPath, segment, input)` :
+
+```
+1. Fichier brut → PCM (DevAudioSegmentExtractor)
+2. Extraction du segment temporel (ex. 5 s → 35 s : la voix du thérapeute seul)
+3. PCM → biocode projeté (VoiceCalibrator.generateBiocode)
+4. Persist thérapeute + master key (MasterKeyVault)
+```
+
+Le biocode dérive d'un vrai audio via la vraie chaîne ONNX — identique à ce que produirait la calibration micro, mais **reproductible** (même fichier ⇒ même segment ⇒ même vecteur). Pratique : prendre un extrait TV avec un locuteur seul en voix off comme « voix du thérapeute ».
 
 ---
 
-## Implementation Order
+## Ce qui manque — le chemin restant
 
-| Priority | Task | Rationale |
-|----------|------|-----------|
-| 1 | Fix `registry` export bug | Unblocks all repository access |
-| 2 | Create `DevSeedException` | Error handling for seeding |
-| 3 | Create `SyntheticDialogueGenerator` | Pure logic, no dependencies |
-| 4 | Create `AudioPlaybackRecorder` | Bridges playback + SecureRecorder |
-| 5 | Create `DevSeedCoordinator` | Orchestrates the full flow |
-| 6 | Wire dev trigger in Settings | Expose to UI |
-| 7 | Generate TTS audio externally | Pre-seed audio assets |
-| 8 | Test end-to-end seeding | Validate pipeline |
+### 1. `DevEncounterSeeder` — ✅ implémenté le 26/10 (`src/Dev/DevEncounterSeeder.ts`)
+
+Le pont est en place : `seed(therapistId, encryptedPath, durationMs)` persiste le triplet et retourne un `DevEncounterSeed` (encounter + patient + queueItem). La durée exacte est calculée par `DevFileEncryptor` (`durationFromSamples` / `durationFromMono16kPcmBytes`) et expose aussi le bouton « Seed » de l'écran (`DevAudioState.seedEncounter` résout le thérapeute via `TherapistRepository.findCurrent()`).
+
+Branchement repositories custom complété au passage : `repositoryClass` ajouté sur `@Entity` de `Encounter` et `QueueItem`, `QueueItemRepository` ré-exporté du barrel `@/Repository` (oubli manifeste — le commentaire du barrel le demandait). 14 tests Jest couvrent le seeder et les calculs de durée (`tests/Dev/`).
+
+Reste pour l'écran :
+
+- **Phase 1 sans UI** : `DevTherapistOnboarding.createFromAudio` n'a aucun déclencheur — ajouter un accès « Dev Therapist Onboarding » à l'écran dev (segment = voix seule du thérapeute dans l'extrait source) ; c'est le prérequis du Seed sur une DB fraîche (`THERAPIST_NOT_FOUND` sinon).
+- Améliorations cosmétiques : la snackbar d'encrypt affiche `0 bytes` en sortie (cache `getInfoAsync` sur le chemin nu — le fichier réel est correct).
+
+### 2. Exposer l'écran dev — ✅ fait le 26/10
+
+- Route `app/dev-seed.tsx` créée (le trigger 5-taps existait déjà dans `src/Screen/SettingsScreen.tsx` et poussait vers `/dev-seed` — TECH.md §7 est donc caduque sur ce point).
+- Accès direct validé au deep-link : `adb shell am start -a android.intent.action.VIEW -d "tiro-scribe://dev-seed" com.tiroscribe.app` (pratique quand l'onboarding bloque les tabs).
+
+### 3. Étendre l'écran : « Seed as Encounter » — ✅ fait le 26/10
+
+Le bouton « Seed » est actif sur chaque fichier chiffré (désactivé sans durée). Pas de case incognito pour l'instant (décision ci-dessus). Reste l'accès Phase 1 (onboarding dev thérapeute) cf. §1.
+
+### 4. Sourcer et convertir les extraits TV
+
+Voir section suivante.
+
+### 5. Phase 3 — laisser le pipeline travailler (le vrai test)
+
+Une fois les encounters en `ToProcess`, le pipeline existant traite :
+
+```
+QueueItem (Waiting) → VAD → ASR (Whisper) → Diarization (CAM++) → Biocode Match
+```
+
+Résultats à valider :
+
+- `Transcription` créée avec `Utterance[]` et `speakerLabel` corrects ;
+- `ProsodyMetrics` créée avec `VoiceFrame[]` ;
+- `Patient` recevant un biocode ≠ biocode thérapeute → nouveau patient ;
+- 2e encounter du même duo de locuteurs → match de biocode → même patient (le matching multi-séances fonctionne).
 
 ---
 
-## Open Questions
+## Source audio : extraits de séries TV
 
-1. **TTS Voice Selection:** Which voices sound distinct enough for speaker separation? (Thomas vs. Audrey on macOS?)
-2. **Speaker Separation Quality:** Will CAM++ reliably distinguish two synthetic voices from the same TTS engine?
-3. **Audio Playback Method:** Speaker playback vs. wired audio loopback for cleaner separation?
-4. **Incognito Encounters:** Do we seed any `isIncognito = true` encounters for bunker-mode testing?
-5. **Duration Accuracy:** Should totalDuration match actual audio length exactly, or is approximate OK?
+Critères de choix des extraits :
+
+- **2+ locuteurs distincts** avec des prises de parole alternées claires (dialogue, pas narration) — c'est ce que la diarization doit séparer ;
+- qualité audio correcte (pas de musique forte par-dessus les voix) ;
+- quelques minutes suffisent par encounter ; un même épisode peut fournir plusieurs extraits.
+
+Conversion vers le format d'ingestion :
+
+```bash
+ffmpeg -i episode_scene.mkv -ar 16000 -ac 1 -f s16le scene_01.pcm
+# ou en WAV (normalisation automatique par DevAudioSegmentExtractor) :
+ffmpeg -i episode_scene.mkv -ar 16000 -ac 1 scene_01.wav
+```
+
+⚠️ **Droits** : extraits protégés, usage **strictement local en dev** — jamais committés dans le dépôt, jamais distribués. Garder les sources hors du repo (ex. `/sdcard/Download` de l'émulateur et un dossier local non versionné).
+
+---
+
+## Ce qu'on a validé au premier test (26/10, émulateur Pixel_7)
+
+1. ~~`DevAudioScanner` lit `/sdcard/Download`~~ → **inaccessible sans permission** ; méthode retenue : `run-as` + sandbox + préfixe `file://` (voir Transfert).
+2. Le `.dat` produit est réel (96 192 bytes pour 96 078 en entrée, durée exacte 3 s calculée automatiquement).
+3. ~~Le chemin heureux du seed est couvert par les tests Jest seulement~~ → **✅ validé de bout en bout sur device le 26/10** : thérapeute dev créé avec biocode CAM++ réel (biocode 128 dims, confidence 1, ~20-25 s d'inférence), puis tap Seed → snackbar `Seeded: encounter=… patient=… queueItem=…` et vérification SQLite (`run-as com.tiroscribe.app cat files/SQLite/tiro-scribe.sqlite`) : `encounters` (FK `therapist_id` valide, `status=to_process`, `totalDuration=3000` exact, chemin `.dat`), `patients` (FK valide), `queue_items` (`pending`/`waiting`, chemin `.dat`). Le seed est **répétable** : chaque tap ajoute un triplet Encounter/Patient/QueueItem (comportement attendu en dev ; le pipeline lancé ensuite devra les consommer puis les purger).
+4. Reste à valider sur un vrai batch : la séparation CAM++ des locuteurs de l'extrait (vrais acteurs ⇒ attendue bien plus fiable qu'avec du TTS).
+5. ⚠️ Piège découverte pendant ce test (résolu, voir TECH.md §0.13) : les getters/setters des entités (`getUuid()`, `getEmail()`…) renvoyaient `undefined` sur device — les class fields natifs Hermes écrasaient les accessors `@Column`. Symptôme : le seed échouait avec `Cannot read property 'length' of undefined`. Fix = `babel.config.js` (decorators rendus au preset expo) + redémarrage Metro `--reset-cache` (Metro ne relit pas `babel.config.js` à chaud). `DevEncounterSeeder.validate` renvoie désormais des erreurs explicites (`INVALID_THERAPIST_ID`…) qui rendent ce genre de régression diagnostiquable d'emblée.

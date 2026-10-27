@@ -5,4 +5,5 @@
  */
 
 export { EncounterRepository } from './EncounterRepository';
+export { QueueItemRepository } from './QueueItemRepository';
 export { TherapistRepository } from './TherapistRepository';

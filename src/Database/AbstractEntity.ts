@@ -129,6 +129,14 @@ export abstract class AbstractEntity implements Entity {
             const options = field.getOptions<ColumnOptions>();
             const transformer = options.as != null ? TransformerRegistry.get(options.as) : undefined;
 
+            // Auto-accessors (`accessor x`) already have get/set on the prototype — either the
+            // native pair or the ones the @Column accessor decorator returned. Leave them in place;
+            // only wire plain fields, which have no accessor of their own.
+            const existing = Object.getOwnPropertyDescriptor(proto, propertyName);
+            if (existing != null && existing.get != null && existing.set != null) {
+                continue;
+            }
+
             Object.defineProperty(proto, propertyName, {
                 configurable: true,
                 enumerable: true,

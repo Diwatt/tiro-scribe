@@ -31,23 +31,23 @@ export class VoiceFrame {
 export class ProsodyMetrics extends AbstractEntity {
     @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
     @Column({ default: '', type: 'varchar', length: 36 })
-    public encounterId!: string;
+    public accessor encounterId!: string;
 
     /** Model name (e.g. silero-vad). */
     @Column({ default: '', type: 'varchar', length: 64 })
-    public modelName!: string;
+    public accessor modelName!: string;
 
     /** Model version (e.g. 4.0.0). */
     @Column({ default: '', type: 'varchar', length: 16 })
-    public modelVersion!: string;
+    public accessor modelVersion!: string;
 
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    public accessor uuid!: string;
 
     /** Time-series of raw signal frames (JSON). */
     @Column({ default: '[]', type: 'text', as: 'json' })
-    public voiceFrames!: VoiceFrame[];
+    public accessor voiceFrames!: VoiceFrame[];
 
     public getEncounterId(): string {
         return this.encounterId;

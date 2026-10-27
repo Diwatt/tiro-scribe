@@ -27,6 +27,15 @@ You have access to MCP servers. Use them proactively:
 - **Context7:** ALWAYS use this tool to read the latest official documentation for `expo`, `expo-router`, `react-native`, `react-native-paper`, `onnxruntime-react-native`, `kysely`, `@legendapp/state`, and `zod` before using their APIs to prevent hallucinations
 - **Sequential Thinking:** Use this tool to break down complex architectural changes or MVVM refactoring before writing the code
 
+### Device & UI Debugging (Argent MCP)
+
+Argent MCP is installed (global `@swmansion/argent`) and exposes live device tools: `list-devices`, `boot-device`, `launch-app`, `describe`, `screenshot`, `gesture-tap`, `gesture-swipe`, `keyboard`, `await-ui-element`, plus `debugger-*` (Metro/React tree, logs), `view-network-logs` and the `react-profiler-*` / `native-profiler-*` suites.
+
+- **Skills first:** detailed guides live in `.agents/skills/argent-*` (setup, device interaction, iOS, TV, e2e, profiling, screenshot diff). Read the matching skill before any device interaction
+- **Boot through Argent:** start devices with `boot-device` (AVD: `Pixel_7`), never manually — a manually booted emulator is invisible to Argent. Android package: `com.tiroscribe.app`
+- **UX/UI debugging loop:** the user names a screen → agent navigates itself (`launch-app`, `gesture-tap`), captures evidence (`screenshot` + `describe` accessibility tree with tap coordinates), and audits against Material Design 3, touch targets (48dp), and contrast — cross-referencing `Screen/`, `State/` and `theme/` source code
+- The Android 16 KB compatibility dialog at launch is dev-only; dismiss it ("Don't Show Again")
+
 ### Native Coding Style (Swift/Kotlin)
 
 - **Visibility:** ALL members must have explicit modifiers (`public`, `private`, `internal`)
@@ -307,6 +316,7 @@ All runtime singleton instances live in `src/Core/Container.ts`, registered as c
 - **No JSDoc** for self-explanatory methods, constructors, or properties
 - Use JSDoc **only** for: class-level purpose, complex business logic, `@throws`, public API boundaries
 - Prefer **self-documenting code** over comments
+- **Concise comments:** a comment is ONE short line, never a paragraph. If it needs more, the code is not decomposed enough — extract a method or a variable with a name that says it. No narrative, no restating what the code does line by line, no multi-line essays
 - **A large block of comments signals poor decomposition:** extract a named method instead of commenting further — a good name replaces the explanation. Legitimate comments: `// SAFETY:`, pedagogical `// TODO`, formal JSDoc, and non-obvious invariants (1-2 lines)
 - Exception messages should be clear and descriptive
 

@@ -16,6 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "isolatedModules": true,
+    "useDefineForClassFields": false,
     "experimentalDecorators": false,
     "emitDecoratorMetadata": false,
     "types": ["jest", "@testing-library/jest-native"],

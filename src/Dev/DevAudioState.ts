@@ -1,9 +1,17 @@
 import { observable } from '@legendapp/state';
 import { Container } from '@/Core/Container';
+import { AppLogger } from '@/Core/AppLogger';
+import { TherapistRepository } from '@/Repository/TherapistRepository';
+import type { CreateTherapistInput } from '@/Security/TherapistForge';
+import { AudioSegment } from './Data/AudioSegment';
 import type { DevAudioIngest } from './Data/DevAudioIngest';
+import type { DevEncounterSeed } from './Data/DevEncounterSeed';
 import { DevAudioScanner } from './DevAudioScanner';
-import { DevFileEncryptor } from './DevFileEncryptor';
+import { DevEncounterSeeder } from './DevEncounterSeeder';
 import { DevEncryptionException } from './DevEncryptionException';
+import { DevFileEncryptor } from './DevFileEncryptor';
+import { DevSeedException } from './DevSeedException';
+import { DevTherapistOnboarding } from './DevTherapistOnboarding';
 
 export interface DevAudioFileEntry {
     name: string;
@@ -11,6 +19,7 @@ export interface DevAudioFileEntry {
     sizeBytes: number;
     encryptedPath: string | null;
     isEncrypted: boolean;
+    durationMs: number | null;
 }
 
 export interface DevAudioNotification {
@@ -24,6 +33,8 @@ interface DevAudioStateSnapshot {
     isLoading: boolean;
     lastResult: DevAudioIngest | null;
     lastError: string | null;
+    lastSeed: DevEncounterSeed | null;
+    lastTherapistUuid: string | null;
     notification: DevAudioNotification | null;
 }
 
@@ -33,15 +44,30 @@ const INITIAL_STATE: DevAudioStateSnapshot = {
     isLoading: false,
     lastResult: null,
     lastError: null,
+    lastSeed: null,
+    lastTherapistUuid: null,
     notification: null,
 };
 
 export class DevAudioState {
+    private static readonly DEV_THERAPIST_INPUT: CreateTherapistInput = {
+        email: 'dev@tiro-scribe.local',
+        password: 'dev-password-123',
+        languages: ['fr'],
+        qualifications: ['Psychiatrist'],
+        experience: '5',
+        methods: ['CBT'],
+    };
+
     public readonly state$ = observable(INITIAL_STATE);
 
     public constructor(
         private readonly scanner: DevAudioScanner,
         private readonly encryptor: DevFileEncryptor,
+        private readonly seeder: DevEncounterSeeder,
+        private readonly therapistRepository: TherapistRepository,
+        private readonly devTherapistOnboarding: DevTherapistOnboarding,
+        private readonly logger: AppLogger,
     ) {}
 
     public get sourceDirectory(): string {
@@ -58,6 +84,14 @@ export class DevAudioState {
 
     public get lastResult(): DevAudioIngest | null {
         return this.state$.lastResult.get();
+    }
+
+    public get lastSeed(): DevEncounterSeed | null {
+        return this.state$.lastSeed.get();
+    }
+
+    public get lastTherapistUuid(): string | null {
+        return this.state$.lastTherapistUuid.get();
     }
 
     public get lastError(): string | null {
@@ -161,6 +195,87 @@ export class DevAudioState {
         }
     }
 
+    public async seedEncounter(encryptedPath: string, durationMs: number): Promise<void> {
+        this.state$.isLoading.set(true);
+        this.state$.lastError.set(null);
+        this.state$.notification.set(null);
+
+        try {
+            const therapist = await this.therapistRepository.findCurrent();
+            if (!therapist) {
+                throw new DevSeedException(
+                    'No persisted therapist. Run the dev therapist onboarding first.',
+                    'THERAPIST_NOT_FOUND',
+                );
+            }
+
+            const seed = await this.seeder.seed(therapist.getUuid(), encryptedPath, durationMs);
+            this.state$.lastSeed.set(seed);
+            this.state$.notification.set({ message: `Seeded: ${seed.summary}`, type: 'success' });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.state$.lastError.set(message);
+            this.state$.notification.set({ message, type: 'error' });
+            this.logger.error('DevAudioState: seed failed', {
+                message,
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+
+            if (error instanceof DevSeedException) {
+                throw error;
+            }
+            throw new DevSeedException(message, 'SEED_FAILED', error instanceof Error ? error : undefined);
+        } finally {
+            this.state$.isLoading.set(false);
+        }
+    }
+
+    public async createTherapistFromAudio(sourceAudioPath: string, startMs: number, endMs: number): Promise<void> {
+        this.state$.isLoading.set(true);
+        this.state$.lastError.set(null);
+        this.state$.notification.set(null);
+
+        try {
+            if (sourceAudioPath.length === 0) {
+                throw new DevSeedException('Source audio path is required to create the dev therapist', 'SOURCE_AUDIO_REQUIRED');
+            }
+            if (!Number.isInteger(startMs) || !Number.isInteger(endMs) || startMs < 0 || endMs <= startMs) {
+                throw new DevSeedException(
+                    `Invalid segment: start=${startMs}ms, end=${endMs}ms`,
+                    'INVALID_SEGMENT',
+                );
+            }
+
+            const therapist = await this.devTherapistOnboarding.createFromAudio(
+                sourceAudioPath,
+                new AudioSegment(startMs, endMs),
+                DevAudioState.DEV_THERAPIST_INPUT,
+            );
+
+            this.state$.lastTherapistUuid.set(therapist.getUuid());
+            this.state$.notification.set({ message: `Therapist created: ${therapist.getUuid()}`, type: 'success' });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.state$.lastError.set(message);
+            this.state$.notification.set({ message, type: 'error' });
+            this.logger.error('DevAudioState: therapist onboarding failed', {
+                message,
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+
+            if (error instanceof DevSeedException) {
+                throw error;
+            }
+            throw new DevSeedException(
+                message,
+                'THERAPIST_ONBOARDING_FAILED',
+                error instanceof Error ? error : undefined,
+            );
+        } finally {
+            this.state$.isLoading.set(false);
+        }
+    }
+
     public dismissNotification(): void {
         this.state$.notification.set(null);
     }
@@ -177,7 +292,7 @@ export class DevAudioState {
         const currentFiles = this.state$.files.get();
         const updatedFiles = currentFiles.map((file) =>
             file.path === filePath
-                ? { ...file, encryptedPath: result.outputFile.path, isEncrypted: true }
+                ? { ...file, encryptedPath: result.outputFile.path, isEncrypted: true, durationMs: result.durationMs }
                 : file,
         );
         this.state$.files.set(updatedFiles);
@@ -186,5 +301,13 @@ export class DevAudioState {
 
 Container.register(
     DevAudioState,
-    () => new DevAudioState(Container.get(DevAudioScanner), Container.get(DevFileEncryptor)),
+    () =>
+        new DevAudioState(
+            Container.get(DevAudioScanner),
+            Container.get(DevFileEncryptor),
+            Container.get(DevEncounterSeeder),
+            Container.get(TherapistRepository),
+            Container.get(DevTherapistOnboarding),
+            Container.get(AppLogger),
+        ),
 );

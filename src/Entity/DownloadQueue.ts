@@ -19,41 +19,41 @@ const MAX_RETRY_COUNT = 3;
 @Entity({ tableName: 'download_queue' })
 export class DownloadQueue extends AbstractEntity {
     @Column({ default: '', type: 'varchar', length: 64, index: true })
-    public capability!: string;
+    public accessor capability!: string;
 
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public createdAt!: Dayjs;
+    public accessor createdAt!: Dayjs;
 
     @Column({ default: '', type: 'text' })
-    public errorMessage!: string;
+    public accessor errorMessage!: string;
 
     @Column({ default: '', type: 'text' })
-    public filePath!: string;
+    public accessor filePath!: string;
 
     @Column({ default: '', type: 'varchar', length: 8, index: true })
-    public language!: string;
+    public accessor language!: string;
 
     @Column({ default: 3, type: 'integer' })
-    public maxRetries!: number;
+    public accessor maxRetries!: number;
 
     @Column({ default: '{}', type: 'text', as: 'json' })
-    public metadata!: Record<string, unknown>;
+    public accessor metadata!: Record<string, unknown>;
 
     @Column({ default: 0, type: 'integer' })
-    public nbRetries!: number;
+    public accessor nbRetries!: number;
 
     @Column({ default: 0, type: 'integer' })
-    public progressPercent!: number;
+    public accessor progressPercent!: number;
 
     @Column({ default: DownloadQueueStatus.Pending, type: 'varchar', length: 16, index: true })
-    public status!: DownloadQueueStatus;
+    public accessor status!: DownloadQueueStatus;
 
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public updatedAt!: Dayjs;
+    public accessor updatedAt!: Dayjs;
 
     @PrimaryKey()
     @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public uuid!: string;
+    public accessor uuid!: string;
 
     // --- Getters ---
 

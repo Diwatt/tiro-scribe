@@ -9,7 +9,7 @@
 
 import { AppConfig } from '@/Core/AppConfig';
 import { SchemaValidator } from './SchemaValidator';
-import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig } from './Type';
+import type { ClassDecoratorConfig, OptionsSchema, PropertyDecoratorConfig, PropertyDecoratorFactory } from './Type';
 
 // Local constructor type used only for decorator-building generics.  This mirrors
 // the previous exported alias but keeps the generic decorator package free of
@@ -50,16 +50,19 @@ export class Builder {
     }
 
     /**
-     * Builds a property decorator. Config: optional schema/errorCode (global validate), validate(options), before, initializer.
+     * Builds a property decorator. Config: optional schema/errorCode (global validate), validate(options), before, initializer, accessor.
      * Options default to {} when not set; validate/before/initializer always receive an object.
+     * The returned decorator supports both targets: plain fields (initializer wiring) and
+     * auto-accessors (`accessor x` members, accessor() hook returns replacement get/set).
      */
-    public static buildProperty(
-        config: PropertyDecoratorConfig<object>,
-    ): (options?: object) => (initialValue: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => void {
+    public static buildProperty(config: PropertyDecoratorConfig<object>): (options?: object) => PropertyDecoratorFactory {
         return (options?: object) => {
             const opts = options ?? {};
             Builder.validateOptions(config, opts);
-            return (_: unknown, context: ClassFieldDecoratorContext<unknown, unknown>) => {
+            const decorator = function (
+                value: unknown,
+                context: ClassFieldDecoratorContext<unknown, unknown> | ClassAccessorDecoratorContext<unknown>,
+            ): void | ClassAccessorDecoratorResult<unknown, unknown> {
                 if (AppConfig.getInstance().isDev && config.unique === true && config.decoratorName != null) {
                     const meta = context.metadata as Record<string | symbol, unknown> | undefined;
                     Builder.schemaValidator.ensurePropertyDecoratorUniqueness(
@@ -71,10 +74,16 @@ export class Builder {
                 if (config.before != null) {
                     config.before(context, opts);
                 }
-                context.addInitializer(function (this: unknown) {
-                    config.initializer(context, opts)(this);
-                });
+                if (context.kind === 'accessor') {
+                    return config.accessor?.(context, opts);
+                }
+                if (config.initializer != null) {
+                    context.addInitializer(function (this: unknown) {
+                        config.initializer!(context, opts)(this);
+                    });
+                }
             };
+            return decorator as PropertyDecoratorFactory;
         };
     }
 
