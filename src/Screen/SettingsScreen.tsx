@@ -82,7 +82,7 @@ export function SettingsScreen(): React.JSX.Element {
                             left={(p) => <List.Icon {...p} icon={Settings} />}
                             onPress={() => {
                                 setShowDevTrigger(false);
-                                router.push('/dev-seed');
+                                router.push('/dev-console');
                             }}
                         />
                     )}

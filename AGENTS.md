@@ -304,7 +304,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 
 All runtime singleton instances live in `src/Core/Container.ts`, registered as class-keyed factories:
 
-- **Access:** `Container.get(DevFileEncryptor)` — classes register themselves at the bottom of their file (`Container.register(X, () => new X(...))`)
+- **Access:** `Container.get(AudioFileEncryptor)` — classes register themselves at the bottom of their file (`Container.register(X, () => new X(...))`)
 - **No `export const` singletons:** Never export a singleton as a module-level `const`. Use Container
 - **Constants live on their owning class** as `public static readonly` members (`AudioSegment.SAMPLES_PER_MS`) — not in domain files as free `CONSTANT_CASE`, and never on `Container`
 - **Constructor injection preferred:** For testability, classes should receive dependencies via constructor params

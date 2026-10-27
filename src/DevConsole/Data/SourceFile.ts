@@ -1,9 +1,9 @@
 /**
- * DevFile – Represents a file in the dev tooling context.
+ * SourceFile – Represents a source file in the DevConsole context.
  *
  * DEV ONLY. Not for production use.
  */
-export class DevFile {
+export class SourceFile {
     public constructor(
         public readonly path: string,
         public readonly sizeBytes: number,

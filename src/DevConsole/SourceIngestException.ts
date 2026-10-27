@@ -1,12 +1,12 @@
 import { TiroScribeException } from '@/Exception';
 
-export class DevEncryptionException extends TiroScribeException {
+export class SourceIngestException extends TiroScribeException {
     public constructor(message: string, code: string, originalError?: Error) {
         super(message, code, originalError);
-        this.name = 'DevEncryptionException';
+        this.name = 'SourceIngestException';
 
         if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, DevEncryptionException);
+            Error.captureStackTrace(this, SourceIngestException);
         }
     }
 }

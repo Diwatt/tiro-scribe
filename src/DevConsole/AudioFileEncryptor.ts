@@ -3,38 +3,38 @@ import { documentDirectory, getInfoAsync } from 'expo-file-system/legacy';
 import { SecureRecorder } from 'secure-recorder';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { DevAudioIngest } from './Data/DevAudioIngest';
-import { DevAudioSegmentExtractor } from './DevAudioSegmentExtractor';
-import { DevEncryptionException } from './DevEncryptionException';
-import { DevFile } from './Data/DevFile';
+import { AudioIngest } from './Data/AudioIngest';
+import { AudioSegmentExtractor } from './AudioSegmentExtractor';
+import { SourceIngestException } from './SourceIngestException';
+import { SourceFile } from './Data/SourceFile';
 
 /**
- * DevFileEncryptor – Encrypts raw audio files into the app's native format.
+ * AudioFileEncryptor – Encrypts raw audio files into the app's native format.
  *
  * WAV files are converted to the standard recording format (16 kHz, mono, 16-bit PCM)
- * via DevAudioSegmentExtractor before encryption. Raw PCM files are encrypted directly.
+ * via AudioSegmentExtractor before encryption. Raw PCM files are encrypted directly.
  * The resulting .dat file is indistinguishable from a recorded file.
  *
  * Uses SecureRecorder.encryptBytes / encryptFile under the hood.
  *
  * DEV ONLY. Not for production use.
  */
-export class DevFileEncryptor {
+export class AudioFileEncryptor {
     /** Raw PCM sources are assumed s16le mono 16 kHz (scanner convention): 16 000 samples/s × 2 bytes. */
     private static readonly PCM_BYTES_PER_MS =
-        DevAudioSegmentExtractor.SAMPLES_PER_MS * DevAudioSegmentExtractor.BYTES_PER_SAMPLE;
+        AudioSegmentExtractor.SAMPLES_PER_MS * AudioSegmentExtractor.BYTES_PER_SAMPLE;
 
     public constructor(
         private readonly logger: AppLogger,
-        private readonly segmentExtractor: DevAudioSegmentExtractor,
+        private readonly segmentExtractor: AudioSegmentExtractor,
     ) {}
 
     public static durationFromSamples(sampleCount: number): number {
-        return sampleCount / DevAudioSegmentExtractor.SAMPLES_PER_MS;
+        return sampleCount / AudioSegmentExtractor.SAMPLES_PER_MS;
     }
 
     public static durationFromMono16kPcmBytes(byteCount: number): number {
-        return byteCount / DevFileEncryptor.PCM_BYTES_PER_MS;
+        return byteCount / AudioFileEncryptor.PCM_BYTES_PER_MS;
     }
 
     /** The native SecureRecorder expects bare POSIX paths, not file:// URIs. */
@@ -42,11 +42,11 @@ export class DevFileEncryptor {
         return path.replace(/^file:\/\//, '');
     }
 
-    public async encrypt(inputPath: string): Promise<DevAudioIngest> {
+    public async encrypt(inputPath: string): Promise<AudioIngest> {
         const outputPath = this.buildOutputPath();
         const inputInfo = await getInfoAsync(inputPath);
         if (!inputInfo.exists) {
-            throw new DevEncryptionException(`Input file not found: ${inputPath}`, 'INPUT_FILE_MISSING');
+            throw new SourceIngestException(`Input file not found: ${inputPath}`, 'INPUT_FILE_MISSING');
         }
 
         const inputSizeBytes = inputInfo.size ?? 0;
@@ -56,17 +56,17 @@ export class DevFileEncryptor {
         try {
             if (isWav) {
                 const floatPcm = await this.segmentExtractor.readFullPcm(inputPath);
-                const int16Pcm = DevAudioSegmentExtractor.float32ToInt16(floatPcm);
+                const int16Pcm = AudioSegmentExtractor.float32ToInt16(floatPcm);
                 const pcmBytes = new Uint8Array(int16Pcm.buffer);
                 await SecureRecorder.encryptBytes(pcmBytes, outputPath);
-                durationMs = DevFileEncryptor.durationFromSamples(int16Pcm.length);
+                durationMs = AudioFileEncryptor.durationFromSamples(int16Pcm.length);
             } else {
-                await SecureRecorder.encryptFile(DevFileEncryptor.toNativePath(inputPath), outputPath);
-                durationMs = DevFileEncryptor.durationFromMono16kPcmBytes(inputSizeBytes);
+                await SecureRecorder.encryptFile(AudioFileEncryptor.toNativePath(inputPath), outputPath);
+                durationMs = AudioFileEncryptor.durationFromMono16kPcmBytes(inputSizeBytes);
             }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
-            throw new DevEncryptionException(
+            throw new SourceIngestException(
                 `Encryption failed: ${message}`,
                 'ENCRYPTION_FAILED',
                 error instanceof Error ? error : undefined,
@@ -76,21 +76,21 @@ export class DevFileEncryptor {
         const outputInfo = await getInfoAsync(outputPath);
         const outputSizeBytes = outputInfo.exists ? (outputInfo.size ?? 0) : 0;
 
-        const inputFile = new DevFile(inputPath, inputSizeBytes);
-        const outputFile = new DevFile(outputPath, outputSizeBytes);
+        const inputFile = new SourceFile(inputPath, inputSizeBytes);
+        const outputFile = new SourceFile(outputPath, outputSizeBytes);
 
-        this.logger.debug('DevFileEncryptor: encrypted file', {
+        this.logger.debug('AudioFileEncryptor: encrypted file', {
             inputPath,
             outputPath,
             isWav,
             durationMs,
         });
 
-        return new DevAudioIngest(inputFile, outputFile, durationMs);
+        return new AudioIngest(inputFile, outputFile, durationMs);
     }
 
-    public async encryptAll(paths: string[]): Promise<DevAudioIngest[]> {
-        const results: DevAudioIngest[] = [];
+    public async encryptAll(paths: string[]): Promise<AudioIngest[]> {
+        const results: AudioIngest[] = [];
 
         for (const path of paths) {
             const result = await this.encrypt(path);
@@ -102,14 +102,14 @@ export class DevFileEncryptor {
 
     private buildOutputPath(): string {
         const randomSuffix = Crypto.randomUUID().split('-')[0];
-        const sessionId = `seed_${randomSuffix}`;
+        const fixtureId = `fixture_${randomSuffix}`;
         const docDir = documentDirectory ?? '';
 
-        return DevFileEncryptor.toNativePath(`${docDir}${sessionId}.dat`);
+        return AudioFileEncryptor.toNativePath(`${docDir}${fixtureId}.dat`);
     }
 }
 
 Container.register(
-    DevFileEncryptor,
-    () => new DevFileEncryptor(Container.get(AppLogger), Container.get(DevAudioSegmentExtractor)),
+    AudioFileEncryptor,
+    () => new AudioFileEncryptor(Container.get(AppLogger), Container.get(AudioSegmentExtractor)),
 );

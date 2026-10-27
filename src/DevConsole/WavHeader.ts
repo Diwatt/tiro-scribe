@@ -1,4 +1,4 @@
-import { DevEncryptionException } from './DevEncryptionException';
+import { SourceIngestException } from './SourceIngestException';
 
 /**
  * WavHeader – Parsed RIFF/WAVE file header.
@@ -40,7 +40,7 @@ export class WavHeader {
     /**
      * Parse a WAV header from raw bytes.
      *
-     * @throws {DevEncryptionException} If the file is not a valid WAV or has no data chunk.
+     * @throws {SourceIngestException} If the file is not a valid WAV or has no data chunk.
      */
     public static fromBytes(bytes: Uint8Array): WavHeader {
         const dataView = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -81,7 +81,7 @@ export class WavHeader {
         }
 
         if (dataOffset === 0) {
-            throw new DevEncryptionException('WAV file has no data chunk', 'INVALID_WAV_FILE');
+            throw new SourceIngestException('WAV file has no data chunk', 'INVALID_WAV_FILE');
         }
 
         return new WavHeader(audioFormat, channels, sampleRate, bitsPerSample, dataOffset, dataSize);

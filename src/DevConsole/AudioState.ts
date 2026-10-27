@@ -4,16 +4,16 @@ import { AppLogger } from '@/Core/AppLogger';
 import { TherapistRepository } from '@/Repository/TherapistRepository';
 import type { CreateTherapistInput } from '@/Security/TherapistForge';
 import { AudioSegment } from './Data/AudioSegment';
-import type { DevAudioIngest } from './Data/DevAudioIngest';
-import type { DevEncounterSeed } from './Data/DevEncounterSeed';
-import { DevAudioScanner } from './DevAudioScanner';
-import { DevEncounterSeeder } from './DevEncounterSeeder';
-import { DevEncryptionException } from './DevEncryptionException';
-import { DevFileEncryptor } from './DevFileEncryptor';
-import { DevSeedException } from './DevSeedException';
-import { DevTherapistOnboarding } from './DevTherapistOnboarding';
+import type { AudioIngest } from './Data/AudioIngest';
+import type { EncounterFixture } from './Data/EncounterFixture';
+import { AudioScanner } from './AudioScanner';
+import { FixtureLoader } from './FixtureLoader';
+import { SourceIngestException } from './SourceIngestException';
+import { AudioFileEncryptor } from './AudioFileEncryptor';
+import { FixtureException } from './FixtureException';
+import { TherapistOnboarding } from './TherapistOnboarding';
 
-export interface DevAudioFileEntry {
+export interface AudioFileEntry {
     name: string;
     path: string;
     sizeBytes: number;
@@ -22,34 +22,34 @@ export interface DevAudioFileEntry {
     durationMs: number | null;
 }
 
-export interface DevAudioNotification {
+export interface AudioNotification {
     message: string;
     type: 'success' | 'error';
 }
 
-interface DevAudioStateSnapshot {
+interface AudioStateSnapshot {
     sourceDirectory: string;
-    files: DevAudioFileEntry[];
+    files: AudioFileEntry[];
     isLoading: boolean;
-    lastResult: DevAudioIngest | null;
+    lastResult: AudioIngest | null;
     lastError: string | null;
-    lastSeed: DevEncounterSeed | null;
+    lastFixture: EncounterFixture | null;
     lastTherapistUuid: string | null;
-    notification: DevAudioNotification | null;
+    notification: AudioNotification | null;
 }
 
-const INITIAL_STATE: DevAudioStateSnapshot = {
+const INITIAL_STATE: AudioStateSnapshot = {
     sourceDirectory: '',
     files: [],
     isLoading: false,
     lastResult: null,
     lastError: null,
-    lastSeed: null,
+    lastFixture: null,
     lastTherapistUuid: null,
     notification: null,
 };
 
-export class DevAudioState {
+export class AudioState {
     private static readonly DEV_THERAPIST_INPUT: CreateTherapistInput = {
         email: 'dev@tiro-scribe.local',
         password: 'dev-password-123',
@@ -62,11 +62,11 @@ export class DevAudioState {
     public readonly state$ = observable(INITIAL_STATE);
 
     public constructor(
-        private readonly scanner: DevAudioScanner,
-        private readonly encryptor: DevFileEncryptor,
-        private readonly seeder: DevEncounterSeeder,
+        private readonly scanner: AudioScanner,
+        private readonly encryptor: AudioFileEncryptor,
+        private readonly fixtureLoader: FixtureLoader,
         private readonly therapistRepository: TherapistRepository,
-        private readonly devTherapistOnboarding: DevTherapistOnboarding,
+        private readonly therapistOnboarding: TherapistOnboarding,
         private readonly logger: AppLogger,
     ) {}
 
@@ -74,7 +74,7 @@ export class DevAudioState {
         return this.state$.sourceDirectory.get();
     }
 
-    public get files(): DevAudioFileEntry[] {
+    public get files(): AudioFileEntry[] {
         return this.state$.files.get();
     }
 
@@ -82,12 +82,12 @@ export class DevAudioState {
         return this.state$.isLoading.get();
     }
 
-    public get lastResult(): DevAudioIngest | null {
+    public get lastResult(): AudioIngest | null {
         return this.state$.lastResult.get();
     }
 
-    public get lastSeed(): DevEncounterSeed | null {
-        return this.state$.lastSeed.get();
+    public get lastFixture(): EncounterFixture | null {
+        return this.state$.lastFixture.get();
     }
 
     public get lastTherapistUuid(): string | null {
@@ -98,7 +98,7 @@ export class DevAudioState {
         return this.state$.lastError.get();
     }
 
-    public get notification(): DevAudioNotification | null {
+    public get notification(): AudioNotification | null {
         return this.state$.notification.get();
     }
 
@@ -147,10 +147,10 @@ export class DevAudioState {
             this.state$.lastError.set(message);
             this.state$.notification.set({ message, type: 'error' });
 
-            if (error instanceof DevEncryptionException) {
+            if (error instanceof SourceIngestException) {
                 throw error;
             }
-            throw new DevEncryptionException(message, 'UNKNOWN_ERROR');
+            throw new SourceIngestException(message, 'UNKNOWN_ERROR');
         } finally {
             this.state$.isLoading.set(false);
         }
@@ -186,16 +186,16 @@ export class DevAudioState {
             this.state$.lastError.set(message);
             this.state$.notification.set({ message, type: 'error' });
 
-            if (error instanceof DevEncryptionException) {
+            if (error instanceof SourceIngestException) {
                 throw error;
             }
-            throw new DevEncryptionException(message, 'UNKNOWN_ERROR');
+            throw new SourceIngestException(message, 'UNKNOWN_ERROR');
         } finally {
             this.state$.isLoading.set(false);
         }
     }
 
-    public async seedEncounter(encryptedPath: string, durationMs: number): Promise<void> {
+    public async loadEncounterFixture(encryptedPath: string, durationMs: number): Promise<void> {
         this.state$.isLoading.set(true);
         this.state$.lastError.set(null);
         this.state$.notification.set(null);
@@ -203,28 +203,28 @@ export class DevAudioState {
         try {
             const therapist = await this.therapistRepository.findCurrent();
             if (!therapist) {
-                throw new DevSeedException(
+                throw new FixtureException(
                     'No persisted therapist. Run the dev therapist onboarding first.',
                     'THERAPIST_NOT_FOUND',
                 );
             }
 
-            const seed = await this.seeder.seed(therapist.getUuid(), encryptedPath, durationMs);
-            this.state$.lastSeed.set(seed);
-            this.state$.notification.set({ message: `Seeded: ${seed.summary}`, type: 'success' });
+            const fixture = await this.fixtureLoader.load(therapist.getUuid(), encryptedPath, durationMs);
+            this.state$.lastFixture.set(fixture);
+            this.state$.notification.set({ message: `Fixture loaded: ${fixture.summary}`, type: 'success' });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
             this.state$.lastError.set(message);
             this.state$.notification.set({ message, type: 'error' });
-            this.logger.error('DevAudioState: seed failed', {
+            this.logger.error('AudioState: fixture load failed', {
                 message,
                 stack: error instanceof Error ? error.stack : undefined,
             });
 
-            if (error instanceof DevSeedException) {
+            if (error instanceof FixtureException) {
                 throw error;
             }
-            throw new DevSeedException(message, 'SEED_FAILED', error instanceof Error ? error : undefined);
+            throw new FixtureException(message, 'FIXTURE_FAILED', error instanceof Error ? error : undefined);
         } finally {
             this.state$.isLoading.set(false);
         }
@@ -237,19 +237,19 @@ export class DevAudioState {
 
         try {
             if (sourceAudioPath.length === 0) {
-                throw new DevSeedException('Source audio path is required to create the dev therapist', 'SOURCE_AUDIO_REQUIRED');
+                throw new FixtureException('Source audio path is required to create the dev therapist', 'SOURCE_AUDIO_REQUIRED');
             }
             if (!Number.isInteger(startMs) || !Number.isInteger(endMs) || startMs < 0 || endMs <= startMs) {
-                throw new DevSeedException(
+                throw new FixtureException(
                     `Invalid segment: start=${startMs}ms, end=${endMs}ms`,
                     'INVALID_SEGMENT',
                 );
             }
 
-            const therapist = await this.devTherapistOnboarding.createFromAudio(
+            const therapist = await this.therapistOnboarding.createFromAudio(
                 sourceAudioPath,
                 new AudioSegment(startMs, endMs),
-                DevAudioState.DEV_THERAPIST_INPUT,
+                AudioState.DEV_THERAPIST_INPUT,
             );
 
             this.state$.lastTherapistUuid.set(therapist.getUuid());
@@ -258,15 +258,15 @@ export class DevAudioState {
             const message = error instanceof Error ? error.message : String(error);
             this.state$.lastError.set(message);
             this.state$.notification.set({ message, type: 'error' });
-            this.logger.error('DevAudioState: therapist onboarding failed', {
+            this.logger.error('AudioState: therapist onboarding failed', {
                 message,
                 stack: error instanceof Error ? error.stack : undefined,
             });
 
-            if (error instanceof DevSeedException) {
+            if (error instanceof FixtureException) {
                 throw error;
             }
-            throw new DevSeedException(
+            throw new FixtureException(
                 message,
                 'THERAPIST_ONBOARDING_FAILED',
                 error instanceof Error ? error : undefined,
@@ -288,7 +288,7 @@ export class DevAudioState {
         this.state$.set({ ...INITIAL_STATE });
     }
 
-    private updateFileEntry(filePath: string, result: DevAudioIngest): void {
+    private updateFileEntry(filePath: string, result: AudioIngest): void {
         const currentFiles = this.state$.files.get();
         const updatedFiles = currentFiles.map((file) =>
             file.path === filePath
@@ -300,14 +300,14 @@ export class DevAudioState {
 }
 
 Container.register(
-    DevAudioState,
+    AudioState,
     () =>
-        new DevAudioState(
-            Container.get(DevAudioScanner),
-            Container.get(DevFileEncryptor),
-            Container.get(DevEncounterSeeder),
+        new AudioState(
+            Container.get(AudioScanner),
+            Container.get(AudioFileEncryptor),
+            Container.get(FixtureLoader),
             Container.get(TherapistRepository),
-            Container.get(DevTherapistOnboarding),
+            Container.get(TherapistOnboarding),
             Container.get(AppLogger),
         ),
 );

@@ -9,7 +9,7 @@
 
 L'application est un **enregistreur clinique chiffré fonctionnel** : onboarding complet (compte + calibrage voix + recovery kit), téléchargement de modèles, enregistrement audio réel chiffré AES-256-GCM sur disque, module natif iOS/Android mature. Le pipeline **s'arrête après l'enregistrement** : la transcription locale (ASR Whisper) est un stub, VAD et Pitch n'existent pas encore.
 
-**Chantier en cours au moment de la pause (mai 2026)** : l'interface d'admin Dev (`src/Dev/`) pour **charger des fixtures audio open source** (LibriSpeech, Common Voice…) — pas des séances enregistrées au micro — afin de pouvoir développer et tester le futur pipeline d'analyse audio sur des données réalistes. Briques de traitement terminées, câblage UI/données manquant (voir « Chantier en cours »).
+**Chantier en cours au moment de la pause (mai 2026)** : l'interface d'admin Dev (`src/DevConsole/`) pour **charger des fixtures audio open source** (LibriSpeech, Common Voice…) — pas des séances enregistrées au micro — afin de pouvoir développer et tester le futur pipeline d'analyse audio sur des données réalistes. Briques de traitement terminées, câblage UI/données manquant (voir « Chantier en cours »).
 
 ---
 
@@ -32,29 +32,29 @@ L'application est un **enregistreur clinique chiffré fonctionnel** : onboarding
 3. **Calibrage voix** : capture PCM 16 kHz → embedding CAM++ → **biocode projeté** persisté
 4. **Home** : check modèles → téléchargement (gate Wi-Fi, fallback cellulaire, progression)
 5. **Enregistrement** : mic natif → chiffrement GCM au vol → `.dat` sur disque + `Encounter` persisté (statut `ToProcess`)
-6. **Outillage dev** (`src/Dev/` + `SEED.md`) : import de fichiers WAV/PCM externes convertis puis chiffrés en `.dat` **indistinguables d'un vrai enregistrement** ; création d'un thérapeute de test avec biocode réel
+6. **Outillage dev** (`src/DevConsole/` + `SEED.md`) : import de fichiers WAV/PCM externes convertis puis chiffrés en `.dat` **indistinguables d'un vrai enregistrement** ; création d'un thérapeute de test avec biocode réel
 
 **Et là, ça s'arrête.** Rien ne déclenche la transcription après `stop()` ; les écrans Subjects et TranscriptDetail sont des mocks.
 
 ---
 
-## Chantier en cours : interface Dev (fixtures audio)
+## Chantier en cours : Dev Console (fixtures audio)
 
 **Objectif** : importer des fichiers audio open source et les transformer en `Encounter` chiffrés authentiques (stade `ToProcess`) pour exercer le pipeline d'analyse (VAD → ASR → diarisation) sans enregistrer de fausses séances au micro.
 
-**Pivot vs `SEED.md`** : le plan initial (TTS macOS → playback haut-parleur → ré-enregistrement micro) a été **abandonné** au profit de l'import direct — le chiffrement natif s'applique directement au fichier importé. Les fichiers listés dans SEED.md (`DevSeedCoordinator`, `SyntheticDialogueGenerator`, `AudioPlaybackRecorder`) n'existent plus à créer ; `DevSeedException` est devenu `DevEncryptionException`. SEED.md reste utile pour le contenu des dialogues et le modèle de données cible.
+**Pivot vs `SEED.md`** : le plan initial (TTS macOS → playback haut-parleur → ré-enregistrement micro) a été **abandonné** au profit de l'import direct — le chiffrement natif s'applique directement au fichier importé. Les fichiers listés dans SEED.md (`DevSeedCoordinator` — ancêtre abandonné de l'actuel `FixtureLoader`, `SyntheticDialogueGenerator`, `AudioPlaybackRecorder`) n'existent plus à créer ; l'ancienne `DevSeedException` a fusionné dans `SourceIngestException`, les échecs de fixture passent par `FixtureException`. SEED.md reste utile pour le contenu des dialogues et le modèle de données cible.
 
-**Briques terminées** (`src/Dev/`) :
-- `DevAudioScanner` — scan d'un dossier de fichiers bruts (`.pcm`, `.wav`, `.aiff`, `.aif`, `.raw`)
-- `DevAudioSegmentExtractor` + `WavHeader` — WAV (stéréo/44.1 kHz) → PCM 16 kHz mono
-- `DevFileEncryptor` — chiffrement en `.dat` via `SecureRecorder.encryptFile/encryptBytes` → **indistinguable d'un enregistrement réel** (conversion WAV→PCM côté TS, chiffrement natif)
-- `DevTherapistOnboarding` — thérapeute dev avec biocode extrait d'un segment audio (sans micro)
-- `DevAudioScreen` / `DevAudioState` — UI scan → encrypt
+**Briques terminées** (`src/DevConsole/`) :
+- `AudioScanner` — scan d'un dossier de fichiers bruts (`.pcm`, `.wav`, `.aiff`, `.aif`, `.raw`)
+- `AudioSegmentExtractor` + `WavHeader` — WAV (stéréo/44.1 kHz) → PCM 16 kHz mono
+- `AudioFileEncryptor` — chiffrement en `.dat` via `SecureRecorder.encryptFile/encryptBytes` → **indistinguable d'un enregistrement réel** (conversion WAV→PCM côté TS, chiffrement natif)
+- `TherapistOnboarding` — thérapeute dev avec biocode extrait d'un segment audio (sans micro)
+- `AudioScreen` / `AudioState` — UI scan → encrypt
 
 **3 chaînons manquants** :
-1. **Écran inatteignable** : la route `DevSeed` n'existe que dans `AppNavigator.tsx` (React Navigation, code mort). La vraie navigation est expo-router (`app/`), sans route dev. Le trigger « 5 taps » de `SettingsScreen` appelle le navigateur fantôme → no-op. À faire : `app/dev-seed.tsx` + `router.push('/dev-seed')`
-2. **Fixtures orphelines** : `DevFileEncryptor` produit des `seed_xxxx.dat` sans créer `Encounter`/`Patient`/`QueueItem` → invisibles et jamais traitées. À faire : rattacher chaque `.dat` importé aux entités (status `ToProcess`)
-3. **Onboarding dev non exposé** : `DevTherapistOnboarding` est enregistré dans le Container mais appelé par aucune UI. À faire : section « Dev Therapist » dans l'écran Dev
+1. ~~Écran inatteignable~~ ✅ fait le 27/10 : route `app/dev-console.tsx` (`/dev-console`), le trigger « 5 taps » de `SettingsScreen` pousse désormais `/dev-console`
+2. **Fixtures orphelines** : `AudioFileEncryptor` produit des `fixture_xxxx.dat` sans créer `Encounter`/`Patient`/`QueueItem` → invisibles et jamais traitées. À faire : rattacher chaque `.dat` importé aux entités (status `ToProcess`)
+3. **Onboarding dev non exposé** : `TherapistOnboarding` est enregistré dans le Container mais appelé par aucune UI. À faire : section « Dev Therapist » dans l'écran Dev
 
 Prérequis : corriger l'export `registry` cassé dans `Database/index.ts` (voir Santé du code).
 
@@ -107,7 +107,7 @@ Prérequis : corriger l'export `registry` cassé dans `Database/index.ts` (voir 
   - `Database/Type.ts` référence `AbstractEntity` non importé
   - `App.tsx` → `../assets/app/_layout` non résolu par tsc (fonctionne via Metro)
 - **Tests** : 60 fichiers TS + 38 natifs — non vérifiés à cette date (à relancer : `pnpm test`, `test:kotlin`, `test:swift`)
-- **Navigation : code mort.** `src/Navigation/AppNavigator` n'est importé nulle part (expo-router dans `app/` est la vraie navigation). Le geste dev « 5 taps » (`DevSeed`) cible l'ancien navigateur → **probablement cassé**
+- **Navigation : code mort.** `src/Navigation/AppNavigator` n'est importé nulle part (expo-router dans `app/` est la vraie navigation). Le geste dev « 5 taps » (`/dev-console`) est recâblé sur expo-router — ~~probablement cassé~~ ✅ routé depuis le 27/10
 - **`CryptoEngine` (Security)** : AES-**CBC** + PBKDF2 **1 000 itérations** pour le vault — en tension avec la règle projet « AES-256-GCM ». À auditer
 - `Container.initialize()` et `AppConfig.getInstance()` : double singleton, violation de la règle « passive holder » des AGENTS.md
 - Divers : `RecordNormalizer` semble mort (duplique `Repository.normalizeForWrite`), `QueueItemRepository` coquille vide, exports `Repository/index.ts` incomplets, suffixes exceptions incohérents (`*Error` vs `*Exception`)
@@ -118,16 +118,16 @@ Prérequis : corriger l'export `registry` cassé dans `Database/index.ts` (voir 
 
 90 commits depuis le 10 janvier 2026 ; messages récents peu explicites (« wip »). Modifs non commitées (~266 lignes) :
 
-- **Session du 26/10 (refactor encryptFile)** : `secure-recorder` — `encryptFile` ramené à un pass-through simple, ajout de `encryptBytes(data, outputPath)` (Kotlin + Swift + TS). La conversion WAV→PCM 16 kHz mono reste côté TS via `DevAudioSegmentExtractor`
+- **Session du 26/10 (refactor encryptFile)** : `secure-recorder` — `encryptFile` ramené à un pass-through simple, ajout de `encryptBytes(data, outputPath)` (Kotlin + Swift + TS). La conversion WAV→PCM 16 kHz mono reste côté TS via `AudioSegmentExtractor`
 - **Antérieures, non commitées** : `Container.ts`, `Entity/index.ts`, `AutomaticSpeechRecognizer.ts`, `SpeakerId.ts`, `AppNavigator.tsx`, `Navigation/types.ts`, `SettingsScreen.tsx`, `Screen/index.ts`
-- **Non trackés** : `src/Dev/` (outillage seeding), `SEED.md` (plan de peuplement : 6 encounters stade ToProcess pour exercer le pipeline), tests natifs `EncryptFile*`
+- **Non trackés** : `src/DevConsole/` (outillage fixtures), `SEED.md` (plan de peuplement : 6 encounters stade ToProcess pour exercer le pipeline), tests natifs `EncryptFile*`
 
 ---
 
 ## Prochaines étapes suggérées (priorisées)
 
 1. **Commit/sort du working tree** — la session de refactoring `encryptBytes` + l'outillage `Dev/` sont stables, à figer avant d'attaquer autre chose
-2. **Finir l'interface Dev (fixtures)** — les 3 chaînons manquants : route expo-router + trigger Settings, exposer `DevTherapistOnboarding`, rattacher les `.dat` importés aux entités `Encounter`/`QueueItem`. C'est le tremplin : sans fixtures réalistes, le pipeline n'est pas testable
+2. **Finir l'interface Dev (fixtures)** — les 3 chaînons manquants : route expo-router + trigger Settings, exposer `TherapistOnboarding`, rattacher les `.dat` importés aux entités `Encounter`/`QueueItem`. C'est le tremplin : sans fixtures réalistes, le pipeline n'est pas testable
 3. **Implémenter l'ASR Whisper** — le stub `AutomaticSpeechRecognizer` est le blocage de toute la chaîne valeur. Avec les fixtures chargées, le test bout-en-bout devient possible sans micro
 4. **Brancher le pipeline post-enregistrement** — consommer les `QueueItem` après `stop()` (charger → VAD → découpage → ASR → persistance `Transcription`)
 5. **VAD + Pitch** — nouvelles classes `Runtime`, même pattern que `SpeakerId`

@@ -7,23 +7,23 @@ import { QueueItem } from '@/Entity/QueueItem';
 import { EncounterStatus } from '@/Entity/Type';
 import type { EncounterRepository } from '@/Repository/EncounterRepository';
 import type { QueueItemRepository } from '@/Repository/QueueItemRepository';
-import { DevEncounterSeed } from './Data/DevEncounterSeed';
-import { DevSeedException } from './DevSeedException';
+import { EncounterFixture } from './Data/EncounterFixture';
+import { FixtureException } from './FixtureException';
 
 /**
- * DevEncounterSeeder – Turns an encrypted dev audio file (.dat) into a
- * ready-to-process encounter: persisted Encounter (ToProcess), Patient (empty
- * biocode, filled by the pipeline) and QueueItem (Waiting/Pending).
+ * FixtureLoader – Turns an encrypted audio file (.dat) into a ready-to-process
+ * encounter fixture: persisted Encounter (ToProcess), Patient (empty biocode,
+ * filled by the pipeline) and QueueItem (Waiting/Pending).
  *
  * DEV ONLY. Not for production use.
  */
-export class DevEncounterSeeder {
+export class FixtureLoader {
     public constructor(
         private readonly registry: Registry,
         private readonly logger: AppLogger,
     ) {}
 
-    public async seed(therapistId: string, encryptedPath: string, durationMs: number): Promise<DevEncounterSeed> {
+    public async load(therapistId: string, encryptedPath: string, durationMs: number): Promise<EncounterFixture> {
         this.validate(therapistId, encryptedPath, durationMs);
 
         const encounter = Encounter.create(therapistId, false);
@@ -37,46 +37,46 @@ export class DevEncounterSeeder {
         await this.registry.getRepository(Patient).persist(patient);
         await this.registry.getRepository<QueueItemRepository>(QueueItem).persist(queueItem);
 
-        this.logger.info('DevEncounterSeeder: encounter seeded', {
+        this.logger.info('FixtureLoader: encounter fixture loaded', {
             encounterUuid: encounter.getUuid(),
             patientUuid: patient.getUuid(),
             queueItemUuid: queueItem.getUuid(),
             durationMs,
         });
 
-        return new DevEncounterSeed(encounter, patient, queueItem);
+        return new EncounterFixture(encounter, patient, queueItem);
     }
 
     private validate(therapistId: string, encryptedPath: string, durationMs: number): void {
         if (typeof therapistId !== 'string') {
-            throw new DevSeedException(
+            throw new FixtureException(
                 `Therapist id must be a string, got: ${typeof therapistId} (${String(therapistId)})`,
                 'INVALID_THERAPIST_ID',
             );
         }
 
         if (therapistId.length === 0) {
-            throw new DevSeedException('Therapist id is required to seed an encounter', 'THERAPIST_ID_REQUIRED');
+            throw new FixtureException('Therapist id is required to load an encounter fixture', 'THERAPIST_ID_REQUIRED');
         }
 
         if (typeof encryptedPath !== 'string') {
-            throw new DevSeedException(
+            throw new FixtureException(
                 `Encrypted audio path must be a string, got: ${typeof encryptedPath} (${String(encryptedPath)})`,
                 'INVALID_ENCRYPTED_PATH',
             );
         }
 
         if (encryptedPath.length === 0) {
-            throw new DevSeedException('Encrypted audio path is required to seed an encounter', 'ENCRYPTED_PATH_REQUIRED');
+            throw new FixtureException('Encrypted audio path is required to load an encounter fixture', 'ENCRYPTED_PATH_REQUIRED');
         }
 
         if (!Number.isFinite(durationMs) || durationMs <= 0) {
-            throw new DevSeedException(`Invalid duration: ${durationMs}ms (expected a positive duration)`, 'INVALID_DURATION');
+            throw new FixtureException(`Invalid duration: ${durationMs}ms (expected a positive duration)`, 'INVALID_DURATION');
         }
     }
 }
 
 Container.register(
-    DevEncounterSeeder,
-    () => new DevEncounterSeeder(Container.get(Registry), Container.get(AppLogger)),
+    FixtureLoader,
+    () => new FixtureLoader(Container.get(Registry), Container.get(AppLogger)),
 );

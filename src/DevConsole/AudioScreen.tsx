@@ -17,12 +17,12 @@ import {
 } from 'react-native-paper';
 import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
-import { DevAudioState } from './DevAudioState';
+import { AudioState } from './AudioState';
 
-export const DevAudioScreen = observer((): React.JSX.Element => {
+export const AudioScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const router = useRouter();
-    const [state] = React.useState(() => Container.get(DevAudioState));
+    const [state] = React.useState(() => Container.get(AudioState));
     const [inputPath, setInputPath] = React.useState('');
     const [therapistSourcePath, setTherapistSourcePath] = React.useState('');
     const [segmentStart, setSegmentStart] = React.useState('0');
@@ -53,10 +53,10 @@ export const DevAudioScreen = observer((): React.JSX.Element => {
                         <Button
                             mode="contained-tonal"
                             compact
-                            onPress={() => state.seedEncounter(item.encryptedPath ?? '', item.durationMs ?? 0)}
+                            onPress={() => state.loadEncounterFixture(item.encryptedPath ?? '', item.durationMs ?? 0)}
                             disabled={isLoading || item.durationMs == null}
                         >
-                            Seed
+                            Load
                         </Button>
                         <Lock size={20} color={theme.colors.primary} />
                     </View>
@@ -80,11 +80,11 @@ export const DevAudioScreen = observer((): React.JSX.Element => {
                 <View style={STYLES.headerRow}>
                     <IconButton icon="arrow-left" onPress={() => router.back()} />
                     <Text variant="titleLarge" style={STYLES.headerTitle}>
-                        Dev Audio Encryptor
+                        Dev Console
                     </Text>
                 </View>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Convert raw audio files into app-compatible encrypted format
+                    Ingest raw audio files as encrypted fixtures and load encounter fixtures
                 </Text>
             </Surface>
 

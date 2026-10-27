@@ -2,12 +2,12 @@ import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { Buffer } from 'react-native-quick-crypto';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { DevEncryptionException } from './DevEncryptionException';
+import { SourceIngestException } from './SourceIngestException';
 import { AudioSegment } from './Data/AudioSegment';
 import { WavHeader } from './WavHeader';
 
 /**
- * DevAudioSegmentExtractor – Reads a raw audio file (WAV or PCM) and extracts
+ * AudioSegmentExtractor – Reads a raw audio file (WAV or PCM) and extracts
  * a time-based segment as normalized Float32Array PCM.
  *
  * Supports:
@@ -18,23 +18,23 @@ import { WavHeader } from './WavHeader';
  *
  * DEV ONLY. Not for production use.
  */
-export class DevAudioSegmentExtractor {
+export class AudioSegmentExtractor {
     public static readonly BYTES_PER_SAMPLE = 2;
     public static readonly MAX_INT16 = 32768.0;
     public static readonly TARGET_SAMPLE_RATE = 16000;
-    public static readonly SAMPLES_PER_MS = DevAudioSegmentExtractor.TARGET_SAMPLE_RATE / 1000;
+    public static readonly SAMPLES_PER_MS = AudioSegmentExtractor.TARGET_SAMPLE_RATE / 1000;
 
     public constructor(private readonly logger: AppLogger) {}
 
     public async extract(audioPath: string, segment: AudioSegment): Promise<Float32Array> {
         const fullPcm = await this.readFullPcm(audioPath);
 
-        const startSample = Math.floor(segment.startMs * DevAudioSegmentExtractor.SAMPLES_PER_MS);
-        const endSample = Math.floor(segment.endMs * DevAudioSegmentExtractor.SAMPLES_PER_MS);
+        const startSample = Math.floor(segment.startMs * AudioSegmentExtractor.SAMPLES_PER_MS);
+        const endSample = Math.floor(segment.endMs * AudioSegmentExtractor.SAMPLES_PER_MS);
         const segmentLength = endSample - startSample;
 
         if (fullPcm.length < startSample) {
-            throw new DevEncryptionException(
+            throw new SourceIngestException(
                 `Segment starts at sample ${startSample} but audio only has ${fullPcm.length} samples`,
                 'SEGMENT_OUT_OF_BOUNDS',
             );
@@ -44,7 +44,7 @@ export class DevAudioSegmentExtractor {
         const actualLength = actualEnd - startSample;
 
         if (actualLength < segmentLength * 0.5) {
-            this.logger.warn('DevAudioSegmentExtractor: segment shorter than requested', {
+            this.logger.warn('AudioSegmentExtractor: segment shorter than requested', {
                 requestedLength: segmentLength,
                 actualLength,
                 totalSamples: fullPcm.length,
@@ -71,7 +71,7 @@ export class DevAudioSegmentExtractor {
             return this.parseRawPcmToFloat32(uint8Array);
         }
 
-        throw new DevEncryptionException(
+        throw new SourceIngestException(
             `Unsupported audio format: ${path}. Only WAV and raw PCM (.pcm, .raw) are supported.`,
             'UNSUPPORTED_AUDIO_FORMAT',
         );
@@ -100,21 +100,21 @@ export class DevAudioSegmentExtractor {
         const header = WavHeader.fromBytes(bytes);
 
         if (!header.isPcm) {
-            throw new DevEncryptionException(
+            throw new SourceIngestException(
                 `Unsupported WAV format: ${header.audioFormat} (only PCM format 1 is supported)`,
                 'UNSUPPORTED_WAV_FORMAT',
             );
         }
 
         if (!header.isSupportedBitDepth) {
-            throw new DevEncryptionException(
+            throw new SourceIngestException(
                 `Unsupported bit depth: ${header.bitsPerSample} (only 16-bit is supported)`,
                 'UNSUPPORTED_BIT_DEPTH',
             );
         }
 
         if (!header.isSupportedChannels) {
-            throw new DevEncryptionException(
+            throw new SourceIngestException(
                 `Unsupported channel count: ${header.channels} (only mono or stereo is supported)`,
                 'UNSUPPORTED_CHANNEL_COUNT',
             );
@@ -124,7 +124,7 @@ export class DevAudioSegmentExtractor {
         const int16Array = new Int16Array(
             pcmData.buffer,
             pcmData.byteOffset,
-            pcmData.length / DevAudioSegmentExtractor.BYTES_PER_SAMPLE,
+            pcmData.length / AudioSegmentExtractor.BYTES_PER_SAMPLE,
         );
 
         let floatPcm: Float32Array;
@@ -135,12 +135,12 @@ export class DevAudioSegmentExtractor {
             floatPcm = this.stereoToMono(int16Array);
         }
 
-        if (header.sampleRate !== DevAudioSegmentExtractor.TARGET_SAMPLE_RATE) {
-            this.logger.info('DevAudioSegmentExtractor: resampling WAV', {
+        if (header.sampleRate !== AudioSegmentExtractor.TARGET_SAMPLE_RATE) {
+            this.logger.info('AudioSegmentExtractor: resampling WAV', {
                 fromRate: header.sampleRate,
-                toRate: DevAudioSegmentExtractor.TARGET_SAMPLE_RATE,
+                toRate: AudioSegmentExtractor.TARGET_SAMPLE_RATE,
             });
-            return this.resample(floatPcm, header.sampleRate, DevAudioSegmentExtractor.TARGET_SAMPLE_RATE);
+            return this.resample(floatPcm, header.sampleRate, AudioSegmentExtractor.TARGET_SAMPLE_RATE);
         }
 
         return floatPcm;
@@ -150,7 +150,7 @@ export class DevAudioSegmentExtractor {
         const int16Array = new Int16Array(
             bytes.buffer,
             bytes.byteOffset,
-            bytes.length / DevAudioSegmentExtractor.BYTES_PER_SAMPLE,
+            bytes.length / AudioSegmentExtractor.BYTES_PER_SAMPLE,
         );
         return this.int16ToFloat32(int16Array);
     }
@@ -158,7 +158,7 @@ export class DevAudioSegmentExtractor {
     private int16ToFloat32(int16Array: Int16Array): Float32Array {
         const floatArray = new Float32Array(int16Array.length);
         for (let i = 0; i < int16Array.length; i++) {
-            floatArray[i] = int16Array[i] / DevAudioSegmentExtractor.MAX_INT16;
+            floatArray[i] = int16Array[i] / AudioSegmentExtractor.MAX_INT16;
         }
         return floatArray;
     }
@@ -169,7 +169,7 @@ export class DevAudioSegmentExtractor {
         for (let i = 0; i < sampleCount; i++) {
             const left = int16Array[i * 2];
             const right = int16Array[i * 2 + 1];
-            mono[i] = (left + right) / (2 * DevAudioSegmentExtractor.MAX_INT16);
+            mono[i] = (left + right) / (2 * AudioSegmentExtractor.MAX_INT16);
         }
         return mono;
     }
@@ -200,4 +200,4 @@ export class DevAudioSegmentExtractor {
     }
 }
 
-Container.register(DevAudioSegmentExtractor, () => new DevAudioSegmentExtractor(Container.get(AppLogger)));
+Container.register(AudioSegmentExtractor, () => new AudioSegmentExtractor(Container.get(AppLogger)));

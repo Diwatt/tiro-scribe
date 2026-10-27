@@ -9,21 +9,21 @@ import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import type { CreateTherapistInput } from '@/Security/TherapistForge';
 import { TherapistForge } from '@/Security/TherapistForge';
 import type { AudioSegment } from './Data/AudioSegment';
-import { DevAudioSegmentExtractor } from './DevAudioSegmentExtractor';
-import { DevEncryptionException } from './DevEncryptionException';
+import { AudioSegmentExtractor } from './AudioSegmentExtractor';
+import { SourceIngestException } from './SourceIngestException';
 
 /**
- * DevTherapistOnboarding – Creates a dev therapist with a biocode extracted
+ * TherapistOnboarding – Creates a dev therapist with a biocode extracted
  * from an audio file segment.
  *
  * Flow:
- *   1. Read raw audio file → PCM (via DevAudioSegmentExtractor)
+ *   1. Read raw audio file → PCM (via AudioSegmentExtractor)
  *   2. Extract time-based segment → PCM segment
  *   3. PCM → biocode (via VoiceCalibrator)
  *   4. Persist therapist + store master key
  *
  * Usage:
- *   const onboarding = Container.get(DevTherapistOnboarding);
+ *   const onboarding = Container.get(TherapistOnboarding);
  *   const therapist = await onboarding.createFromAudio(
  *     '/path/to/encounter.wav',
  *     { startMs: 5000, endMs: 35000 },
@@ -39,12 +39,12 @@ import { DevEncryptionException } from './DevEncryptionException';
  *
  * DEV ONLY. Not for production use.
  */
-export class DevTherapistOnboarding {
+export class TherapistOnboarding {
     public constructor(
         private readonly therapistForge: TherapistForge,
         private readonly vault: MasterKeyVault,
         private readonly voiceCalibrator: VoiceCalibrator,
-        private readonly segmentExtractor: DevAudioSegmentExtractor,
+        private readonly segmentExtractor: AudioSegmentExtractor,
         private readonly registry: Registry,
         private readonly logger: AppLogger,
     ) {}
@@ -56,11 +56,11 @@ export class DevTherapistOnboarding {
     ): Promise<Therapist> {
         const fileInfo = await getInfoAsync(rawAudioPath);
         if (!fileInfo.exists) {
-            throw new DevEncryptionException(`Audio file not found: ${rawAudioPath}`, 'AUDIO_FILE_MISSING');
+            throw new SourceIngestException(`Audio file not found: ${rawAudioPath}`, 'AUDIO_FILE_MISSING');
         }
 
         if (!segment.isValid()) {
-            throw new DevEncryptionException(
+            throw new SourceIngestException(
                 `Invalid segment: start=${segment.startMs}ms, end=${segment.endMs}ms`,
                 'INVALID_SEGMENT',
             );
@@ -68,13 +68,13 @@ export class DevTherapistOnboarding {
 
         const { therapist, artifacts } = this.therapistForge.create(input);
 
-        this.logger.info('DevTherapistOnboarding: created therapist', {
+        this.logger.info('TherapistOnboarding: created therapist', {
             uuid: therapist.uuid,
             email: therapist.email,
         });
 
         const pcm = await this.segmentExtractor.extract(rawAudioPath, segment);
-        this.logger.info('DevTherapistOnboarding: extracted segment', {
+        this.logger.info('TherapistOnboarding: extracted segment', {
             startMs: segment.startMs,
             endMs: segment.endMs,
             samples: pcm.length,
@@ -87,7 +87,7 @@ export class DevTherapistOnboarding {
         await repo.persist(therapist);
         await this.vault.save(therapist.uuid, artifacts.masterKey);
 
-        this.logger.info('DevTherapistOnboarding: persisted therapist with biocode', {
+        this.logger.info('TherapistOnboarding: persisted therapist with biocode', {
             uuid: therapist.uuid,
             biocodeLength: biocode.projectedVector.length,
             confidence: biocode.confidence,
@@ -98,13 +98,13 @@ export class DevTherapistOnboarding {
 }
 
 Container.register(
-    DevTherapistOnboarding,
+    TherapistOnboarding,
     () =>
-        new DevTherapistOnboarding(
+        new TherapistOnboarding(
             Container.get(TherapistForge),
             Container.get(MasterKeyVault),
             Container.get(VoiceCalibrator),
-            Container.get(DevAudioSegmentExtractor),
+            Container.get(AudioSegmentExtractor),
             Container.get(Registry),
             Container.get(AppLogger),
         ),

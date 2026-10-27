@@ -1,5 +1,5 @@
-const mockSeederFns = {
-    seed: jest.fn(),
+const mockFixtureLoaderFns = {
+    load: jest.fn(),
 };
 
 const mockTherapistRepoFns = {
@@ -17,23 +17,23 @@ jest.mock('@/Core/Container', () => ({
     },
 }));
 
-import { DevAudioState } from '@/Dev/DevAudioState';
-import { DevSeedException } from '@/Dev/DevSeedException';
+import { AudioState } from '@/DevConsole/AudioState';
+import { FixtureException } from '@/DevConsole/FixtureException';
 
 const SOURCE_AUDIO = '/documents/scene_01.wav';
-const ENCRYPTED_PATH = '/documents/seed_abc123.dat';
+const ENCRYPTED_PATH = '/documents/fixture_abc123.dat';
 
-const createState = (): DevAudioState =>
-    new DevAudioState(
+const createState = (): AudioState =>
+    new AudioState(
         {} as never,
         {} as never,
-        mockSeederFns as never,
+        mockFixtureLoaderFns as never,
         mockTherapistRepoFns as never,
         mockOnboardingFns as never,
         { error: jest.fn() } as never,
     );
 
-describe('DevAudioState', () => {
+describe('AudioState', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -61,7 +61,7 @@ describe('DevAudioState', () => {
         it('rejects an empty source audio path without calling the onboarding', async () => {
             const state = createState();
 
-            await expect(state.createTherapistFromAudio('', 0, 2_000)).rejects.toThrow(DevSeedException);
+            await expect(state.createTherapistFromAudio('', 0, 2_000)).rejects.toThrow(FixtureException);
 
             expect(mockOnboardingFns.createFromAudio).not.toHaveBeenCalled();
             expect(state.state$.notification.get()?.type).toBe('error');
@@ -71,7 +71,7 @@ describe('DevAudioState', () => {
             const state = createState();
 
             await expect(state.createTherapistFromAudio(SOURCE_AUDIO, 2_000, 2_000)).rejects.toThrow(
-                DevSeedException,
+                FixtureException,
             );
 
             expect(mockOnboardingFns.createFromAudio).not.toHaveBeenCalled();
@@ -81,24 +81,24 @@ describe('DevAudioState', () => {
             const state = createState();
             mockOnboardingFns.createFromAudio.mockRejectedValueOnce(new Error('Segment starts out of bounds'));
 
-            await expect(state.createTherapistFromAudio(SOURCE_AUDIO, 0, 2_000)).rejects.toThrow(DevSeedException);
+            await expect(state.createTherapistFromAudio(SOURCE_AUDIO, 0, 2_000)).rejects.toThrow(FixtureException);
 
             expect(state.state$.notification.get()?.type).toBe('error');
             expect(state.state$.lastError.get()).toContain('Segment starts out of bounds');
         });
     });
 
-    describe('seedEncounter', () => {
-        it('resolves the current therapist and seeds the encounter with its id', async () => {
+    describe('loadEncounterFixture', () => {
+        it('resolves the current therapist and loads the fixture with its id', async () => {
             const state = createState();
             mockTherapistRepoFns.findCurrent.mockResolvedValueOnce({ getUuid: () => 'therapist-uuid-1' });
-            const fakeSeed = { summary: 'encounter=enc-1 patient=pat-1 queueItem=q-1' };
-            mockSeederFns.seed.mockResolvedValueOnce(fakeSeed);
+            const fakeFixture = { summary: 'encounter=enc-1 patient=pat-1 queueItem=q-1' };
+            mockFixtureLoaderFns.load.mockResolvedValueOnce(fakeFixture);
 
-            await state.seedEncounter(ENCRYPTED_PATH, 65_000);
+            await state.loadEncounterFixture(ENCRYPTED_PATH, 65_000);
 
-            expect(mockSeederFns.seed).toHaveBeenCalledWith('therapist-uuid-1', ENCRYPTED_PATH, 65_000);
-            expect(state.lastSeed).toBe(fakeSeed);
+            expect(mockFixtureLoaderFns.load).toHaveBeenCalledWith('therapist-uuid-1', ENCRYPTED_PATH, 65_000);
+            expect(state.lastFixture).toBe(fakeFixture);
             expect(state.state$.notification.get()?.type).toBe('success');
         });
 
@@ -106,19 +106,19 @@ describe('DevAudioState', () => {
             const state = createState();
             mockTherapistRepoFns.findCurrent.mockResolvedValueOnce(undefined);
 
-            await expect(state.seedEncounter(ENCRYPTED_PATH, 65_000)).rejects.toThrow(
+            await expect(state.loadEncounterFixture(ENCRYPTED_PATH, 65_000)).rejects.toThrow(
                 'No persisted therapist. Run the dev therapist onboarding first.',
             );
 
-            expect(mockSeederFns.seed).not.toHaveBeenCalled();
+            expect(mockFixtureLoaderFns.load).not.toHaveBeenCalled();
         });
 
-        it('reports the seeding failure through the notification and rethrows', async () => {
+        it('reports the fixture load failure through the notification and rethrows', async () => {
             const state = createState();
             mockTherapistRepoFns.findCurrent.mockResolvedValueOnce({ getUuid: () => 'therapist-uuid-1' });
-            mockSeederFns.seed.mockRejectedValueOnce(new Error('db is locked'));
+            mockFixtureLoaderFns.load.mockRejectedValueOnce(new Error('db is locked'));
 
-            await expect(state.seedEncounter(ENCRYPTED_PATH, 65_000)).rejects.toThrow(DevSeedException);
+            await expect(state.loadEncounterFixture(ENCRYPTED_PATH, 65_000)).rejects.toThrow(FixtureException);
 
             expect(state.state$.notification.get()?.type).toBe('error');
         });

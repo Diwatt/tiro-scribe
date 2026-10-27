@@ -1,14 +1,14 @@
 import { documentDirectory, getInfoAsync, readDirectoryAsync } from 'expo-file-system/legacy';
 import { Container } from '@/Core/Container';
-import type { DevAudioFileEntry } from './DevAudioState';
+import type { AudioFileEntry } from './AudioState';
 
 /**
- * DevAudioScanner – Discovers raw audio files in a directory and builds
+ * AudioScanner – Discovers raw audio files in a directory and builds
  * enriched entries with encryption status.
  *
  * DEV ONLY. Not for production use.
  */
-export class DevAudioScanner {
+export class AudioScanner {
     private static readonly AUDIO_EXTENSIONS = new Set([
         '.pcm',
         '.wav',
@@ -17,7 +17,7 @@ export class DevAudioScanner {
         '.raw',
     ]);
 
-    public async scan(directory: string): Promise<DevAudioFileEntry[]> {
+    public async scan(directory: string): Promise<AudioFileEntry[]> {
         const info = await getInfoAsync(directory);
         if (!info.exists) {
             return [];
@@ -27,7 +27,7 @@ export class DevAudioScanner {
         const sourcePaths = entries
             .filter((name) => {
                 const nameLower = name.toLowerCase();
-                return Array.from(DevAudioScanner.AUDIO_EXTENSIONS).some((ext) => nameLower.endsWith(ext));
+                return Array.from(AudioScanner.AUDIO_EXTENSIONS).some((ext) => nameLower.endsWith(ext));
             })
             .map((name) => `${directory}/${name}`);
 
@@ -54,4 +54,4 @@ export class DevAudioScanner {
     }
 }
 
-Container.register(DevAudioScanner, () => new DevAudioScanner());
+Container.register(AudioScanner, () => new AudioScanner());

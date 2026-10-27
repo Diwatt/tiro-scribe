@@ -25,30 +25,30 @@ jest.mock('react-native-quick-crypto', () => ({
     },
 }));
 
-import { DevFileEncryptor } from '@/Dev/DevFileEncryptor';
+import { AudioFileEncryptor } from '@/DevConsole/AudioFileEncryptor';
 
-describe('DevFileEncryptor duration computation', () => {
+describe('AudioFileEncryptor duration computation', () => {
     describe('durationFromSamples', () => {
         it('converts 16 000 samples (one second at 16 kHz) to 1 000 ms', () => {
-            expect(DevFileEncryptor.durationFromSamples(16_000)).toBe(1_000);
+            expect(AudioFileEncryptor.durationFromSamples(16_000)).toBe(1_000);
         });
 
         it('converts a zero-length input to 0 ms', () => {
-            expect(DevFileEncryptor.durationFromSamples(0)).toBe(0);
+            expect(AudioFileEncryptor.durationFromSamples(0)).toBe(0);
         });
     });
 
     describe('durationFromMono16kPcmBytes', () => {
         it('converts 32 000 bytes (one second of s16le mono 16 kHz) to 1 000 ms', () => {
-            expect(DevFileEncryptor.durationFromMono16kPcmBytes(32_000)).toBe(1_000);
+            expect(AudioFileEncryptor.durationFromMono16kPcmBytes(32_000)).toBe(1_000);
         });
 
         it('converts a zero-length input to 0 ms', () => {
-            expect(DevFileEncryptor.durationFromMono16kPcmBytes(0)).toBe(0);
+            expect(AudioFileEncryptor.durationFromMono16kPcmBytes(0)).toBe(0);
         });
 
         it('converts a partial second proportionally', () => {
-            expect(DevFileEncryptor.durationFromMono16kPcmBytes(16_000)).toBe(500);
+            expect(AudioFileEncryptor.durationFromMono16kPcmBytes(16_000)).toBe(500);
         });
     });
 });
