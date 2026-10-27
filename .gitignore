@@ -54,7 +54,6 @@ android/local.properties
 
 # node.js
 node_modules/
-pnpm-lock.yaml
 npm-debug.log
 yarn-error.log
 
@@ -103,8 +102,8 @@ db.json
 *.sqlite-wal
 *.sqlite-shm
 
-# pnpm lockfile
-pnpm-lock.yaml
+# pnpm lockfile : COMMITTÉ — requis par la CI (setup-node cache + pnpm install --frozen-lockfile)
+# et nécessaire à la reproductibilité (peers/patches SDK 58).
 
 # Bun (legacy — project now uses pnpm)
 bun.lock
