@@ -149,12 +149,18 @@ importers:
       react-native-logs:
         specifier: ^5.5.0
         version: 5.6.0
+      react-native-nitro-modules:
+        specifier: ^0.37.1
+        version: 0.37.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       react-native-paper:
         specifier: ^5.15.0
         version: 5.15.2(react-native-safe-area-context@5.10.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      react-native-quick-base64:
+        specifier: ^3.0.1
+        version: 3.0.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       react-native-quick-crypto:
-        specifier: ^1.0.17
-        version: 1.1.2(expo-build-properties@58.0.11(expo@58.0.19))(expo@58.0.19)(react-native-nitro-modules@0.35.6(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native-quick-base64@2.2.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+        specifier: ^1.1.9
+        version: 1.1.9(expo@58.0.19)(react-native-nitro-modules@0.37.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native-quick-base64@3.0.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       react-native-reanimated:
         specifier: ~4.7.1
         version: 4.7.1(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -1171,8 +1177,8 @@ packages:
     peerDependencies:
       react: 19.3.0
 
-  '@craftzdog/react-native-buffer@6.1.0':
-    resolution: {integrity: sha512-lJXdjZ7fTllLbzDrwg/FrJLjQ5sBcAgwcqgAB6OPpXTHdCenEhHZblQpfmBLLe7/S7m0yKXL3kN3jpwOEkpjGg==}
+  '@craftzdog/react-native-buffer@6.1.2':
+    resolution: {integrity: sha512-KV1HitN05FHLLDG7Zb/yftDsa+mKBYBzFMQ0PMldvUicq6vWOtAvz9mDavt7Fzozh+WNqORE+yFDkkdWysZ/SA==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -6971,8 +6977,8 @@ packages:
       '@react-native-community/datetimepicker': '>=6.7.0'
       react-native: '>=0.65.0'
 
-  react-native-nitro-modules@0.35.6:
-    resolution: {integrity: sha512-3Cb7s+O5tpZ6RdIiPOB/wi3IMfBxD6tl6VDF8gJ5zvM/BEGTWxwMMLjzmWmsYPKekdbYBznF6qp2d2SxixPy8g==}
+  react-native-nitro-modules@0.37.1:
+    resolution: {integrity: sha512-KpW6EQVQ/bfegpCGxN9Be+ndvsfj56t4IESEvCASu9gWpJa/NDfHpIeIwCOvZQ3eXmLEj6YD4wCLqcC1FJPr2w==}
     peerDependencies:
       react: 19.3.0
       react-native: '*'
@@ -6984,25 +6990,22 @@ packages:
       react-native: '*'
       react-native-safe-area-context: '*'
 
-  react-native-quick-base64@2.2.2:
-    resolution: {integrity: sha512-WLHSifHLoamr2kF00Gov0W9ud6CfPshe1rmqWTquVIi9c62qxOaJCFVDrXFZhEBU8B8PvGLVuOlVKH78yhY0Fg==}
+  react-native-quick-base64@3.0.1:
+    resolution: {integrity: sha512-EjUP2U7WqKmlMmoY7XGyHomy8bM0q4+yCDCRg4ZezQ6zedYRwc7yVk4V2O/iSftKaLEzhuW98lpyPMdk1iPHXQ==}
     peerDependencies:
       react: 19.3.0
       react-native: '*'
 
-  react-native-quick-crypto@1.1.2:
-    resolution: {integrity: sha512-e5322p5AhEp4T8P6EalFtmKsal8KLxdhr1RaEmMXNS2LHvDxdVYPBjV0tAc2osWlItr2IcVWAizC2jTGYQNlbQ==}
+  react-native-quick-crypto@1.1.9:
+    resolution: {integrity: sha512-u60Kr4EdAYI1ksGq7uwJfOXNJR/iWkCQ1AxfoVbjM/pEpiydddzsFXFYqwyv7EeB7eTDgg5/LiCGwNxA7W7NKA==}
     peerDependencies:
       expo: '>=48.0.0'
-      expo-build-properties: '*'
       react: 19.3.0
       react-native: '*'
       react-native-nitro-modules: '>=0.31.2'
-      react-native-quick-base64: '>=2.1.0'
+      react-native-quick-base64: '>=3.0.0'
     peerDependenciesMeta:
       expo:
-        optional: true
-      expo-build-properties:
         optional: true
 
   react-native-reanimated@4.7.1:
@@ -7089,8 +7092,8 @@ packages:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
     engines: {node: '>= 6'}
 
-  readable-stream@4.5.2:
-    resolution: {integrity: sha512-yjavECdqeZ3GLXNgRXgeQEdz9fvDDkNKyHnbHRFtOr7/LcfgBcmct7t/ET+HaCTqfh06OzoAxrkN/IfjJBVe+g==}
+  readable-stream@4.7.0:
+    resolution: {integrity: sha512-oIGGmcpTLwPga8Bn6/Z75SVaH1z5dUut2ibSyAMVhmUggWpmDn2dapB0n7f8nwaSiRtepAsfJyfXIO5DCVAODg==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   readdirp@3.6.0:
@@ -9262,10 +9265,10 @@ snapshots:
       hoist-non-react-statics: 3.3.2
       react: 19.3.0
 
-  '@craftzdog/react-native-buffer@6.1.0(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)':
+  '@craftzdog/react-native-buffer@6.1.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)':
     dependencies:
       ieee754: 1.2.1
-      react-native-quick-base64: 2.2.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      react-native-quick-base64: 3.0.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
     transitivePeerDependencies:
       - react
       - react-native
@@ -17148,7 +17151,7 @@ snapshots:
       prop-types: 15.8.1
       react-native: 0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)
 
-  react-native-nitro-modules@0.35.6(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
+  react-native-nitro-modules@0.37.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)
@@ -17162,26 +17165,25 @@ snapshots:
       react-native-safe-area-context: 5.10.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       use-latest-callback: 0.2.6(react@19.3.0)
 
-  react-native-quick-base64@2.2.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
+  react-native-quick-base64@3.0.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)
 
-  react-native-quick-crypto@1.1.2(expo-build-properties@58.0.11(expo@58.0.19))(expo@58.0.19)(react-native-nitro-modules@0.35.6(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native-quick-base64@2.2.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
+  react-native-quick-crypto@1.1.9(expo@58.0.19)(react-native-nitro-modules@0.37.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native-quick-base64@3.0.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
     dependencies:
-      '@craftzdog/react-native-buffer': 6.1.0(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      '@craftzdog/react-native-buffer': 6.1.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       events: 3.3.0
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0)
-      react-native-nitro-modules: 0.35.6(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
-      react-native-quick-base64: 2.2.2(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
-      readable-stream: 4.5.2
+      react-native-nitro-modules: 0.37.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      react-native-quick-base64: 3.0.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+      readable-stream: 4.7.0
       safe-buffer: 5.2.1
       string_decoder: 1.3.0
       util: 0.12.5
     optionalDependencies:
       expo: 58.0.19(@babel/core@7.29.7)(@expo/dom-webview@58.0.2)(@expo/metro-runtime@58.0.15)(expo-router@58.0.26)(react-dom@19.3.0(react@19.3.0))(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@7.0.2))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@7.0.2)
-      expo-build-properties: 58.0.11(expo@58.0.19)
 
   react-native-reanimated@4.7.1(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native-community/cli@20.1.3(typescript@5.9.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
     dependencies:
@@ -17404,7 +17406,7 @@ snapshots:
       string_decoder: 1.3.0
       util-deprecate: 1.0.2
 
-  readable-stream@4.5.2:
+  readable-stream@4.7.0:
     dependencies:
       abort-controller: 3.0.0
       buffer: 6.0.3

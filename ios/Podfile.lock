@@ -157,7 +157,7 @@ PODS:
     - ExpoModulesCore
   - ExpoDevice (58.0.5):
     - ExpoModulesCore
-  - ExpoDomWebView (55.0.6):
+  - ExpoDomWebView (58.0.2):
     - ExpoModulesCore
   - ExpoFileSystem (58.0.11):
     - ExpoModulesCore
@@ -241,7 +241,7 @@ PODS:
   - hermes-engine (260318099.0.4):
     - hermes-engine/Pre-built (= 260318099.0.4)
   - hermes-engine/Pre-built (260318099.0.4)
-  - NitroModules (0.35.6):
+  - NitroModules (0.37.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -304,8 +304,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - OpenSSL-Universal (3.6.0000)
-  - QuickCrypto (1.1.2):
+  - QuickCrypto (1.1.9):
     - boost
     - DoubleConversion
     - fast_float
@@ -313,7 +312,6 @@ PODS:
     - glog
     - hermes-engine
     - NitroModules
-    - OpenSSL-Universal (~> 3.6)
     - RCT-Folly
     - RCT-Folly/Fabric
     - RCTRequired
@@ -2425,8 +2423,35 @@ PODS:
     - Yoga
   - react-native-get-random-values (1.11.0):
     - React-Core
-  - react-native-quick-base64 (2.2.2):
+  - react-native-quick-base64 (3.0.1):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
     - React-Core
+    - React-cxxstableapi
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - react-native-safe-area-context (5.10.1):
     - boost
     - DoubleConversion
@@ -2576,6 +2601,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-vector-icons-material-design-icons (14.0.0)
   - React-NativeModulesApple (0.88.0):
     - boost
     - DoubleConversion
@@ -3748,6 +3774,7 @@ DEPENDENCIES:
   - react-native-quick-base64 (from `../node_modules/react-native-quick-base64`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-slider (from `../node_modules/@react-native-community/slider`)"
+  - "react-native-vector-icons-material-design-icons (from `../node_modules/@react-native-vector-icons/material-design-icons`)"
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -3800,7 +3827,6 @@ SPEC REPOS:
   trunk:
     - onnxruntime-c
     - onnxruntime-extensions-c
-    - OpenSSL-Universal
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -3979,6 +4005,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-slider:
     :path: "../node_modules/@react-native-community/slider"
+  react-native-vector-icons-material-design-icons:
+    :path: "../node_modules/@react-native-vector-icons/material-design-icons"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-networking:
@@ -4088,7 +4116,7 @@ SPEC CHECKSUMS:
   ExpoClipboard: 244adf0a38b60ec7105e217042dd266a722f5a5e
   ExpoCrypto: 33ede543a3747abbef071c3bd747135ccc4e4fd5
   ExpoDevice: 77a9816436a09a0bfc00f5ace649c6ccb219b96d
-  ExpoDomWebView: b2e9d601f9cb77d3c97da73234e175b64be91928
+  ExpoDomWebView: b2a6d681b9d34c23b1f584321386ca8da1d36afb
   ExpoFileSystem: b35d87e5219408a4052ee5adde99962d014efb09
   ExpoFont: b215bc738b2e3fba7ffed79903a6fccf66959dd0
   ExpoGlassEffect: 6594e055df1e0b88d34cc189ba0b21589adec6bf
@@ -4114,12 +4142,11 @@ SPEC CHECKSUMS:
   fmt: 530618a01105dae0fa3a2f27c81ae11fa8f67eac
   glog: e56ede4028c4b7418e6b1195a36b1656bb35e225
   hermes-engine: a1158910bb7e300b9e3d2f1e2d433f817ec1a4b5
-  NitroModules: a709a77e3fa170517557f9b0fb80c940865235ef
+  NitroModules: a6203d5f387596e9d956ef0feda35ae3a4f1909c
   onnxruntime-c: e6e9272f5996fed3ea3ca3c9bc843478b2ecbc73
   onnxruntime-extensions-c: 46aede179035fc012b044e75f5b0da4e4b1a39e3
   onnxruntime-react-native: a3cf3ac99b22a1f1470a39aed97f3e5f6b6e192b
-  OpenSSL-Universal: 9110d21982bb7e8b22a962b6db56a8aa805afde7
-  QuickCrypto: 1de9a1ba44887d184b91e6927368356f8c866eb0
+  QuickCrypto: 2cc17bae526663ac5d77ddd0be6f3b9186123dae
   RCT-Folly: 36c4f904fb6cd0219dcb76b94e9502d2a72fab0b
   RCTDeprecation: 2bd5800f105cb2e604fc8be5e71198f301c5a501
   RCTRequired: 7a58da4e11c1404901da9c6bd9e34f307916383b
@@ -4160,9 +4187,10 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: 80533c11ba4a0845c7aea88017bbb835eafa853a
   React-mutationobservernativemodule: 5006a2ea894ba45cdf529cf21cef88a5be755ce8
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
-  react-native-quick-base64: 6568199bb2ac8e72ecdfdc73a230fbc5c1d3aac4
+  react-native-quick-base64: 38818f6dcca96d3306bf2ba0d72f19b774467a59
   react-native-safe-area-context: 5a220319c6772395c363119385945eb635c77283
   react-native-slider: 340eb9844cddbc6db57169a4064992e34fa261a1
+  react-native-vector-icons-material-design-icons: 811f6c4447a60d8a66394644093dcffdc546772f
   React-NativeModulesApple: 4810858cbb1004af4b91a965e0b27cb770b52df6
   React-networking: c448d6325dacf3733d1b40912babcf7c219db974
   React-oscompat: 6052e6296ca28b72e6dd3ec1cecb7a4bbfc7d22f
