@@ -73,7 +73,8 @@ export class AudioFileEncryptor {
             );
         }
 
-        const outputInfo = await getInfoAsync(outputPath);
+        // expo-file-system requires a file:// URI; outputPath is a bare native path for SecureRecorder.
+        const outputInfo = await getInfoAsync(`file://${outputPath}`);
         const outputSizeBytes = outputInfo.exists ? (outputInfo.size ?? 0) : 0;
 
         const inputFile = new SourceFile(inputPath, inputSizeBytes);
