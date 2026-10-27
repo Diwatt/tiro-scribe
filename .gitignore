@@ -113,3 +113,6 @@ bun.lockb
 .mcp.json
 .cache/
 .screenshots/
+
+# Fixtures audio locales de dev — jamais versionnées
+fixtures-local/
