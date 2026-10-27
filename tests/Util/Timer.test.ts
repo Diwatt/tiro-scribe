@@ -1,6 +1,10 @@
 import { Timer } from '@/Util/Timer';
 
 describe('Timer', () => {
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
     it('sleep resolves after the given milliseconds', async () => {
         jest.useFakeTimers();
 
@@ -14,7 +18,5 @@ describe('Timer', () => {
         jest.advanceTimersByTime(1);
         await promise; // now should resolve
         expect(settled).toBe(true);
-
-        jest.useRealTimers();
     });
 });

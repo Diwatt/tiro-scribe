@@ -58,9 +58,10 @@ jest.mock('@legendapp/state', () => {
 });
 
 import { VoiceState } from '@/State/Onboarding/VoiceState';
+import type { PendingTherapistProvider } from '@/State/Onboarding/Types';
 import { AppLogger } from '@/Core/AppLogger';
 import { Localization } from '@/Localization';
-import { InferenceModelDownloader } from '@/InferenceModel/Downloader';
+import { Downloader } from '@/InferenceModel/Downloader';
 import { DownloadState } from '@/InferenceModel/Download/Type';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
@@ -87,20 +88,21 @@ describe('VoiceState', () => {
             },
         })),
     } as unknown as Localization;
-    const mockDownloader = {} as unknown as InferenceModelDownloader;
+    const mockDownloader = {} as unknown as Downloader;
     const mockGlobalActivity = { setStatus: jest.fn() } as unknown as GlobalActivityStatus;
     const mockMasterKeyVault = { load: jest.fn() } as unknown as MasterKeyVault;
     const mockAppConfig = { voiceCalibrationDurationMs: 5000 } as unknown as AppConfig;
     const mockCalibrator = {
-        captureVoiceSample: jest.fn<() => Promise<Float32Array>>(),
-        generateBiocode: jest.fn<(masterKey: string, pcm: Float32Array) => Promise<Biocode>>(),
+        captureVoiceSample: jest.fn<Promise<Float32Array>, []>(),
+        generateBiocode: jest.fn<Promise<Biocode>, [string, Float32Array]>(),
     } as unknown as VoiceCalibrator;
 
-    const therapist = { uuid: 'thera-1', biocode: undefined } as any;
-    const pendingProvider = { getPendingTherapist: () => therapist };
+    let therapist: { uuid: string; biocode: unknown };
+    const pendingProvider = { getPendingTherapist: () => therapist } as unknown as PendingTherapistProvider;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        therapist = { uuid: 'thera-1', biocode: undefined };
         voiceState = new VoiceState(
             mockLogger,
             mockLocalization,
@@ -120,20 +122,6 @@ describe('VoiceState', () => {
     it('sets error message if calibrator throws', async () => {
         mockMasterKeyVault.load = jest.fn().mockResolvedValue('k');
         mockCalibrator.captureVoiceSample = jest.fn().mockRejectedValue(new Error('oops')) as any;
-        // recreate state so it uses the updated calibrator reference
-        voiceState = new VoiceState(
-            mockLogger,
-            mockLocalization,
-            mockDownloader,
-            mockGlobalActivity,
-            mockMasterKeyVault,
-            mockAppConfig,
-            mockCalibrator,
-        );
-        voiceState.setPendingTherapistProvider(pendingProvider);
-        if (typeof voiceState.isSpeakerModelDownloading?.set === 'function') {
-            voiceState.isSpeakerModelDownloading.set(false);
-        }
 
         // spy on observable so we can see what gets written
         const errorSpy = jest.spyOn(voiceState.error, 'set');
@@ -175,38 +163,40 @@ describe('VoiceState', () => {
             }
         });
 
-        it('checkPermission should update hasPermission observable', async () => {
+        it('checkPermission sets hasPermission to true when granted', async () => {
             jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
 
             await voiceState.checkPermission();
 
             expect(SecureRecorder.hasPermission).toHaveBeenCalled();
-            // The observable should have been updated
-            expect(SecureRecorder.hasPermission).toHaveBeenCalled();
+            expect(voiceState.hasPermission.get()).toBe(true);
         });
 
-        it('checkPermission should set hasPermission to false when denied', async () => {
+        it('checkPermission sets hasPermission to false when denied', async () => {
             jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
 
             await voiceState.checkPermission();
 
             expect(SecureRecorder.hasPermission).toHaveBeenCalled();
+            expect(voiceState.hasPermission.get()).toBe(false);
         });
 
-        it('requestPermission should update hasPermission to true when granted', async () => {
+        it('requestPermission sets hasPermission to true when granted', async () => {
             jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true);
 
             await voiceState.requestPermission();
 
             expect(SecureRecorder.requestPermission).toHaveBeenCalled();
+            expect(voiceState.hasPermission.get()).toBe(true);
         });
 
-        it('requestPermission should update hasPermission to false when denied', async () => {
+        it('requestPermission sets hasPermission to false when denied', async () => {
             jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(false);
 
             await voiceState.requestPermission();
 
             expect(SecureRecorder.requestPermission).toHaveBeenCalled();
+            expect(voiceState.hasPermission.get()).toBe(false);
         });
 
         it('calibrateVoice should return early if permission not granted', async () => {
@@ -245,17 +235,12 @@ describe('VoiceState', () => {
             expect(therapist.biocode).toEqual(fakeBiocode.projectedVector);
         });
 
-        it('reset should clear hasPermission', async () => {
-            // Set permission to true
-            if (typeof voiceState.hasPermission?.set === 'function') {
-                voiceState.hasPermission.set(true);
-            }
+        it('reset clears hasPermission', () => {
+            voiceState.hasPermission.set(true);
 
             voiceState.reset();
 
-            // After reset, permission should be false
-            // Note: the observable stub doesn't track state, so we just verify the method exists
-            expect(typeof voiceState.hasPermission?.set).toBe('function');
+            expect(voiceState.hasPermission.get()).toBe(false);
         });
     });
 

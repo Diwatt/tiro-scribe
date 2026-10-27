@@ -7,12 +7,12 @@ import { RecordingTooShortError } from '@/Exception/RecordingTooShortError';
 import { Timer } from '@/Util/Timer';
 
 // simple logger stub, we only care that methods exist
-const mockLogger: AppLogger = {
+const mockLogger = {
     debug: jest.fn(),
     error: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
-};
+} as unknown as AppLogger;
 
 describe('VoiceCalibrationRecorder', () => {
     let listenerCallback: (event: { data: Uint8Array; isLast: boolean }) => void;
@@ -23,13 +23,12 @@ describe('VoiceCalibrationRecorder', () => {
         listenerCallback = () => {};
         fakeChunks.length = 0;
 
-        // Ensure Device.isDevice exists in the test environment so we can mock it.
-        if (!Object.prototype.hasOwnProperty.call(Device, 'isDevice')) {
-            Object.defineProperty(Device, 'isDevice', {
-                get: () => true,
-                configurable: true,
-            });
-        }
+        // Force the real-device path; the simulator test redefines this getter
+        // (configurable: true) for its own scenario.
+        Object.defineProperty(Device, 'isDevice', {
+            get: () => true,
+            configurable: true,
+        });
 
         // stub Timer.sleep so tests don't actually wait
         jest.spyOn(Timer, 'sleep').mockResolvedValue(undefined as any);
@@ -38,7 +37,7 @@ describe('VoiceCalibrationRecorder', () => {
         jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
         jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true); // stub for other tests that might call it
 
-        jest.spyOn(SecureRecorder, 'addDecryptionListener').mockImplementation((cb) => {
+        jest.spyOn(SecureRecorder, 'addDecryptionListener').mockImplementation(async (cb) => {
             listenerCallback = cb as any;
             return { remove: () => {} };
         });
@@ -216,7 +215,7 @@ describe('VoiceCalibrationRecorder', () => {
     it('forwards errors from SecureRecorder.stream', async () => {
         const error = new Error('stream fail');
         // override the default stream mock for this test only
-        (SecureRecorder as any).stream = jest.fn().mockRejectedValueOnce(error);
+        jest.spyOn(SecureRecorder, 'stream').mockRejectedValueOnce(error);
 
         const fakeRecorder = {
             initialize: jest.fn().mockResolvedValue(undefined),

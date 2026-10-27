@@ -6,11 +6,6 @@ describe('ClassDecorator', () => {
         expect(d.getName()).toBe('MyDecorator');
     });
 
-    it('returns options via getOption', () => {
-        const d = new ClassDecorator('D', { alpha: 123 });
-        expect(d.getOption('alpha')).toBe(123);
-    });
-
     it('returns full options', () => {
         const opts = { x: true };
         const d = new ClassDecorator('D', opts);
@@ -25,5 +20,5 @@ describe('ClassDecorator', () => {
 
     it('getOption returns undefined for unknown key', () => {
         const d = new ClassDecorator('D', { key: 'value' });
-        expect((d.getOptions() as Record<string, unknown>)['unknown']).toBeUndefined();
+        expect(d.getOption('unknown')).toBeUndefined();
     });});

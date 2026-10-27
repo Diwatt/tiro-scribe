@@ -5,6 +5,7 @@ import { deleteDatabaseAsync } from 'expo-sqlite';
 import { AppLogger } from '@/Core/AppLogger';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
+import { DatabaseException } from '@/Exception';
 
 // Mock only the transaction executor adapter check, use real testKysely for everything else
 jest.mock('kysely', () => {
@@ -66,9 +67,12 @@ describe('Database utility methods', () => {
 
         await Database.reset();
         expect(deleteDatabaseAsync).toHaveBeenCalledWith('test-database.sqlite');
+        expect((Database as any).instance).toBeNull();
+    });
 
-        // Clear any existing instance to force fresh initialization
-        (Database as any).instance = null;
+    it('getConnection throws DatabaseException when database is not initialized', () => {
+        expect(() => Database.getConnection()).toThrow(DatabaseException);
+        expect(() => Database.getConnection()).toThrow(/Database not initialized/);
     });
 
     it('logs database path when resetting', async () => {

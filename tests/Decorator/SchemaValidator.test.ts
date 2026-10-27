@@ -62,18 +62,36 @@ describe('SchemaValidator', () => {
             expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'id', 'PrimaryKey')).not.toThrow();
         });
 
-        it('throws DecoratorException when another property has same decorator', () => {
-            const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
-                id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
-                uuid: { decorators: [{ decoratorName: 'Column' }] },
-            };
-            expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'uuid', 'PrimaryKey')).toThrow(DecoratorException);
-            expect(() => validator.ensurePropertyDecoratorUniqueness(meta, 'uuid', 'PrimaryKey')).toThrow(/already on \"id\"/);
+        const conflictMeta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
+            id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
+            uuid: { decorators: [{ decoratorName: 'Column' }] },
+        };
+
+        const captureConflict = (): unknown => {
             try {
-                validator.ensurePropertyDecoratorUniqueness(meta, 'uuid', 'PrimaryKey');
-            } catch (e) {
-                expect((e as DecoratorException).code).toBe(MULTIPLE_DECORATORS_NOT_SUPPORTED);
+                validator.ensurePropertyDecoratorUniqueness(conflictMeta, 'uuid', 'PrimaryKey');
+            } catch (error) {
+                return error;
             }
+            return undefined;
+        };
+
+        it('throws DecoratorException when another property has same decorator', () => {
+            expect(captureConflict()).toBeInstanceOf(DecoratorException);
+        });
+
+        it('mentions the conflicting property in the error message', () => {
+            const error = captureConflict() as DecoratorException;
+
+            expect(error).toBeInstanceOf(DecoratorException);
+            expect(error.message).toMatch(/already on "id"/);
+        });
+
+        it('carries the MULTIPLE_DECORATORS_NOT_SUPPORTED code', () => {
+            const error = captureConflict() as DecoratorException;
+
+            expect(error).toBeInstanceOf(DecoratorException);
+            expect(error.code).toBe(MULTIPLE_DECORATORS_NOT_SUPPORTED);
         });
 
         it('does not throw when same property has the decorator (current property skipped)', () => {

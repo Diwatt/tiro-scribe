@@ -17,25 +17,22 @@ describe('AppConfig', () => {
         expect(cfg.shouldClearDbOnLaunch).toBe(false);
     });
 
-    it('parses "true" string as true and other values as false', () => {
-        process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH = 'true';
-        let cfg = new AppConfig();
-        expect(cfg.shouldClearDbOnLaunch).toBe(true);
-
-        process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH = 'TRUE';
-        cfg = new AppConfig();
-        expect(cfg.shouldClearDbOnLaunch).toBe(false);
-
-        process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH = 'false';
-        cfg = new AppConfig();
-        expect(cfg.shouldClearDbOnLaunch).toBe(false);
+    it.each([
+        ['true', true],
+        ['TRUE', false],
+        ['false', false],
+    ])('parses EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH=%s as %s', (envValue, expected) => {
+        process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH = envValue;
+        const cfg = new AppConfig();
+        expect(cfg.shouldClearDbOnLaunch).toBe(expected);
     });
 
-    it('uses cached parsed value (same object) when called multiple times', () => {
+    it('freezes the parsed value at construction (env changes afterwards have no effect)', () => {
         process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH = 'true';
         const cfg = new AppConfig();
         expect(cfg.shouldClearDbOnLaunch).toBe(true);
-        // ensure reading again gives same result (config object is not re-parsed)
+
+        process.env.EXPO_PUBLIC_CLEAR_DB_ON_LAUNCH = 'false';
         expect(cfg.shouldClearDbOnLaunch).toBe(true);
     });
 

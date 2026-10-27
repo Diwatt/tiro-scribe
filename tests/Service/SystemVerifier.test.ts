@@ -82,10 +82,8 @@ describe('SystemVerifier (unit)', () => {
   });
 
   it('supports async module methods (promise-returning) and binding (zombie method)', async () => {
-    // Paths.availableDiskSpace is a sync property, test Device.getName instead
     (Device as any).osName = 'ZOMBIE';
-    (Device as any).getName = function () {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Device as any).getName = async function () {
       return (this as any).osName;
     };
     const verifier = new SystemVerifier(logger as any);

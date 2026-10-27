@@ -37,7 +37,7 @@ describe('Repository', () => {
     beforeAll(async () => {
         db = await createTestKysely();
         Container.register(QueryBuilder, () => db);
-        Container.register(AppLogger as any, () => AppLogger.getInstance() as any);
+        Container.register(AppLogger, () => (AppLogger as unknown as { getInstance: () => AppLogger }).getInstance());
         await ensureTestTable(db, 'encounters', {
             uuid: 'TEXT PRIMARY KEY',
             data: 'TEXT',
@@ -185,11 +185,14 @@ describe('Repository', () => {
         });
 
         it('orders by primary key when no createdAt index (MockEncounter)', async () => {
-            await repo.persist(new MockEncounter({ therapistId: 'o1' }));
-            await repo.persist(new MockEncounter({ therapistId: 'o2' }));
+            // insertion order is deliberately unsorted: findAll must still return uuid-ascending rows
+            await repo.persist(new MockEncounter({ uuid: 'uuid-c', therapistId: 'o1' }));
+            await repo.persist(new MockEncounter({ uuid: 'uuid-a', therapistId: 'o2' }));
+            await repo.persist(new MockEncounter({ uuid: 'uuid-b', therapistId: 'o3' }));
             const list = await repo.findAll();
-            expect(list.length).toBeGreaterThanOrEqual(2);
             expect(list).toBeInstanceOf(Collection);
+            expect(list).toHaveLength(3);
+            expect(list.map((entity) => entity.primaryKey).toArray()).toEqual(['uuid-a', 'uuid-b', 'uuid-c']);
         });
     });
 
@@ -277,6 +280,16 @@ describe('Repository', () => {
 
     // add some unit tests for internal helpers and special branches
     describe('U — Utilities & internals', () => {
+        let originalGetColumnDefaults: (() => Record<string, unknown>) | null = null;
+
+        afterEach(() => {
+            const r: any = repo;
+            if (originalGetColumnDefaults != null) {
+                r.metadata.getColumnDefaults = originalGetColumnDefaults;
+                originalGetColumnDefaults = null;
+            }
+        });
+
         it('normalizeForWrite drops keys that are not columns', () => {
             const r: any = repo;
             const result = r.normalizeForWrite({ uuid: 'u', therapistId: 't', extra: 123 });
@@ -286,7 +299,8 @@ describe('Repository', () => {
         it('mergeForPersist merges default, stored and incoming values correctly', () => {
             const r: any = repo;
             const defaults = { a: 1, b: 2 };
-            // monkey patch metadata.getColumnDefaults
+            // metadata is a shared cached EntityMetadata instance: save the original, afterEach restores it
+            originalGetColumnDefaults = r.metadata.getColumnDefaults;
             r.metadata.getColumnDefaults = () => defaults;
             const merged = r.mergeForPersist({ b: undefined, c: 3 }, { a: 9, b: 8, d: undefined });
             // defaults 1,2 then stored override to 9,8 ; incoming overwrites b with undefined skipped and adds c
@@ -321,7 +335,13 @@ describe('Repository', () => {
         it('transaction returns same repository when db has isTransaction property', async () => {
             const fakeDb: any = { isTransaction: true };
             // pass class as first arg and tableName second
-            const inlineRepo = new Repository(MockEncounter as any, MockEncounter.entityName, fakeDb);
+            // SAFETY: the constructor is protected; a typed constructor view keeps the runtime call identical
+            const InlineRepository = Repository as unknown as new (
+                entityClass: unknown,
+                tableName: string,
+                db: unknown,
+            ) => Repository;
+            const inlineRepo = new InlineRepository(MockEncounter, MockEncounter.entityName, fakeDb);
             const result = await inlineRepo.transaction(async (r) => {
                 expect(r).toBe(inlineRepo);
                 return 'done';

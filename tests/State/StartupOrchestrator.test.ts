@@ -114,8 +114,6 @@ describe('StartupOrchestrator', () => {
             currentState = DownloadState.Completed;
             stateCb?.({ value: DownloadState.Completed });
         };
-        // expose helper for the test body
-        (global as any).completeDownload = completeDownload;
 
         await Container.get(StartupOrchestrator).run();
         expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Pending);
@@ -128,7 +126,7 @@ describe('StartupOrchestrator', () => {
         expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Pending);
 
         // now complete the download
-        (global as any).completeDownload();
+        completeDownload();
         // flush any pending microtasks
         await Promise.resolve();
 

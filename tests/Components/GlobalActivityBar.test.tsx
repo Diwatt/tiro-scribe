@@ -15,21 +15,19 @@ const fakeTheme = {
 } as unknown as ExtendedTheme;
 
 describe('GlobalActivityBar helpers', () => {
-    it('provides non-null colors for all statuses', () => {
-        for (const status of [
-            ActivityStatus.Pending,
-            ActivityStatus.Success,
-            ActivityStatus.Warning,
-            ActivityStatus.Error,
-        ]) {
-            const colors = getStatusColors(fakeTheme, status);
-            expect(colors).not.toBeNull();
-        }
-
-        // ready should return null
-        expect(getStatusColors(fakeTheme, ActivityStatus.Ready)).toBeNull();
+    it.each([
+        [ActivityStatus.Pending, 'statusProcessing'],
+        [ActivityStatus.Success, 'statusIdle'],
+        [ActivityStatus.Warning, 'statusWarning'],
+        [ActivityStatus.Error, 'statusError'],
+    ])('returns the shared %s color section for %s', (status, colorsKey) => {
+        const expected = (fakeTheme.colors as Record<string, unknown>)[colorsKey];
+        expect(getStatusColors(fakeTheme, status)).toBe(expected);
     });
 
+    it('returns null for the Ready status', () => {
+        expect(getStatusColors(fakeTheme, ActivityStatus.Ready)).toBeNull();
+    });
 });
 
 // additional component behaviour tests

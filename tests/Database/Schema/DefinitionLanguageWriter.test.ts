@@ -36,6 +36,15 @@ function createMockDb(execute?: (sql: string, params?: readonly unknown[]) => Pr
     return db as unknown as Kysely<DatabaseSchema>;
 }
 
+function createMockLogger(): AppLogger {
+    return {
+        debug: jest.fn(),
+        error: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+    } as unknown as AppLogger;
+}
+
 function createMinimalDefinition(overrides: Partial<{
     tableName: string;
     primaryKeyColumnName: string;
@@ -58,6 +67,15 @@ function pragmaRowsForDefinition(definition: TableDefinition): { name: string }[
 }
 
 describe('DefinitionLanguageWriter', () => {
+    // Unconditional state restore: tests that mutate the AppConfig mock (isDev) or create spies
+    // must not leak that state when an expect fails before their in-body restore would run.
+    afterEach(() => {
+        jest.mocked(AppConfig).mockImplementation(function () {
+            return { isDev: false } as unknown as AppConfig;
+        });
+        jest.restoreAllMocks();
+    });
+
     describe('Z — Zero (empty / minimal)', () => {
         it('write with no indexes and no fullTextSearchFields executes CREATE TABLE then PRAGMA (migration check)', async () => {
             const definition = createMinimalDefinition({ indexes: [], fullTextSearchFields: [] });
@@ -69,7 +87,7 @@ describe('DefinitionLanguageWriter', () => {
                 }
                 return Promise.resolve({ rows: [] });
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             expect(executed).toHaveLength(2);
             expect(executed[0]).toContain('CREATE TABLE IF NOT EXISTS items');
@@ -84,9 +102,9 @@ describe('DefinitionLanguageWriter', () => {
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             expect(executed[0]).toMatch(/CREATE TABLE IF NOT EXISTS items\s*\(\s*\)/);
         });
@@ -101,9 +119,9 @@ describe('DefinitionLanguageWriter', () => {
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             expect(executed).toHaveLength(3);
             expect(executed[0]).toContain('CREATE TABLE');
@@ -120,9 +138,9 @@ describe('DefinitionLanguageWriter', () => {
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             expect(executed.length).toBeGreaterThanOrEqual(5);
             expect(executed[0]).toContain('CREATE TABLE');
@@ -147,9 +165,9 @@ describe('DefinitionLanguageWriter', () => {
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             expect(executed).toHaveLength(4);
             expect(executed[2]).toContain('idx_items_a');
@@ -160,9 +178,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             const definition = createMinimalDefinition({
                 tableName: 'encounters',
                 primaryKeyColumnName: 'uuid',
@@ -184,9 +202,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             const definition = createMinimalDefinition({
                 tableName: 'queue_items',
                 primaryKeyColumnName: 'uuid',
@@ -199,9 +217,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             const definition = createMinimalDefinition({
                 fullTextSearchFields: [{ name: 'rawContent' }],
             });
@@ -215,16 +233,17 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             const definition = createMinimalDefinition({
-                fullTextSearchFields: [{ name: 'transcript', jsonPath: "$.text" }],
+                fullTextSearchFields: [{ name: 'transcript', jsonPath: "$.a'b" }],
             });
             await writer.write(definition);
             const triggerSql = executed.find((s) => s.includes("json_extract(value,"));
             expect(triggerSql).toBeDefined();
-            expect(triggerSql).toContain("$.text");
+            // the single quote must be SQL-escaped as a doubled '' inside the literal
+            expect(triggerSql).toContain("json_extract(value, '$.a''b')");
         });
 
         it('migrateMissingColumns adds missing columns and skips existing ones', async () => {
@@ -241,9 +260,9 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
                 }
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const alter = executed.find((s) => s.includes('ALTER TABLE')) as string;
             expect(alter).toContain('ADD COLUMN extra INTEGER');
@@ -257,7 +276,7 @@ describe('DefinitionLanguageWriter', () => {
             jest.mocked(AppConfig).mockImplementation(function () {
                 return {
                     isDev: true,
-                };
+                } as unknown as AppConfig;
             });
             const definition = createMinimalDefinition({
                 columns: [
@@ -281,19 +300,12 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
                 }
-                return Promise.resolve();
+                return undefined;
             });
             const writer = new DefinitionLanguageWriter(tx, mockLogger as any);
             await writer.write(definition);
             expect(warnSpy).toHaveBeenCalledTimes(1);
             expect(warnSpy.mock.calls[0][0]).toMatch(/ADD COLUMN failed for virtual\/generated column/);
-            warnSpy.mockRestore();
-            // reset AppConfig mock to default
-            jest.mocked(AppConfig).mockImplementation(function () {
-                return {
-                    isDev: false,
-                };
-            });
         });
 
         it('ignores duplicate-column errors from ALTER TABLE without warning', async () => {
@@ -319,7 +331,7 @@ describe('DefinitionLanguageWriter', () => {
                     // pretend the PRAGMA omitted the column so writer will try to add it
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
                 }
-                return Promise.resolve();
+                return undefined;
             });
             const writer = new DefinitionLanguageWriter(tx, mockLogger as any);
             await writer.write(definition);
@@ -335,9 +347,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const delTrig = executed.find((s) => s.includes('AFTER DELETE')) as string;
             const updTrig = executed.find((s) => s.includes('AFTER UPDATE')) as string;
@@ -355,9 +367,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const ftsCreate = executed.find((s) => s.includes('VIRTUAL TABLE')) as string;
             expect(ftsCreate).toContain('content_camel_case_name');
@@ -373,9 +385,9 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('CREATE TABLE')) {
                     expect(order[order.length - 1]).toBe(0);
                 }
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(createMinimalDefinition());
             expect(order[0]).toBe(0);
         });
@@ -386,10 +398,10 @@ describe('DefinitionLanguageWriter', () => {
             });
             const execute = jest.fn(async (sql: string) => {
                 if (sql.includes('PRAGMA table_info')) return { rows: pragmaRowsForDefinition(definition) };
-                return Promise.resolve();
+                return undefined;
             });
             const tx = createMockDb(execute);
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             expect(execute).toHaveBeenCalledTimes(4);
             expect(execute).toHaveBeenNthCalledWith(1, expect.stringContaining('CREATE TABLE'), []);
@@ -399,9 +411,9 @@ describe('DefinitionLanguageWriter', () => {
         });
 
         it('constructor stores tx and write uses it', async () => {
-            const execute = jest.fn(() => Promise.resolve());
+            const execute = jest.fn(async () => undefined);
             const tx = createMockDb(execute);
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(createMinimalDefinition());
             expect(execute).toHaveBeenCalled();
         });
@@ -410,7 +422,7 @@ describe('DefinitionLanguageWriter', () => {
     describe('E — Exceptions', () => {
         it('write propagates when execute rejects', async () => {
             const tx = createMockDb(() => Promise.reject(new Error('DB error')));
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await expect(writer.write(createMinimalDefinition())).rejects.toThrow('DB error');
         });
 
@@ -418,7 +430,7 @@ describe('DefinitionLanguageWriter', () => {
             const tx = createMockDb(() => {
                 throw new Error('sync error');
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await expect(writer.write(createMinimalDefinition())).rejects.toThrow('sync error');
         });
 
@@ -433,9 +445,9 @@ describe('DefinitionLanguageWriter', () => {
                 if (callCount === 3 && sql.includes('VIRTUAL TABLE')) {
                     return Promise.reject(new Error('FTS create failed'));
                 }
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await expect(writer.write(definition)).rejects.toThrow('FTS create failed');
         });
     });
@@ -448,9 +460,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const drops = executed.filter((s) => s.includes('DROP TRIGGER IF EXISTS'));
             expect(drops).toHaveLength(3);
@@ -466,9 +478,9 @@ describe('DefinitionLanguageWriter', () => {
             const executed: string[] = [];
             const tx = createMockDb(async (sql) => {
                 executed.push(sql);
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const insertTrigger = executed.find((s) => s.includes('AFTER INSERT')) as string;
             expect(insertTrigger).toContain("group_concat(json_extract(value, '$.labels[*]'), ' ')");
@@ -489,9 +501,9 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
                 }
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const firstIndexPos = calls.findIndex((s) => s.startsWith('CREATE INDEX i1'));
             const alterPos = calls.findIndex((s) => s.startsWith('ALTER TABLE'));
@@ -504,7 +516,7 @@ describe('DefinitionLanguageWriter', () => {
             jest.mocked(AppConfig).mockImplementation(function () {
                 return {
                     isDev: true,
-                };
+                } as unknown as AppConfig;
             });
             const definition = createMinimalDefinition({
                 columns: [
@@ -527,18 +539,11 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) {
                     return { rows: [{ name: 'uuid' }, { name: 'data' }] };
                 }
-                return Promise.resolve();
+                return undefined;
             });
             const writer = new DefinitionLanguageWriter(tx, mockLogger as any);
             await expect(writer.write(definition)).rejects.toThrow('cannot add');
             expect(warnSpy).not.toHaveBeenCalled();
-            warnSpy.mockRestore();
-            // reset AppConfig mock to default
-            jest.mocked(AppConfig).mockImplementation(function () {
-                return {
-                    isDev: false,
-                };
-            });
         });
 
         it('handles PRAGMA returning object with rows undefined by treating as empty', async () => {
@@ -555,9 +560,9 @@ describe('DefinitionLanguageWriter', () => {
                 if (sql.includes('PRAGMA table_info')) {
                     return {}; // rows undefined -> treated as empty
                 }
-                return Promise.resolve();
+                return undefined;
             });
-            const writer = new DefinitionLanguageWriter(tx);
+            const writer = new DefinitionLanguageWriter(tx, createMockLogger());
             await writer.write(definition);
             const alters = executed.filter((s) => s.startsWith('ALTER TABLE'));
             expect(alters).toHaveLength(3);

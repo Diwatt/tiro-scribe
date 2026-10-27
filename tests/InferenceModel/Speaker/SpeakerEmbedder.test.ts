@@ -51,21 +51,48 @@ describe('SpeakerEmbedder', () => {
 
 
   describe('extract', () => {
-    it('throws if not initialized', async () => {
-      const un = new SpeakerEmbedder(undefined, mockRuntime as any);
-      // runtime should reject when no model has been loaded
+    it('wraps runtime failure in SpeakerVectorExtractionError', async () => {
+      // runtime rejects when the speaker_id model was never loaded
       mockRuntime.getModel.mockRejectedValueOnce(new SessionNotInitializedError('no session'));
-      await expect(un.extract(new Float32Array([1]))).rejects.toThrow(SpeakerVectorExtractionError);
+      await expect(embedder.extract(new Float32Array([1]))).rejects.toThrow(SpeakerVectorExtractionError);
     });
 
-    it('calls extractor and runtime and normalizes output', async () => {
+    it('calls extractor and runtime with the extracted features', async () => {
       const pcm = new Float32Array([0.1]);
       const res = await embedder.extract(pcm);
       expect(extractor.extract).toHaveBeenCalledWith(pcm);
       expect(mockRuntime.getModel).toHaveBeenCalledWith('speaker_id');
       expect(mockModel.run).toHaveBeenCalledWith(expect.any(Float32Array));
       expect(res).toBeInstanceOf(SpeakerVector);
-      expect(res.vector.length).toBe(3);
+      expect(res.vector).toHaveLength(3);
+    });
+
+    it('normalizes the embedding to unit length', async () => {
+      const res = await embedder.extract(new Float32Array([0.1]));
+      const raw = [0.1, 0.2, 0.3];
+      const rawMagnitude = Math.sqrt(raw[0] ** 2 + raw[1] ** 2 + raw[2] ** 2);
+      res.vector.forEach((component, index) => expect(component).toBeCloseTo(raw[index] / rawMagnitude, 10));
+    });
+
+    it('sets confidence to the raw embedding magnitude when it is below 1', async () => {
+      const res = await embedder.extract(new Float32Array([0.1]));
+      const rawMagnitude = Math.sqrt(0.1 ** 2 + 0.2 ** 2 + 0.3 ** 2);
+      expect(res.confidence).toBeCloseTo(rawMagnitude, 10);
+    });
+
+    it('clamps confidence to 1 when the raw embedding magnitude exceeds 1', async () => {
+      mockModel.run.mockResolvedValueOnce([3, 4]);
+      const res = await embedder.extract(new Float32Array([0.1]));
+      expect(res.confidence).toBe(1);
+      expect(res.vector[0]).toBeCloseTo(0.6, 10);
+      expect(res.vector[1]).toBeCloseTo(0.8, 10);
+    });
+
+    it('keeps a zero-magnitude embedding unchanged with zero confidence', async () => {
+      mockModel.run.mockResolvedValueOnce([0, 0, 0]);
+      const res = await embedder.extract(new Float32Array([0.1]));
+      expect(res.vector).toEqual([0, 0, 0]);
+      expect(res.confidence).toBe(0);
     });
 
     it('propagates extractor error', async () => {

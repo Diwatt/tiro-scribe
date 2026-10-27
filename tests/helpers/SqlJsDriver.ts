@@ -36,7 +36,7 @@ export class SqlJsDriver implements Driver, DatabaseConnection {
         const results = database.exec(compiledQuery.sql, parameters);
         const rows = results.flatMap((result) => result.values.map((values) => this.rowFromValues(result.columns, values)));
 
-        return { rows, numAffectedRows: BigInt(database.getRowsModified()) };
+        return { rows: rows as R[], numAffectedRows: BigInt(database.getRowsModified()) };
     }
 
     public async init(): Promise<void> {}

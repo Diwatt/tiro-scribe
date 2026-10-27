@@ -41,10 +41,12 @@ describe('QueryCompiler', () => {
             expect(compiled.parameters).toContain('id-1');
         });
 
-        it('build with foreign key criterion includes WHERE on FK column', () => {
+        it('build with therapistId criterion includes WHERE on the column SQL expression', () => {
             const compiler = newCompiler();
             const compiled = compiler.build({ therapistId: 'th-1' });
             expect(compiled.sql.toLowerCase()).toContain('where');
+            // MockEncounter.therapistId has no @ForeignKey: EntityMetadata maps it to a json_extract expression, not therapist_id
+            expect(compiled.sql).toContain("json_extract(data, '$.therapistId') = ?");
             expect(compiled.parameters).toContain('th-1');
         });
 
@@ -61,7 +63,7 @@ describe('QueryCompiler', () => {
                 {},
                 { orderBy: [{ column: 'therapistId', direction: 'asc' }] },
             );
-            expect(compiled.sql.toLowerCase()).toContain('order by');
+            expect(compiled.sql.toLowerCase()).toMatch(/order by\s+json_extract\(data,\s*'\$\.therapistid'\)\s+asc/);
         });
     });
 
@@ -106,8 +108,9 @@ describe('QueryCompiler', () => {
 
         it('orderBy direction normalization lowercases DESC/ASC', () => {
             const compiler = newCompiler();
-            const compiled = compiler.build({}, { orderBy: [{ column: 'therapistId', direction: 'DESC' }] });
-            expect(compiled.sql.toLowerCase()).toContain('order by');
+            const compiled = compiler.build({}, { orderBy: [{ column: 'therapistId', direction: 'desc' }] });
+            // raw SQL (not lowercased): the compiler must normalize DESC to lowercase desc
+            expect(compiled.sql).toMatch(/order by\s+json_extract\(data,\s*'\$\.therapistId'\)\s+desc/);
         });
     });
 
