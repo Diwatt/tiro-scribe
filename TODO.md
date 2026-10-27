@@ -1,0 +1,250 @@
+# TODO — Tiro Scribe : plan de développement
+
+> **Fusion du 27/10/2026** (`PROJECT.md` + `KEEP.md`) **puis audit complet du code le 27/10/2026** sur HEAD `1e213d8` : chaque affirmation a été revérifiée (type-check, tests, greps, lectures de code). Les items marqués 🔎 ont été constatés lors de l'audit ; les corrections par rapport aux notes d'origine sont signalées.
+>
+> **Sources de vérité compagnes :**
+> - Architecture (design, entités, statuts ✅/🚧/❌) : `docs/app_design_architecture.md`
+> - Build : `docs/build-and-compilation-guide.md`
+>
+> **Règle de livraison (critique) :** l'agent prépare, l'utilisateur exécute. Aucun commit/push/action sortante sans « go » explicite dans la conversation courante.
+>
+> **Mode d'emploi :** implémenter phase par phase, dans l'ordre. Les arbitrages non tranchés sont marqués **[ARBITRAGE]** — ne pas coder au-delà sans décision.
+
+---
+
+## 0. État de départ *(audit 27/10/2026)*
+
+Enregistreur clinique chiffré **fonctionnel jusqu'au disque** : onboarding complet (compte, calibrage voix → biocode CAM++, recovery kit), téléchargement de modèles, enregistrement AES-256-GCM + `Encounter` persisté (`ToProcess`). **Après `stop()`, plus rien** : l'ASR est un stub — blocage central, à attaquer **après** le spike runtime (P2).
+
+🔎 **Santé vérifiée au 27/10/2026 :**
+- Tests : **628 passés / 649** (55 suites ✅, 2 skipped, 21 tests skipped)
+- Type-check : **134 erreurs** tsc (majorité `tests/` driftés, ~12 dans `src/` — détail en P7)
+- `pnpm outdated` : drift modéré, rien de bloquant ; majors disponibles : lucide 1.x, uuid 14, RNTL 14, Babel 8, msw 3 (table complète en P6)
+- Working tree non committé : suppression `SEED`/`STATE`/`TECH`, fix snackbar `AudioFileEncryptor` + 2 tests DevConsole, commentaire `babel.config.js`, ce `TODO.md`
+- Déjà commité hier/aujourd'hui (corrige les anciennes notes) : session `encryptBytes` (Kotlin+Swift+TS), **casse `src/api` → `src/Api` corrigée**, **quick-crypto 1.1.9** + quick-base64 3.x + nitro-modules, CI (pnpm-lock committé, setup-android retiré)
+
+🔎 **Infra d'inférence réellement existante** (plus avancée que les anciennes notes ne le disaient) :
+- `InferenceModel/` : `Runtime` (sessions ONNX, **single-session**, CPU seul), `Setup` (`CAPABILITIES = ['vad','asr','pitch','speaker_id']`, sélection **par langue**), `ConfigProvider`
+- `InferenceModel/Download/` **complet** : `Downloader`, `DownloadTaskManager`, `DownloadTaskExecutor`, `ExecutorCollection`, `FileDownloader`, `ModelArtifactStorage`, `ChecksumVerifier` + entité `DownloadQueue`/repo + `WifiVerifier` + `SystemVerifier` → le « gestionnaire de modèles » du KEEP **existe déjà** (à corriger/auditer, pas à créer)
+- `Security/HardwareGuard` + `DeviceCompatibilityGate` (OS semver, RAM, arch 64-bit, deviceType) + **route `app/incompatible.tsx`** + `DeviceIncompatibleScreen` → le « gatekeeper » du KEEP **existe déjà**
+- `Repository/` : `EncounterRepository`, `QueueItemRepository` (basique), `TherapistRepository`, `DownloadQueueRepository`
+
+🔎 **Ce qui manque toujours cruellement** : ASR (`AutomaticSpeechRecognizer.run()` → `'TODO: implement full transcription pipeline'`, tokenizer non parsé, config Whisper hardcodée), VAD/Pitch (`Setup` les déclare, `Runtime.createModel` les rejette), tout consommateur de `QueueItem` après `stop()`, anonymisation, écrans résultats réels.
+
+**Stack** : RN 0.88.0 + Expo ~58.0.19 (expo-router, dev-client), Hermes V1 · `@legendapp/state` · Paper MD3 5.15 + Lucide · SQLite + Kysely 0.28.14 (+ patch) + ORM maison à décorateurs · `onnxruntime-react-native` 1.24.3 · quick-crypto 1.1.9 + module natif `secure-recorder` · pnpm · Jest 30 · Biome + ESLint (perfectionist) · typesafe-i18n (en/fr).
+
+---
+
+## 1. Décisions actées (contraignantes)
+
+| Sujet | Décision (26/10/2026) |
+|---|---|
+| ORM maison à décorateurs | **Conservé** (magasin de documents sur SQLite : colonne `data` JSON + colonnes virtuelles + FTS5, DDL depuis les decorators). Fragilité = couplage decorators ↔ Babel/Hermes → test-sentinelles (P7) |
+| Lucide | **Conservé** — bump major 0.575 → 1.61 à faire (P6) |
+| ESLint | **Conservé** uniquement pour l'ordre des membres (perfectionist) |
+| Storybook / DevConsole + 5-taps | **Conservés** ; à exclure du bundle release avant distribution (P6) |
+| Runtime IA | **ExecuTorch = direction par défaut**, à valider par le spike (P2). ONNX Runtime reste le dénominateur commun multi-modèles ; `Runtime` = seule interface vers le moteur (remplaçable) |
+| Modèles (revue fin 2026) | **CAM++ conservé** (biocode) · **Silero VAD v5 conservé** · ASR : **Whisper Medium remis en cause** au profit de **Parakeet-TDT-0.6B-v3** (FR, timestamps mot natifs) → spike · Pitch : **CREPE remis en cause** (SwiftF0, ~42× plus rapide CPU) · NER : **pas de BERT maison** — évaluer OpenMed-PII-French / GLiNER-PII / `privacyFilter` (P5) |
+| Métriques cliniques | Jitter, shimmer, HNR, formants F1/F2, VSA, indices (Fluency/Stability/Melodic/Timbral) = **server-side**, dérivés des `VoiceFrame` canoniques. L'app capture, elle n'interprète pas |
+| Sources audio fixtures | Extraits de séries TV (TTS écarté) ; fixtures incognito = **non** pour l'instant ; `totalDuration` = durée exacte depuis les bytes PCM |
+| Transfert fixtures | `adb push` + `run-as` dans le sandbox |
+
+---
+
+## 2. Règles opérationnelles critiques (pièges actifs)
+
+| # | Piège | Règle |
+|---|---|---|
+| R1 | **Patch pnpm babel-preset** (`@react-native/babel-preset@0.85.3`, `&& !isHermes`) 🔎 toujours en place | Requis (bug upstream). **Chaque bump RN le casse** → régénérer (`pnpm patch`). Ne jamais supprimer `pnpm-lock.yaml`. Decorators `2023-05` **dans le preset, pas en `plugins[]`** (sinon class fields natifs Hermes écrasent les accessors `@Column` → `getUuid()` = `undefined` sur device, FK perdues) |
+| R1b | 🔎 **Nouveau : patch `kysely@0.28.17.patch`** | Régénérer au bump de kysely (0.28.14 → 0.29.x en P6) |
+| R2 | **Metro ne relit pas `babel.config.js` à chaud** | Après modif config Babel : `stop-metro` puis `pnpm exec expo start --dev-client --port 8081 --reset-cache` |
+| R3 | **Plugin ONNX mute `node_modules`** 🔎 `plugins/withOnnxruntime.js` + `withGradleLimits.js` toujours actifs | Après **chaque** `pnpm install` : relancer `pnpx expo prebuild` **avant** de builder. Symptômes si oubli : `Could not get unknown property 'VersionNumber'` (Android), échec `SessionUtils.cpp` (iOS). Disparaîtra avec L2 (P6) |
+| R4 | **Re-validation à chaque bump ORT/RN** | Diff contre tarball pristine (`npm pack onnxruntime-react-native@<v>`) sur podspec · `lib/binding.ts` · `android/build.gradle`, puis re-tester une inférence CAM++ réelle |
+| R5 | **Getters d'entités `undefined` sur device** | Class fields natifs Hermes qui écrasent les accessors décorés → voir R1 ; diagnostiquer via `FixtureLoader.validate` (`INVALID_THERAPIST_ID`…) |
+| R6 | **DevConsole** | UI : préfixe `file://` obligatoire (expo-file-system exige une URI) ; natif : chemin POSIX **sans** `file://` ; DB reset au boot dev → charger une fixture exige un thérapeute persisté (`THERAPIST_NOT_FOUND`) |
+| R7 | **Versions flottantes ONNX Android** | 3 AAR `latest.integration` non épinglés → builds non reproductibles. À épingler (P6, L2) |
+| R8 | **16 KB page size (Android 15/16)** | AAR Microsoft non alignés → **bloquant Google Play** avant distribution. Vérifier variants 16 KB, épingler, `check-elf-alignment` (P6) |
+
+**Recettes :**
+
+```bash
+# Fixtures : conversion + transfert (build debug, sans rebuild)
+ffmpeg -i episode_scene.mkv -ar 16000 -ac 1 scene_01.wav   # ou -f s16le → .pcm
+adb push scene_01.wav /data/local/tmp/
+adb shell run-as com.tiroscribe.app cp /data/local/tmp/scene_01.wav files/
+adb shell am start -a android.intent.action.VIEW -d "tiro-scribe://dev-console" com.tiroscribe.app
+
+# Re-validation plugin ORT (après bump)
+mkdir -p .tmp-ort-check && cd .tmp-ort-check
+npm pack onnxruntime-react-native@<version> --pack-destination .
+tar -xzf onnxruntime-react-native-<version>.tgz
+# diff des 3 fichiers contre node_modules/onnxruntime-react-native/
+```
+
+**Critères de choix des extraits TV** : 2+ locuteurs avec alternance claire (dialogue, pas narration), pas de musique forte, quelques minutes par encounter, jamais committés/distribués (droits — usage dev local uniquement).
+
+---
+
+## 3. Phases de développement
+
+> Ordre clé : **l'ASR (P3) démarre après le spike runtime (P2)** ; les fixtures dev (P1) sont le tremplin qui rend l'ASR testable sans micro.
+
+### P0 — Figer & arbitrer *(prérequis de tout)*
+
+- [ ] **Commit du lot courant** *(→ utilisateur)* : suppression `SEED`/`STATE`/`TECH`, fix snackbar `AudioFileEncryptor` + tests DevConsole (`TherapistOnboarding`, `AudioFileEncryptor.encrypt`), commentaire `babel.config.js`, ce `TODO.md`. *(La session `encryptBytes` native est déjà committée.)*
+- [ ] **Corrections tsc urgentes `src/`** 🔎 (bugs réels repérés à l'audit, 4 fichiers) :
+  - `InferenceModel/Download/ChecksumVerifier.ts:31-33` — `Uint8Array` promesse non awaitée : **le checksum ne s'exécute pas correctement** (à corriger avant tout chantier downloader) ;
+  - `State/Onboarding/VoiceState.ts:146` — `if (existing)` sur une `Promise` (toujours truthy) ;
+  - `Exception/RecordingTooShortError.ts:10` — signature constructeur incohérente avec `TiroScribeException` ;
+  - `Screen/Onboarding/StepAccount.tsx:137` — typing `onPress` vs Paper 5.15.
+- [ ] **[ARBITRAGE] Biocode** : AGENTS.md dit `Hash(SpeakerVector + Salt)` ; implémenté = projection vectorielle. Trancher et aligner spec + AGENTS.md.
+- [ ] **Sécurité — `CryptoEngine` (vault)** 🔎 *constat inchangé (CBC + PBKDF2 1 000, lignes 11-14)* : migrer vers AES-256-GCM, itérations ≥ 600 000 (ou Argon2/scrypt). Ne pas confondre avec `generateDeterministicBytes` (PRF, pas un secret).
+- [ ] **[ARBITRAGE] `Container.initialize()` / `AppConfig.getInstance()`** 🔎 *toujours en place* : double singleton, violation « passive holder ». Décider règle vs code (~44 `Container.get/register` en bas de fichiers).
+- [ ] **[ARBITRAGE] Pull vs Push** : l'archi doc décrit `readChunkAt(offset)` (pull) ; l'implémentation est `stream(path)` + events (push). 🔎 *Aucun `readChunkAt` dans `src/` ni `modules/`* — trancher et aligner code + doc **avant** l'orchestrateur (P3/P4).
+- [ ] **Sourcer + convertir les extraits TV** (§2 recettes) — en parallèle, indépendant du code.
+
+### P1 — Validation plateforme + fixtures
+
+- [ ] **Build natif iOS complet** (`pnpm ios:dev`) — dernière validation plateforme restante (Android fait) : SceneDelegate SDK 58 + inférence CAM++ réelle.
+- [ ] **Charger ~6 encounters** depuis les extraits TV via DevConsole (`status = ToProcess`, multi-locuteurs, biocode thérapeute valide) + footprint thérapeute.
+- [ ] **`SpeakerId` (CAM++)** 🔎 *confirmé* : `// TODO: Load and parse config.yaml` — dimensions hardcodées `embeddingDim: 192, numMelBins: 80` (lignes 124-129). Parser le vrai `config.yaml`.
+
+### P2 — Spike runtime & modèles *(go/no-go, branche dédiée — AVANT l'ASR)*
+
+> Recherche du 26/10/2026 : `react-native-executorch` 0.10.7 (21/10/2026) actif vs `onnxruntime-react-native` 1.24.3 (05/03/2026, ~8 mois). Aucun benchmark indépendant sur audio de séance thérapeutique. Le choix de runtime **découle** du choix des modèles. 🔎 *Aucune trace d'ExecuTorch dans le projet à ce jour (spike non démarré).*
+
+- [ ] **Porte 1 — Faisabilité plateforme** (½ j) : `react-native-executorch@0.10.7` + `react-native-blob-util`, `allowBuilds` (pnpm 11), `deploymentTarget` iOS 16.4 → 17.0, `setTelemetryEnabled(false)` (politique « rien ne sort »). Build Android **et** iOS sur RN 0.88 / SDK 58. *Échec = stop.*
+- [ ] **Porte 2 — Modèle critique** (1-2 j) : export `.pte` de **CAM++** (à défaut ECAPA-TDNN), front-end fbank figé (entrée taille fixe). Comparer embeddings ORT vs ExecuTorch (similarité cosinus ≈ 1) + latence/RAM sur 2 devices. Pré-release : pas de rétro-compat biocode.
+- [ ] **Porte 3 — ASR** (1 j) : **Parakeet-TDT-0.6B-v3** (candidat n°1 : FR natif, timestamps mot/segment natifs, ~5,0-5,2 % WER FR vs ~6,3-7,2 % whisper-large-v3) sous ExecuTorch **et/ou** ORT sur un fichier réel déchiffré en RAM ; comparer à Whisper small. Mesurer WER/RTF sur un échantillon FR représentatif. NB : Parakeet iOS non annoncé → à vérifier par build ; dans `react-native-executorch` seul Whisper ≤ small + VAD FSMN sont exposés (orchestration TDT/timestamps à écrire).
+- [ ] **Verdict** : tableau perf/qualité + décision (migration totale / hybride / rester ORT avec `pnpm patch`). Mettre à jour `docs/app_design_architecture.md` (§6 modèles, §9 roadmap).
+- [ ] **Geler** : tant que la porte 2 n'est pas passée — ne pas démarrer l'ASR sur ORT à l'aveugle, ne pas supprimer le plugin ONNX. `src/InferenceModel/Runtime.ts` = seule interface vers le moteur.
+
+### P3 — ASR *(blocage central de la chaîne de valeur)*
+
+- [ ] **`AutomaticSpeechRecognizer.run()`** 🔎 *stub confirmé (ligne 139) + TODOs internes* : tokenizer jamais parsé (`AsrTokenizer = Record<string, never>`), sessions encoder/decoder jamais chargées (`asr_encoder`/`asr_decoder` déclarés mais non câblés), config Whisper Medium hardcodée. À implémenter selon verdict P2 (boucle Whisper ou TDT/Parakeet) **avec timestamps mot**.
+- [ ] **Décision fbank (C2)** : extraction log-mel JS (`AudioFeatureExtractor`, mathjs « approximate ») inacceptable pour l'ASR (4 h d'audio). Choisir : **(a)** fbank natif vDSP/Swift + Kotlin dans `secure-recorder` *(reco)* · **(b)** graphe ONNX de prétraitement · **(c)** `fft.js` sur `Float32Array`. ASR + CAM++ (fbank 80) + pitch (trames 16 kHz) partagent un front-end commun → le mettre une fois en natif (bénéfice sécurité : JS n'a plus jamais d'audio en clair).
+- [ ] **DSP client** : `pcm16ToFloat32` (lossless), normalisation EBU R128 (transcript only). Jitter/shimmer/HNR = server-side (acté).
+- [ ] **VAD + Pitch comme capacités `Runtime`** 🔎 *écart confirmé* : `Setup.CAPABILITIES` déclare `vad`/`pitch`, `Runtime.createModel` ne connaît que `speaker_id`/`asr` (erreur `Unknown model capability`). Même pattern que `SpeakerId`. VAD = Silero v5 ; pitch selon verdict P2 (CREPE vs SwiftF0). ⚠️ `Runtime` est **single-session** (unload de la session précédente) — l'enchaînement VAD→ASR→CAM++ par segment devra composer avec cette contrainte.
+- [ ] **Downloader : corriger puis auditer** *(la tâche « créer ModelManager » du KEEP est obsolète — l'infra existe 🔎)* : fix `ChecksumVerifier` (P0), audit C10 (API async `expo-file-system` SDK 58, reprise Range, checksum strict au bit près, Wi-Fi gate via `WifiVerifier`, file persistée `DownloadQueue`). Évaluer l'embarquement de Silero VAD + CAM++ (petits) en assets → ne télécharger que l'ASR. Sélection par langue déjà implémentée (`Setup` + `Downloader.isModelDownloaded(capability, language)`).
+- [ ] **Orchestrateur** (mode selon arbitrage P0) : rolling buffer ; si > 2 s **et** silence VAD → cut & process ; force cut **28 s max**. Double buffering natif déjà en place (16 KB écriture / 512 KB lecture, events).
+- [ ] **Traceabilité** : chaque résultat signé `modelName`/`modelVersion` ; ajouter `hardware_verified: true` + `model_hash` dans les métadonnées de sortie.
+- [ ] **Étendre `HardwareGuard` aux seuils « recherche »** *(le gatekeeper générique existe déjà 🔎 : OS semver, RAM, arch 64-bit, deviceType, écran `incompatible`)* : RAM `>= 3.8 GB` iOS / `> 5.5 GB` Android ; iOS : rejeter tout `modelId` < `iPhone13,x` (iPhone 12 = `iPhone13,1`). Cible : iPhone 12+ (A14+, 4 GB), Android 6 GB / ≥ Snapdragon 888. Remplacer `semver` par `parseInt(Platform.Version)` (C6) si l'usage se limite à l'OS.
+
+### P4 — Pipeline post-enregistrement *(le chaînon manquant)*
+
+🔎 *Précision vs anciennes notes : `QueueItemRepository` existe (basique, sans méthodes) et `QueueItem` est déjà riche (`PipelineStage`, `QueueItemStatus`, `processingOffset`, `createForEncounter`) — mais **rien ne les consomme après `stop()`** (seuls les fixtures DevConsole les créent).*
+
+- [ ] **Déclenchement après `stop()`** : consommer les `QueueItem` — charger → VAD → découpage → ASR → persistance.
+- [ ] **Checkpoint** : reprise via `QueueItem.processingOffset` + checkpoint **par segment** en SQLite (une séance d'1 h peut être longue → reprise après interruption).
+- [ ] **Sorties par encounter** : `Transcription` (`Utterance[]`, `speakerLabel` corrects — ID aléatoire par session type `spk_x9d2`), `ProsodyMetrics` (`VoiceFrame[]` + pitch), `Patient` (biocode ≠ biocode thérapeute → nouveau patient).
+- [ ] **Matching multi-séances** : 2ᵉ encounter du même duo → match de biocode → même patient.
+- [ ] **Synchro acoustique** : aligner les mots du transcript sur les `VoiceFrame` (même base temps, fenêtres FFT synchronisées avec les timestamps ASR).
+- [ ] **[ARBITRAGE] Sortie « deep data »** : `HighResTranscription` (words[], f0_stats, speech_rate, emotional_intensity…) vs contrainte archi « métriques dérivées server-side ». Décider du périmètre exact calculé client vs serveur.
+- [ ] **Validation bout-en-bout sur fixtures TV** (critères de sortie) : `Transcription` avec `Utterance[]`/`speakerLabel` corrects · `ProsodyMetrics` avec `VoiceFrame[]` · `Patient` biocode ≠ thérapeute → nouveau patient · 2ᵉ encounter du même duo → même patient.
+
+### P5 — Modes produit & UX
+
+- [ ] **Switch Incognito** (écran `recording.tsx`, bistable) : défaut « Mode Recherche » (🧬) / « Mode Incognito » (🔒). Feedback visuel : thème gris sombre. 🔎 `Encounter.isIncognito` existe (colonne indexée + `static create(therapistId, isIncognito)`) ; le switch UI et le flow restent à faire.
+- [ ] **Flow Incognito (Zero-Knowledge)** : transcrire → chiffrer AES-256 (clé dérivée du mot de passe maître) → **détruire l'audio** → le serveur ne reçoit qu'un blob illisible. Contrainte fatale à assumer dans l'UX : mot de passe maître perdu = contenu perdu à jamais.
+- [ ] **Anonymisation (NER)** : évaluer sur de vrais transcripts **OpenMed-PII-French** (variantes ONNX/Android, texte clinique) vs **GLiNER-PII** (zéro-shot) vs `privacyFilter` d'ExecuTorch (qualité FR inconnue). Standard = NER intelligent (contexte gardé) ; Incognito = agressif NER+POS (tout PROPN masqué). Nommer `Redaction` (pas `AnonymizedEntity`). 🔎 `Service/Anonymizer` référencé par `ServicesContext` mais inexistant.
+- [ ] **Écrans résultats** 🔎 *(screens existants : `HomeScreen`, `SubjectsScreen`, `TranscriptDetailScreen`, `SettingsScreen`, routes `app/main/(tabs)` + `transcript/`)* : brancher les données réelles (liste d'encounters sur Home, `SubjectsScreen`, download/share sur `TranscriptDetailScreen`).
+- [ ] **Recherche FTS** : indexation du texte selon le mode (anonymisé / « à trous »). FTS5 déjà présent dans l'ORM.
+- [ ] **UX d'initialisation** *(partiellement là 🔎 : `Setup.isSetup()` + `getTotalDownloadSizeMB()` alimentent l'onboarding)* : vérifier le parcours complet scan hardware → téléchargement (taille affichée) → prêt, et le branchement de l'écran `incompatible`.
+- [ ] **Vision pipeline texte (post-ASR, à arbitrer)** : Whisper → NER → **Phonex** (lexique jargon médical) → **Remote RAG** (mots inconnus) → **Gemma 2B/9B** (grammaire, fluidité). ⚠️ Contradiction : Remote RAG incompatible avec la promesse Incognito 100 % local → réserver au mode Standard ou lexique local.
+
+### P6 — Plateforme, performances & hygiène
+
+**Vague 0 — nettoyage (risque quasi nul)** :
+- [ ] Dépendances sans import (grep) 🔎 *liste revue au 27/10, toujours candidates* : `slugify`, `async-storage` (3.x dispo), `slider`, `datetimepicker` (+ plugin app.json), `reflect-metadata`, `react-dom`, devDeps `@faker-js/faker`, `ts-node`, `js-yaml`, `esbuild`, `babel-plugin-inline-import`, `@babel/preset-env`, `@testing-library/jest-native` (déprécié), `@types/react-test-renderer`. **Vérifier chaque entrée (`pnpm why` + tests) avant retrait.** `babel-jest ^29` incohérent avec Jest 30 (30.5.2 dispo).
+- [ ] Fichiers à ne pas suivre 🔎 *toujours suivis* : `repomix-output.xml` (33 k lignes au dernier diff !), **`tiro-scribe.sqlite` suivie dans git (⚠️ risque données sensibles — vérifier et purger l'historique si besoin)**, `.DS_Store`, `scripts-tmp-babel-test.js`, `expo-main/` (vide).
+- [ ] Mocks : garder **un** mécanisme (`json-server` vs `msw` — msw 3.x dispo).
+- [ ] Doc API : `docs/api-generation.md` décrit encore OpenAPI-Generator alors que `generate-api.js` utilise `@hey-api/openapi-ts` → retirer `@openapitools/openapi-generator-cli` (2.32 → 2.42 dispo mais à supprimer), aligner script/doc.
+- [ ] Code mort `src/` 🔎 *nuancé à l'audit* : `Util/AsyncQueue.ts` (0 utilisateur), `Util/Timer.ts` (à confirmer), **`Util/EventLoop.ts` est utilisé par `VoiceState`** (`await EventLoop.yield()`) — ne pas supprimer sans recâblage ; `Core/AppRouter.ts` (toujours enregistré dans `Container.initialize`), `Components/AsyncButtonUtils.tsx`. ⚠️ Certains prévus pour l'ASR/pipeline — **valider un par un**.
+- [ ] Exceptions : 23 fichiers, 16 classes référencées ≤ 1 fois hors `Exception/` → supprimer ou regrouper (~8 fichiers). Suffixes incohérents (`*Error` vs `*Exception`).
+
+**Vague 1 — industrialisation plateforme** :
+- [ ] **L2 — ONNX en `pnpm patch`** : remplacer les 3 mutations de `plugins/withOnnxruntime` par `pnpm patch onnxruntime-react-native@1.24.3` → **disparition de la règle R3**. Supprimer le hack `binding.js` (no-op), **épingler les 3 AAR `latest.integration`**, réduire le plugin (~210 l → ~60). Question pré-ASR : extensions ORT + AAR QNN réellement nécessaires (poids APK) ?
+- [ ] **L3 — CNG** *(non vérifié, ne pas appliquer en l'état)* : diff prebuild temporaire vs `ios/`+`android/` committés avant toute décision.
+- [ ] **L4 — Builds ÷2** : lever `buildReactNativeFromSource: true` + `useFrameworks: 'static'` en testant les prebuilts SDK 58. Risque : pods ORT × frameworks dynamiques → test iOS requis. Dépend de L2.
+- [ ] **Bumps** 🔎 *table actualisée au 27/10/2026* :
+  | Paquet | Installé | Latest | Note |
+  |---|---|---|---|
+  | `lucide-react-native` | 0.575.0 | **1.61.0** | **major** — vérifier breaking icons |
+  | `uuid` | 13.0.0 | **14.0.3** | major ; re-tester `react-native-get-random-values` (2.0 dispo, C3 vise sa suppression) |
+  | `@testing-library/react-native` | 13.3.3 | **14.1.0** | major — caler Jest 30 |
+  | `kysely` | 0.28.14 (+patch 0.28.17) | 0.29.7 | mineur ; **régénérer le patch pnpm** |
+  | `zod` | 4.4.3 | 4.6.7 | mineur |
+  | `@tanstack/react-query` | 5.100.9 | 5.105.0 | mineur |
+  | `react-hook-form` | 7.75.0 | 7.91.0 | mineur ; `@hookform/resolvers` 6.0 major lié |
+  | `dayjs` | 1.11.20 | 1.11.23 | a priori supprimé avec C4 |
+  | `mathjs` | 15.1.1 | 15.2.0 | a priori supprimé avec C1 |
+  | `@biomejs/biome` | 2.4.15 | 2.6.3 | mineur |
+  | `storybook` / `@storybook/react-native` | 10.2.x / 10.4.0 | 10.6/10.7 | mineur |
+  | `react` / `react-dom` / `react-test-renderer` | 19.3.0 | 19.3.1 | patch |
+  | `eslint` (dev) | 10.3.0 | 10.13.0 | mineur |
+  | Babel 7.x (dev) | 7.29.x | **8.0.x** | **major** — ne pas bump à la légère (R1) |
+  | `msw` (dev) | 2.14.5 | **3.0.3** | major (lié au chantier mocks) |
+
+**Remplacements maison → lib/platform (C1-C9)** :
+- [ ] C1 `mathjs` → `dot/cosine/matVec` sur `Float32Array` (~30 l) ; dédupliquer `Biocode.similarityTo` vs `VectorProjection.cosineSimilarity`.
+- [ ] C3 `uuid` + `react-native-get-random-values` + `expo-crypto` → tout sur quick-crypto 🔎 *(quick-crypto 1.1.9 déjà installé — le C3 devient trivial)*.
+- [ ] C4 `dayjs` → epoch ms (`number`) + `Intl` à l'affichage. 🔎 *constaté à l'audit : `Encounter.createdAt/updatedAt/syncedAt` utilisent toujours Dayjs ISO strings — la règle « millisecondes entières » n'est respectée que pour `totalDuration`.*
+- [ ] C5 `lodash` (7 fichiers, fonctions triviales) → natif.
+- [ ] C7 formulaires : **un seul** paradigme — reco Legend-State + zod (`State/Onboarding/Schema.ts`).
+- [ ] C9 `typesafe-i18n` (stagnant) → dictionnaire `fr` typé par `typeof en` (`satisfies`) + classe `Localization` (448 l de types générés en moins).
+
+**Module `secure-recorder` (sans toucher au format AES-GCM chunked ni à l'isomorphisme)** :
+- [ ] Réduire la couche TS (`SecureRecorder.ts` 422 l, `ErrorNormalizer.ts` + 466 l de tests, `PermissionManager`, `DecryptionManager`).
+- [ ] Supprimer `build/` suivi + `verification.txt`/`scripts/verify-ios.sh` si obsolètes.
+- [ ] Y loger le prétraitement audio (C2) + déchiffrement-vers-RAM : une seule traversée JS↔natif, JS n'a plus jamais d'audio en clair (**bénéfice sécurité**).
+
+**Release & distribution** :
+- [ ] R8 en release non testé : vérifier quick-crypto / nitro / ORT sur build release.
+- [ ] **16 KB page size avant Google Play** (R8).
+- [ ] DevConsole + Storybook hors bundle release (`if (__DEV__)` / routes conditionnelles).
+- [ ] EAS : à trancher avant distribution.
+
+### P7 — Santé du code *(après les gros chantiers)*
+
+- [ ] **134 erreurs `pnpm run type-check`** 🔎 *compte revalidé au 27/10* (majorité `tests/` driftés). Côté `src/` (~12), l'audit a confirmé et précisé :
+  - `Context/ServicesContext.tsx:6-7` — importe `Service/Anonymizer` et `Service/AudioProcessing` **inexistants** (cassee à brancher en P5 ou imports à retirer) ;
+  - `Database/index.ts:17` — exporte `registry` (c'est `Registry`) — prérequis fixtures ;
+  - `Database/Type.ts:67` — `AbstractEntity` non importé ;
+  - `App.tsx:3` — `../assets/app/_layout` non résolu par tsc (fonctionne via Metro) ;
+  - + les 4 fichiers de la P0 (`ChecksumVerifier`, `VoiceState`, `RecordingTooShortError`, `StepAccount`).
+- [ ] **Test-sentinelles decorators** : un test Jest qui échoue explicitement si le patch babel-preset n'est plus appliqué **ou** plus nécessaire (R1). Suivre l'issue upstream ; nettoyer `Column.initializer` / `ensureColumnAccessors` (accessors posés deux fois).
+- [ ] Relancer `test:kotlin` / `test:swift` (tests natifs — non relancés depuis l'audit).
+- [ ] `RecordNormalizer` 🔎 *existe toujours, référencé dans la doc de `EntityMetadata`* — vérifier s'il duplique `Repository.normalizeForWrite` ; exports `Repository/index.ts` incomplets ; scripts `preios`/`clean:metro` redondants.
+- [ ] `Context/ServicesProvider` — 3 services `null` : à brancher au fil de P3-P5.
+- [ ] Migrations DB : absentes (schema sync additive seulement — pas de versioning/drop).
+
+---
+
+## 4. Hors périmètre app (vision produit & serveur)
+
+*Préservé de KEEP.md — ne pilote pas le dev app immédiat, mais cadre les décisions.*
+
+- **Vision « Verify, Don't Trust »** : institution numérique, code client open source, preuves vérifiables. Jamais d'enrichissement spéculatif.
+- **SCIC** : réserves impartageables (verrou anti-rachat), gouvernance 3 collèges (Salariés / Scientifiques avec veto moral / Utilisateurs bêta-testeurs), fondateur salarié (~4 k€ net).
+- **Business** : ~49-69 €/mois, seuil de rentabilité ~200-300 abonnés, la marge finance le dataset de recherche.
+- **Roadmap lancement** : Alpha Science (M1-3, comité + validation NER par les chercheurs) → Création SCIC (M3) → Commerciale (M6).
+- **Serveur (ultérieur)** : dérivations jitter/shimmer/HNR/formants/VSA, indices Fluency/Stability/Melodic/Timbral, Δ_t vs baseline patient, stats globales, backup cloud (blob chiffré en Incognito). L'app fournit les entrées canoniques (`VoiceFrame`, transcript, timestamps) — elle n'interprète pas (neutralité clinique : indices de changement, jamais de diagnostics ; sentiment = hors scope produit).
+- **Écartés (fin 2026)** : Voxtral-Mini (4 B params, hors mobile) · Whisper large · `react-native-sherpa-onnx` XDcobra · vague « persistance » du plan de maintenabilité (ORM conservé) · TTS `say` pour les fixtures.
+
+---
+
+## 5. Journal de l'audit du 27/10/2026 *(remplace la traçabilité de fusion)*
+
+| Affirmation des anciennes notes | Verdict audit |
+|---|---|
+| ASR stub, VAD/Pitch absents du Runtime, aucun consommateur de QueueItem, CryptoEngine CBC/1000, Container double singleton, ServicesContext cassé, 134 erreurs tsc | ✅ **Confirmé** |
+| « Casse `src/api` à corriger » | ✔️ **Déjà fait** (commit 8a98e53) — retiré du plan |
+| « Bump quick-crypto » | ✔️ **Déjà fait** (1.1.9, commit 5eacffa) |
+| « Working tree : encryptBytes + DevConsole à figer » | ⚠️ **Partiellement fait** — reste la P0 actualisée |
+| « Créer `ModelManager`/downloader » (KEEP) | ❌ **Obsolète** — infra complète existante (`Download/` ×7 classes + `DownloadQueue` + `WifiVerifier`/`SystemVerifier` + sélection par langue) → correction + audit |
+| « Créer DeviceCheckService + écran Incompatible » (KEEP) | ❌ **Obsolète** — `HardwareGuard` + `DeviceCompatibilityGate` + `app/incompatible.tsx` existent → étendre aux seuils recherche |
+| « QueueItem : repo vide » | ⚠️ **Dépassé** — repo basique + `PipelineStage`/`QueueItemStatus` existent ; le manque = le **consommateur** |
+| « 620 tests verts » | 📈 **628/649** au 27/10 |
+| `Util/EventLoop` code mort | ⚠️ **Nuancé** — utilisé par `VoiceState` |
+| Versions « latest » des bumps | 🔄 **Actualisées** (table P6) — drift modéré, majors : lucide 1.x, uuid 14, RNTL 14, Babel 8, msw 3 |
+| Nouveau, non documenté avant audit | Patch `kysely@0.28.17` (R1b) · 4 bugs tsc `src/` (P0) · `dayjs` toujours dans les entités (C4 précisé) · `Runtime` single-session (contrainte P3) |

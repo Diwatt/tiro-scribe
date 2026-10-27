@@ -21,7 +21,7 @@ module.exports = function (api) {
             ],
         ],
         plugins: [
-            // Parse-only. Order matters: see TECH.md §0.2.
+            // Parse-only. Order matters: see TODO.md, règle R1.
             '@babel/plugin-syntax-jsx',
             ['@babel/plugin-transform-typescript', { isTSX: true, allExtensions: true, allowNamespaces: true }],
             '@babel/plugin-transform-class-static-block',
