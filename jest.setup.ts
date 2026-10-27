@@ -187,12 +187,21 @@ jest.mock('expo-constants', () => ({
 /**
  * expo-crypto - Direct module import for cryptographic operations.
  * Code imports: import * as Crypto from 'expo-crypto';
+ * Backed by Node crypto so byte counts and entropy are real (IVs, recovery codes).
  */
-jest.mock('expo-crypto', () => ({
-  getRandomBytes: jest.fn(() => Buffer.alloc(32)),
-  digestStringAsync: jest.fn(async () => 'hash'),
-  getRandomValues: jest.fn((buffer) => { buffer.fill(42); return buffer; }),
-}));
+jest.mock('expo-crypto', () => {
+  const nodeCrypto = require('crypto');
+  return {
+    getRandomBytes: jest.fn((byteCount: number) => new Uint8Array(nodeCrypto.randomBytes(byteCount))),
+    digestStringAsync: jest.fn(async (algorithm: string, data: string) =>
+      nodeCrypto.createHash(algorithm.replace('SHA-', 'sha').toLowerCase()).update(data).digest('hex')),
+    getRandomValues: jest.fn((buffer: Uint8Array) => {
+      nodeCrypto.randomFillSync(buffer);
+      return buffer;
+    }),
+    randomUUID: jest.fn(() => nodeCrypto.randomUUID()),
+  };
+});
 
 /**
  * expo-secure-store - Direct module import for secure storage.

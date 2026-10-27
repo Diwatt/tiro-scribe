@@ -149,9 +149,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
             });
         });
 
-        it.skip('should handle multiple keys with same audio', () => {
-            // Skipped: Mock PBKDF2 doesn't differentiate between different passwords.
-            // Production uses AES-256-CTR which ensures different keys produce different bytes.
+        it('should handle multiple keys with same audio', () => {
             const audio = new Float32Array(1600).fill(0.1);
             const features = audioExtractor.extract(audio);
             

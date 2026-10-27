@@ -1,37 +1,119 @@
 /**
- * QueueItem behavior tests. Real QueueItem uses Stage 3 decorators; we test
- * QueueItemStatus and isProcessable logic via the enum and a small helper.
+ * QueueItem entity behavior tests against the real decorated class.
+ * isProcessable branches follow "1 if = 1 test".
+ *
+ * KNOWN BUG (documented in the 2026-10-27 test review, not fixed here):
+ * `isProcessable` compares `this.retryCount` against the hardcoded module
+ * constant MAX_RETRY_COUNT (3) instead of the item's own `maxRetries` field.
+ * Tests below therefore stay on the default maxRetries so they remain valid
+ * once the entity reads `this.maxRetries`.
  */
 
-import { QueueItemStatus } from '@/Entity/Type';
+import { QueueItem } from '@/Entity/QueueItem';
+import { PipelineStage, QueueItemStatus } from '@/Entity/Type';
 
-const MAX_RETRY_COUNT = 3;
+jest.mock('@/Core/AppLogger', () => {
+    const mockLogger = {
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    };
+    return {
+        AppLogger: {
+            getInstance: jest.fn(() => mockLogger),
+            ...mockLogger,
+        },
+    };
+});
 
-function isProcessable(status: QueueItemStatus, retryCount: number): boolean {
-    if (status === QueueItemStatus.Pending) {
-        return true;
-    }
-    if (status === QueueItemStatus.Failed && retryCount < MAX_RETRY_COUNT) {
-        return true;
-    }
-    return false;
-}
+/** Default of the QueueItem.maxRetries column (@Column({ default: 3 })). */
+const DEFAULT_MAX_RETRIES = 3;
 
-describe('QueueItem (isProcessable logic)', () => {
-    it('PENDING is processable', () => {
-        expect(isProcessable(QueueItemStatus.Pending, 0)).toBe(true);
+describe('QueueItem', () => {
+    describe('constructor defaults', () => {
+        it('creates a pending item waiting in the pipeline for its encounter', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+
+            expect(item.getEncounterId()).toBe('encounter-1');
+            expect(item.getStatus()).toBe(QueueItemStatus.Pending);
+            expect(item.getPipelineStage()).toBe(PipelineStage.Waiting);
+            expect(item.getRetryCount()).toBe(0);
+            expect(item.getMaxRetries()).toBe(DEFAULT_MAX_RETRIES);
+        });
     });
 
-    it('FAILED with retryCount < 3 is processable', () => {
-        expect(isProcessable(QueueItemStatus.Failed, 0)).toBe(true);
-        expect(isProcessable(QueueItemStatus.Failed, 2)).toBe(true);
+    describe('createForEncounter', () => {
+        it('binds the encounter id and the encrypted audio path', () => {
+            const item = QueueItem.createForEncounter('encounter-1', '/audio/chunk-1.dat');
+
+            expect(item.getEncounterId()).toBe('encounter-1');
+            expect(item.getEncryptedAudioPath()).toBe('/audio/chunk-1.dat');
+        });
     });
 
-    it('FAILED with retryCount >= 3 is not processable', () => {
-        expect(isProcessable(QueueItemStatus.Failed, 3)).toBe(false);
+    describe('isProcessable', () => {
+        it('returns true while the item is pending', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+
+            expect(item.isProcessable).toBe(true);
+        });
+
+        it('returns true for a failed item below the retry limit', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Failed);
+            item.setRetryCount(DEFAULT_MAX_RETRIES - 1);
+
+            expect(item.isProcessable).toBe(true);
+        });
+
+        it('returns false for a failed item that reached the retry limit', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Failed);
+            item.setRetryCount(DEFAULT_MAX_RETRIES);
+
+            expect(item.isProcessable).toBe(false);
+        });
+
+        it('returns false for a running item', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Running);
+
+            expect(item.isProcessable).toBe(false);
+        });
+
+        it('returns false for a completed item', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Completed);
+
+            expect(item.isProcessable).toBe(false);
+        });
+
+        it('returns false for a paused item', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Paused);
+
+            expect(item.isProcessable).toBe(false);
+        });
     });
 
-    it('COMPLETED is not processable', () => {
-        expect(isProcessable(QueueItemStatus.Completed, 0)).toBe(false);
+    describe('setPipelineStage', () => {
+        it('stores the stage returned by getPipelineStage', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+
+            item.setPipelineStage(PipelineStage.Transcribing);
+
+            expect(item.getPipelineStage()).toBe(PipelineStage.Transcribing);
+        });
+    });
+
+    describe('setErrorMessage', () => {
+        it('stores the message returned by getErrorMessage', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+
+            item.setErrorMessage('transcription failed');
+
+            expect(item.getErrorMessage()).toBe('transcription failed');
+        });
     });
 });

@@ -60,45 +60,25 @@ jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
 jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
 import { Container } from '@/Core/Container';
-import { OnboardingState } from '@/State/Onboarding/State';
-import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { DownloadState } from '@/InferenceModel/Download/Type';
-import { InferenceModelDownloader } from '@/InferenceModel/Downloader';
+import { Downloader } from '@/InferenceModel/Downloader';
 import { Localization } from '@/Localization';
-
-jest.mock('@/Core/AppLogger', () => {
-    const mockLogger = {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-    };
-    return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
-    };
-});
+import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
+import { OnboardingState } from '@/State/Onboarding/State';
+import { OnboardingStep } from '@/State/Onboarding/Types';
 
 describe('OnboardingState', () => {
     beforeEach(() => {
         // prepare container so core singletons are registered
         Container.initialize();
 
-        // replace downloader with a lightweight fake to avoid database dependency
-        Container.register(InferenceModelDownloader, () => {
+        // replace downloader with a lightweight fake so ensureSpeakerModel()
+        // always enters its download branch (never hits config/artifact storage)
+        Container.register(Downloader, () => {
             return {
-                getLocalPath: (_: string) => undefined,
-                download: async () => {
-                    return {
-                        state$: { onChange: (_: any) => {} },
-                        progress$: { onChange: (_: any) => {} },
-                        getState: () => DownloadState.Downloading,
-                        getError: () => undefined,
-                    } as any;
-                },
-            } as any;
+                getLocalPath: (_capability: string) => undefined,
+                download: jest.fn(),
+            } as unknown as Downloader;
         });
 
         jest.useFakeTimers();
@@ -108,7 +88,7 @@ describe('OnboardingState', () => {
         Container.get(OnboardingState).reset();
 
         // stub downloader behaviour; simulate downloading then completion
-        jest.spyOn(Container.get(InferenceModelDownloader), 'download').mockResolvedValue({
+        jest.spyOn(Container.get(Downloader), 'download').mockResolvedValue({
             state$: { onChange: (cb: any) => {
                 // transition to completed shortly after
                 setTimeout(() => cb({ value: DownloadState.Completed }), 100);
@@ -126,58 +106,78 @@ describe('OnboardingState', () => {
         jest.restoreAllMocks();
     });
 
-    it.skip('begins speaker-model download when navigating to step 3', async () => {
+    it('starts the speaker-model download when entering the voice step', async () => {
         const state = Container.get(OnboardingState);
-        state.goToStep(3);
+
+        state.goToStep(OnboardingStep.Voice);
+        // let the microtasks queued by ensureSpeakerModel() run before asserting
+        await Promise.resolve();
+        await Promise.resolve();
 
         expect(state.voice.isSpeakerModelDownloading.get()).toBe(true);
         expect(Container.get(GlobalActivityStatus).getStatus()).toBe(ActivityStatus.Pending);
+    });
 
-        // advance fake timer so the simulated executor fires
-        jest.advanceTimersByTime(100);
-        // run any pending timers to ensure callbacks execute
-        await jest.runAllTimersAsync();
+    it('marks the speaker model ready when the download completes', async () => {
+        const state = Container.get(OnboardingState);
+
+        state.goToStep(OnboardingStep.Voice);
+        await Promise.resolve();
         await Promise.resolve();
 
-        // download should have finished by now
+        // fire the simulated download completion
+        jest.advanceTimersByTime(100);
+        await jest.runAllTimersAsync();
+
         expect(state.voice.isSpeakerModelDownloading.get()).toBe(false);
+        expect(state.voice.isSpeakerModelReady.get()).toBe(true);
     });
 
-    it.skip('does not crash if calibrateVoice is invoked while model is downloading', async () => {
+    it('calibrateVoice does not start calibration while the model is downloading', async () => {
         const state = Container.get(OnboardingState);
-        state.goToStep(3);
-        // call calibrateVoice on the voice substate; internal guard should early-return
+
+        state.goToStep(OnboardingStep.Voice);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(state.voice.isSpeakerModelDownloading.get()).toBe(true);
+
         await state.voice.calibrateVoice();
-        // if the download completed very quickly the flag may be false; main goal
-        // is just to ensure no exception is thrown.
+
+        expect(state.voice.isBusy.get()).toBe(false);
+        expect(state.voice.error.get()).toBeUndefined();
     });
 
-    it.skip('calibrateVoice does not await ensureSpeakerModel', async () => {
+    it('calibrateVoice does not trigger the speaker model download', async () => {
         const state = Container.get(OnboardingState);
-        const spy = jest.spyOn(state.voice as any, 'ensureSpeakerModel');
-        // leave downloading false so the method would normally proceed
+        const ensureSpeakerModel = jest.spyOn(state.voice, 'ensureSpeakerModel');
+        // allow calibration to proceed (downloading flag off, permission granted)
         state.voice.isSpeakerModelDownloading.set(false);
-        // call without therapist; runAsyncAction will swallow the error
+        state.voice.hasPermission.set(true);
+
         await state.voice.calibrateVoice();
-        expect(spy).not.toHaveBeenCalled();
+
+        expect(ensureSpeakerModel).not.toHaveBeenCalled();
     });
 
-    it.skip('calibrateVoice sets error message on failure', async () => {
+    it('calibrateVoice sets the localized error message when calibration fails', async () => {
         const state = Container.get(OnboardingState);
-        // ensure downloading flag is false so the attempt proceeds
+        // allow calibration to proceed; no pending therapist makes it fail
         state.voice.isSpeakerModelDownloading.set(false);
+        state.voice.hasPermission.set(true);
+
         await state.voice.calibrateVoice();
+
         const ll = Container.get(Localization).getLL();
         expect(state.error.get()).toBe(ll.onboarding.errorVoiceCalibration());
     });
 
-    it.skip('runAsyncAction toggles busy flag on a child state', async () => {
+    it('runAsyncAction toggles the busy flag around the action', async () => {
         const state = Container.get(OnboardingState);
-        // use voice state as a representative child
-        const promise = state.voice['runAsyncAction'](async () => {
+
+        await state.voice['runAsyncAction'](async () => {
             expect(state.voice.isBusy.get()).toBe(true);
         });
-        await promise;
+
         expect(state.voice.isBusy.get()).toBe(false);
     });
 });

@@ -106,9 +106,7 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
             expect(matrix1).toEqual(matrix2);
         });
 
-        it.skip('should create different matrices for different keys', () => {
-            // Note: Skipped because mock PBKDF2 doesn't differentiate sufficiently between keys.
-            // In production, different keys generate completely different deterministic bytes via AES-256-CTR.
+        it('should create different matrices for different keys', () => {
             const key2 = crypto.keyFromPassword('different-key', crypto.salt('test', 'projection'));
             const matrix1 = factory.create(masterKey, 10, 5);
             const matrix2 = factory.create(key2, 10, 5);
@@ -124,9 +122,7 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
             expect(matrix1).toEqual(matrix2);
         });
 
-        it.skip('should create matrices with different salts', () => {
-            // Note: Skipped because mock PBKDF2 doesn't differentiate sufficiently between salts.
-            // In production, different salts generate completely different deterministic bytes via AES-256-CTR.
+        it('should create matrices with different salts', () => {
             const factoryWithSalt = new ProjectionMatrixFactory(crypto, 'different-salt');
             const matrix1 = factory.create(masterKey, 10, 5);
             const matrix2 = factoryWithSalt.create(masterKey, 10, 5);

@@ -61,6 +61,7 @@ import { VoiceState } from '@/State/Onboarding/VoiceState';
 import { AppLogger } from '@/Core/AppLogger';
 import { Localization } from '@/Localization';
 import { InferenceModelDownloader } from '@/InferenceModel/Downloader';
+import { DownloadState } from '@/InferenceModel/Download/Type';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import { AppConfig } from '@/Core/AppConfig';
@@ -76,7 +77,16 @@ dayjs.extend(utc);
 describe('VoiceState', () => {
     let voiceState: VoiceState;
     const mockLogger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as unknown as AppLogger;
-    const mockLocalization = { getLL: jest.fn(() => ({ onboarding: { errorVoiceCalibration: () => 'err' }, download: {} })) } as unknown as Localization;
+    const mockLocalization = {
+        getLL: jest.fn(() => ({
+            onboarding: { errorVoiceCalibration: () => 'err' },
+            download: {
+                speakerModel: () => 'Speaker model',
+                speakerModelSuccess: () => 'Speaker model ready',
+                speakerModelError: () => 'Speaker model failed',
+            },
+        })),
+    } as unknown as Localization;
     const mockDownloader = {} as unknown as InferenceModelDownloader;
     const mockGlobalActivity = { setStatus: jest.fn() } as unknown as GlobalActivityStatus;
     const mockMasterKeyVault = { load: jest.fn() } as unknown as MasterKeyVault;
@@ -246,6 +256,71 @@ describe('VoiceState', () => {
             // After reset, permission should be false
             // Note: the observable stub doesn't track state, so we just verify the method exists
             expect(typeof voiceState.hasPermission?.set).toBe('function');
+        });
+    });
+
+    describe('ensureSpeakerModel', () => {
+        type StateHandler = (event: { value: DownloadState }) => void;
+
+        const setDownloader = (getLocalPath: unknown, download: unknown): void => {
+            (mockDownloader as { getLocalPath: unknown }).getLocalPath = getLocalPath;
+            (mockDownloader as { download: unknown }).download = download;
+        };
+
+        const createExecutor = () => {
+            const stateHandlers: StateHandler[] = [];
+            const executor = {
+                progress$: { onChange: jest.fn() },
+                state$: {
+                    onChange: jest.fn((handler: StateHandler) => {
+                        stateHandlers.push(handler);
+                    }),
+                },
+                getState: jest.fn(() => DownloadState.Downloading),
+                getError: jest.fn(),
+            };
+            const complete = (event: { value: DownloadState }) => {
+                stateHandlers.forEach((handler) => handler(event));
+            };
+            return { executor, complete };
+        };
+
+        // Pump microtasks until the orchestrator has subscribed its state handler
+        // (one for the progress listener, one for the awaited download promise).
+        const waitForStateSubscriptions = async (executor: { state$: { onChange: jest.Mock } }): Promise<void> => {
+            for (let rounds = 0; executor.state$.onChange.mock.calls.length < 2 && rounds < 100; rounds += 1) {
+                await Promise.resolve();
+            }
+        };
+
+        beforeEach(() => {
+            setDownloader(jest.fn(), jest.fn());
+        });
+
+        it('downloads the speaker model when it is not stored locally', async () => {
+            const getLocalPath = jest.fn().mockResolvedValue(null);
+            const { executor, complete } = createExecutor();
+            const download = jest.fn().mockResolvedValue(executor);
+            setDownloader(getLocalPath, download);
+
+            const pending = voiceState.ensureSpeakerModel();
+            await waitForStateSubscriptions(executor);
+            complete({ value: DownloadState.Completed });
+
+            await expect(pending).resolves.toBeUndefined();
+            expect(getLocalPath).toHaveBeenCalledWith('speaker_id');
+            expect(download).toHaveBeenCalledWith('speaker_id');
+        });
+
+        it('marks the model as ready without downloading when it is stored locally', async () => {
+            const getLocalPath = jest.fn().mockResolvedValue('/models/speaker_id/model.onnx');
+            const download = jest.fn();
+            setDownloader(getLocalPath, download);
+
+            await voiceState.ensureSpeakerModel();
+
+            expect(download).not.toHaveBeenCalled();
+            expect(voiceState.isSpeakerModelReady.get()).toBe(true);
         });
     });
 });

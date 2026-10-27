@@ -1,15 +1,16 @@
 /**
  * DownloadTaskExecutor tests.
  *
- * Tests the download task execution with mocked FileDownloader (Promise-based)
- * and ChecksumVerifier. Verifies per-file progress reaches 100%, overall
- * progress calculation for multiple files, and correct lifecycle state
- * transitions.
+ * Tests the download task execution with a module-mocked FileDownloader
+ * (Promise-based) and constructor-injected fakes for ChecksumVerifier and
+ * ModelArtifactStorage. Verifies per-file progress reaches 100%, overall
+ * progress calculation for multiple files, correct lifecycle state
+ * transitions, and the cancellation path.
  */
 
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import { InferenceModelDownloaderException } from '@/Exception';
-import { DownloadQueue } from '@/Entity/DownloadQueue';
+import { DownloadQueue, DownloadQueueStatus } from '@/Entity';
 import { DownloadState } from '@/InferenceModel/Download/Type';
 import type { AppLogger } from '@/Core/AppLogger';
 
@@ -32,31 +33,6 @@ jest.mock('@/InferenceModel/Download/FileDownloader', () => ({
     FileDownloader: jest.fn().mockImplementation(() => ({
         download: mockDownload,
     })),
-}));
-
-jest.mock('@/InferenceModel/Download/ChecksumVerifier', () => ({
-    ChecksumVerifier: jest.fn().mockImplementation(() => ({
-        verify: mockVerify,
-    })),
-}));
-
-jest.mock('@/InferenceModel/Download/ModelArtifactStorage', () => ({
-    ModelArtifactStorage: jest.fn().mockImplementation(() => ({
-        getFile: mockGetFile,
-        ensureDirectories: mockEnsureDirectories,
-    })),
-}));
-
-// DownloadQueue.createCompleted needs uuid which may not work in test env
-jest.mock('@/Entity/DownloadQueue', () => ({
-    DownloadQueue: {
-        createCompleted: jest.fn().mockReturnValue({
-            capability: 'test_capability',
-            status: 'completed',
-            progressPercent: 100,
-            errorMessage: '',
-        }),
-    },
 }));
 
 // ---------------------------------------------------------------------------
@@ -99,8 +75,29 @@ const makeConfig = (files: InferenceModelFile[] = [makeFile()]): ModelConfig => 
     capability: 'test_capability',
 });
 
-const makeQueueEntity = (): DownloadQueue =>
-    DownloadQueue.createCompleted('test_capability') as unknown as DownloadQueue;
+const makeQueueEntity = (status: DownloadQueueStatus = DownloadQueueStatus.Pending): DownloadQueue => {
+    const entity = new DownloadQueue();
+    entity.uuid = 'queue-test-uuid';
+    entity.capability = 'test_capability';
+    entity.status = status;
+    entity.progressPercent = status === DownloadQueueStatus.Completed ? 100 : 0;
+    entity.errorMessage = '';
+    return entity;
+};
+
+const waitForExecutorState = async (
+    executor: DownloadTaskExecutor,
+    expected: DownloadState,
+): Promise<void> => {
+    const maxAttempts = 100;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (executor.getState() === expected) {
+            return;
+        }
+        await Promise.resolve();
+    }
+    throw new Error(`Executor did not reach state "${expected}" (current: "${executor.getState()}")`);
+};
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -206,22 +203,30 @@ describe('DownloadTaskExecutor', () => {
             expect(fileNames).toEqual(['alpha.bin', 'bravo.bin']);
         });
 
-        it('should transition through Pending → Downloading → Completed', async () => {
+        it('should emit Pending, Downloading then Completed when a pending download succeeds', async () => {
             const config = makeConfig([makeFile()]);
             const executor = new DownloadTaskExecutor(
                 mockLogger,
-                makeQueueEntity(),
+                makeQueueEntity(DownloadQueueStatus.Pending),
                 config,
                 { verify: mockVerify } as any,
                 { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
             );
 
-            expect(executor.getState()).toBe(DownloadState.Completed); // from createCompleted mock
+            const observedStates: DownloadState[] = [];
+            const dispose = executor.state$.onChange(
+                ({ value }) => observedStates.push(value),
+                { initial: true },
+            );
 
             await executor.start();
+            dispose();
 
-            expect(executor.getState()).toBe(DownloadState.Completed);
-            expect(executor.getProgress()).toBe(100);
+            expect(observedStates).toEqual([
+                DownloadState.Pending,
+                DownloadState.Downloading,
+                DownloadState.Completed,
+            ]);
         });
 
         it('should transition to Failed when download throws', async () => {
@@ -382,13 +387,35 @@ describe('DownloadTaskExecutor', () => {
             const config = makeConfig([makeFile()]);
             const executor = new DownloadTaskExecutor(
                 mockLogger,
-                makeQueueEntity(),
+                makeQueueEntity(DownloadQueueStatus.Completed),
                 config,
                 { verify: mockVerify } as any,
                 { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
             );
 
             expect(executor.cancel()).toBe(false);
+        });
+
+        it('should cancel an in-progress download with a cancellation error', async () => {
+            mockDownload.mockImplementationOnce(() => new Promise<void>(() => {}));
+            const config = makeConfig([makeFile()]);
+            const executor = new DownloadTaskExecutor(
+                mockLogger,
+                makeQueueEntity(DownloadQueueStatus.Pending),
+                config,
+                { verify: mockVerify } as any,
+                { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
+            );
+
+            const startPromise = executor.start();
+            startPromise.catch(() => {});
+            await waitForExecutorState(executor, DownloadState.Downloading);
+
+            const wasCancelled = executor.cancel();
+
+            expect(wasCancelled).toBe(true);
+            expect(executor.getState()).toBe(DownloadState.Cancelled);
+            expect(executor.getError()).toBe('Download cancelled by user');
         });
     });
 

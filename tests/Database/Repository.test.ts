@@ -45,6 +45,10 @@ describe('Repository', () => {
         });
     });
 
+    afterAll(async () => {
+        await db.destroy();
+    });
+
     beforeEach(async () => {
         await clearTestTable(db, 'encounters');
         repo = Repository.create(MockEncounter.entityName, MockEncounter as never);
@@ -99,8 +103,7 @@ describe('Repository', () => {
             expect(found?.getField('therapistId')).toBe('t1');
         });
 
-        // Skipped: Requires Kysely Expression mocking that doesn't properly handle WHERE values
-        it.skip('findOneBy returns first match or null', async () => {
+        it('findOneBy returns first match or null', async () => {
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
             const one = await repo.findOneBy(Criteria.of({ therapistId: 't1' }));
             expect(one).toBeInstanceOf(MockEncounter);
@@ -124,8 +127,7 @@ describe('Repository', () => {
     });
 
     describe('M — Many (collections)', () => {
-        // Skipped: Requires Kysely Expression mocking that doesn't add value
-        it.skip('findBy returns entities matching criteria', async () => {
+        it('findBy returns entities matching criteria', async () => {
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
             await repo.persist(new MockEncounter({ therapistId: 't2' }));
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
@@ -133,24 +135,21 @@ describe('Repository', () => {
             expect(list).toHaveLength(2);
         });
 
-        // Skipped: Requires Kysely Expression mocking that doesn't add value
-        it.skip('findBy accepts orderBy and returns rows', async () => {
+        it('findBy accepts orderBy and returns rows', async () => {
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
             const list = await repo.findBy(Criteria.of({ therapistId: 't1' }), { orderBy: [{ column: 'uuid', direction: 'asc' }] });
             expect(list).toHaveLength(2);
         });
 
-        // Skipped: Requires Kysely Expression mocking that doesn't add value
-        it.skip('findOneBy accepts orderBy and returns first row', async () => {
+        it('findOneBy accepts orderBy and returns first row', async () => {
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
             await repo.persist(new MockEncounter({ therapistId: 't1' }));
             const one = await repo.findOneBy(Criteria.of({ therapistId: 't1' }), { orderBy: [{ column: 'uuid', direction: 'desc' }] });
             expect(one).not.toBeNull();
         });
 
-        // Skipped: Requires Kysely Expression mocking that doesn't properly handle WHERE values
-        it.skip('supports pagination via limit and offset', async () => {
+        it('supports pagination via limit and offset', async () => {
             for (let i = 0; i < 5; i++) {
                 await repo.persist(new MockEncounter({ therapistId: `p${i}` }));
             }
@@ -195,8 +194,7 @@ describe('Repository', () => {
     });
 
     describe('I — Interface (contract)', () => {
-        // Skipped: Requires Kysely Expression mocking that doesn't add value
-        it.skip('findOneBy with where on real columns hydrates correctly', async () => {
+        it('findOneBy with where on real columns hydrates correctly', async () => {
             await repo.persist(new MockEncounter({ therapistId: 'r1' }));
             await repo.persist(new MockEncounter({ therapistId: 'r2' }));
             const one = await repo.findOneBy(Criteria.of({ therapistId: 'r2' }));
@@ -217,8 +215,7 @@ describe('Repository', () => {
             expect(await repo.exists(primaryKey)).toBe(false);
         });
 
-        // Skipped: Requires Kysely Expression mocking that doesn't add value
-        it.skip('transaction runs multiple persists in one transaction; all visible after', async () => {
+        it('transaction runs multiple persists in one transaction; all visible after', async () => {
             const primaryKeys = await repo.transaction(async (txRepo) => {
                 const a = await txRepo.persist(new MockEncounter({ therapistId: 'tx1' }));
                 const b = await txRepo.persist(new MockEncounter({ therapistId: 'tx2' }));
