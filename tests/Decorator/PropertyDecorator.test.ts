@@ -35,7 +35,7 @@ describe('PropertyDecorator', () => {
     });
 
     it('getOptions returns empty object when _options is null/undefined', () => {
-        const d = new PropertyDecorator('Column', 'E', 'f', undefined);
+        const d = new PropertyDecorator('Column', 'E', 'f', undefined as unknown as Record<string, unknown>);
         expect(d.getOptions()).toEqual({});
     });
 

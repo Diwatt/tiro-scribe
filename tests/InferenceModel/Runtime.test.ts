@@ -16,9 +16,10 @@ const mockSession = {
   dispose: mockDispose,
 };
 
-const mockInferenceSession = jest.fn().mockResolvedValue(mockSession);
-// Ensure InferenceSession is callable (as it is in the real native binding)
-mockInferenceSession.create = jest.fn().mockResolvedValue(mockSession);
+const mockInferenceSession = Object.assign(jest.fn().mockResolvedValue(mockSession), {
+    // InferenceSession.create is the callable factory in the real native binding
+    create: jest.fn().mockResolvedValue(mockSession),
+}) as jest.Mock & { create: jest.Mock };
 
 const mockOrt = {
   InferenceSession: mockInferenceSession,

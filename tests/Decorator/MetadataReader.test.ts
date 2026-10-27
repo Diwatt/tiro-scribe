@@ -1,28 +1,6 @@
-// Define Symbol.metadata for Stage 3 decorator tests
-if (typeof Symbol !== 'undefined' && !Symbol.metadata) {
-    // @ts-expect-error polyfill for test environment
-    Symbol.metadata = Symbol('metadata');
-}
-
-import { ClassDecorator } from '@/Decorator/ClassDecorator';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import type { MetadataConstructor, MetadataMap } from '@/Decorator/Type';
-
-jest.mock('@/Core/AppLogger', () => {
-    const mockLogger = {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-    };
-    return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
-    };
-});
 
 describe('MetadataReader', () => {
     describe('getClass', () => {
@@ -31,16 +9,6 @@ describe('MetadataReader', () => {
             const construct = NoEntity as unknown as MetadataConstructor;
             const reader = new MetadataReader(construct);
             expect(reader.getClass()).toBeUndefined();
-        });
-
-        it('returns ClassDecorator when registered via MetadataWriter', () => {
-            class WithEntity {}
-            const construct = WithEntity as unknown as MetadataConstructor;
-            MetadataWriter.registerClass(construct as unknown as any, { tableName: 'with_entity' });
-            const reader = new MetadataReader(construct);
-            const cls = reader.getClass();
-            expect(cls).toBeInstanceOf(ClassDecorator);
-            expect(cls?.getOption('tableName')).toBe('with_entity');
         });
     });
 

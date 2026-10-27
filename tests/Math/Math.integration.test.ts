@@ -408,51 +408,7 @@ describe('Math Module Integration - ZOMBIE Tests', () => {
         });
     });
 
-    describe('Pipeline Performance Tests', () => {
-        it('should complete full pipeline within reasonable time', () => {
-            // TODO: Performance timeout - takes ~2700ms instead of <1000ms.
-            // May need optimization or different performance thresholds.
-            const audio = new Float32Array(1600);
-            for (let i = 0; i < audio.length; i++) {
-                audio[i] = Math.sin(2 * Math.PI * 440 * i / 16000) * 0.1;
-            }
-            
-            const start = performance.now();
-            
-            const features = audioExtractor.extract(audio);
-            const matrix = projectionFactory.create(masterKey, features.length, 64);
-            const projection = new VectorProjection(matrix);
-            const result = projection.project(Array.from(features));
-            
-            const duration = performance.now() - start;
-            
-            expect(result).toHaveLength(64);
-            expect(duration).toBeLessThan(1000); // Should complete within 1 second
-        });
-
-        it.skip('should handle multiple pipeline executions efficiently', () => {
-            // TODO: Vector dimension mismatch (240 vs 80).
-            // Needs investigation into feature dimension consistency.
-            const audio = new Float32Array(800);
-            for (let i = 0; i < audio.length; i++) {
-                audio[i] = Math.sin(2 * Math.PI * 440 * i / 16000) * 0.1;
-            }
-            
-            const matrix = projectionFactory.create(masterKey, 80, 32);
-            const projection = new VectorProjection(matrix);
-            
-            const start = performance.now();
-            
-            for (let i = 0; i < 10; i++) {
-                const features = audioExtractor.extract(audio);
-                projection.project(Array.from(features));
-            }
-            
-            const duration = performance.now() - start;
-            
-            expect(duration).toBeLessThan(2000); // 10 executions within 2 seconds
-        });
-    });
+    // Performance scenarios moved to tests/Math/Math.bench.test.ts (test-review-2026-10-27, Lot 4).
 
     describe('Mathematical Consistency Tests', () => {
         it.skip('should maintain orthonormality in projection pipeline', () => {

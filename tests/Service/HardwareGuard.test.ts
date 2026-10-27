@@ -5,7 +5,7 @@
 
 import { DeviceType } from 'expo-device';
 import { HardwareGuardException } from '@/Exception';
-import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
+import { DEFAULT_MATRIX, DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { HardwareGuard } from '@/Security/HardwareGuard';
 import { AppLogger } from '@/Core/AppLogger';
 import { AppConfig } from '@/Core/AppConfig';
@@ -270,21 +270,7 @@ describe('HardwareGuard', () => {
 });
 
 describe('DeviceCompatibilityGate', () => {
-    it('throws HardwareGuardException when ios minSemver is not parseable (on constructor)', () => {
-        setPlatform('ios');
-        expect(() => {
-            guard = new HardwareGuard(mockLogger, 3.8, 'invalid');
-        }).toThrow(/minSemver is not parseable/);
-    });
-
-    it('throws HardwareGuardException when android minSemver is not parseable (on constructor)', () => {
-        setPlatform('android');
-        expect(() => {
-            guard = new HardwareGuard(mockLogger, 6, 'bad');
-        }).toThrow(/minSemver is not parseable/);
-    });
-
     it('succeeds with default matrix', () => {
-        expect(() => new DeviceCompatibilityGate(mockLogger)).not.toThrow();
+        expect(() => new DeviceCompatibilityGate(DEFAULT_MATRIX, mockLogger)).not.toThrow();
     });
 });

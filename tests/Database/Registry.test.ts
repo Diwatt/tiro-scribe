@@ -34,26 +34,8 @@ describe('Registry', () => {
         registry = new Registry();
     });
 
-    describe('Z — Zero (missing entityName)', () => {
-        it('getRepository rejects with DatabaseException with ENTITY_NAME_REQUIRED when entityName is undefined', async () => {
-            const FakeEntity = { name: 'FakeEntity', entityName: undefined };
-            expect(() => registry.getRepository(FakeEntity as never)).toThrow(/entityName/);
-            try {
-                registry.getRepository(FakeEntity as never);
-            } catch (e) {
-                expect((e as any).name).toBe('DatabaseException');
-                expect((e as any).code).toBe('ENTITY_NAME_REQUIRED');
-            }
-        });
-
-        it('getRepository rejects when entityName is empty string', async () => {
-            const FakeEntity = { name: 'FakeEntity', entityName: '' };
-            expect(() => registry.getRepository(FakeEntity as never)).toThrow(/entityName/);
-        });
-    });
-
     describe('O — One (single entity)', () => {
-        it('getRepository returns Repository for entity with entityName', async () => {
+        it('getRepository returns Repository for entity with entityName', () => {
             const repo = registry.getRepository(MockEncounter as never);
             expect(repo).toBeDefined();
             expect(repo.findAll).toBeDefined();
@@ -63,7 +45,7 @@ describe('Registry', () => {
     });
 
     describe('M — Many (caching)', () => {
-        it('getRepository returns same instance for same entity (caching)', async () => {
+        it('getRepository returns same instance for same entity (caching)', () => {
             const a = registry.getRepository(MockEncounter as never);
             const b = registry.getRepository(MockEncounter as never);
             expect(a).toBe(b);
@@ -71,7 +53,7 @@ describe('Registry', () => {
     });
 
     describe('I — Interface (contract)', () => {
-        it('returned repository exposes findAll, find, persist, remove', async () => {
+        it('returned repository exposes findAll, find, persist, remove', () => {
             const repo = registry.getRepository(MockEncounter as never);
             expect(typeof repo.findAll).toBe('function');
             expect(typeof repo.find).toBe('function');
@@ -81,18 +63,21 @@ describe('Registry', () => {
     });
 
     describe('E — Exceptions', () => {
-        it('getRepository rejects with DatabaseException with code ENTITY_NAME_REQUIRED when entityName is missing', async () => {
+        it('getRepository rejects with DatabaseException with code ENTITY_NAME_REQUIRED when entityName is missing', () => {
             const FakeEntity = { name: 'FakeEntity', entityName: undefined };
+            let caught: unknown;
             try {
                 registry.getRepository(FakeEntity as never);
-                expect.fail('should have thrown');
             } catch (e) {
-                expect((e as any).name).toBe('DatabaseException');
-                expect((e as any).code).toBe('ENTITY_NAME_REQUIRED');
+                caught = e;
             }
+            expect(caught).toBeInstanceOf(Error);
+            expect((caught as { name?: string }).name).toBe('DatabaseException');
+            expect((caught as { code?: string }).code).toBe('ENTITY_NAME_REQUIRED');
+            expect((caught as { message?: string }).message).toMatch(/entityName/);
         });
 
-        it('getRepository rejects when entityName is empty string', async () => {
+        it('getRepository rejects when entityName is empty string', () => {
             const FakeEntity = { name: 'FakeEntity', entityName: '' };
             expect(() => registry.getRepository(FakeEntity as never)).toThrow(/entityName/);
         });

@@ -1,4 +1,5 @@
 import { Builder } from '@/Decorator/Builder';
+import { AppConfig } from '@/Core/AppConfig';
 import type { ClassDecoratorConfig, PropertyDecoratorConfig, OptionsSchema } from '@/Decorator/Type';
 import { DatabaseException } from '@/Exception';
 
@@ -71,6 +72,43 @@ describe('Builder', () => {
     });
 
     describe('buildProperty (formerly buildField)', () => {
+        describe('auto-accessor target (context.kind === "accessor")', () => {
+            it('returns the accessor hook replacement for auto-accessors', () => {
+                const replacement = {} as ClassAccessorDecoratorResult<unknown, unknown>;
+                const accessor = jest.fn(() => replacement);
+                const config: PropertyDecoratorConfig<object> = { accessor };
+                const decorator = Builder.buildProperty(config)({ mode: 'vault' });
+                const context = {
+                    name: 'position',
+                    kind: 'accessor',
+                    metadata: {},
+                } as unknown as ClassAccessorDecoratorContext<unknown>;
+                const accessorDecorator = decorator as unknown as (
+                    target: undefined,
+                    context: ClassAccessorDecoratorContext<unknown>,
+                ) => ClassAccessorDecoratorResult<unknown, unknown>;
+                const result = accessorDecorator(undefined, context);
+                expect(accessor).toHaveBeenCalledWith(context, { mode: 'vault' });
+                expect(result).toBe(replacement);
+            });
+
+            it('returns undefined for auto-accessors when no accessor hook is configured', () => {
+                const config: PropertyDecoratorConfig<object> = {};
+                const decorator = Builder.buildProperty(config)();
+                const context = {
+                    name: 'position',
+                    kind: 'accessor',
+                    metadata: {},
+                } as unknown as ClassAccessorDecoratorContext<unknown>;
+                const accessorDecorator = decorator as unknown as (
+                    target: undefined,
+                    context: ClassAccessorDecoratorContext<unknown>,
+                ) => unknown;
+                const result = accessorDecorator(undefined, context);
+                expect(result).toBeUndefined();
+            });
+        });
+
         it('returns a function that returns a property decorator', () => {
             const config: PropertyDecoratorConfig<object> = {
                 initializer: jest.fn(() => () => {}),
@@ -126,7 +164,7 @@ describe('Builder', () => {
         });
 
         it('calls ensurePropertyDecoratorUniqueness when unique and decoratorName set', () => {
-            const meta: MetadataMap = {
+            const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
                 id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
             };
             const config: PropertyDecoratorConfig<object> = {
@@ -141,6 +179,18 @@ describe('Builder', () => {
                 addInitializer: jest.fn((cb: () => void) => cb()),
             } as unknown as ClassFieldDecoratorContext<unknown, unknown>;
             expect(() => decorator(undefined, context)).toThrow(/Only one property can have @PrimaryKey/);
+        });
+
+        it('does not register an initializer when none is configured', () => {
+            const config: PropertyDecoratorConfig<object> = {};
+            const decorator = Builder.buildProperty(config)();
+            const context = {
+                name: 'x',
+                metadata: {},
+                addInitializer: jest.fn(),
+            } as unknown as ClassFieldDecoratorContext<unknown, unknown>;
+            decorator(undefined, context);
+            expect(context.addInitializer).not.toHaveBeenCalled();
         });
 
         it('invokes addInitializer with a function that calls initializer result', () => {
@@ -161,6 +211,53 @@ describe('Builder', () => {
             const instance = {};
             capturedCb.call(instance);
             expect(setter).toHaveBeenCalledWith(instance);
+        });
+    });
+
+    // jest config restoreMocks: true restores the getInstance spy after each test.
+    describe('when isDev is false (validation disabled outside dev)', () => {
+        const mockProdMode = (): void => {
+            jest.spyOn(AppConfig, 'getInstance').mockReturnValue({ isDev: false } as unknown as AppConfig);
+        };
+
+        it('skips schema validation when options are validated in prod', () => {
+            mockProdMode();
+            const schema: OptionsSchema = { default: { required: true } };
+            const config: PropertyDecoratorConfig<object> = {
+                schema,
+                errorCode: 'INVALID_COLUMN',
+                initializer: jest.fn(() => () => {}),
+            };
+            expect(() => Builder.buildProperty(config)()).not.toThrow();
+        });
+
+        it('skips custom validate when options are validated in prod', () => {
+            mockProdMode();
+            const validate = jest.fn();
+            const config: ClassDecoratorConfig<object> = { decorate: jest.fn(), validate };
+            const decorator = Builder.buildClass(config)();
+            class T {}
+            decorator(T, {} as never);
+            expect(validate).not.toHaveBeenCalled();
+        });
+
+        it('skips the uniqueness check when the decorator runs in prod', () => {
+            mockProdMode();
+            const meta: Record<string, { decorators?: Array<{ decoratorName: string }> }> = {
+                id: { decorators: [{ decoratorName: 'PrimaryKey' }] },
+            };
+            const config: PropertyDecoratorConfig<object> = {
+                unique: true,
+                decoratorName: 'PrimaryKey',
+                initializer: jest.fn(() => () => {}),
+            };
+            const decorator = Builder.buildProperty(config)();
+            const context = {
+                name: 'uuid',
+                metadata: meta,
+                addInitializer: jest.fn((cb: () => void) => cb()),
+            } as unknown as ClassFieldDecoratorContext<unknown, unknown>;
+            expect(() => decorator(undefined, context)).not.toThrow();
         });
     });
 });

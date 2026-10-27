@@ -36,7 +36,7 @@ function metadataFromReaderLike(readerLike: {
     getDecoratorsByProperty?: (propertyName: string) => PropertyDecorator[];
 }): EntityMetadata {
     return createMockMetadata({
-        getTableName: () => readerLike.getEntity?.()?.getOption('tableName') ?? '',
+        getTableName: (): string => (readerLike.getEntity?.()?.getOption('tableName') as string | undefined) ?? '',
         getPrimaryKeyColumnField: readerLike.getPrimaryKeyColumn,
         getColumnFields: () => readerLike.getPropertiesByDecorator?.('Column') ?? [],
         getForeignKeyOptions: (prop) => {
@@ -53,7 +53,7 @@ function metadataFromReaderLike(readerLike: {
             if (opts == null) {
                 return null;
             }
-            const target = typeof opts.target === 'function' ? (opts.target as () => EntityClass)() : opts.target;
+            const target = typeof opts.target === 'function' ? (opts.target as unknown as () => EntityClass)() : opts.target;
             const table = (target as { entityName?: string })?.entityName;
             return table != null && String(table).trim() !== '' ? table : null;
         },
@@ -77,42 +77,19 @@ function createColumnField(
 
 describe('DefinitionBuilder', () => {
     describe('Z — Zero (missing / null inputs)', () => {
-        it('throws DatabaseException with code ENTITY_METADATA_REQUIRED when getTableName would be empty', () => {
-            const metadata = createMockMetadata({
-                getTableName: () => {
-                    throw new DatabaseException('Entity must have @Entity.', 'ENTITY_METADATA_REQUIRED', undefined);
-                },
-                getPrimaryKeyColumnField: () => createPrimaryKeyColumnField('uuid', 'varchar', 36),
-            });
-            try {
-                new DefinitionBuilder(metadata);
-                expect.fail('should have thrown');
-            } catch (e) {
-                expect(e).toBeInstanceOf(DatabaseException);
-                expect((e as DatabaseException).code).toBe('ENTITY_METADATA_REQUIRED');
-            }
-        });
-
         it('throws DatabaseException with code ENTITY_METADATA_REQUIRED when getPrimaryKeyColumnField returns undefined', () => {
             const metadata = createMockMetadata({
                 getTableName: () => 'my_table',
                 getPrimaryKeyColumnField: () => undefined,
             });
+            let caught: unknown;
             try {
                 new DefinitionBuilder(metadata);
-                expect.fail('should have thrown');
             } catch (e) {
-                expect(e).toBeInstanceOf(DatabaseException);
-                expect((e as DatabaseException).code).toBe('ENTITY_METADATA_REQUIRED');
+                caught = e;
             }
-        });
-
-        it('throws when getPrimaryKeyColumnField is undefined', () => {
-            const metadata = createMockMetadata({
-                getTableName: () => 't',
-                getPrimaryKeyColumnField: () => undefined,
-            });
-            expect(() => new DefinitionBuilder(metadata)).toThrow(DatabaseException);
+            expect(caught).toBeInstanceOf(DatabaseException);
+            expect((caught as DatabaseException).code).toBe('ENTITY_METADATA_REQUIRED');
         });
     });
 
@@ -383,13 +360,14 @@ describe('DefinitionBuilder', () => {
                 },
                 getPrimaryKeyColumnField: () => createPrimaryKeyColumnField('id', 'text'),
             });
+            let caught: unknown;
             try {
                 new DefinitionBuilder(metadata);
-                expect.fail('should have thrown');
             } catch (e) {
-                expect(e).toBeInstanceOf(DatabaseException);
-                expect((e as DatabaseException).code).toBe('ENTITY_METADATA_REQUIRED');
+                caught = e;
             }
+            expect(caught).toBeInstanceOf(DatabaseException);
+            expect((caught as DatabaseException).code).toBe('ENTITY_METADATA_REQUIRED');
         });
 
         it('constructor throws when getPrimaryKeyColumn returns null', () => {

@@ -47,6 +47,79 @@ describe('SchemaValidator', () => {
             const schema: OptionsSchema = { optional: { required: false, type: 'string' } };
             expect(() => validator.validate({}, schema, 'ERR')).not.toThrow();
         });
+
+        it('throws DatabaseException with the enum message when value is outside the enum', () => {
+            const schema: OptionsSchema = { mode: { enum: ['standard', 'incognito'] } };
+            expect(() => validator.validate({ mode: 'chaos' }, schema, 'ERR')).toThrow(DatabaseException);
+            expect(() => validator.validate({ mode: 'chaos' }, schema, 'ERR')).toThrow(
+                /Option "mode" must be one of \[standard, incognito\]/,
+            );
+        });
+
+        it('carries the errorCode when enum validation fails', () => {
+            const schema: OptionsSchema = { mode: { enum: ['standard'] } };
+            let captured: unknown;
+            try {
+                validator.validate({ mode: 'chaos' }, schema, 'INVALID_MODE');
+            } catch (error) {
+                captured = error;
+            }
+            expect(captured).toBeInstanceOf(DatabaseException);
+            expect((captured as DatabaseException).code).toBe('INVALID_MODE');
+        });
+
+        it('throws when enum is set and value is not a string', () => {
+            const schema: OptionsSchema = { mode: { enum: ['standard', 'incognito'] } };
+            expect(() => validator.validate({ mode: 42 }, schema, 'ERR')).toThrow(DatabaseException);
+        });
+
+        it('accepts a value inside the enum and skips the type check', () => {
+            const schema: OptionsSchema = { mode: { enum: ['standard'], type: 'number' } };
+            expect(() => validator.validate({ mode: 'standard' }, schema, 'ERR')).not.toThrow();
+        });
+
+        it('throws DatabaseException with the blank message when notBlank string is only whitespace', () => {
+            const schema: OptionsSchema = { name: { notBlank: true } };
+            expect(() => validator.validate({ name: '   ' }, schema, 'ERR')).toThrow(DatabaseException);
+            expect(() => validator.validate({ name: '   ' }, schema, 'ERR')).toThrow(/Option "name" must not be blank/);
+        });
+
+        it('accepts a non-blank string when notBlank is true', () => {
+            const schema: OptionsSchema = { name: { notBlank: true } };
+            expect(() => validator.validate({ name: 'a' }, schema, 'ERR')).not.toThrow();
+        });
+
+        it('ignores notBlank for non-string values', () => {
+            const schema: OptionsSchema = { count: { notBlank: true } };
+            expect(() => validator.validate({ count: 0 }, schema, 'ERR')).not.toThrow();
+        });
+
+        it('throws DatabaseException with the integer message when integer is required and value has a fraction', () => {
+            const schema: OptionsSchema = { count: { integer: true } };
+            expect(() => validator.validate({ count: 1.5 }, schema, 'ERR')).toThrow(DatabaseException);
+            expect(() => validator.validate({ count: 1.5 }, schema, 'ERR')).toThrow(/Option "count" must be an integer/);
+        });
+
+        it('accepts a whole number when integer is required', () => {
+            const schema: OptionsSchema = { count: { integer: true } };
+            expect(() => validator.validate({ count: 2 }, schema, 'ERR')).not.toThrow();
+        });
+
+        it('throws DatabaseException with the min message when number is below the min constraint', () => {
+            const schema: OptionsSchema = { count: { min: 5 } };
+            expect(() => validator.validate({ count: 4 }, schema, 'ERR')).toThrow(DatabaseException);
+            expect(() => validator.validate({ count: 4 }, schema, 'ERR')).toThrow(/Option "count" must be >= 5/);
+        });
+
+        it('accepts a number equal to the min constraint', () => {
+            const schema: OptionsSchema = { count: { min: 5 } };
+            expect(() => validator.validate({ count: 5 }, schema, 'ERR')).not.toThrow();
+        });
+
+        it('accepts an object value when type allows object', () => {
+            const schema: OptionsSchema = { filter: { type: 'object' } };
+            expect(() => validator.validate({ filter: { op: 'eq' } }, schema, 'ERR')).not.toThrow();
+        });
     });
 
     describe('ensurePropertyDecoratorUniqueness', () => {

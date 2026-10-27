@@ -17,6 +17,18 @@ describe('RecoveryCode', () => {
             const b = recovery.keyFromCode('CODE-1234-5678', salt);
             expect(a).toBe(b);
         });
+
+        it('different recovery codes with same salt produce different keys', () => {
+            const a = recovery.keyFromCode('CODE-1234-5678', salt);
+            const b = recovery.keyFromCode('WXYZ-9876-5432', salt);
+            expect(a).not.toBe(b);
+        });
+
+        it('same recovery code with different salts produces different keys', () => {
+            const a = recovery.keyFromCode('CODE-1234-5678', salt);
+            const b = recovery.keyFromCode('CODE-1234-5678', 'therapist-uuid-456');
+            expect(a).not.toBe(b);
+        });
     });
 
     describe('create', () => {

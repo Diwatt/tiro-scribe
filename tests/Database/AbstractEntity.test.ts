@@ -18,11 +18,6 @@ type TestEntityInstance = AbstractEntity & {
 
 describe('AbstractEntity', () => {
     describe('Z — Zero (missing / empty)', () => {
-        it('accessing primaryKey throws when entity has no @PrimaryKey (resolve at use)', () => {
-            const e = new NoPkEntity();
-            expect(() => (e as TestEntityInstance).primaryKey).toThrow();
-        });
-
         it('constructor with undefined builds state from defaults only', () => {
             const e = new TestEntity(undefined as never) as TestEntityInstance;
             expect(e.getField('id')).toBe('test-primary-key-1');

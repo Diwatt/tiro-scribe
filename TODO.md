@@ -18,7 +18,7 @@ Enregistreur clinique chiffré **fonctionnel jusqu'au disque** : onboarding comp
 
 🔎 **Santé vérifiée au 27/10/2026 :**
 - Tests : **628 passés / 649** (55 suites ✅, 2 skipped, 21 tests skipped)
-- Type-check : **71 erreurs** tsc (revalidé au 27/10 après réparation des fichiers touchés par la revue de tests ; 6 dans `src/`, le reste = dette `tests/` — détail en P7)
+- Type-check : **45 erreurs** tsc (revalidé au 27/10 après Vague C ; 6 dans `src/`, le reste = dette `tests/` — détail en P7)
 - `pnpm outdated` : drift modéré, rien de bloquant ; majors disponibles : lucide 1.x, uuid 14, RNTL 14, Babel 8, msw 3 (table complète en P6)
 - Working tree non committé : suppression `SEED`/`STATE`/`TECH`, fix snackbar `AudioFileEncryptor` + 2 tests DevConsole, commentaire `babel.config.js`, ce `TODO.md`
 - Déjà commité hier/aujourd'hui (corrige les anciennes notes) : session `encryptBytes` (Kotlin+Swift+TS), **casse `src/api` → `src/Api` corrigée**, **quick-crypto 1.1.9** + quick-base64 3.x + nitro-modules, CI (pnpm-lock committé, setup-android retiré)
@@ -227,13 +227,13 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 - [x] `SchemaValidator.test.ts:72` : `try/catch` remplacé par 3 tests distincts (champ manquant / type erroné / garde disparue = échec).
 - [x] Restaurations d'état déplacées en hooks : `AppConfig.isDev`, `Database.instance`, `EntityMetadata.getColumnDefaults`, `Device.isDevice` (→ dépendance d'ordre supprimée), fake timers (`Timer.test.ts`).
 
-**Vague C — Hygiène (~1 j)** :
-- [ ] Supprimer les doublons : `FieldDecorator.test.ts` (≡ PropertyDecorator), blocs Z ≡ E (Registry, AbstractEntity, DefinitionBuilder), `MetadataReader` vs `MetadataWriter`, `ClassDecorator.test.ts:9`, `HardwareGuard.test.ts:273`, tests de lib tierce (`GlobalActivityStatus.test.ts:19-33`).
-- [ ] Extraire le stub `@legendapp/state` en manual mock partagé (`__mocks__/`) ; à terme tester avec la vraie lib.
-- [ ] Factories : `fakeRecorder` ×7 (VoiceCalibrationRecorder), `therapist` muté (VoiceState) → `beforeEach`.
-- [ ] Mocks morts : AppLogger (MetadataReader/MetadataWriter), Container (VoiceCalibrator), imports inutilisés (Runtime, VoiceCalibrator), polyfill Symbol.metadata redondant.
-- [ ] Ajouter les branches non couvertes : `Builder` accessor + garde `isDev`, `SchemaValidator` enum/notBlank/min, `AppConfig` chemin prod, `RecoveryCode` différenciation des codes.
-- [ ] Bench `Math.integration.test.ts:414` (assert 1000 ms vs ~2700 réels) → test dédié taggé, hors feedback rapide.
+**Vague C — Hygiène** ✅ *exécutée le 27/10/2026 — 711 verts / 718, 0 échec (7 skips documentés) ; tsc 71 → 45 ; −17 tests dupliqués sans perte de scénario, +30 tests de branches* :
+- [x] Doublons supprimés : `FieldDecorator.test.ts` (sous-ensemble strict de `PropertyDecorator` — 7 tests, aucun portage nécessaire), blocs Z ≡ E (Registry +1 assertion portée sur le message, AbstractEntity, DefinitionBuilder ×2 paires), `MetadataReader` (scénario cross-file conservé dans `MetadataWriter` avec plus), `HardwareGuard.test.ts:273` (+ fix constructeur réel dans le test : matrix + logger). `ClassDecorator` : déjà fait par la Vague B. Tests de lib tierce (`GlobalActivityStatus.test.ts:19-33`, fichier réel = `tests/State/`) supprimés, les 3 tests du composant gardés.
+- [x] Stub `@legendapp/state` extrait vers **`tests/stubs/LegendAppStateStub.ts`** + `jest.mock` explicite dans les 2 suites qui stubbaient (`VoiceState`, `OnboardingState`). ⚠️ **Piège réglé au passage** : un premier essai dans `tests/__mocks__/@legendapp/state.ts` s'appliquait **automatiquement à toutes les suites** (manual mock node_modules scanné par le haste map) et cassait `DownloadTaskExecutor` qui utilise la vraie lib → dossier non-magique `tests/stubs/` obligatoire. `GlobalActivityStatus` et `StartupOrchestrator` tournent sur la vraie lib (verts). TODO dans le stub : repasser sur la vraie lib partout.
+- [x] Factories : `tests/helpers/FakeVoiceRecorder.ts` (7 occurrences remplacées), `createTherapist()` + `pendingProvider` recréés en `beforeEach` (`VoiceState`) — plus d'état partagé.
+- [x] Mocks morts supprimés : AppLogger (MetadataReader/MetadataWriter), Container (VoiceCalibrator — deps injectées via `createCalibrator`), import `SecureRecorder` inutilisé, polyfill `Symbol.metadata` redondant (fourni par `jest.setup.symbols.ts`).
+- [x] Branches non couvertes ajoutées : **`Builder` 100 % branches** (+6 : accessor hook, court-circuit, gardes `isDev` ×3, initializer null), **`SchemaValidator` 100 % branches** (+12 : enum/notBlank/integer/min + early-return), `AppConfig` chemin prod (+7 + 1 skip), `RecoveryCode` (+2 différenciation sel/code).
+- [x] Bench déplacé : `tests/Math/Math.bench.test.ts` (`jest.setTimeout(30_000)`, borne large 15 s, caractère indicatif documenté) — `Math.integration` sans plus aucune assertion temporelle. 🔎 **Découverte** : `babel-preset-expo` inline chaque `process.env.EXPO_PUBLIC_*` au transform → la branche prod « env bakée » d'`AppConfig` est **intestable sous Jest** (mutation runtime sans effet) — 1 `it.skip` documenté, pas un bug (la branche existe en build réel).
 
 #### Dette existante
 
@@ -242,7 +242,7 @@ tar -xzf onnxruntime-react-native-<version>.tgz
   - `Database/index.ts:17` — exporte `registry` (c'est `Registry`) — prérequis fixtures ;
   - `Database/Type.ts:67` — `AbstractEntity` non importé ;
   - `App.tsx:3` — `../assets/app/_layout` non résolu par tsc (fonctionne via Metro).
-- [ ] **64 erreurs tsc `tests/`** (dette préexistante hors revue) : `InferenceModelDownloader` ×26, `Runtime` ×8, `VoiceCalibrator` ×6, `mockEntity` ×6, `DefinitionBuilder` ×5, `Registry` ×1, `Criteria` ×2, `OnboardingState` ×1, `HardwareGuard` ×3, `Builder` ×1, `FieldDecorator`/`PropertyDecorator` ×2, `AsyncButton` ×1, `Encounter` ×1, `ConfigProvider` ×3 — à nettoyer avec la Vague C ou un passage dédié.
+- [ ] **39 erreurs tsc `tests/`** (dette préexistante hors revue) : `InferenceModelDownloader` ×26 (`jest.mock<typeof Downloader>` invalide en Jest 30 — un fix mécanique règle tout le fichier), `mockEntity` ×6 (nom `Entity` non importé), `ConfigProvider` ×3, `Criteria` ×2 (`@ts-expect-error` inutiles), `AsyncButton` ×1, `Encounter` ×1 — à nettoyer dans un passage dédié.
 - [ ] **Test-sentinelles decorators** : un test Jest qui échoue explicitement si le patch babel-preset n'est plus appliqué **ou** plus nécessaire (R1). Suivre l'issue upstream ; nettoyer `Column.initializer` / `ensureColumnAccessors` (accessors posés deux fois).
 - [ ] Relancer `test:kotlin` / `test:swift` (tests natifs — non relancés depuis l'audit).
 - [ ] **Réparer l'infra des tests de composants** 🔎 *(découvert au 27/10)* : tout `render()` RNTL crashe — le mock `Text` du preset RN 0.88 charge `react-native/react-private-interface` qui **n'existe pas** dans le paquet (`jest-expo` + mapper `^react-native/.*`). Symptôme : `Could not locate module react-native/react-private-interface`. Aucun test existant ne render de composants (AsyncButton teste de la logique pure) — le trou est invisible tant qu'on n'écrit pas de test d'écran. À régler avec le bump RNTL 14 (P6) ; premier candidat : `StepAccount` (voir son fix P0).

@@ -3,21 +3,6 @@ import { MetadataWriter } from '@/Decorator/MetadataWriter';
 import { MetadataReader } from '@/Decorator/MetadataReader';
 import type { MetadataMap } from '@/Decorator/Type';
 
-jest.mock('@/Core/AppLogger', () => {
-    const mockLogger = {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-    };
-    return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
-    };
-});
-
 describe('MetadataWriter', () => {
 
     it('registerClass stores options in weak map and reader wraps to ClassDecorator', () => {

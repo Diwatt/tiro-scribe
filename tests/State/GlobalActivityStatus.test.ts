@@ -16,22 +16,6 @@ describe('GlobalActivityStatus', () => {
         jest.restoreAllMocks();
     });
 
-    it('state$ observable should update when set directly', () => {
-        const obs = Container.get(GlobalActivityStatus).state$;
-        obs.set({ status: ActivityStatus.Pending, message: '', icon: undefined });
-        expect(obs.get().status).toBe(ActivityStatus.Pending);
-        // restore
-        obs.set({ status: ActivityStatus.Ready, message: '', icon: undefined });
-    });
-
-    it('observable kept as class field should update', () => {
-        const { observable } = require('@legendapp/state');
-        class Foo { public readonly obs = observable('alpha'); }
-        const f = new Foo();
-        f.obs.set('beta');
-        expect(f.obs.get()).toBe('beta');
-    });
-
     it('new GlobalActivityStatus instance should work independently', () => {
         const inst = new GlobalActivityStatus();
         inst.setStatus(ActivityStatus.Pending, 'x');

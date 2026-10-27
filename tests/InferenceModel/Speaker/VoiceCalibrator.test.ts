@@ -1,5 +1,9 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { RecordingTooShortError } from '@/Exception/RecordingTooShortError';
+import { VoiceCalibrator } from '@/InferenceModel/Speaker/VoiceCalibrator';
+import { Biocode } from '@/InferenceModel/Speaker/Biocode';
+import { SpeakerVector } from '@/InferenceModel/Speaker/SpeakerVector';
 
 const mockLoggerFns = {
     debug: jest.fn(),
@@ -9,45 +13,14 @@ const mockLoggerFns = {
 };
 
 const mockRecorderFns = {
-    capture: jest.fn<(durationMs: number) => Promise<string>>(),
-    getPcm: jest.fn<() => Promise<Float32Array>>(),
+    capture: jest.fn<Promise<string>, [durationMs: number]>(),
+    getPcm: jest.fn<Promise<Float32Array>, []>(),
 };
 
 const mockRuntimeFns = {
-    load: jest.fn<(capability: string) => Promise<void>>(),
+    load: jest.fn<Promise<void>, [capability: string]>(),
     run: jest.fn(),
 };
-
-// mock container before any service imports occur
-jest.mock('@/Core/Container', () => ({
-    Container: {
-        register: jest.fn(),
-        get: jest.fn((token: any) => {
-            // Handle InMemoryAudioRecorder
-            if (token && token.name === 'InMemoryAudioRecorder') {
-                return mockRecorderFns;
-            }
-            // Handle OnnxRuntime
-            if (token && token.name === 'OnnxRuntime') {
-                return mockRuntimeFns;
-            }
-            // Provide a fake AppConfig for other factories
-            if (token && token.name === 'AppConfig') {
-                return { voiceCalibrationDurationMs: 5000 } as any;
-            }
-            return undefined;
-        }),
-        logger: mockLoggerFns,
-        inMemoryAudioRecorder: mockRecorderFns,
-        onnxRuntime: mockRuntimeFns,
-    },
-}));
-
-import { VoiceCalibrator } from '@/InferenceModel/Speaker/VoiceCalibrator';
-import { Biocode } from '@/InferenceModel/Speaker/Biocode';
-import { SpeakerVector } from '@/InferenceModel/Speaker/SpeakerVector';
-import { RecordingTooShortError } from '@/Exception/RecordingTooShortError';
-import { SecureRecorder } from 'secure-recorder';
 
 dayjs.extend(utc);
 
@@ -57,15 +30,15 @@ const defaultSpeakerVector = new SpeakerVector([0.1, 0.2, 0.3], 0.9);
 const mockBiocode = new Biocode([0.5, 0.4, 0.3], defaultSpeakerVector.confidence, dayjs.utc());
 
 const mockSpeakerEmbedder = {
-    extract: jest.fn<(pcm: Float32Array) => Promise<SpeakerVector>>(),
+    extract: jest.fn<Promise<SpeakerVector>, [pcm: Float32Array]>(),
 };
 
 const mockBiocodeFactory = {
-    create: jest.fn<(vector: SpeakerVector, matrix: number[][]) => Biocode>(),
+    create: jest.fn<Biocode, [vector: SpeakerVector, matrix: number[][]]>(),
 };
 
 const mockProjectionMatrixFactory = {
-    create: jest.fn<(masterKey: string, inputDim: number) => number[][]>(),
+    create: jest.fn<number[][], [masterKey: string, inputDim: number]>(),
 };
 
 const createCalibrator = (): VoiceCalibrator =>

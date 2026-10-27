@@ -2,6 +2,7 @@ import * as Device from 'expo-device';
 import { SecureRecorder } from 'secure-recorder';
 import { AppLogger } from '@/Core/AppLogger';
 import { VoiceCalibrationRecorder } from '@/Service/VoiceCalibrationRecorder';
+import { createFakeRecorder } from '../helpers/FakeVoiceRecorder';
 import { RecordingPermissionError } from '@/Exception/RecordingPermissionError';
 import { RecordingTooShortError } from '@/Exception/RecordingTooShortError';
 import { Timer } from '@/Util/Timer';
@@ -61,13 +62,7 @@ describe('VoiceCalibrationRecorder', () => {
         // rest of values can be zero, we only assert first two positions
         fakeChunks.push(new Uint8Array(int16.buffer));
 
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
-
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
         await recorder.capture(1); // 1ms -> 16 samples
         const pcm = await recorder.getPcm();
@@ -98,12 +93,7 @@ describe('VoiceCalibrationRecorder', () => {
         // it never requests permission. requestPermission() is now called from VoiceState.
         jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(false);
 
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         await expect(recorder.capture(0)).rejects.toBeInstanceOf(RecordingPermissionError);
@@ -118,12 +108,7 @@ describe('VoiceCalibrationRecorder', () => {
         const int16 = new Int16Array(16);
         fakeChunks.push(new Uint8Array(int16.buffer));
 
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         await recorder.capture(1);
@@ -138,12 +123,7 @@ describe('VoiceCalibrationRecorder', () => {
         const int16 = new Int16Array([0]);
         fakeChunks.push(new Uint8Array(int16.buffer));
 
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         // 1000ms -> expect 16000 samples, only one available
@@ -170,12 +150,7 @@ describe('VoiceCalibrationRecorder', () => {
         int16[1] = -100;
         fakeChunks.push(new Uint8Array(int16.buffer));
 
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         await recorder.capture(100); // 100ms -> 1600 samples expected
@@ -196,12 +171,7 @@ describe('VoiceCalibrationRecorder', () => {
         });
 
         // no PCM chunks at all
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         const expectedSamples = (VoiceCalibrationRecorder as any).SAMPLE_RATE * 1; // 1s
@@ -217,12 +187,7 @@ describe('VoiceCalibrationRecorder', () => {
         // override the default stream mock for this test only
         jest.spyOn(SecureRecorder, 'stream').mockRejectedValueOnce(error);
 
-        const fakeRecorder = {
-            initialize: jest.fn().mockResolvedValue(undefined),
-            start: jest.fn().mockResolvedValue(undefined),
-            stop: jest.fn().mockResolvedValue('/tmp/foo.enc'),
-            dispose: jest.fn(),
-        } as unknown as SecureRecorder;
+        const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);
 
         await recorder.capture(0);
