@@ -219,8 +219,8 @@ describe('VectorProjection - ZOMBIE Tests', () => {
             expect(() => new VectorProjection([])).toThrow(InvalidDimensionError);
         });
 
-        it('should handle matrix with empty rows', () => {
-            expect(() => new VectorProjection([[]])).not.toThrow();
+        it('should throw for matrix with empty rows', () => {
+            expect(() => new VectorProjection([[]])).toThrow(InvalidDimensionError);
         });
 
         it('should throw error for inconsistent matrix dimensions', () => {
@@ -258,9 +258,8 @@ describe('VectorProjection - ZOMBIE Tests', () => {
         it('should handle Infinity values in normalization', () => {
             const infVector = [Infinity, 1];
             const result = projection.normalize(infVector);
-            // Check that the result handles Infinity gracefully (either NaN or finite)
-            expect(Number.isFinite(result[0]) || Number.isNaN(result[0])).toBe(true);
-            expect(Number.isFinite(result[1]) || Number.isNaN(result[1])).toBe(true);
+            expect(result[0]).toBeNaN();
+            expect(result[1]).toBe(0);
         });
     });
 

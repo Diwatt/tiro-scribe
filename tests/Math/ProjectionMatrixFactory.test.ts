@@ -12,16 +12,7 @@
 import { ProjectionMatrixFactory } from '../../src/Math/ProjectionMatrixFactory';
 import { VectorProjection } from '../../src/Math/VectorProjection';
 import { CryptoEngine } from '../../src/Security/CryptoEngine';
-import { AppConfig } from '@/Core/AppConfig';
-
-jest.mock('@/Core/AppConfig', () => {
-    const instance = { projectionSalt: 'biocode_projection' };
-    return {
-        AppConfig: {
-            getInstance: jest.fn(() => instance),
-        },
-    };
-});
+import { InvalidDimensionError, InvalidMasterKeyException } from '@/Exception';
 
 describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
     let crypto: CryptoEngine;
@@ -35,15 +26,14 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
     });
 
     describe('Z - Zero Tests', () => {
-        it('should throw for zero dimensions (orthonormalize requires non-empty matrix)', () => {
-            expect(() => factory.create(masterKey, 0, 0)).toThrow();
-            expect(() => factory.create(masterKey, 0, 10)).toThrow();
-            expect(() => factory.create(masterKey, 10, 0)).toThrow();
+        it('should throw InvalidDimensionError for zero dimensions', () => {
+            expect(() => factory.create(masterKey, 0, 0)).toThrow(InvalidDimensionError);
+            expect(() => factory.create(masterKey, 0, 10)).toThrow(InvalidDimensionError);
+            expect(() => factory.create(masterKey, 10, 0)).toThrow(InvalidDimensionError);
         });
 
-        it('should handle empty master key', () => {
-            const emptyKey = '';
-            expect(() => factory.create(emptyKey, 10, 5)).not.toThrow();
+        it('should throw for empty master key', () => {
+            expect(() => factory.create('', 10, 5)).toThrow(InvalidMasterKeyException);
         });
     });
 
@@ -179,9 +169,8 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
             });
         });
 
-        it('should handle non-integer dimension boundaries', () => {
-            // Should handle floating point inputs gracefully
-            expect(() => factory.create(masterKey, 10.5, 5.2)).not.toThrow();
+        it('should throw for non-integer dimensions', () => {
+            expect(() => factory.create(masterKey, 10.5, 5.2)).toThrow(InvalidDimensionError);
         });
     });
 
@@ -207,22 +196,16 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
         });
 
         it('should use default configuration salt', () => {
-                const appConfig = AppConfig.getInstance();
             const defaultFactory = new ProjectionMatrixFactory(crypto);
-            const customFactory = new ProjectionMatrixFactory(crypto, appConfig.projectionSalt);
-            
-            const matrix1 = defaultFactory.create(masterKey, 10, 5);
-            const matrix2 = customFactory.create(masterKey, 10, 5);
-            
-            // Just check that both matrices are valid and have same dimensions
-            expect(matrix1).toHaveLength(matrix2.length);
-            matrix1.forEach((row, i) => {
-                expect(row).toHaveLength(matrix2[i].length);
-                row.forEach((val, j) => {
-                    expect(typeof val).toBe('number');
-                    expect(isFinite(val)).toBe(true);
-                });
-            });
+            const explicitDefaultSaltFactory = new ProjectionMatrixFactory(crypto, 'biocode_projection');
+            const differentSaltFactory = new ProjectionMatrixFactory(crypto, 'different-salt');
+
+            const defaultMatrix = defaultFactory.create(masterKey, 10, 5);
+            const explicitSaltMatrix = explicitDefaultSaltFactory.create(masterKey, 10, 5);
+            const differentSaltMatrix = differentSaltFactory.create(masterKey, 10, 5);
+
+            expect(defaultMatrix).toEqual(explicitSaltMatrix);
+            expect(defaultMatrix).not.toEqual(differentSaltMatrix);
         });
 
         it('should handle different crypto engines', () => {
@@ -259,32 +242,32 @@ describe('ProjectionMatrixFactory - ZOMBIE Tests', () => {
     });
 
     describe('E - Exception Tests', () => {
-        it('should handle null/undefined inputs gracefully', () => {
-            expect(() => factory.create(null as any, 10, 5)).not.toThrow();
-            expect(() => factory.create(undefined as any, 10, 5)).not.toThrow();
+        it('should throw for null master key', () => {
+            expect(() => factory.create(null, 10, 5)).toThrow(InvalidMasterKeyException);
         });
 
-        it('should throw for negative dimensions (mathjs reshape rejects negative sizes)', () => {
-            expect(() => factory.create(masterKey, -1, 5)).toThrow();
-            expect(() => factory.create(masterKey, 10, -1)).toThrow();
+        it('should throw for undefined master key', () => {
+            expect(() => factory.create(undefined, 10, 5)).toThrow(InvalidMasterKeyException);
         });
 
-        it('should throw for NaN dimensions (mathjs reshape rejects NaN sizes)', () => {
-            expect(() => factory.create(masterKey, Number.NaN, 5)).toThrow();
-            expect(() => factory.create(masterKey, 10, Number.NaN)).toThrow();
+        it('should throw InvalidDimensionError for negative dimensions', () => {
+            expect(() => factory.create(masterKey, -1, 5)).toThrow(InvalidDimensionError);
+            expect(() => factory.create(masterKey, 10, -1)).toThrow(InvalidDimensionError);
         });
 
-        it('should throw for Infinity dimensions (causes infinite byte generation loop)', () => {
-            // Infinity * n = Infinity bytes requested → generateDeterministicBytes never terminates
-            // The source does not guard against this; tests must not exercise it directly.
-            // Verify the factory can still create a normal matrix after the class is instantiated.
-            expect(() => factory.create(masterKey, 10, 5)).not.toThrow();
+        it('should throw InvalidDimensionError for NaN dimensions', () => {
+            expect(() => factory.create(masterKey, Number.NaN, 5)).toThrow(InvalidDimensionError);
+            expect(() => factory.create(masterKey, 10, Number.NaN)).toThrow(InvalidDimensionError);
         });
 
-        it('should throw for extremely large dimensions (memory exhaustion)', () => {
-            // MAX_SAFE_INTEGER * n bytes would exhaust memory; source does not guard against this.
-            // Verify the factory still works for sane dimensions.
-            expect(() => factory.create(masterKey, 10, 5)).not.toThrow();
+        it('should throw for Infinity dimensions', () => {
+            expect(() => factory.create(masterKey, Number.POSITIVE_INFINITY, 5)).toThrow(InvalidDimensionError);
+            expect(() => factory.create(masterKey, 10, Number.POSITIVE_INFINITY)).toThrow(InvalidDimensionError);
+        });
+
+        it('should throw for extremely large dimensions', () => {
+            expect(() => factory.create(masterKey, Number.MAX_SAFE_INTEGER, 5)).toThrow(InvalidDimensionError);
+            expect(() => factory.create(masterKey, 10, Number.MAX_SAFE_INTEGER)).toThrow(InvalidDimensionError);
         });
 
         it('should handle crypto engine failures gracefully', () => {

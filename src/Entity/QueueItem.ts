@@ -16,8 +16,6 @@ import { PipelineStage, QueueItemStatus } from './Type';
 
 dayjs.extend(utc);
 
-const MAX_RETRY_COUNT = 3;
-
 @Entity({ tableName: 'queue_items', repositoryClass: 'QueueItemRepository' })
 export class QueueItem extends AbstractEntity {
     @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
@@ -68,7 +66,7 @@ export class QueueItem extends AbstractEntity {
         if (this.status === QueueItemStatus.Pending) {
             return true;
         }
-        if (this.status === QueueItemStatus.Failed && this.retryCount < MAX_RETRY_COUNT) {
+        if (this.status === QueueItemStatus.Failed && this.retryCount < this.maxRetries) {
             return true;
         }
         return false;

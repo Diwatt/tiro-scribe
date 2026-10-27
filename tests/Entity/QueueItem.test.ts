@@ -2,11 +2,8 @@
  * QueueItem entity behavior tests against the real decorated class.
  * isProcessable branches follow "1 if = 1 test".
  *
- * KNOWN BUG (documented in the 2026-10-27 test review, not fixed here):
- * `isProcessable` compares `this.retryCount` against the hardcoded module
- * constant MAX_RETRY_COUNT (3) instead of the item's own `maxRetries` field.
- * Tests below therefore stay on the default maxRetries so they remain valid
- * once the entity reads `this.maxRetries`.
+ * Retry policy: the entity reads its own `maxRetries` column (default 3,
+ * overridable per item via setMaxRetries).
  */
 
 import { QueueItem } from '@/Entity/QueueItem';
@@ -92,6 +89,24 @@ describe('QueueItem', () => {
         it('returns false for a paused item', () => {
             const item = new QueueItem({ encounterId: 'encounter-1' });
             item.setStatus(QueueItemStatus.Paused);
+
+            expect(item.isProcessable).toBe(false);
+        });
+
+        it('honours the item maxRetries policy above the default limit', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Failed);
+            item.setRetryCount(3);
+            item.setMaxRetries(5);
+
+            expect(item.isProcessable).toBe(true);
+        });
+
+        it('stops retrying earlier when the item maxRetries is lower than the default', () => {
+            const item = new QueueItem({ encounterId: 'encounter-1' });
+            item.setStatus(QueueItemStatus.Failed);
+            item.setRetryCount(2);
+            item.setMaxRetries(1);
 
             expect(item.isProcessable).toBe(false);
         });

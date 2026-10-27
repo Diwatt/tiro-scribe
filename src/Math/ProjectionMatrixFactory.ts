@@ -8,6 +8,7 @@
 import * as math from 'mathjs';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
+import { InvalidDimensionError, InvalidMasterKeyException } from '../Exception';
 import { CryptoEngine } from '../Security/CryptoEngine';
 
 /**
@@ -15,6 +16,9 @@ import { CryptoEngine } from '../Security/CryptoEngine';
  * Instance-based class that requires CryptoEngine dependency injection.
  */
 export class ProjectionMatrixFactory {
+    /** Upper bound for inputDim/outputDim: beyond it, byte generation would exhaust memory. */
+    public static readonly MAX_DIMENSION = 4096;
+
     public constructor(
         private readonly crypto: CryptoEngine,
         private readonly projectionSalt: string = 'biocode_projection',
@@ -24,12 +28,15 @@ export class ProjectionMatrixFactory {
      * Create an orthonormal projection matrix from a master key
      */
     public create(masterKey: string | null | undefined, inputDim = 192, outputDim = 128): number[][] {
-        // Handle null/undefined masterKey gracefully
-        const safeKey = masterKey ?? '';
-        
-        const rows = Math.floor(outputDim);
-        const cols = Math.floor(inputDim);
-        const flat = this.convertBytesToFloats(safeKey, rows * cols);
+        if (!masterKey) {
+            throw new InvalidMasterKeyException('Master key must be a non-empty string');
+        }
+        this.validateDimension('inputDim', inputDim);
+        this.validateDimension('outputDim', outputDim);
+
+        const rows = outputDim;
+        const cols = inputDim;
+        const flat = this.convertBytesToFloats(masterKey, rows * cols);
 
         const raw = math.reshape(flat, [rows, cols]);
         const matrix = this.ensure2DArray(raw);
@@ -85,6 +92,17 @@ export class ProjectionMatrixFactory {
             const mag = Math.sqrt(sumSq) || 1; // || 1 pour éviter la division par zéro
             return row.map((val) => val / mag);
         });
+    }
+
+    private validateDimension(name: string, value: number): void {
+        if (!Number.isInteger(value) || value <= 0) {
+            throw new InvalidDimensionError(`${name} must be a positive integer, got ${value}`);
+        }
+        if (value > ProjectionMatrixFactory.MAX_DIMENSION) {
+            throw new InvalidDimensionError(
+                `${name} must not exceed ${ProjectionMatrixFactory.MAX_DIMENSION}, got ${value}`,
+            );
+        }
     }
 }
 

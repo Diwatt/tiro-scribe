@@ -11,6 +11,7 @@
  */
 
 import * as math from 'mathjs';
+import { InvalidAudioParametersException } from '../Exception';
 
 export class AudioFeatureExtractor {
     private readonly melFilterBank: number[][];
@@ -26,6 +27,9 @@ export class AudioFeatureExtractor {
         private readonly numMelBins: number = 80,
         private readonly preEmphasisCoeff: number = 0.97,
     ) {
+        this.validatePositiveInteger('sampleRate', sampleRate);
+        this.validatePositiveInteger('frameLength', frameLength);
+        this.validatePositiveInteger('frameStep', frameStep);
         this.melFilterBank = this.generateMelFilterBankMatrix();
     }
 
@@ -212,5 +216,11 @@ export class AudioFeatureExtractor {
         }
 
         return frames;
+    }
+
+    private validatePositiveInteger(name: string, value: number): void {
+        if (!Number.isInteger(value) || value <= 0) {
+            throw new InvalidAudioParametersException(`${name} must be a positive integer, got ${value}`);
+        }
     }
 }

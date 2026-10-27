@@ -10,6 +10,7 @@
  */
 
 import { AudioFeatureExtractor } from '../../src/Math/AudioFeatureExtractor';
+import { InvalidAudioParametersException } from '@/Exception';
 
 describe('AudioFeatureExtractor - ZOMBIE Tests', () => {
     let extractor: AudioFeatureExtractor;
@@ -258,23 +259,38 @@ describe('AudioFeatureExtractor - ZOMBIE Tests', () => {
             expect(result.length).toBe(0);
         });
 
-        it('should throw on NaN values in input', () => {
+        it('should propagate NaN input values to features without throwing', () => {
             const nanPcm = new Float32Array(1600);
             nanPcm[100] = Number.NaN;
-            expect(() => extractor.extract(nanPcm)).not.toThrow(); // Should handle gracefully
+            const result = extractor.extract(nanPcm);
+            expect(result).toBeInstanceOf(Float32Array);
+            expect(result.length).toBeGreaterThan(0);
+            expect(Array.from(result).some(Number.isNaN)).toBe(true);
         });
 
-        it('should throw on Infinity values in input', () => {
+        it('should propagate Infinity input values to features without throwing', () => {
             const infPcm = new Float32Array(1600);
             infPcm[100] = Infinity;
-            expect(() => extractor.extract(infPcm)).not.toThrow(); // Should handle gracefully
+            const result = extractor.extract(infPcm);
+            expect(result).toBeInstanceOf(Float32Array);
+            expect(result.length).toBeGreaterThan(0);
+            expect(Array.from(result).some(Number.isNaN)).toBe(true);
         });
 
-        it('should handle invalid constructor parameters', () => {
-            expect(() => new AudioFeatureExtractor(0)).not.toThrow();
-            expect(() => new AudioFeatureExtractor(-1)).not.toThrow();
-            expect(() => new AudioFeatureExtractor(16000, 0)).not.toThrow();
-            expect(() => new AudioFeatureExtractor(16000, 400, 0)).not.toThrow();
+        it('should throw for zero sample rate', () => {
+            expect(() => new AudioFeatureExtractor(0)).toThrow(InvalidAudioParametersException);
+        });
+
+        it('should throw for negative sample rate', () => {
+            expect(() => new AudioFeatureExtractor(-1)).toThrow(InvalidAudioParametersException);
+        });
+
+        it('should throw for zero frame length', () => {
+            expect(() => new AudioFeatureExtractor(16000, 0)).toThrow(InvalidAudioParametersException);
+        });
+
+        it('should throw for zero frame step', () => {
+            expect(() => new AudioFeatureExtractor(16000, 400, 0)).toThrow(InvalidAudioParametersException);
         });
 
         it('should handle extreme parameter combinations', () => {

@@ -16,6 +16,10 @@ export class VectorProjection {
 
         this.inputDim = projectionMatrix[0].length;
 
+        if (this.inputDim === 0) {
+            throw new InvalidDimensionError('Projection matrix rows cannot be empty');
+        }
+
         // Check that all rows have the same length
         for (let i = 0; i < projectionMatrix.length; i++) {
             if (projectionMatrix[i].length !== this.inputDim) {
