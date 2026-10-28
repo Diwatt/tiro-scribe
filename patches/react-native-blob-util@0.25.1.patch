@@ -1,0 +1,79 @@
+diff --git a/class/ReactNativeBlobUtilBlobResponse.js b/class/ReactNativeBlobUtilBlobResponse.js
+index afa6fed5ff51ef450b9634ebe1f89b8996061fd0..0ac9cc608e946930791fa57b8111fa571d129180 100644
+--- a/class/ReactNativeBlobUtilBlobResponse.js
++++ b/class/ReactNativeBlobUtilBlobResponse.js
+@@ -20,7 +20,7 @@ export class FetchBlobResponse {
+     flush: () => void;
+     respInfo: ReactNativeBlobUtilResponseInfo;
+     session: (name: string) => ReactNativeBlobUtilSession | null;
+-    readFile: (encode: 'base64' | 'utf8' | 'ascii') => ?Promise<any>;
++    readFile: (encode: 'base64' | 'utf8' | 'ascii') => Promise<any>;
+     readStream: (
+         encode: 'utf8' | 'ascii' | 'base64',
+     ) => ReactNativeBlobUtilStream | null;
+diff --git a/class/ReactNativeBlobUtilReadStream.js b/class/ReactNativeBlobUtilReadStream.js
+index 4e44a4a95c205a3bc4c245464e6ea463d27bdc28..78f30d336113b32a5e53d708aa0e1ff4377563a5 100644
+--- a/class/ReactNativeBlobUtilReadStream.js
++++ b/class/ReactNativeBlobUtilReadStream.js
+@@ -10,11 +10,11 @@ export default class ReactNativeBlobUtilReadStream {
+ 
+     path: string;
+     encoding: 'utf8' | 'ascii' | 'base64';
+-    bufferSize: ?number;
++
+     closed: boolean;
+     tick: number = 10;
+ 
+-    constructor(path: string, encoding: string, bufferSize?: ?number, tick: number) {
++    constructor(path, encoding, bufferSize, tick) {
+         if (!path)
+             throw Error('ReactNativeBlobUtil could not open file stream with empty `path`');
+         this.encoding = encoding || 'utf8';
+diff --git a/fs.js b/fs.js
+index 865b32a8acdc9e70f2f71b5c2106adf98d333cf8..0256831275b92654a28f5aca843b71a855a3d85e 100644
+--- a/fs.js
++++ b/fs.js
+@@ -212,7 +212,7 @@ function readFileWithTransform(path: string, encoding: string = 'utf8'): Promise
+  * @param  {string} encoding Encoding of data (Optional).
+  * @return {Promise}
+  */
+-function writeFile(path: string, data: string | Array<number>, encoding: ?string = 'utf8'): Promise {
++function writeFile(path, data, encoding = 'utf8') {
+     if (typeof path !== 'string') {
+         return Promise.reject(addCode('EINVAL', new TypeError('Missing argument "path" ')));
+     }
+@@ -239,7 +239,7 @@ function writeFile(path: string, data: string | Array<number>, encoding: ?string
+  * @param  {string} encoding Encoding of data (Optional).
+  * @return {Promise}
+  */
+-function writeFileWithTransform(path: string, data: string | Array<number>, encoding: ?string = 'utf8'): Promise {
++function writeFileWithTransform(path, data, encoding = 'utf8') {
+     if (typeof path !== 'string') {
+         return Promise.reject(addCode('EINVAL', new TypeError('Missing argument "path" ')));
+     }
+diff --git a/polyfill/Blob.js b/polyfill/Blob.js
+index 14fcc7149ce84c9f72d24d8eb2a0ab82c5013b1b..c0242ff27ba637a11568a02334a29f85f6c098f3 100644
+--- a/polyfill/Blob.js
++++ b/polyfill/Blob.js
+@@ -227,7 +227,7 @@ export default class Blob extends EventTarget {
+      * @param  {string} contentType Optional, content type of new Blob object
+      * @return {Blob}
+      */
+-    slice(start: ?number, end: ?number, contentType: ?string = ''): Blob {
++    slice(start, end, contentType = '') {
+         if (this._closed)
+             throw 'Blob has been released.';
+         log.verbose('slice called', start, end, contentType);
+diff --git a/polyfill/FileReader.js b/polyfill/FileReader.js
+index f480d63cb74f62409de5c111ee6d3ad37e8f1a95..ee2324d20602e482cc3e56aaa29d99bd80e2c21e 100644
+--- a/polyfill/FileReader.js
++++ b/polyfill/FileReader.js
+@@ -59,7 +59,7 @@ export default class FileReader extends EventTarget {
+         log.verbose('readAsBinaryString', b);
+     }
+ 
+-    readAsText(b: Blob, label: ?string) {
++    readAsText(b, label) {
+         log.verbose('readAsText', b, label);
+     }
+ 

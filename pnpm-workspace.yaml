@@ -19,6 +19,7 @@ allowBuilds:
   "@openapitools/openapi-generator-cli": true
   "@parcel/watcher": true
   unrs-resolver: true
+  react-native-executorch: true
 
 overrides:
   react: "19.3.0"
@@ -29,3 +30,4 @@ patchedDependencies:
   '@mikro-orm/core@7.2.5': patches/@mikro-orm__core@7.2.5.patch
   '@mikro-orm/sql@7.2.5': patches/@mikro-orm__sql@7.2.5.patch
   '@react-native/babel-preset@0.85.3': patches/@react-native__babel-preset@0.85.3.patch
+  react-native-blob-util@0.25.1: patches/react-native-blob-util@0.25.1.patch

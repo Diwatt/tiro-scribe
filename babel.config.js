@@ -18,6 +18,9 @@ module.exports = function (api) {
         ],
         plugins: [
             // Parse-only. Order matters: see TODO.md, règle R1.
+            // allExtensions+isTSX : requis pour le TS-in-.js de certains paquets
+            // (toast-message…). Exception react-native-blob-util (Flow, `?string`) :
+            // patchée via patches/react-native-blob-util (voir pnpm-workspace.yaml).
             '@babel/plugin-syntax-jsx',
             ['@babel/plugin-transform-typescript', { isTSX: true, allExtensions: true, allowNamespaces: true }],
             '@babel/plugin-transform-class-static-block',

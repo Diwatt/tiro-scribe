@@ -1,6 +1,7 @@
 import { observer } from '@legendapp/state/react';
-import { useRouter } from 'expo-router';
-import { FileAudio, FolderOpen, Lock, RefreshCw, UserRound } from 'lucide-react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { documentDirectory } from 'expo-file-system/legacy';
+import { FileAudio, FolderOpen, Gauge, Lock, RefreshCw, UserRound } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import {
@@ -16,21 +17,54 @@ import {
     useTheme,
 } from 'react-native-paper';
 import { Container } from '@/Core/Container';
+import { AppLogger } from '@/Core/AppLogger';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { AudioState } from './AudioState';
+import { ExecuTorchEmbeddingEngine } from './ExecuTorchEmbeddingEngine';
+import { OrtEmbeddingEngine } from './OrtEmbeddingEngine';
+import { RuntimeBenchmark } from './RuntimeBenchmark';
 
 export const AudioScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const router = useRouter();
     const [state] = React.useState(() => Container.get(AudioState));
+    const [benchmark] = React.useState(
+        () =>
+            new RuntimeBenchmark(
+                Container.get(AppLogger),
+                new OrtEmbeddingEngine(),
+                new ExecuTorchEmbeddingEngine(),
+            ),
+    );
     const [inputPath, setInputPath] = React.useState('');
     const [therapistSourcePath, setTherapistSourcePath] = React.useState('');
     const [segmentStart, setSegmentStart] = React.useState('0');
     const [segmentEnd, setSegmentEnd] = React.useState('30000');
+    // Chemins bare (sans préfixe file://) : le natif ExecuTorch/ORT les refuse
+    const deviceDocuments = (documentDirectory ?? '').replace('file://', '');
+    const [ptePath, setPtePath] = React.useState(deviceDocuments + 'campp_xnnpack.pte');
+    const [ortPath, setOrtPath] = React.useState(deviceDocuments + 'campp_static_T500.onnx');
+    const [embeddingDimInput, setEmbeddingDimInput] = React.useState('512');
 
     const isLoading = state.state$.isLoading.get();
     const files = state.state$.files.get();
     const notification = state.state$.notification.get();
+
+    const benchmarkSnapshot = benchmark.state$.get();
+    const embeddingDim = Number.parseInt(embeddingDimInput, 10);
+    const isBenchmarkFormValid = ptePath.length > 0 && Number.isInteger(embeddingDim) && embeddingDim > 0;
+
+    const runBenchmark = (): void => {
+        void benchmark.run(ortPath, ptePath, embeddingDim).catch(() => undefined);
+    };
+
+    const autorun = useLocalSearchParams<{ autorun?: string }>().autorun === '1';
+    React.useEffect(() => {
+        if (autorun && isBenchmarkFormValid && !benchmarkSnapshot.isLoading) {
+            runBenchmark();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autorun]);
 
     const segmentStartMs = Number.parseInt(segmentStart, 10);
     const segmentEndMs = Number.parseInt(segmentEnd, 10);
@@ -163,6 +197,70 @@ export const AudioScreen = observer((): React.JSX.Element => {
                     </View>
                 )}
 
+                <Card style={STYLES.benchmarkCard}>
+                    <Card.Content>
+                        <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+                            Runtime Benchmark (P2: ORT vs ExecuTorch)
+                        </Text>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                            Same deterministic input fed to the ORT speaker model and the local .pte export
+                        </Text>
+                        <TextInput
+                            mode="outlined"
+                            label=".pte path (device Documents)"
+                            value={ptePath}
+                            onChangeText={setPtePath}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <TextInput
+                            mode="outlined"
+                            label=".onnx path (device Documents)"
+                            value={ortPath}
+                            onChangeText={setOrtPath}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <View style={STYLES.segmentRow}>
+                            <TextInput
+                                mode="outlined"
+                                label="Embedding dim"
+                                keyboardType="numeric"
+                                value={embeddingDimInput}
+                                onChangeText={setEmbeddingDimInput}
+                                style={STYLES.segmentInput}
+                            />
+                            <Button
+                                mode="contained"
+                                onPress={runBenchmark}
+                                loading={benchmarkSnapshot.isLoading}
+                                disabled={benchmarkSnapshot.isLoading || !isBenchmarkFormValid}
+                                icon={() => <Gauge size={18} color={theme.colors.onPrimary} />}
+                                style={STYLES.segmentInput}
+                            >
+                                Run
+                            </Button>
+                        </View>
+                        {benchmarkSnapshot.error != null && (
+                            <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+                                {benchmarkSnapshot.error}
+                            </Text>
+                        )}
+                        {benchmarkSnapshot.ort != null && benchmarkSnapshot.executorTorch != null && (
+                            <View style={STYLES.benchmarkResults}>
+                                {[benchmarkSnapshot.ort, benchmarkSnapshot.executorTorch].map((engine) => (
+                                    <Text key={engine.engineName} variant="bodySmall">
+                                        {engine.engineName}: dim {engine.embeddingDim}, load {engine.loadLatencyMs} ms,
+                                        first {engine.firstRunLatencyMs} ms, avg {engine.avgRunLatencyMs} ms
+                                    </Text>
+                                ))}
+                                <Text variant="bodyMedium" style={{ color: theme.colors.primary }}>
+                                    Cosine ORT vs ExecuTorch: {benchmarkSnapshot.cosine?.toFixed(6)} (max abs diff{' '}
+                                    {benchmarkSnapshot.maxAbsDiff?.toFixed(6)})
+                                </Text>
+                            </View>
+                        )}
+                    </Card.Content>
+                </Card>
+
                 <Card style={STYLES.onboardingCard}>
                     <Card.Content>
                         <Text variant="titleSmall" style={{ marginBottom: 8 }}>
@@ -256,6 +354,13 @@ const STYLES = StyleSheet.create({
     },
     onboardingCard: {
         marginTop: 16,
+    },
+    benchmarkCard: {
+        marginTop: 16,
+    },
+    benchmarkResults: {
+        gap: 4,
+        marginTop: 8,
     },
     segmentInput: {
         flex: 1,

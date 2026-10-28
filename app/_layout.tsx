@@ -8,7 +8,11 @@ import { install as installQuickCrypto } from 'react-native-quick-crypto';
 
 installQuickCrypto();
 
+// Politique « rien ne sort » : analytics ExecuTorch activées par défaut (ai.swmansion.com)
+setTelemetryEnabled(false);
+
 import 'react-native-gesture-handler';
+import { setTelemetryEnabled } from 'react-native-executorch';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Slot } from 'expo-router';
 import type React from 'react';

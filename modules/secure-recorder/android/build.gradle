@@ -3,11 +3,11 @@ apply plugin: 'kotlin-android'
 
 android {
   namespace 'expo.modules.securerecorder'
-  compileSdkVersion 35
+  compileSdkVersion 37
 
   defaultConfig {
     minSdkVersion 29
-    targetSdkVersion 35
+    targetSdkVersion 36
     
     // Support both phone and tablet form factors
     // Platform differences handled via resource qualifiers (e.g., res/values-sw600dp for tablets)

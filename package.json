@@ -92,6 +92,8 @@
     "react": "19.3.0",
     "react-hook-form": "^7.71.2",
     "react-native": "0.88.0",
+    "react-native-blob-util": "^0.25.1",
+    "react-native-executorch": "0.10.7",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-logs": "^5.5.0",
