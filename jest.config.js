@@ -41,8 +41,10 @@ const transformedModules = [
   'react-native-worklets',
   'lucide-react-native',
   'kysely-expo',
+  'kysely',
   'onnxruntime-react-native',
   '@legendapp/state',
+  '@mikro-orm',
   '@tanstack',
   'msw',
   '@testing-library',
@@ -55,7 +57,7 @@ module.exports = {
   // On laisse jest-expo gérer le testEnvironment
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
-  setupFiles: ['<rootDir>/jest.setup.symbols.ts'],
+  setupFiles: ['<rootDir>/jest.setup.globals.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   
   moduleNameMapper: {

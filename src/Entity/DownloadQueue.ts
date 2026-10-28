@@ -3,12 +3,13 @@
  * No polymorphic fields; only download‑specific properties.
  */
 
-import type { Dayjs } from 'dayjs';
+import { defineEntity, p } from '@mikro-orm/core';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { Column, Entity, PrimaryKey } from '../Decorator';
+import { DayjsType } from '@/Database/DayjsType';
+import { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
 import type { DownloadTask } from '../InferenceModel/Download/Type';
 import { DownloadQueueStatus } from './Type';
 
@@ -16,46 +17,42 @@ dayjs.extend(utc);
 
 const MAX_RETRY_COUNT = 3;
 
-@Entity({ tableName: 'download_queue' })
-export class DownloadQueue extends AbstractEntity {
-    @Column({ default: '', type: 'varchar', length: 64, index: true })
-    public accessor capability!: string;
+const DownloadQueueSchema = defineEntity({
+    name: 'DownloadQueue',
+    tableName: 'download_queue',
+    repository: () => DownloadQueueRepository,
+    properties: {
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+        capability: p.string().length(64).default('').index(),
+        createdAt: p.type(DayjsType).index().onCreate(() => dayjs.utc()),
+        errorMessage: p.text().default(''),
+        filePath: p.text().default(''),
+        language: p.string().length(8).default('').index(),
+        maxRetries: p.integer().default(3),
+        metadata: p.json<Record<string, unknown>>().onCreate(() => ({})),
+        nbRetries: p.integer().default(0),
+        progressPercent: p.integer().default(0),
+        status: p.enum(() => DownloadQueueStatus).default(DownloadQueueStatus.Pending).index(),
+        updatedAt: p.type(DayjsType).onCreate(() => dayjs.utc()).onUpdate(() => dayjs.utc()),
+    },
+});
 
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public accessor createdAt!: Dayjs;
-
-    @Column({ default: '', type: 'text' })
-    public accessor errorMessage!: string;
-
-    @Column({ default: '', type: 'text' })
-    public accessor filePath!: string;
-
-    @Column({ default: '', type: 'varchar', length: 8, index: true })
-    public accessor language!: string;
-
-    @Column({ default: 3, type: 'integer' })
-    public accessor maxRetries!: number;
-
-    @Column({ default: '{}', type: 'text', as: 'json' })
-    public accessor metadata!: Record<string, unknown>;
-
-    @Column({ default: 0, type: 'integer' })
-    public accessor nbRetries!: number;
-
-    @Column({ default: 0, type: 'integer' })
-    public accessor progressPercent!: number;
-
-    @Column({ default: DownloadQueueStatus.Pending, type: 'varchar', length: 16, index: true })
-    public accessor status!: DownloadQueueStatus;
-
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public accessor updatedAt!: Dayjs;
-
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
-
-    // --- Getters ---
+export class DownloadQueue extends DownloadQueueSchema.class {
+    public constructor(data: Partial<DownloadQueue> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.capability = data.capability ?? '';
+        this.createdAt = data.createdAt ?? dayjs.utc();
+        this.errorMessage = data.errorMessage ?? '';
+        this.filePath = data.filePath ?? '';
+        this.language = data.language ?? '';
+        this.maxRetries = data.maxRetries ?? 3;
+        this.metadata = data.metadata ?? {};
+        this.nbRetries = data.nbRetries ?? 0;
+        this.progressPercent = data.progressPercent ?? 0;
+        this.status = data.status ?? DownloadQueueStatus.Pending;
+        this.updatedAt = data.updatedAt ?? dayjs.utc();
+    }
 
     /**
      * Helper for tests and in-memory helpers: return a queue entity in the
@@ -144,8 +141,6 @@ export class DownloadQueue extends AbstractEntity {
         return this.status;
     }
 
-    // --- Setters ---
-
     public getUpdatedAt(): Dayjs {
         return this.updatedAt;
     }
@@ -200,13 +195,9 @@ export class DownloadQueue extends AbstractEntity {
         this.progressPercent = value;
     }
 
-    // --- Business logic ---
-
     public setStatus(value: DownloadQueueStatus): void {
         this.status = value;
     }
-
-    // --- Static conversion methods ---
 
     public setUpdatedAt(value: Dayjs): void {
         this.updatedAt = value;
@@ -216,3 +207,5 @@ export class DownloadQueue extends AbstractEntity {
         this.uuid = value;
     }
 }
+
+DownloadQueueSchema.setClass(DownloadQueue);

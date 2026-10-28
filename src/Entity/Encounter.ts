@@ -4,13 +4,13 @@
  * isIncognito (Bunker): when true, transcript is stored encrypted on the server.
  */
 
-import type { Dayjs } from 'dayjs';
+import { defineEntity, p } from '@mikro-orm/core';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { ForeignKey } from '../Database/Decorator';
-import { Column, Entity, PrimaryKey } from '../Decorator';
+import { DayjsType } from '@/Database/DayjsType';
+import { EncounterRepository } from '@/Repository/EncounterRepository';
 import { Therapist } from './Therapist';
 import { EncounterStatus } from './Type';
 
@@ -18,45 +18,43 @@ dayjs.extend(utc);
 
 const SESSION_PREFIX = 'encounter';
 
-@Entity({ tableName: 'encounters', repositoryClass: 'EncounterRepository' })
-export class Encounter extends AbstractEntity {
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
-  
-    /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public accessor createdAt!: Dayjs;
+const EncounterSchema = defineEntity({
+    name: 'Encounter',
+    tableName: 'encounters',
+    repository: () => EncounterRepository,
+    properties: {
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+        /** UTC, stored as ISO string; use dayjs in UTC mode. */
+        createdAt: p.type(DayjsType).index().onCreate(() => dayjs.utc()),
+        /** File paths to encrypted audio chunks. */
+        encryptedAudioPaths: p.json<string[]>().onCreate(() => []),
+        /** Incognito (Bunker): when true, transcript is stored encrypted on the server. */
+        isIncognito: p.boolean().default(false).index(),
+        status: p.enum(() => EncounterStatus).default(EncounterStatus.Recording).index(),
+        /** UTC when this encounter was synced to cloud (null = not synced). */
+        syncedAt: p.type(DayjsType).nullable(),
+        /** References Therapist (UUID). Real column for REFERENCES constraint. */
+        therapistId: p.manyToOne(Therapist).deleteRule('restrict').mapToPk(),
+        /** Duration in milliseconds (whole number). */
+        totalDuration: p.integer().default(0),
+        /** UTC, stored as ISO string; use dayjs in UTC mode. */
+        updatedAt: p.type(DayjsType).index().onCreate(() => dayjs.utc()).onUpdate(() => dayjs.utc()),
+    },
+});
 
-    /** File paths to encrypted audio chunks. */
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public accessor encryptedAudioPaths!: string[];
-
-    /** Incognito (Bunker): when true, transcript is stored encrypted on the server. */
-    @Column({ default: false, type: 'boolean', index: true })
-    public accessor isIncognito!: boolean;
-
-    @Column({ default: EncounterStatus.Recording, type: 'varchar', length: 16, index: true })
-    public accessor status!: EncounterStatus;
-
-    /** UTC when this encounter was synced to cloud (null = not synced). */
-    @Column({ default: null, type: 'datetime', as: 'date' })
-    public accessor syncedAt!: Dayjs | null;
-
-    /** References Therapist (UUID). Real column for REFERENCES constraint. */
-    @ForeignKey({ target: () => Therapist, onDelete: 'RESTRICT' })
-    @Column({ default: '', type: 'varchar', length: 36 })
-    public accessor therapistId!: string;
-
-    /** Duration in milliseconds (whole number). */
-    @Column({ default: 0, type: 'integer' })
-    public accessor totalDuration!: number;
-
-    /** UTC, stored as ISO string; use dayjs in UTC mode. */
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date', index: true })
-    public accessor updatedAt!: Dayjs;
-
-
+export class Encounter extends EncounterSchema.class {
+    public constructor(data: Partial<Encounter> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.createdAt = data.createdAt ?? dayjs.utc();
+        this.encryptedAudioPaths = data.encryptedAudioPaths ?? [];
+        this.isIncognito = data.isIncognito ?? false;
+        this.status = data.status ?? EncounterStatus.Recording;
+        this.syncedAt = data.syncedAt ?? null;
+        this.therapistId = data.therapistId ?? '';
+        this.totalDuration = data.totalDuration ?? 0;
+        this.updatedAt = data.updatedAt ?? dayjs.utc();
+    }
 
     public addEncryptedAudioPath(path: string): void {
         this.encryptedAudioPaths = [...this.encryptedAudioPaths, path];
@@ -93,7 +91,7 @@ export class Encounter extends AbstractEntity {
     }
 
     public getSyncedAt(): Dayjs | null {
-        return this.syncedAt;
+        return this.syncedAt ?? null;
     }
 
     public getTherapistId(): string {
@@ -159,3 +157,5 @@ export class Encounter extends AbstractEntity {
         });
     }
 }
+
+EncounterSchema.setClass(Encounter);

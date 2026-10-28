@@ -7,10 +7,8 @@
  * One-to-one with Encounter; cascade delete when encounter is removed.
  */
 
+import { defineEntity, p } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { ForeignKey } from '../Database/Decorator';
-import { Column, Entity, PrimaryKey } from '../Decorator';
 import { Encounter } from './Encounter';
 
 /** One frame of raw signal metrics (F0, RMS, stability, timbre, periodicity). No derived/semantic fields. */
@@ -27,27 +25,30 @@ export class VoiceFrame {
     ) {}
 }
 
-@Entity({ tableName: 'prosody_metrics' })
-export class ProsodyMetrics extends AbstractEntity {
-    @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
-    @Column({ default: '', type: 'varchar', length: 36 })
-    public accessor encounterId!: string;
+const ProsodyMetricsSchema = defineEntity({
+    name: 'ProsodyMetrics',
+    tableName: 'prosody_metrics',
+    properties: {
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+        encounterId: p.manyToOne(Encounter).deleteRule('cascade').mapToPk(),
+        /** Model name (e.g. silero-vad). */
+        modelName: p.string().length(64).default(''),
+        /** Model version (e.g. 4.0.0). */
+        modelVersion: p.string().length(16).default(''),
+        /** Time-series of raw signal frames (JSON). */
+        voiceFrames: p.json<VoiceFrame[]>().onCreate(() => []),
+    },
+});
 
-    /** Model name (e.g. silero-vad). */
-    @Column({ default: '', type: 'varchar', length: 64 })
-    public accessor modelName!: string;
-
-    /** Model version (e.g. 4.0.0). */
-    @Column({ default: '', type: 'varchar', length: 16 })
-    public accessor modelVersion!: string;
-
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
-
-    /** Time-series of raw signal frames (JSON). */
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public accessor voiceFrames!: VoiceFrame[];
+export class ProsodyMetrics extends ProsodyMetricsSchema.class {
+    public constructor(data: Partial<ProsodyMetrics> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.encounterId = data.encounterId ?? '';
+        this.modelName = data.modelName ?? '';
+        this.modelVersion = data.modelVersion ?? '';
+        this.voiceFrames = data.voiceFrames ?? [];
+    }
 
     public getEncounterId(): string {
         return this.encounterId;
@@ -89,3 +90,5 @@ export class ProsodyMetrics extends AbstractEntity {
         this.voiceFrames = value;
     }
 }
+
+ProsodyMetricsSchema.setClass(ProsodyMetrics);

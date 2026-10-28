@@ -1,6 +1,6 @@
 /**
  * Central re-export of all custom repository classes.
- * Used by Registry to resolve @Entity({ repositoryClass: '...' }) without dynamic import.
+ * MikroORM resolves them via the entity schemas' `repository: () => XRepository` declaration.
  * Add a re-export here when you add a new custom repository.
  */
 

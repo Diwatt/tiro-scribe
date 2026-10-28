@@ -19,10 +19,7 @@ jest.mock('@/Core/AppLogger', () => {
         error: jest.fn(),
     };
     return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
+        AppLogger: mockLogger,
     };
 });
 
@@ -122,7 +119,8 @@ describe('Encounter', () => {
 
             encounter.setSyncedAt(syncedAt);
 
-            expect(encounter.getSyncedAt().toISOString()).toBe('2026-01-15T10:00:00.000Z');
+            const storedSyncedAt = encounter.getSyncedAt();
+            expect(storedSyncedAt?.toISOString()).toBe('2026-01-15T10:00:00.000Z');
         });
     });
 });

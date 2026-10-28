@@ -21,12 +21,8 @@ import { AppErrorBoundary } from '@/Components/AppErrorBoundary';
 import { AppToast } from '@/Components/AppToast';
 import ObservedGlobalActivityBar from '@/Components/GlobalActivityBar';
 import { ServicesProvider } from '@/Context/ServicesProvider';
-import { Container } from '@/Core/Container';
 import { initAppLocale } from '@/Localization';
 import { APP_THEME } from '@/theme/AppTheme';
-
-// 1. BOOTSTRAP DI CONTAINER FIRST
-Container.initialize();
 
 const queryClient = new QueryClient();
 

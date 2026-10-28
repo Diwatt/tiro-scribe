@@ -5,10 +5,8 @@
  * One-to-one with Encounter; cascade delete when encounter is removed.
  */
 
+import { defineEntity, p } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { ForeignKey } from '../Database/Decorator';
-import { Column, Entity, PrimaryKey } from '../Decorator';
 import { Encounter } from './Encounter';
 
 /** One speech unit; raw Whisper (or ASR) output. startTime/endTime in milliseconds from recording start. */
@@ -23,27 +21,30 @@ export class Utterance {
     ) {}
 }
 
-@Entity({ tableName: 'transcriptions' })
-export class Transcription extends AbstractEntity {
-    @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
-    @Column({ default: '', type: 'varchar', length: 36 })
-    public accessor encounterId!: string;
+const TranscriptionSchema = defineEntity({
+    name: 'Transcription',
+    tableName: 'transcriptions',
+    properties: {
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+        encounterId: p.manyToOne(Encounter).deleteRule('cascade').mapToPk(),
+        /** ASR model name (e.g. whisper-small-en). */
+        modelName: p.string().length(64).default(''),
+        /** ASR model version (e.g. 3.1). */
+        modelVersion: p.string().length(16).default(''),
+        /** Time-series of utterances (raw Whisper/ASR output). */
+        utterances: p.json<Utterance[]>().onCreate(() => []),
+    },
+});
 
-    /** ASR model name (e.g. whisper-small-en). */
-    @Column({ default: '', type: 'varchar', length: 64 })
-    public accessor modelName!: string;
-
-    /** ASR model version (e.g. 3.1). */
-    @Column({ default: '', type: 'varchar', length: 16 })
-    public accessor modelVersion!: string;
-
-    /** Time-series of utterances (raw Whisper/ASR output). */
-    @Column({ default: '[]', type: 'text', as: 'json', fullText: true, fullTextPath: '$.text' })
-    public accessor utterances!: Utterance[];
-
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
+export class Transcription extends TranscriptionSchema.class {
+    public constructor(data: Partial<Transcription> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.encounterId = data.encounterId ?? '';
+        this.modelName = data.modelName ?? '';
+        this.modelVersion = data.modelVersion ?? '';
+        this.utterances = data.utterances ?? [];
+    }
 
     public getEncounterId(): string {
         return this.encounterId;
@@ -85,3 +86,5 @@ export class Transcription extends AbstractEntity {
         this.uuid = value;
     }
 }
+
+TranscriptionSchema.setClass(Transcription);

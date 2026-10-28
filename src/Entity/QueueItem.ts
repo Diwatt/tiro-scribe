@@ -4,63 +4,58 @@
  * Created when an Encounter is marked ToProcess; removed when processing completes.
  */
 
-import type { Dayjs } from 'dayjs';
+import { defineEntity, p } from '@mikro-orm/core';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { ForeignKey } from '../Database/Decorator';
-import { Column, Entity, PrimaryKey } from '../Decorator';
+import { DayjsType } from '@/Database/DayjsType';
+import { QueueItemRepository } from '@/Repository/QueueItemRepository';
 import { Encounter } from './Encounter';
 import { PipelineStage, QueueItemStatus } from './Type';
 
 dayjs.extend(utc);
 
-@Entity({ tableName: 'queue_items', repositoryClass: 'QueueItemRepository' })
-export class QueueItem extends AbstractEntity {
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public accessor createdAt!: Dayjs;
+const QueueItemSchema = defineEntity({
+    name: 'QueueItem',
+    tableName: 'queue_items',
+    repository: () => QueueItemRepository,
+    properties: {
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+        createdAt: p.type(DayjsType).onCreate(() => dayjs.utc()),
+        encounterId: p.manyToOne(Encounter).deleteRule('cascade').mapToPk(),
+        encryptedAudioPath: p.text().default(''),
+        errorMessage: p.text().default(''),
+        maxRetries: p.integer().default(3),
+        metadata: p.json<Record<string, unknown>>().onCreate(() => ({})),
+        pipelineStage: p.enum(() => PipelineStage).default(PipelineStage.Waiting),
+        priority: p.integer().default(1),
+        processingOffset: p.integer().default(0),
+        progressPercent: p.integer().default(0),
+        retryCount: p.integer().default(0),
+        status: p.enum(() => QueueItemStatus).default(QueueItemStatus.Pending),
+        updatedAt: p.type(DayjsType).onCreate(() => dayjs.utc()).onUpdate(() => dayjs.utc()),
+    },
+});
 
-    @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
-    @Column({ default: '', type: 'varchar', length: 36 })
-    public accessor encounterId!: string;
-
-    @Column({ default: '', type: 'text' })
-    public accessor errorMessage!: string;
-
-    @Column({ default: '', type: 'text' })
-    public accessor encryptedAudioPath!: string;
-
-    @Column({ default: 3, type: 'integer' })
-    public accessor maxRetries!: number;
-
-    @Column({ default: '{}', type: 'text', as: 'json' })
-    public accessor metadata!: Record<string, unknown>;
-
-    @Column({ default: PipelineStage.Waiting, type: 'varchar', length: 16 })
-    public accessor pipelineStage!: PipelineStage;
-
-    @Column({ default: 1, type: 'integer' })
-    public accessor priority!: number;
-
-    @Column({ default: 0, type: 'integer' })
-    public accessor processingOffset!: number;
-
-    @Column({ default: 0, type: 'integer' })
-    public accessor progressPercent!: number;
-
-    @Column({ default: 0, type: 'integer' })
-    public accessor retryCount!: number;
-
-    @Column({ default: QueueItemStatus.Pending, type: 'varchar', length: 16 })
-    public accessor status!: QueueItemStatus;
-
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public accessor updatedAt!: Dayjs;
-
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
+export class QueueItem extends QueueItemSchema.class {
+    public constructor(data: Partial<QueueItem> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.createdAt = data.createdAt ?? dayjs.utc();
+        this.encounterId = data.encounterId ?? '';
+        this.encryptedAudioPath = data.encryptedAudioPath ?? '';
+        this.errorMessage = data.errorMessage ?? '';
+        this.maxRetries = data.maxRetries ?? 3;
+        this.metadata = data.metadata ?? {};
+        this.pipelineStage = data.pipelineStage ?? PipelineStage.Waiting;
+        this.priority = data.priority ?? 1;
+        this.processingOffset = data.processingOffset ?? 0;
+        this.progressPercent = data.progressPercent ?? 0;
+        this.retryCount = data.retryCount ?? 0;
+        this.status = data.status ?? QueueItemStatus.Pending;
+        this.updatedAt = data.updatedAt ?? dayjs.utc();
+    }
 
     public get isProcessable(): boolean {
         if (this.status === QueueItemStatus.Pending) {
@@ -196,3 +191,5 @@ export class QueueItem extends AbstractEntity {
         return item;
     }
 }
+
+QueueItemSchema.setClass(QueueItem);

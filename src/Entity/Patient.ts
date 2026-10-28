@@ -4,42 +4,43 @@
  * No names stored. Therapist is on Encounter.therapistId, not in this table.
  */
 
-import type { Dayjs } from 'dayjs';
+import { defineEntity, p } from '@mikro-orm/core';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { ForeignKey } from '../Database/Decorator';
-import { Column, Entity, PrimaryKey } from '../Decorator';
+import { DayjsType } from '@/Database/DayjsType';
 import { Encounter } from './Encounter';
 
 dayjs.extend(utc);
 
-@Entity({ tableName: 'patients' })
-export class Patient extends AbstractEntity {
-    /** Projected-voice biocode (from Biocode service). */
-    @Column({ default: '', type: 'varchar', length: 64 })
-    public accessor biocode!: string;
+const PatientSchema = defineEntity({
+    name: 'Patient',
+    tableName: 'patients',
+    properties: {
+        /** Projected-voice biocode (from Biocode service). */
+        biocode: p.string().length(64).default(''),
+        /** UTC, stored as ISO string. */
+        createdAt: p.type(DayjsType).onCreate(() => dayjs.utc()),
+        encounterId: p.manyToOne(Encounter).deleteRule('cascade').mapToPk(),
+        /** Server-assigned patient UUID after recognition; null until then. */
+        serverPatientUuid: p.string().length(36).nullable(),
+        /** UTC, stored as ISO string. */
+        updatedAt: p.type(DayjsType).onCreate(() => dayjs.utc()),
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+    },
+});
 
-    /** UTC, stored as ISO string. */
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public accessor createdAt!: Dayjs;
-
-    @ForeignKey({ target: () => Encounter, onDelete: 'CASCADE' })
-    @Column({ default: '', type: 'varchar', length: 36 })
-    public accessor encounterId!: string;
-
-    /** Server-assigned patient UUID after recognition; null until then. */
-    @Column({ default: null, type: 'varchar', length: 36 })
-    public accessor serverPatientUuid!: string | null;
-
-    /** UTC, stored as ISO string. */
-    @Column({ default: () => dayjs.utc().toISOString(), type: 'datetime', as: 'date' })
-    public accessor updatedAt!: Dayjs;
-
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
+export class Patient extends PatientSchema.class {
+    public constructor(data: Partial<Patient> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.biocode = data.biocode ?? '';
+        this.createdAt = data.createdAt ?? dayjs.utc();
+        this.encounterId = data.encounterId ?? '';
+        this.serverPatientUuid = data.serverPatientUuid ?? null;
+        this.updatedAt = data.updatedAt ?? dayjs.utc();
+    }
 
     public getBiocode(): string {
         return this.biocode;
@@ -54,7 +55,7 @@ export class Patient extends AbstractEntity {
     }
 
     public getServerPatientUuid(): string | null {
-        return this.serverPatientUuid;
+        return this.serverPatientUuid ?? null;
     }
 
     public getUpdatedAt(): Dayjs {
@@ -89,3 +90,5 @@ export class Patient extends AbstractEntity {
         this.uuid = value;
     }
 }
+
+PatientSchema.setClass(Patient);

@@ -1,8 +1,7 @@
 /**
- * Fake entities for the DevConsole fixture tests. The real entities rely on Stage 3
- * decorator metadata that the Jest runner cannot load (same reason the
- * tests/Entity suites use mockEntity) — these mimics expose only the surface
- * used by src/DevConsole/FixtureLoader.
+ * Fake entities for the DevConsole fixture tests. These mimics keep the fixture
+ * tests isolated from the ORM and expose only the surface used by
+ * src/DevConsole/FixtureLoader.
  */
 
 import { EncounterStatus, PipelineStage, QueueItemStatus } from '@/Entity/Type';

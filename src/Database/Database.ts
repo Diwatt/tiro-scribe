@@ -1,95 +1,72 @@
 /**
- * Database: SQLite connection and schema sync (singleton).
- * Use Database.initialize() (or initialize(entityClasses) for DI) to create tables.
- * Schema sync on initialize is additive only (create missing tables/columns); see DefinitionLanguageWriter.
+ * Database: MikroORM singleton over the expo-sqlite connection (kysely-expo dialect).
+ * initialize() opens the ORM, syncs the schema (additive) and caches the instance.
  */
 
-// FileSystem is imported statically since dynamic imports are no longer
-// desired by the user. We cast the module when accessing documentDirectory to
-// satisfy TypeScript.
+import { MikroORM, SqliteDriver } from '@mikro-orm/sql';
+import type { Options } from '@mikro-orm/core';
+import type { Dialect } from 'kysely';
 import { deleteDatabaseAsync } from 'expo-sqlite';
-
-import type { Kysely } from 'kysely';
+import { ExpoDialect } from 'kysely-expo';
 import { AppConfig } from '@/Core/AppConfig';
-import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { EntityMetadata } from '@/Database/Decorator';
-import { DefinitionBuilder } from '@/Database/Schema/DefinitionBuilder';
-import { DefinitionLanguageWriter } from '@/Database/Schema/DefinitionLanguageWriter';
-import type { DatabaseSchema, EntityClass } from '@/Database/Type';
-import type { MetadataConstructor } from '@/Decorator/Type';
-import { ENTITY_CLASSES } from '@/Entity/index';
 import { DatabaseException } from '@/Exception';
-import { QueryBuilder } from './QueryBuilder';
 
-/**
- * Singleton: one SQLite connection and schema sync. Uses ENTITY_CLASSES from @/Entity by default; override via initialize(entityClasses).
- */
 export class Database {
     private static readonly errorCodeNotInitialized = 'DATABASE_NOT_INITIALIZED';
 
     private static instance: Database | null = null;
 
-    private static readonly notInitializedMessage =
-        'Database not initialized. Call Database.initialize() before using repositories.';
-    private constructor() {}
+    private constructor(private readonly orm: InstanceType<typeof MikroORM>) {}
 
-    /**
-     * Returns the Kysely instance for direct database operations.
-     * Throws if initialize() has not been called.
-     */
-    public static getConnection() {
-        if (Database.instance == null) {
-            throw new DatabaseException(Database.notInitializedMessage, Database.errorCodeNotInitialized);
-        }
-        return Container.get(QueryBuilder);
-    }
-
-    /**
-     * Initializes the database (idempotent). Uses default entity list from @/Entity when omitted.
-     * Must be called before any repository usage.
-     * Async so not in constructor: JS/TS constructors cannot be async (open + transaction use await).
-     */
-    public static async initialize(entityClasses: EntityClass[] = ENTITY_CLASSES): Promise<void> {
+    /** Idempotent. The caller supplies the entity list (production: ENTITY_CLASSES from @/Entity). */
+    public static async initialize(options: { dialect?: Dialect; entities: Options['entities'] }): Promise<Database> {
         if (Database.instance != null) {
-            return;
+            return Database.instance;
         }
 
-        const db = new Database();
-        await db.openAndSync(entityClasses);
-        Database.instance = db;
+        const appConfig = Container.get(AppConfig);
+        const orm = await MikroORM.init({
+            driver: SqliteDriver,
+            entities: options.entities,
+            dbName: appConfig.databaseName,
+            driverOptions: options.dialect ?? new ExpoDialect({ database: appConfig.databaseName }),
+            // app-wide singleton EM (no request scoping in a local-first mobile app)
+            allowGlobalContext: true,
+        });
+        await orm.schema.update();
+
+        Database.instance = new Database(orm);
+        return Database.instance;
     }
 
-    /**
-     * Development helper: Deletes the underlying SQLite file and clears the
-     * singleton instance so that the next call to `initialize` starts with a
-     * fresh database. This is only called from AppConfig.getInstance().isDev code – production apps
-     * should never invoke this method.
-     */
-    public static async reset(): Promise<void> {
-        // log before deleting so tests and debugging can see what file is being
-        // removed; matches expectation in Database.test.ts
-        const appConfig = Container.get(AppConfig);
-        Container.get(AppLogger).info('[Database] resetting database at', {
-            path: appConfig.databaseName,
-        });
+    public static getInstance(): Database {
+        if (Database.instance == null) {
+            throw new DatabaseException(
+                'Database not initialized. Call Database.initialize() before using repositories.',
+                Database.errorCodeNotInitialized,
+            );
+        }
 
+        return Database.instance;
+    }
+
+    /** EntityManager: `getRepository(Therapist)` infers TherapistRepository automatically. */
+    public static getEntityManager() {
+        return Database.getInstance().orm.em;
+    }
+
+    /** Dev helper: deletes the SQLite file and clears the singleton. */
+    public static async reset(): Promise<void> {
+        const appConfig = Container.get(AppConfig);
         await deleteDatabaseAsync(appConfig.databaseName);
         Database.instance = null;
     }
 
-    private async openAndSync(entityClasses: EntityClass[]): Promise<void> {
-        // Use Kysely transaction for schema creation
-        const queryBuilder = Container.get(QueryBuilder) as Kysely<DatabaseSchema>;
-        await queryBuilder.transaction().execute(async (trx: Kysely<DatabaseSchema>) => {
-            const writer = new DefinitionLanguageWriter(trx, Container.get(AppLogger));
-            for (const entityCls of entityClasses) {
-                const definition = new DefinitionBuilder(
-                    EntityMetadata.for(entityCls as MetadataConstructor),
-                    queryBuilder,
-                ).build();
-                await writer.write(definition);
-            }
-        });
+    public static async close(): Promise<void> {
+        if (Database.instance != null) {
+            await Database.instance.orm.close(true);
+            Database.instance = null;
+        }
     }
 }

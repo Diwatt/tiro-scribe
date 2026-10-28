@@ -3,58 +3,53 @@
  * Creation, unlock and recovery are in TherapistForge.
  */
 
+import { defineEntity, p } from '@mikro-orm/core';
 import { v4 as uuidv4 } from 'uuid';
-import { AbstractEntity } from '../Database/AbstractEntity';
-import { Column, Entity, PrimaryKey } from '../Decorator';
+import { TherapistRepository } from '@/Repository/TherapistRepository';
 
-@Entity({ tableName: 'therapists', repositoryClass: 'TherapistRepository' })
-export class Therapist extends AbstractEntity {
-    /** Projected-voice biocode (vector stored as JSON array). Set at calibration; same every encounter. */
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public accessor biocode!: number[];
+const TherapistSchema = defineEntity({
+    name: 'Therapist',
+    tableName: 'therapists',
+    repository: () => TherapistRepository,
+    properties: {
+        biocode: p.json<number[]>().onCreate(() => []),
+        email: p.string().default(''),
+        encryptedMasterKeyPrimary: p.text().default(''),
+        encryptedMasterKeyRecovery: p.text().default(''),
+        languages: p.json<string[]>().onCreate(() => []),
+        // TODO (Post-MVP) : Here we gonnna store the alias for the hardware key (Keystore/Secure Enclave).
+        // It will be use to encrypt and decrypt the Master Key with biometrics interface (FaceID/TouchID)
+        // to avoid the therapist to retype his password on every app opening
+        biometricKeyAlias: p.string().length(36).nullable(),
+        masterKeyCheckHash: p.text().default(''),
+        name: p.string().nullable(),
+        passwordHash: p.text().default(''),
+        qualification: p.string().nullable(),
+        recoveryCodeHash: p.text().default(''),
+        therapyMethod: p.string().nullable(),
+        uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
+        yearsOfExperience: p.integer().nullable(),
+    },
+});
 
-    @Column({ default: '', type: 'varchar' })
-    public accessor email!: string;
-
-    @Column({ default: '', type: 'text' })
-    public accessor encryptedMasterKeyPrimary!: string;
-
-    @Column({ default: '', type: 'text' })
-    public accessor encryptedMasterKeyRecovery!: string;
-
-    @Column({ default: '[]', type: 'text', as: 'json' })
-    public accessor languages!: string[];
-
-    // TODO (Post-MVP) : Here we gonnna store the alias for the hardware key (Keystore/Secure Enclave).
-    // It will be use to encrypt and decrypt the Master Key with biometrics interface (FaceID/TouchID) 
-    // to avoid the therapist to retype his password on every app opening
-    @Column({ default: null, type: 'varchar', length: 36 })
-    public accessor biometricKeyAlias!: string | null;
-
-    @Column({ default: '', type: 'text' })
-    public accessor masterKeyCheckHash!: string;
-
-    @Column({ default: null, type: 'varchar' })
-    public accessor name!: string | null;
-
-    @Column({ default: '', type: 'text' })
-    public accessor passwordHash!: string;
-
-    @Column({ default: null, type: 'varchar' })
-    public accessor qualification!: string | null;
-
-    @Column({ default: '', type: 'text' })
-    public accessor recoveryCodeHash!: string;
-
-    @Column({ default: null, type: 'varchar' })
-    public accessor therapyMethod!: string | null;
-
-    @PrimaryKey()
-    @Column({ default: () => uuidv4(), type: 'varchar', length: 36 })
-    public accessor uuid!: string;
-
-    @Column({ default: null, type: 'integer' })
-    public accessor yearsOfExperience!: number | null;
+export class Therapist extends TherapistSchema.class {
+    public constructor(data: Partial<Therapist> = {}) {
+        super();
+        this.uuid = data.uuid ?? uuidv4();
+        this.biocode = data.biocode ?? [];
+        this.email = data.email ?? '';
+        this.encryptedMasterKeyPrimary = data.encryptedMasterKeyPrimary ?? '';
+        this.encryptedMasterKeyRecovery = data.encryptedMasterKeyRecovery ?? '';
+        this.languages = data.languages ?? [];
+        this.biometricKeyAlias = data.biometricKeyAlias ?? null;
+        this.masterKeyCheckHash = data.masterKeyCheckHash ?? '';
+        this.name = data.name ?? null;
+        this.passwordHash = data.passwordHash ?? '';
+        this.qualification = data.qualification ?? null;
+        this.recoveryCodeHash = data.recoveryCodeHash ?? '';
+        this.therapyMethod = data.therapyMethod ?? null;
+        this.yearsOfExperience = data.yearsOfExperience ?? null;
+    }
 
     public getBiocode(): number[] {
         return this.biocode;
@@ -77,7 +72,7 @@ export class Therapist extends AbstractEntity {
     }
 
     public getBiometricKeyAlias(): string | null {
-        return this.biometricKeyAlias;
+        return this.biometricKeyAlias ?? null;
     }
 
     public getMasterKeyCheckHash(): string {
@@ -85,7 +80,7 @@ export class Therapist extends AbstractEntity {
     }
 
     public getName(): string | null {
-        return this.name;
+        return this.name ?? null;
     }
 
     public getPasswordHash(): string {
@@ -93,7 +88,7 @@ export class Therapist extends AbstractEntity {
     }
 
     public getQualification(): string | null {
-        return this.qualification;
+        return this.qualification ?? null;
     }
 
     public getRecoveryCodeHash(): string {
@@ -101,7 +96,7 @@ export class Therapist extends AbstractEntity {
     }
 
     public getTherapyMethod(): string | null {
-        return this.therapyMethod;
+        return this.therapyMethod ?? null;
     }
 
     public getUuid(): string {
@@ -109,7 +104,7 @@ export class Therapist extends AbstractEntity {
     }
 
     public getYearsOfExperience(): number | null {
-        return this.yearsOfExperience;
+        return this.yearsOfExperience ?? null;
     }
 
     public isValidPassword(hash: string): boolean {
@@ -172,3 +167,5 @@ export class Therapist extends AbstractEntity {
         this.yearsOfExperience = value;
     }
 }
+
+TherapistSchema.setClass(Therapist);

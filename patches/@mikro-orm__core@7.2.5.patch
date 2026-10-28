@@ -1,0 +1,93 @@
+diff --git a/MikroORM.js b/MikroORM.js
+index b9f01b49ecc13a47e2a2423af39f4e85e691f8da..f049d20617208d29c48c254e8bf19075af7ac291 100644
+--- a/MikroORM.js
++++ b/MikroORM.js
+@@ -6,20 +6,13 @@ import { clearRlsFilterDefsCache } from './utils/rls-utils.js';
+ import { Utils } from './utils/Utils.js';
+ import { colors } from './logging/colors.js';
+ async function tryRegisterExtension(name, pkg, extensions) {
+-    try {
+-        const url = import.meta.resolve(pkg);
+-        const mod = await import(url);
+-        if (mod[name]) {
+-            extensions.push(mod[name]);
+-        }
+-    }
+-    catch {
+-        // not installed
+-    }
++    // [tiro-scribe patch] Node-only extension discovery (import.meta.resolve + dynamic
++    // import) is not supported under Metro/Hermes. The RN app registers no extensions.
++    return;
+ }
+ /** @internal */
+ export async function loadOptionalDependencies(options) {
+-    await import('@mikro-orm/core/fs-utils').then(m => m.fs.init()).catch(() => null);
++    // [tiro-scribe patch] fs-utils requires node:fs — not available under Metro/Hermes.
+     const extensions = options.extensions ?? [];
+     const exists = (name) => extensions.some(ext => ext.name === name);
+     if (!exists('SeedManager')) {
+@@ -39,7 +32,7 @@ export async function loadOptionalDependencies(options) {
+     const metadataCacheEnabled = options.metadataCache?.enabled || options.metadataProvider?.useCache?.();
+     if (metadataCacheEnabled) {
+         options.metadataCache ??= {};
+-        options.metadataCache.adapter ??= await import('@mikro-orm/core/fs-utils').then(m => m.FileCacheAdapter);
++        throw new Error('metadataCache is not supported under Metro/Hermes (fs-utils requires node:fs)');
+     }
+ }
+ /**
+diff --git a/metadata/MetadataDiscovery.js b/metadata/MetadataDiscovery.js
+index c350ff49e9b8be355bfb12412c8d8da52d686441..58afd0f0f9447bf0644955e81267b4c6b3fc1421 100644
+--- a/metadata/MetadataDiscovery.js
++++ b/metadata/MetadataDiscovery.js
+@@ -207,7 +207,8 @@ export class MetadataDiscovery {
+             }
+         }
+         if (paths.length > 0) {
+-            const { discoverEntities } = await import('@mikro-orm/core/file-discovery');
++            // [tiro-scribe patch] folder-based discovery is Node-only (node:fs) — the RN app passes entity classes.
++            throw new Error('folder-based entity discovery is not supported under Metro/Hermes');
+             processed.push(...(await discoverEntities(paths, { baseDir })));
+         }
+         return this.discoverReferences(processed);
+diff --git a/utils/Configuration.js b/utils/Configuration.js
+index 5238c7f9aff10241bbb22c0c1f3b3b6020f9d7b1..48ee34d1676e9bf58cda1f0ed0ba2055dff095cc 100644
+--- a/utils/Configuration.js
++++ b/utils/Configuration.js
+@@ -135,7 +135,7 @@ const DEFAULTS = {
+         fileName: (className) => className,
+     },
+     preferReadReplicas: true,
+-    dynamicImportProvider: /* v8 ignore next */ (id) => import(id),
++    dynamicImportProvider: /* [tiro-scribe patch] */ (id) => { throw new Error('dynamic imports are not supported under Metro/Hermes'); },
+ };
+ /** Holds and validates all ORM configuration options, providing access to drivers, loggers, cache adapters, and other services. */
+ export class Configuration {
+diff --git a/utils/DataloaderUtils.js b/utils/DataloaderUtils.js
+index 1725f2d187db30787a41bdfb99beefc179e24dd1..8bb0dafe82f1247d8afe2601b29dbfca60183293 100644
+--- a/utils/DataloaderUtils.js
++++ b/utils/DataloaderUtils.js
+@@ -300,7 +300,8 @@ export class DataloaderUtils {
+             return this.DataLoader;
+         }
+         try {
+-            const mod = await import('dataloader');
++            // [tiro-scribe patch] optional peer `dataloader` is not installed in the RN app.
++            throw new Error('dataloader is not available under Metro/Hermes');
+             const DataLoader = mod.default;
+             return (this.DataLoader ??= DataLoader);
+         }
+diff --git a/utils/Utils.js b/utils/Utils.js
+index 4ac4d01867ef19a4160e9463123a6a1401959de3..e8edcee9b2d9659ceddcaca9a6a32cc36ad3fdff 100644
+--- a/utils/Utils.js
++++ b/utils/Utils.js
+@@ -856,7 +856,8 @@ export class Utils {
+     }
+     static async tryImport({ module, warning, }) {
+         try {
+-            return await import(module);
++            // [tiro-scribe patch] Metro/Hermes rejects import(<variable>) at transform time.
++            return require(module);
+         }
+         catch (err) {
+             // only a missing module is expected here, anything else is a real failure inside the module

@@ -4,22 +4,22 @@
 
 import { Therapist } from '@/Entity/Therapist';
 
-jest.mock('@/Core/AppLogger', () => {
-    const mockLogger = {
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-    };
-    return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
-    };
-});
+describe('Therapist (entity)', () => {
+    it('applies defaults on construction', () => {
+        const therapist = new Therapist();
+        expect(therapist.getUuid()).toHaveLength(36);
+        expect(therapist.getBiocode()).toEqual([]);
+        expect(therapist.getLanguages()).toEqual([]);
+        expect(therapist.getPasswordHash()).toBe('');
+        expect(therapist.getYearsOfExperience()).toBeNull();
+    });
 
-describe('Therapist', () => {
+    it('keeps explicit values over defaults', () => {
+        const therapist = new Therapist({ email: 'a@b.c', name: 'House' });
+        expect(therapist.getEmail()).toBe('a@b.c');
+        expect(therapist.getName()).toBe('House');
+    });
+
     describe('isValidPassword', () => {
         it('returns true when hash matches stored', () => {
             const therapist = new Therapist({});

@@ -1,0 +1,14 @@
+diff --git a/dialects/sqlite/BaseSqliteConnection.js b/dialects/sqlite/BaseSqliteConnection.js
+index 3cf6e32172dbadfcf8b9f37c9a3d92222d856c43..ead8ea22eac8724a518b260b4a9a0d455cefb00d 100644
+--- a/dialects/sqlite/BaseSqliteConnection.js
++++ b/dialects/sqlite/BaseSqliteConnection.js
+@@ -25,7 +25,8 @@ export class BaseSqliteConnection extends AbstractSqlConnection {
+         if (!attachDatabases?.length) {
+             return [];
+         }
+-        const { fs } = await import('@mikro-orm/core/fs-utils');
++        // [tiro-scribe patch] attached databases need fs-utils (node:fs) — never configured in the RN app.
++        throw new Error('attachDatabases is not supported under Metro/Hermes');
+         const baseDir = this.config.get('baseDir');
+         return attachDatabases.map(db => {
+             const path = fs.absolutePath(db.path, baseDir);

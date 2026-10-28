@@ -6,6 +6,7 @@
 export { SpeakerVectorExtractionError } from '../InferenceModel/Speaker/SpeakerVectorExtractionError';
 export { ApiClientException } from './ApiClientException';
 export { DatabaseException, NoActiveTherapistException } from './DatabaseException';
+export { DependencyResolutionException } from './DependencyResolutionException';
 export { EncounterNotFound } from './EncounterNotFound';
 export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
 export { FileOperationError } from './FileOperationError';

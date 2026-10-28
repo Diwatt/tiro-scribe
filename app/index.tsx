@@ -13,6 +13,7 @@ import { useTheme } from 'react-native-paper';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
 import { Database } from '@/Database/Database';
+import { ENTITY_CLASSES } from '@/Entity';
 import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
 
 async function hideSplash(): Promise<void> {
@@ -40,7 +41,7 @@ export default observer(function GateScreen(): React.JSX.Element | null {
             // optionally clear DB on launch when explicitly enabled via env.
             // fallback to AppConfig.isDev only for safety; the flag gives developers control
             // without having to rebuild the binary.
-            const appConfig = AppConfig.getInstance();
+            const appConfig = Container.get(AppConfig);
             if (appConfig.isDev && appConfig.shouldClearDbOnLaunch) {
                 try {
                     await Database.reset();
@@ -49,7 +50,7 @@ export default observer(function GateScreen(): React.JSX.Element | null {
                 }
             }
 
-            await Database.initialize();
+            await Database.initialize({ entities: ENTITY_CLASSES });
             await startupOrchestrator.run();
         })();
     }, [startupOrchestrator.run]);

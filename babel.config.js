@@ -6,16 +6,12 @@ module.exports = function (api) {
             [
                 'babel-preset-expo',
                 {
-                    // SAFETY: decorators MUST stay managed by the preset (not a plugins[] entry).
-                    // The preset wraps them in its lazy plugins which then also enable the loose
-                    // class-properties transform for files with decorated fields. As an explicit
-                    // plugins[] entry it runs BEFORE the preset, so the lazy detector never sees
-                    // the decorators anymore — decorated entity fields stay native Hermes fields
-                    // with define semantics, and Hermes then overwrites the @Column accessors
-                    // with undefined (getUuid()/getEmail()/... returned undefined).
-                    decorators: { version: '2023-05' },
-                    // Hermes natively supports classes; the class transform would destroy
-                    // the _initClass blocks emitted by the 2023-05 decorator transform.
+                    // SAFETY: decorators are FORBIDDEN in this codebase (MikroORM uses
+                    // defineEntity, zero decorators). Never re-enable the decorator
+                    // transform without re-reading TODO.md R1/R5: Hermes native class
+                    // fields overwrite decorator-generated accessors on device.
+                    // Hermes natively supports classes; the class transform would break
+                    // native class semantics — kept stable via this profile (see R1 patch).
                     unstable_transformProfile: 'hermes-stable',
                 },
             ],

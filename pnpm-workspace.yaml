@@ -26,5 +26,6 @@ overrides:
   react-test-renderer: "19.3.0"
 
 patchedDependencies:
+  '@mikro-orm/core@7.2.5': patches/@mikro-orm__core@7.2.5.patch
+  '@mikro-orm/sql@7.2.5': patches/@mikro-orm__sql@7.2.5.patch
   '@react-native/babel-preset@0.85.3': patches/@react-native__babel-preset@0.85.3.patch
-  kysely@0.28.17: patches/kysely@0.28.17.patch

@@ -17,14 +17,11 @@ jest.mock('@/Core/AppLogger', () => {
         error: jest.fn(),
     };
     return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
+        AppLogger: mockLogger,
     };
 });
 
-/** Default of the QueueItem.maxRetries column (@Column({ default: 3 })). */
+/** Default of the QueueItem.maxRetries column (defineEntity default). */
 const DEFAULT_MAX_RETRIES = 3;
 
 describe('QueueItem', () => {
