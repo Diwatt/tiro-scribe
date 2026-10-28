@@ -12,6 +12,12 @@ export type InferenceModelFile = {
     url: string;
     hash: string;
     sizeBytes: number;
+    /**
+     * Role of the file within the bundle. 'model' is the primary ONNX weights file.
+     * Optional for legacy payloads; clients fall back to the first file when resolving 'model' without roles.
+     *
+     */
+    role?: 'model' | 'config' | 'tokenizer' | 'preprocessor_config' | 'generation_config';
 };
 
 /**

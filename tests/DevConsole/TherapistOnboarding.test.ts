@@ -5,6 +5,16 @@ jest.mock('@/Core/Container', () => ({
     },
 }));
 
+const mockRepository = { persist: jest.fn().mockResolvedValue(undefined) };
+
+jest.mock('@/Database/Database', () => ({
+    Database: {
+        getEntityManager: () => ({
+            getRepository: () => mockRepository,
+        }),
+    },
+}));
+
 jest.mock('expo-file-system/legacy', () => ({
     getInfoAsync: jest.fn(),
 }));
@@ -54,8 +64,6 @@ const createDeps = () => {
         generateBiocode: jest.fn().mockResolvedValue({ projectedVector: [0.1, 0.2, 0.3], confidence: 0.98 }),
     };
     const segmentExtractor = { extract: jest.fn().mockResolvedValue(new Float32Array(480)) };
-    const repository = { persist: jest.fn().mockResolvedValue(undefined) };
-    const registry = { getRepository: jest.fn().mockReturnValue(repository) };
     const logger = { info: jest.fn(), warn: jest.fn(), debug: jest.fn(), error: jest.fn() };
 
     return {
@@ -64,15 +72,13 @@ const createDeps = () => {
         vault,
         calibrator,
         segmentExtractor,
-        repository,
-        registry,
+        repository: mockRepository,
         logger,
         onboarding: new TherapistOnboarding(
             forge as never,
             vault as never,
             calibrator as never,
             segmentExtractor as never,
-            registry as never,
             logger as never,
         ),
     };

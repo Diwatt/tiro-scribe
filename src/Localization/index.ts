@@ -8,7 +8,7 @@ export { Localization, useLocalization };
 export const getDeviceLocale = (): ReturnType<Localization['getDeviceLocale']> =>
     Container.get(Localization).getDeviceLocale();
 
-/** Ensures the singleton is created and locale is set from device (constructor runs on first getInstance()). */
+/** Ensures the singleton is resolved from the Container and locale is set from device (constructor runs on first get()). */
 export const initAppLocale = (): void => {
     // Accessing the exported instance forces construction; no-op otherwise
     Container.get(Localization).getLocale();

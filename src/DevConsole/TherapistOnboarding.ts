@@ -1,10 +1,9 @@
 import { getInfoAsync } from 'expo-file-system/legacy';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { Registry } from '@/Database/Registry';
+import { Database } from '@/Database/Database';
 import { Therapist } from '@/Entity/Therapist';
 import { VoiceCalibrator } from '@/InferenceModel/Speaker/VoiceCalibrator';
-import type { TherapistRepository } from '@/Repository/TherapistRepository';
 import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import type { CreateTherapistInput } from '@/Security/TherapistForge';
 import { TherapistForge } from '@/Security/TherapistForge';
@@ -45,7 +44,6 @@ export class TherapistOnboarding {
         private readonly vault: MasterKeyVault,
         private readonly voiceCalibrator: VoiceCalibrator,
         private readonly segmentExtractor: AudioSegmentExtractor,
-        private readonly registry: Registry,
         private readonly logger: AppLogger,
     ) {}
 
@@ -83,7 +81,7 @@ export class TherapistOnboarding {
         const biocode = await this.voiceCalibrator.generateBiocode(artifacts.masterKey, pcm);
         therapist.setBiocode(biocode.projectedVector);
 
-        const repo = this.registry.getRepository<TherapistRepository>(Therapist);
+        const repo = Database.getEntityManager().getRepository(Therapist);
         await repo.persist(therapist);
         await this.vault.save(therapist.uuid, artifacts.masterKey);
 
@@ -105,7 +103,6 @@ Container.register(
             Container.get(MasterKeyVault),
             Container.get(VoiceCalibrator),
             Container.get(AudioSegmentExtractor),
-            Container.get(Registry),
             Container.get(AppLogger),
         ),
 );

@@ -9,6 +9,7 @@
 
 import type { ModelConfig } from '@/Api';
 import type { AppLogger } from '@/Core/AppLogger';
+import { observable } from '@legendapp/state';
 import { Downloader } from '@/InferenceModel/Downloader';
 import { DownloadTaskExecutor } from '@/InferenceModel/Download/DownloadTaskExecutor';
 import { DownloadTaskManager } from '@/InferenceModel/Download/DownloadTaskManager';
@@ -62,7 +63,7 @@ const createMockArtifactStorage = (overrides: Partial<jest.Mocked<ModelArtifactS
         hasAllFiles: jest.fn(),
         getUri: jest.fn(),
         toAbsoluteUri: jest.fn((uri: string) => uri),
-        getModelUri: jest.fn(),
+        getFileByRole: jest.fn((config: ModelConfig) => config.files[0]),
         ...overrides,
     } as unknown as jest.Mocked<ModelArtifactStorage>);
 
@@ -98,7 +99,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const executor = await downloader.download('speaker_id');
@@ -117,7 +118,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await downloader.download('speaker_id', 'fr');
@@ -138,7 +139,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const executor = await downloader.download('speaker_id');
@@ -161,7 +162,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await downloader.download('speaker_id');
@@ -180,7 +181,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await expect(downloader.download('speaker_id')).rejects.toThrow('Config not found');
@@ -202,7 +203,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const result = await downloader.getConfig('speaker_id');
@@ -222,7 +223,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await downloader.getConfig('speaker_id', 'de');
@@ -241,7 +242,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await expect(downloader.getConfig('speaker_id')).rejects.toThrow('Provider error');
@@ -264,7 +265,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const result = await downloader.getConfigs();
@@ -284,7 +285,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await downloader.getConfigs('it');
@@ -310,13 +311,37 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                createMockConfigProvider() as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('speaker_id');
 
             expect(path).toBe('file://models/speaker_id/speaker-v1');
             expect(mockTaskManager.getActiveSession).toHaveBeenCalledWith('speaker_id');
+        });
+
+        it('resolves the model file through the artifact storage by role', async () => {
+            const mockSession = { config: speakerConfig, capability: 'speaker_id' };
+            const getFileByRole = jest.fn().mockReturnValue(speakerConfig.files[0]);
+            const mockTaskManager = createMockTaskManager({
+                getActiveSession: jest.fn().mockReturnValue(undefined),
+            });
+            const mockStorage = createMockArtifactStorage({
+                getFileByRole,
+                hasAllFiles: jest.fn().mockReturnValue(true),
+                getUri: jest.fn().mockReturnValue('file://models/speaker_id/speaker-v1'),
+            });
+
+            const downloader = new Downloader(
+                createMockLogger(),
+                mockStorage,
+                mockTaskManager,
+                createMockConfigProvider({ getConfig: jest.fn().mockResolvedValue(speakerConfig) }) as unknown as ConstructorParameters<typeof Downloader>[3],
+            );
+
+            await downloader.getLocalPath('speaker_id');
+
+            expect(getFileByRole).toHaveBeenCalledWith(speakerConfig, 'model');
         });
 
         it('should return undefined when no session exists', async () => {
@@ -332,7 +357,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('speaker_id');
@@ -353,7 +378,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                createMockConfigProvider() as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('speaker_id');
@@ -373,7 +398,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                createMockConfigProvider() as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('speaker_id');
@@ -393,7 +418,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                createMockConfigProvider() as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('speaker_id', '1.0.0');
@@ -416,7 +441,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const size = await downloader.getTotalSize();
@@ -435,7 +460,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await downloader.getTotalSize('es');
@@ -453,7 +478,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             await expect(downloader.getTotalSize()).rejects.toThrow('Provider error');
@@ -475,7 +500,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const config = await downloader.getConfig('speaker_id');
@@ -493,7 +518,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const config = await downloader.getConfig('speaker_id');
@@ -511,7 +536,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const configs = await downloader.getConfigs();
@@ -531,7 +556,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('');
@@ -549,7 +574,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const size = await downloader.getTotalSize();
@@ -567,7 +592,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const size = await downloader.getTotalSize();
@@ -587,7 +612,7 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                createMockConfigProvider() as Parameters<typeof Downloader>[3],
+                createMockConfigProvider() as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const path = await downloader.getLocalPath('speaker_id');
@@ -609,11 +634,134 @@ describe('Downloader', () => {
                 createMockLogger(),
                 mockStorage,
                 mockTaskManager,
-                mockConfigProvider as Parameters<typeof Downloader>[3],
+                mockConfigProvider as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
             const executor = await downloader.download('speaker_id');
             expect(executor).toBe(failingExecutor);
+        });
+    });
+
+    describe('ensureDownloaded', () => {
+        const createStateExecutor = (state: DownloadState): DownloadTaskExecutor =>
+            ({ start: jest.fn().mockResolvedValue(undefined), state$: observable(state) }) as unknown as DownloadTaskExecutor;
+
+        it('returns immediately when the executor already completed', async () => {
+            const completed = createStateExecutor(DownloadState.Completed);
+            const mockTaskManager = createMockTaskManager();
+            const mockStorage = createMockArtifactStorage({ hasAllFiles: jest.fn().mockReturnValue(false) });
+            mockTaskManager.getOrCreateExecutor.mockReturnValue(completed);
+            const downloader = new Downloader(
+                createMockLogger(),
+                mockStorage as unknown as ModelArtifactStorage,
+                mockTaskManager,
+                createMockConfigProvider({
+                    getConfig: jest.fn().mockResolvedValue(speakerConfig),
+                }) as unknown as ConstructorParameters<typeof Downloader>[3],
+            );
+
+            const executor = await downloader.ensureDownloaded('speaker_id');
+
+            expect(executor).toBe(completed);
+        });
+
+        it('waits for a background download to complete before returning', async () => {
+            const state$ = observable(DownloadState.Downloading);
+            const executor = { start: jest.fn().mockResolvedValue(undefined), state$ } as unknown as DownloadTaskExecutor;
+            const mockTaskManager = createMockTaskManager();
+            const mockStorage = createMockArtifactStorage({ hasAllFiles: jest.fn().mockReturnValue(false) });
+            mockTaskManager.getOrCreateExecutor.mockReturnValue(executor);
+            const downloader = new Downloader(
+                createMockLogger(),
+                mockStorage as unknown as ModelArtifactStorage,
+                mockTaskManager,
+                createMockConfigProvider({
+                    getConfig: jest.fn().mockResolvedValue(speakerConfig),
+                }) as unknown as ConstructorParameters<typeof Downloader>[3],
+            );
+
+            const pending = downloader.ensureDownloaded('speaker_id');
+            state$.set(DownloadState.Completed);
+
+            await expect(pending).resolves.toBe(executor);
+        });
+
+        it('rejects when the background download fails', async () => {
+            const state$ = observable(DownloadState.Downloading);
+            const executor = { start: jest.fn().mockResolvedValue(undefined), state$ } as unknown as DownloadTaskExecutor;
+            const mockTaskManager = createMockTaskManager();
+            const mockStorage = createMockArtifactStorage({ hasAllFiles: jest.fn().mockReturnValue(false) });
+            mockTaskManager.getOrCreateExecutor.mockReturnValue(executor);
+            const downloader = new Downloader(
+                createMockLogger(),
+                mockStorage as unknown as ModelArtifactStorage,
+                mockTaskManager,
+                createMockConfigProvider({
+                    getConfig: jest.fn().mockResolvedValue(speakerConfig),
+                }) as unknown as ConstructorParameters<typeof Downloader>[3],
+            );
+
+            const pending = downloader.ensureDownloaded('speaker_id');
+            state$.set(DownloadState.Failed);
+
+            await expect(pending).rejects.toThrow(/ended with state/);
+        });
+    });
+
+    describe('getArtifactText', () => {
+        const bundleConfig: ModelConfig = {
+            ...speakerConfig,
+            files: [
+                { url: 'https://example.com/speaker_id/voxceleb.onnx', hash: 'onnx1', sizeBytes: 1024 * 1024, role: 'model' },
+                {
+                    url: 'https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/speaker_id/config.yaml?download=true',
+                    hash: 'yaml1',
+                    sizeBytes: 512,
+                    role: 'config',
+                },
+            ],
+        };
+
+        const createDownloader = (getConfig: jest.Mock, storageOverrides: Partial<jest.Mocked<ModelArtifactStorage>> = {}): Downloader =>
+            new Downloader(
+                createMockLogger(),
+                createMockArtifactStorage(storageOverrides) as unknown as ModelArtifactStorage,
+                createMockTaskManager(),
+                createMockConfigProvider({ getConfig }) as unknown as ConstructorParameters<typeof Downloader>[3],
+            );
+
+        it('resolves the file by role through the artifact storage and returns its text', async () => {
+            const artifactFile = { exists: true, text: () => 'model: CAMPPlus' };
+            const downloader = createDownloader(jest.fn().mockResolvedValue(bundleConfig), {
+                getFileByRole: jest.fn().mockReturnValue(bundleConfig.files[1]),
+                getFile: jest.fn().mockReturnValue(artifactFile),
+            });
+
+            const text = await downloader.getArtifactText('speaker_id', 'config');
+
+            expect(text).toBe('model: CAMPPlus');
+        });
+
+        it('returns null when the role-resolved artifact is not on disk yet', async () => {
+            const artifactFile = { exists: false, text: () => 'should not be read' };
+            const downloader = createDownloader(jest.fn().mockResolvedValue(bundleConfig), {
+                getFileByRole: jest.fn().mockReturnValue(bundleConfig.files[1]),
+                getFile: jest.fn().mockReturnValue(artifactFile),
+            });
+
+            const text = await downloader.getArtifactText('speaker_id', 'config');
+
+            expect(text).toBeNull();
+        });
+
+        it('propagates the storage exception when the role is absent from the bundle', async () => {
+            const downloader = createDownloader(jest.fn().mockResolvedValue(bundleConfig), {
+                getFileByRole: jest.fn().mockImplementation(() => {
+                    throw new Error("No file with role 'config'");
+                }),
+            });
+
+            await expect(downloader.getArtifactText('speaker_id', 'config')).rejects.toThrow("No file with role 'config'");
         });
     });
 });

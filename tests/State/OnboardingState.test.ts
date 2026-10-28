@@ -15,9 +15,6 @@ import { OnboardingStep } from '@/State/Onboarding/Types';
 
 describe('OnboardingState', () => {
     beforeEach(() => {
-        // prepare container so core singletons are registered
-        Container.initialize();
-
         // replace downloader with a lightweight fake so ensureSpeakerModel()
         // always enters its download branch (never hits config/artifact storage)
         Container.register(Downloader, () => {

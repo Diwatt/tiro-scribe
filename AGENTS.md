@@ -24,7 +24,7 @@ Never append `| tail`, `| head`, or other output-truncation modifiers to termina
 
 You have access to MCP servers. Use them proactively:
 
-- **Context7:** ALWAYS use this tool to read the latest official documentation for `expo`, `expo-router`, `react-native`, `react-native-paper`, `onnxruntime-react-native`, `kysely`, `@legendapp/state`, and `zod` before using their APIs to prevent hallucinations
+- **Context7:** ALWAYS use this tool to read the latest official documentation for `expo`, `expo-router`, `react-native`, `react-native-paper`, `onnxruntime-react-native`, `@mikro-orm/core`, `@legendapp/state`, and `zod` before using their APIs to prevent hallucinations
 - **Sequential Thinking:** Use this tool to break down complex architectural changes or MVVM refactoring before writing the code
 
 ### Device & UI Debugging (Argent MCP)
@@ -203,9 +203,12 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - **Important:** Do not ignore errors flagged by Biome or ESLint. Fix styling, import, or typing issues before finalizing code
 - **NO Terminal Formatting:** DO NOT run `pnpm run biome` or `pnpm run lint`. The user handles formatting locally via `Shift+Alt+S`
 
-### Kysely
-- Query builder for Expo SQLite
-- Used for database schema and queries
+### MikroORM
+- ORM over Expo SQLite (kysely-expo dialect), Doctrine-style: Data Mapper, Unit of Work, Identity Map
+- Entities declared with `defineEntity`; rich domain classes `export class X extends XSchema.class`
+- Bootstrap once at app start: `Database.initialize({ entities: ENTITY_CLASSES })` — access via `Database.getEntityManager().getRepository(X)`
+- One repository per aggregate root (`src/Repository/`); base `AbstractRepository` provides `persist` (upsert), `exists`, `delete`
+- Schema sync is additive at launch (`orm.schema.update()`) — no destructive migration
 
 ### Jest
 - Jest (jest-expo) for TypeScript unit tests, Jest for native modules
@@ -224,7 +227,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 | **Api/** | Backend API client, HTTP transport, model resolution, generated types. Import from `@/Api` |
 | **Components/** | Shared UI components (dumb, presentational) |
 | **Context/** | React context providers |
-| **Database/** | Persistence: entities, repository, decorators, serialization |
+| **Database/** | Persistence bootstrap: MikroORM singleton, Dayjs mapping |
 | **Entity/** | Domain entities (pure data + getters/setters; no I/O) |
 | **Exception/** | Custom error types |
 | **Localization/** | Locale, translations, `Localization`, `useLocalization` |
@@ -338,7 +341,8 @@ All runtime singleton instances live in `src/Core/Container.ts`, registered as c
 - Hardware-backed Keychain (iOS) / AndroidKeyStore (Android)
 
 ### Biocode Protocol
-- `Hash(SpeakerVector + TherapistIdentifier_Salt)`
+- **Projection vectorielle** (décision 28/10/2026, remplace `Hash(SpeakerVector + Salt)`) : `Biocode = ProjectionMatrix × SpeakerVector`, matrice dérivée du secret thérapeute (`ProjectionMatrixFactory` via master key)
+- Matching multi-séances par similarité cosinus (`Biocode.similarityTo`) ; anonymisation préservée — sans la matrice, le biocode n'est pas ré-identifiable
 
 ### Anonymization
 - 3-layer approach: ONNX BERT + Heuristics + Temporal Fuzzing
@@ -348,7 +352,7 @@ All runtime singleton instances live in `src/Core/Container.ts`, registered as c
 ## Data & Storage
 
 ### Primary Database
-- Expo SQLite with Kysely query builder
+- Expo SQLite via MikroORM v7 (kysely-expo dialect)
 
 ### File Storage
 - Expo FileSystem for encrypted audio (.dat files, EncryptionStream format)

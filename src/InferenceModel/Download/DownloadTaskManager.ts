@@ -7,7 +7,6 @@
 import dayjs from 'dayjs';
 import type { ModelConfig } from '@/Api';
 import type { AppLogger } from '@/Core/AppLogger';
-import { Criteria } from '@/Database/Criteria';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
 import { DownloadQueueStatus } from '@/Entity/Type';
 import { InferenceModelDownloaderException } from '@/Exception';
@@ -76,8 +75,8 @@ export class DownloadTaskManager {
     public async clearAll(): Promise<void> {
         try {
             const all = await this.repository.findAll();
-            for (const item of all.toArray()) {
-                await this.repository.remove(item);
+            for (const item of all) {
+                await this.repository.delete(item);
             }
             this.activeSessions.clear();
             this.logger.debug('Cleared all download tasks');
@@ -104,7 +103,7 @@ export class DownloadTaskManager {
     public async findByStatus(status: DownloadQueueStatus): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findByStatus(status);
-            return entities.toArray();
+            return entities;
         } catch (error) {
             this.logger.error(`Failed to get download tasks with status ${status}`, error);
             throw new InferenceModelDownloaderException(
@@ -164,7 +163,7 @@ export class DownloadTaskManager {
     public async getAll(): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findAll();
-            return entities.toArray();
+            return entities;
         } catch (error) {
             this.logger.error('Failed to get all download tasks', error);
             throw new InferenceModelDownloaderException(
@@ -180,7 +179,7 @@ export class DownloadTaskManager {
     public async getByCapability(capability: string): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findByCapability(capability);
-            return entities.toArray();
+            return entities;
         } catch (error) {
             this.logger.error(`Failed to get download tasks for capability ${capability}`, error);
             throw new InferenceModelDownloaderException(
@@ -196,7 +195,7 @@ export class DownloadTaskManager {
     public async getByCapabilityAndLanguage(capability: string, language: string): Promise<DownloadQueue[]> {
         try {
             const entities = await this.repository.findByCapabilityAndLanguage(capability, language);
-            return entities.toArray();
+            return entities;
         } catch (error) {
             this.logger.error(`Failed to get download tasks for ${capability}/${language}`, error);
             throw new InferenceModelDownloaderException(
@@ -211,10 +210,7 @@ export class DownloadTaskManager {
      */
     public async getById(uuid: string): Promise<DownloadQueue | null> {
         try {
-            const criteria = Criteria.of({ uuid });
-            const entityCollection = await this.repository.findBy(criteria);
-            const entity = entityCollection.first();
-            return entity ?? null;
+            return await this.repository.findOne({ uuid });
         } catch (error) {
             this.logger.error(`Failed to get download task by UUID ${uuid}`, error);
             throw new InferenceModelDownloaderException(
@@ -277,9 +273,7 @@ export class DownloadTaskManager {
      */
     public async incrementRetryCount(uuid: string): Promise<void> {
         try {
-            const criteria = Criteria.of({ uuid });
-            const entityCollection = await this.repository.findBy(criteria);
-            const entity = entityCollection.first();
+            const entity = await this.repository.findOne({ uuid });
             if (entity == null) {
                 throw new InferenceModelDownloaderException(`Download task ${uuid} not found`);
             }
@@ -390,11 +384,9 @@ export class DownloadTaskManager {
      */
     public async remove(uuid: string): Promise<void> {
         try {
-            const criteria = Criteria.of({ uuid });
-            const entityCollection = await this.repository.findBy(criteria);
-            const entity = entityCollection.first();
+            const entity = await this.repository.findOne({ uuid });
             if (entity) {
-                await this.repository.remove(entity);
+                await this.repository.delete(entity);
             }
             this.logger.debug(`Removed download task ${uuid} from queue`);
         } catch (error) {
@@ -438,9 +430,7 @@ export class DownloadTaskManager {
      */
     public async updateError(uuid: string, errorMessage: string): Promise<void> {
         try {
-            const criteria = Criteria.of({ uuid });
-            const entityCollection = await this.repository.findBy(criteria);
-            const entity = entityCollection.first();
+            const entity = await this.repository.findOne({ uuid });
             if (entity == null) {
                 throw new InferenceModelDownloaderException(`Download task ${uuid} not found`);
             }
@@ -464,9 +454,7 @@ export class DownloadTaskManager {
      */
     public async updateProgress(uuid: string, progressPercent: number): Promise<void> {
         try {
-            const criteria = Criteria.of({ uuid });
-            const entityCollection = await this.repository.findBy(criteria);
-            const entity = entityCollection.first();
+            const entity = await this.repository.findOne({ uuid });
             if (entity == null) {
                 throw new InferenceModelDownloaderException(`Download task ${uuid} not found`);
             }
@@ -490,9 +478,7 @@ export class DownloadTaskManager {
      */
     public async updateStatus(uuid: string, status: DownloadQueueStatus): Promise<void> {
         try {
-            const criteria = Criteria.of({ uuid });
-            const entityCollection = await this.repository.findBy(criteria);
-            const entity = entityCollection.first();
+            const entity = await this.repository.findOne({ uuid });
             if (entity == null) {
                 throw new InferenceModelDownloaderException(`Download task ${uuid} not found`);
             }

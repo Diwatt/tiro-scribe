@@ -40,12 +40,28 @@ import { DownloadState } from '@/InferenceModel/Download/Type';
 
 describe('Runtime', () => {
   let runtime: Runtime;
-  const mockDownloader = { getLocalPath: jest.fn(), download: jest.fn() };
+  const mockDownloader = { getLocalPath: jest.fn(), download: jest.fn(), ensureDownloaded: jest.fn(), getArtifactText: jest.fn() };
   beforeEach(() => {
     jest.clearAllMocks();
 
     // default downloader returns path immediately
     mockDownloader.getLocalPath.mockResolvedValue('/m.onnx');
+
+    // ensureDownloaded resolves to a completed executor (no wait needed)
+    mockDownloader.ensureDownloaded.mockResolvedValue({
+      config: { capability: 'speaker_id' },
+      state$: observable(DownloadState.Completed),
+    });
+
+    // SpeakerId.initialize() reads the config.yaml artifact from the bundle
+    mockDownloader.getArtifactText.mockResolvedValue(
+      [
+        'dataset_args:',
+        '  resample_rate: 16000',
+        '  fbank_args: { num_mel_bins: 80, frame_length: 25, frame_shift: 10 }',
+        'model_args: { embed_dim: 512, feat_dim: 80 }',
+      ].join('\n'),
+    );
 
     // Ensure model initialization does not crash when downloader is used
     mockDownloader.download.mockResolvedValue({

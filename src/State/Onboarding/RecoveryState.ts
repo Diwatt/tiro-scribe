@@ -1,7 +1,7 @@
 import { observable } from '@legendapp/state';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { Registry } from '@/Database/Registry';
+import { Database } from '@/Database/Database';
 import { Therapist } from '@/Entity/Therapist';
 import { Localization } from '@/Localization';
 import { RecoveryKit } from '@/Security';
@@ -20,7 +20,6 @@ export class RecoveryState extends AbstractState {
         private readonly recoveryKit: RecoveryKit,
         private readonly globalActivityStatus: GlobalActivityStatus,
         private readonly localization: Localization,
-        private readonly registry: Registry,
         private readonly startupOrchestrator: StartupOrchestrator,
     ) {
         super(logger);
@@ -79,7 +78,7 @@ export class RecoveryState extends AbstractState {
         }
 
         try {
-            await this.registry.getRepository(Therapist).persist(therapist);
+            await Database.getEntityManager().getRepository(Therapist).persist(therapist);
 
             // Ensure startup orchestration completes before attempting navigation.
             // Awaiting helps guarantee the StartupOrchestrator's state flips to Ready.
@@ -115,8 +114,7 @@ Container.register(RecoveryState, () => {
     const recoveryKit = new RecoveryKit(logger);
     const globalActivityStatus = Container.get(GlobalActivityStatus);
     const localization = Container.get(Localization);
-    const registry = Container.get(Registry);
     const startupOrchestrator = Container.get(StartupOrchestrator);
 
-    return new RecoveryState(logger, recoveryKit, globalActivityStatus, localization, registry, startupOrchestrator);
+    return new RecoveryState(logger, recoveryKit, globalActivityStatus, localization, startupOrchestrator);
 });

@@ -32,14 +32,14 @@ describe('ConfigProvider', () => {
             getInferenceModels: jest.fn(),
         } as unknown as jest.Mocked<InferenceModelClient>;
 
-        const mockRegistry = {
+        const mockApiRegistry = {
             get: jest.fn((key: unknown) => {
                 if (key === InferenceModelClient) return mockClient;
                 return undefined;
             }),
         };
 
-        containerGetSpy = jest.spyOn(Container, 'get').mockReturnValue(mockRegistry as unknown as never);
+        containerGetSpy = jest.spyOn(Container, 'get').mockReturnValue(mockApiRegistry as unknown as never);
         configProvider = new ConfigProvider(mockLogger);
     });
 
@@ -220,7 +220,7 @@ describe('ConfigProvider', () => {
                     ...speakerConfig,
                     files: [{ url: 'https://example.com/model.onnx', hash: 'abc123' }],
                 },
-            });
+            } as unknown as Record<string, ModelConfig>);
 
             const result = await configProvider.getTotalSize();
 
@@ -242,7 +242,7 @@ describe('ConfigProvider', () => {
         it('should handle null files array', async () => {
             mockClient.getInferenceModels.mockResolvedValue({
                 nullfiles: { ...speakerConfig, files: null },
-            } as unknown as ModelConfig);
+            } as unknown as Record<string, ModelConfig>);
 
             const result = await configProvider.getTotalSize();
 
@@ -252,7 +252,7 @@ describe('ConfigProvider', () => {
         it('should handle undefined files array', async () => {
             mockClient.getInferenceModels.mockResolvedValue({
                 undef: { capability: 'undef', id: 'v1', version: '1.0.0', files: undefined, minAppVersion: '1.0.0' },
-            } as unknown as ModelConfig);
+            } as unknown as Record<string, ModelConfig>);
 
             const result = await configProvider.getTotalSize();
 

@@ -18,17 +18,16 @@
  */
 
 import type { AppLogger } from '@/Core/AppLogger';
+import { InferenceModelDownloaderException } from '@/Exception';
 import type { Downloader } from '../Downloader';
+import type { InferenceModelFileRole } from '../Download/ModelArtifactStorage';
 import type { Runtime } from '../Runtime';
 import type { InferenceModel } from './InferenceModel';
-
-export interface SpeakerIdConfig {
-    // CAM++ model configuration (to be parsed from config.yaml)
-    embeddingDim?: number;
-    numMelBins?: number;
-}
+import { SpeakerIdConfig } from './SpeakerIdConfig';
 
 export class SpeakerId implements InferenceModel<[Float32Array, readonly number[]], number[]> {
+    private static readonly CONFIG_FILE_ROLE: InferenceModelFileRole = 'config';
+
     private readonly capability = 'speaker_id';
     private isInitialized = false;
 
@@ -50,12 +49,11 @@ export class SpeakerId implements InferenceModel<[Float32Array, readonly number[
         }
 
         try {
-            // Step 1: Download model files
-            const executor = await this.downloader.download(this.capability);
+            // Step 1: Download model files (ONNX + config.yaml), waiting for completion
+            await this.downloader.ensureDownloaded(this.capability);
 
-            // Step 2: Parse config
-            // TODO: Load and parse config.yaml
-            this.loadConfig(executor.config);
+            // Step 2: Parse the config.yaml shipped in the bundle
+            this.config = await this.loadConfig();
 
             this.isInitialized = true;
             this.logger.debug('[SpeakerId] Model initialized');
@@ -97,7 +95,7 @@ export class SpeakerId implements InferenceModel<[Float32Array, readonly number[
 
         try {
             // CAM++ expects input shaped as [1, timeFrames, nMels]
-            const nMels = this.config?.numMelBins ?? 80;
+            const nMels = this.getConfig().numMelBins;
             const timeFrames = Math.floor(features.length / nMels);
             if (timeFrames === 0) {
                 throw new Error('Feature vector contains no complete frames');
@@ -118,15 +116,33 @@ export class SpeakerId implements InferenceModel<[Float32Array, readonly number[
     }
 
     /**
-     * Load config from downloaded model metadata
+     * Validated model parameters, available after initialize().
+     * @throws {Error} If the model is not initialized yet
      */
-    private loadConfig(_config: unknown): void {
-        // TODO: Parse config.yaml from model files
-        // For now, set reasonable defaults for CAM++
-        this.config = {
-            embeddingDim: 192,
-            numMelBins: 80,
-        };
-        this.logger.debug('[SpeakerId] Config loaded', { config: this.config });
+    public getConfig(): SpeakerIdConfig {
+        if (this.config == null) {
+            throw new Error('SpeakerId model not initialized. Call initialize() first.');
+        }
+        return this.config;
+    }
+
+    /**
+     * Reads and validates the config artifact (role 'config') from the downloaded model bundle.
+     */
+    private async loadConfig(): Promise<SpeakerIdConfig> {
+        const yamlText = await this.downloader.getArtifactText(this.capability, SpeakerId.CONFIG_FILE_ROLE);
+        if (yamlText == null) {
+            throw new InferenceModelDownloaderException(
+                `Config artifact (role 'config') not downloaded for capability '${this.capability}'`,
+            );
+        }
+
+        const config = SpeakerIdConfig.fromYamlText(yamlText);
+        this.logger.debug('[SpeakerId] Config loaded', {
+            embeddingDim: config.embeddingDim,
+            numMelBins: config.numMelBins,
+            sampleRateHz: config.sampleRateHz,
+        });
+        return config;
     }
 }

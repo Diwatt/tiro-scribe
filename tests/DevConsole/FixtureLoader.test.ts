@@ -9,9 +9,7 @@ const mockEncounterRepo = {
     persist: jest.fn(),
 };
 
-const mockPatientRepo = {
-    persist: jest.fn(),
-};
+const mockPatientUpsert = jest.fn();
 
 const mockQueueItemRepo = {
     persist: jest.fn(),
@@ -24,6 +22,20 @@ jest.mock('@/Core/Container', () => ({
     },
 }));
 
+jest.mock('@/Database/Database', () => ({
+    Database: {
+        getEntityManager: () => ({
+            getRepository: (EntityClass: unknown) => {
+                if (EntityClass === require('../helpers/fakeEntities').FakeEncounter) {
+                    return mockEncounterRepo;
+                }
+                return mockQueueItemRepo;
+            },
+            upsert: mockPatientUpsert,
+        }),
+    },
+}));
+
 // Real entities need Stage 3 decorator metadata that Jest cannot load — see tests/Entity.
 jest.mock('@/Entity/Encounter', () => ({ Encounter: require('../helpers/fakeEntities').FakeEncounter }));
 jest.mock('@/Entity/Patient', () => ({ Patient: require('../helpers/fakeEntities').FakePatient }));
@@ -32,26 +44,11 @@ jest.mock('@/Entity/QueueItem', () => ({ QueueItem: require('../helpers/fakeEnti
 import { FixtureLoader } from '@/DevConsole/FixtureLoader';
 import { FixtureException } from '@/DevConsole/FixtureException';
 import { EncounterStatus, PipelineStage, QueueItemStatus } from '@/Entity/Type';
-import { FakeEncounter, FakePatient } from '../helpers/fakeEntities';
 
 const THERAPIST_ID = 'therapist-uuid-1';
 const ENCRYPTED_PATH = '/documents/fixture_abc123.dat';
 
-const createLoader = (): FixtureLoader => {
-    const registry = {
-        getRepository: jest.fn((EntityClass: unknown) => {
-            if (EntityClass === FakeEncounter) {
-                return mockEncounterRepo;
-            }
-            if (EntityClass === FakePatient) {
-                return mockPatientRepo;
-            }
-            return mockQueueItemRepo;
-        }),
-    };
-
-    return new FixtureLoader(registry as never, mockLoggerFns as never);
-};
+const createLoader = (): FixtureLoader => new FixtureLoader(mockLoggerFns as never);
 
 describe('FixtureLoader', () => {
     beforeEach(() => {
@@ -77,8 +74,8 @@ describe('FixtureLoader', () => {
 
             expect(fixture.patient.getEncounterId()).toBe(fixture.encounter.getUuid());
             expect(fixture.patient.getBiocode()).toBe('');
-            expect(mockPatientRepo.persist).toHaveBeenCalledTimes(1);
-            expect(mockPatientRepo.persist).toHaveBeenCalledWith(fixture.patient);
+            expect(mockPatientUpsert).toHaveBeenCalledTimes(1);
+            expect(mockPatientUpsert).toHaveBeenCalledWith(fixture.patient);
         });
 
         it('persists a queue item in Waiting/Pending carrying the encounter and the encrypted path', async () => {
@@ -108,7 +105,7 @@ describe('FixtureLoader', () => {
 
             await expect(loader.load(THERAPIST_ID, ENCRYPTED_PATH, 65_000)).rejects.toThrow('db is locked');
 
-            expect(mockPatientRepo.persist).not.toHaveBeenCalled();
+            expect(mockPatientUpsert).not.toHaveBeenCalled();
             expect(mockQueueItemRepo.persist).not.toHaveBeenCalled();
         });
     });

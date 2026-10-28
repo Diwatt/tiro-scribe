@@ -3,7 +3,8 @@
  */
 
 import { consoleTransport, logger as reactNativeLogger } from 'react-native-logs';
-import type { AppConfig } from '@/Core/AppConfig';
+import { AppConfig } from '@/Core/AppConfig';
+import { Container } from '@/Core/Container';
 
 export class AppLogger {
     private readonly logger: ReturnType<typeof reactNativeLogger.createLogger>;
@@ -72,3 +73,5 @@ export class AppLogger {
         this.logger.patchConsole();
     }
 }
+
+Container.register(AppLogger, () => new AppLogger(Container.get(AppConfig)));

@@ -5,6 +5,7 @@
  * on the singleton.
  */
 import { observable } from '@legendapp/state';
+import { Container } from '@/Core/Container';
 
 export enum ActivityStatus {
     Ready = 'ready',
@@ -81,3 +82,5 @@ export class GlobalActivityStatus {
         return { status, message, icon };
     }
 }
+
+Container.register(GlobalActivityStatus, () => new GlobalActivityStatus());

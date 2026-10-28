@@ -14,6 +14,8 @@ import type { AppConfig } from '@/Core/AppConfig';
 import type { AppLogger } from '@/Core/AppLogger';
 import { InferenceModelDownloaderException } from '@/Exception';
 
+export type InferenceModelFileRole = NonNullable<InferenceModelFile['role']>;
+
 export class ModelArtifactStorage {
     public constructor(
         private readonly logger: AppLogger,
@@ -107,32 +109,33 @@ export class ModelArtifactStorage {
     }
 
     /**
-     * Gets the URI of the ONNX model file from a model configuration.
-     * Looks for a file with .onnx extension; falls back to the first file if none found.
+     * Resolves the bundle file carrying the requested role.
+     * Legacy payloads without roles fall back to the first file for 'model'.
      *
      * @param config - The model configuration
-     * @returns The URI of the ONNX model file (or first file as fallback)
-     * @throws {InferenceModelDownloaderException} If the configuration has no files
+     * @param role - The role to resolve ('model', 'config', 'tokenizer', ...)
+     * @returns The file metadata declaring the role
+     * @throws {InferenceModelDownloaderException} If the configuration has no files, or the role is not declared and has no fallback
      */
-    public getModelUri(config: ModelConfig): string {
+    public getFileByRole(config: ModelConfig, role: InferenceModelFileRole): InferenceModelFile {
         if (config.files.length === 0) {
             throw new InferenceModelDownloaderException(
                 `Model configuration ${config.capability} (${config.id}) has no files`,
             );
         }
 
-        // Try to find a file with .onnx extension
-        for (const file of config.files) {
-            const filename = this.extractFilenameFromUrl(file.url);
-            if (filename.toLowerCase().endsWith('.onnx')) {
-                const onnxFile = this.getFile(config, file);
-                return onnxFile.uri;
-            }
+        const declared = config.files.find((file) => file.role === role);
+        if (declared != null) {
+            return declared;
         }
 
-        // Fallback to first file
-        const firstFile = this.getFile(config, config.files[0]);
-        return firstFile.uri;
+        if (role === 'model') {
+            return config.files[0];
+        }
+
+        throw new InferenceModelDownloaderException(
+            `No file with role '${role}' in model configuration ${config.capability} (${config.id})`,
+        );
     }
 
     /**

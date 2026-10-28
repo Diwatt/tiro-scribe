@@ -1,15 +1,17 @@
 import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { Registry } from '@/Database/Registry';
-import type { DownloadQueueRepository } from '@/Repository/DownloadQueueRepository';
+import { Database } from '@/Database/Database';
 import type { ModelConfig } from '../Api';
 import { DownloadQueue } from '../Entity';
 import { ConfigProvider } from './ConfigProvider';
 import { ChecksumVerifier } from './Download/ChecksumVerifier';
 import { DownloadTaskExecutor } from './Download/DownloadTaskExecutor';
 import { DownloadTaskManager } from './Download/DownloadTaskManager';
+import type { InferenceModelFileRole } from './Download/ModelArtifactStorage';
 import { ModelArtifactStorage } from './Download/ModelArtifactStorage';
+import { DownloadState } from './Download/Type';
+import { InferenceModelDownloaderException } from '@/Exception';
 
 // Re-export types from Api
 export type { ModelConfig } from '../Api';
@@ -58,6 +60,30 @@ export class Downloader {
         return executor;
     }
 
+    /**
+     * Downloads the model bundle if needed and resolves once every file is on
+     * disk. Unlike download(), the returned executor is guaranteed completed
+     * (or the promise rejects), so callers can read artifacts immediately.
+     */
+    public async ensureDownloaded(capability: string, localization?: string): Promise<DownloadTaskExecutor> {
+        const executor = await this.download(capability, localization);
+        await this.waitForExecutor(executor);
+        return executor;
+    }
+
+    /**
+     * Reads a text artifact from a downloaded bundle, resolved by file role
+     * (e.g. 'config' for the model configuration). Returns null only when the
+     * artifact is not on disk; an absent role throws from the storage.
+     */
+    public async getArtifactText(capability: string, role: InferenceModelFileRole): Promise<string | null> {
+        const config = await this.configProvider.getConfig(capability);
+        const file = this.artifactStorage.getFileByRole(config, role);
+
+        const artifact = this.artifactStorage.getFile(config, file);
+        return artifact.exists ? artifact.text() : null;
+    }
+
     public async getConfig(key: string, appLanguage?: string): Promise<ModelConfig> {
         return this.configProvider.getConfig(key, appLanguage);
     }
@@ -75,8 +101,8 @@ export class Downloader {
         // Try active session first
         const session = this.downloadTaskManager.getActiveSession(capability);
         if (session) {
-            const file = session.config.files[0];
-            if (file) {
+            const file = this.artifactStorage.getFileByRole(session.config, 'model');
+            if (file != null) {
                 return this.artifactStorage.getUri(session.config, file);
             }
         }
@@ -84,8 +110,8 @@ export class Downloader {
         // Fallback: check if model files exist on disk without an active session
         const config = await this.configProvider.getConfig(capability);
         if (this.artifactStorage.hasAllFiles(config)) {
-            const file = config.files[0];
-            if (file) {
+            const file = this.artifactStorage.getFileByRole(config, 'model');
+            if (file != null) {
                 return this.artifactStorage.getUri(config, file);
             }
         }
@@ -96,12 +122,34 @@ export class Downloader {
     public async getTotalSize(appLanguage?: string): Promise<number> {
         return this.configProvider.getTotalSize(appLanguage);
     }
+
+    private waitForExecutor(executor: DownloadTaskExecutor): Promise<void> {
+        const terminalError = (state: DownloadState): InferenceModelDownloaderException =>
+            new InferenceModelDownloaderException(`Model download ended with state ${state}`);
+
+        return new Promise<void>((resolve, reject) => {
+            const settle = (state: DownloadState): void => {
+                if (state === DownloadState.Completed) {
+                    unsubscribe();
+                    resolve();
+                } else if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
+                    unsubscribe();
+                    reject(terminalError(state));
+                }
+            };
+            const unsubscribe = executor.state$.onChange(({ value }) => {
+                settle(value);
+            });
+            // the download may have completed between download() and this subscription
+            settle(executor.state$.get());
+        });
+    }
 }
 
 Container.register(Downloader, () => {
     const appConfig = Container.get(AppConfig);
     const logger = Container.get(AppLogger);
-    const repository = Container.get(Registry).getRepository<DownloadQueueRepository>(DownloadQueue);
+    const repository = Database.getEntityManager().getRepository(DownloadQueue);
 
     return new Downloader(
         logger,

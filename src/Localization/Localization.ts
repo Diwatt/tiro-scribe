@@ -1,6 +1,6 @@
 /**
  * Global app language: single source of truth for locale (device/OS only).
- * Singleton; constructor sets locale from device on first getInstance(). No React providers; screens call useLocalization().
+ * Singleton managed by the Container; constructor sets locale from device on first resolution. No React providers; screens call useLocalization().
  */
 
 import { Container } from '@/Core/Container';
@@ -139,7 +139,7 @@ export class Localization {
     }
 }
 
-Container.register(Localization, () => new Localization()); // Updated registration
+Container.register(Localization, () => new Localization());
 
 /**
  * React hook: current locale and translation functions (returned as LL for usage: LL.onboarding.aboutYou()).

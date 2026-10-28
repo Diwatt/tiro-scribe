@@ -7,6 +7,7 @@
 
 import { Platform } from 'react-native';
 import { z } from 'zod';
+import { Container } from '@/Core/Container';
 
 const ENV_SCHEMA = z.object({
     // biome-ignore lint/style/useNamingConvention: environment variable name
@@ -51,7 +52,7 @@ const ENV_SCHEMA = z.object({
     EXPO_PUBLIC_VOICE_CALIBRATION_DURATION_MS: z
         .string()
         .transform((val) => parseInt(val, 10))
-        .refine((val) => !isNaN(val), {
+        .refine((val) => !Number.isNaN(val), {
             message: 'EXPO_PUBLIC_VOICE_CALIBRATION_DURATION_MS must be a valid number',
         })
         .default(() => 5000),
@@ -60,17 +61,10 @@ const ENV_SCHEMA = z.object({
 type EnvConfig = z.output<typeof ENV_SCHEMA>;
 
 export class AppConfig {
-    private static instance: AppConfig | null = null;
-
     private readonly config: EnvConfig;
 
     public constructor() {
         this.config = AppConfig.parseEnv();
-    }
-
-    public static getInstance(): AppConfig {
-        AppConfig.instance ??= new AppConfig();
-        return AppConfig.instance;
     }
 
     public get apiHost(): string {
@@ -136,3 +130,5 @@ export class AppConfig {
         };
     }
 }
+
+Container.register(AppConfig, () => new AppConfig());

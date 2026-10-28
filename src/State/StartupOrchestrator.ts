@@ -7,9 +7,8 @@ import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { Registry } from '@/Database/Registry';
+import { Database } from '@/Database/Database';
 import { Localization } from '@/Localization';
-import type { TherapistRepository } from '@/Repository/TherapistRepository';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { Downloader } from '@/InferenceModel/Downloader';
 import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
@@ -47,9 +46,7 @@ export class StartupOrchestrator {
             return;
         }
 
-        // provide explicit generic parameter so caller receives the
-        // specialized interface with autocomplete support.
-        const repo = Container.get(Registry).getRepository<TherapistRepository>(Therapist);
+        const repo = Database.getEntityManager().getRepository(Therapist);
         const hasSession = await repo.hasActiveSession();
         if (hasSession) {
             this.state.set(StartupState.Ready);

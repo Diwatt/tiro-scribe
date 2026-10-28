@@ -31,7 +31,7 @@ Enregistreur clinique chiffré **fonctionnel jusqu'au disque** : onboarding comp
 
 🔎 **Ce qui manque toujours cruellement** : ASR (`AutomaticSpeechRecognizer.run()` → `'TODO: implement full transcription pipeline'`, tokenizer non parsé, config Whisper hardcodée), VAD/Pitch (`Setup` les déclare, `Runtime.createModel` les rejette), tout consommateur de `QueueItem` après `stop()`, anonymisation, écrans résultats réels.
 
-**Stack** : RN 0.88.0 + Expo ~58.0.19 (expo-router, dev-client), Hermes V1 · `@legendapp/state` · Paper MD3 5.15 + Lucide · SQLite + Kysely 0.28.14 (+ patch) + ORM maison à décorateurs · `onnxruntime-react-native` 1.24.3 · quick-crypto 1.1.9 + module natif `secure-recorder` · pnpm · Jest 30 · Biome + ESLint (perfectionist) · typesafe-i18n (en/fr).
+**Stack** : RN 0.88.0 + Expo ~58.0.19 (expo-router, dev-client), Hermes V1 · `@legendapp/state` · Paper MD3 5.15 + Lucide · SQLite + MikroORM v7 (kysely-expo 0.29.6, sans patch) · `onnxruntime-react-native` 1.24.3 · quick-crypto 1.1.9 + module natif `secure-recorder` · pnpm · Jest 30 · Biome + ESLint (perfectionist) · typesafe-i18n (en/fr).
 
 ---
 
@@ -39,7 +39,7 @@ Enregistreur clinique chiffré **fonctionnel jusqu'au disque** : onboarding comp
 
 | Sujet | Décision (26/10/2026) |
 |---|---|
-| ORM maison à décorateurs | **Conservé** (magasin de documents sur SQLite : colonne `data` JSON + colonnes virtuelles + FTS5, DDL depuis les decorators). Fragilité = couplage decorators ↔ Babel/Hermes → test-sentinelles (P7) |
+| ~~ORM maison à décorateurs~~ | **Remplacé** par MikroORM v7 (`defineEntity`, vraies colonnes relationnelles, FTS5 retiré) — migration 2026-10-27. L'ancien couplage decorators ↔ Babel/Hermes n'existe plus |
 | Lucide | **Conservé** — bump major 0.575 → 1.61 à faire (P6) |
 | ESLint | **Conservé** uniquement pour l'ordre des membres (perfectionist) |
 | Storybook / DevConsole + 5-taps | **Conservés** ; à exclure du bundle release avant distribution (P6) |
@@ -55,12 +55,14 @@ Enregistreur clinique chiffré **fonctionnel jusqu'au disque** : onboarding comp
 
 | # | Piège | Règle |
 |---|---|---|
-| R1 | **Patch pnpm babel-preset** (`@react-native/babel-preset@0.85.3`, `&& !isHermes`) 🔎 toujours en place | Requis (bug upstream). **Chaque bump RN le casse** → régénérer (`pnpm patch`). Ne jamais supprimer `pnpm-lock.yaml`. Decorators `2023-05` **dans le preset, pas en `plugins[]`** (sinon class fields natifs Hermes écrasent les accessors `@Column` → `getUuid()` = `undefined` sur device, FK perdues) |
-| R1b | 🔎 **Nouveau : patch `kysely@0.28.17.patch`** | Régénérer au bump de kysely (0.28.14 → 0.29.x en P6) |
+| R1 | **Patch pnpm babel-preset** (`@react-native/babel-preset@0.85.3`, `&& !isHermes`) 🔎 toujours en place | Protège désormais le profil `hermes-stable` (classes natives Hermes) — la justification décorateurs a disparu avec MikroORM ; retrait du patch à ré-évaluer au prochain bump RN, validé par build. **Chaque bump RN le casse** → régénérer (`pnpm patch`). Ne jamais supprimer `pnpm-lock.yaml` |
+| R1b | ✅ **Patch `kysely@0.28.17.patch` supprimé** | kysely 0.29.6 (requis par MikroORM v7) n'a plus besoin de patch |
 | R2 | **Metro ne relit pas `babel.config.js` à chaud** | Après modif config Babel : `stop-metro` puis `pnpm exec expo start --dev-client --port 8081 --reset-cache` |
 | R3 | **Plugin ONNX mute `node_modules`** 🔎 `plugins/withOnnxruntime.js` + `withGradleLimits.js` toujours actifs | Après **chaque** `pnpm install` : relancer `pnpx expo prebuild` **avant** de builder. Symptômes si oubli : `Could not get unknown property 'VersionNumber'` (Android), échec `SessionUtils.cpp` (iOS). Disparaîtra avec L2 (P6) |
 | R4 | **Re-validation à chaque bump ORT/RN** | Diff contre tarball pristine (`npm pack onnxruntime-react-native@<v>`) sur podspec · `lib/binding.ts` · `android/build.gradle`, puis re-tester une inférence CAM++ réelle |
-| R5 | **Getters d'entités `undefined` sur device** | Class fields natifs Hermes qui écrasent les accessors décorés → voir R1 ; diagnostiquer via `FixtureLoader.validate` (`INVALID_THERAPIST_ID`…) |
+| R5 | ✅ **Getters d'entités `undefined` sur device** — résolu | Cause (class fields natifs Hermes écrasant les accessors décorés) disparue : plus aucun décorateur depuis la migration MikroORM |
+| R9 | **Patch pnpm `@mikro-orm/core@7.2.5` + `@mikro-orm/sql@7.2.5`** 🔎 toujours en place | Metro rejette `import(<variable>)` et `import.meta.resolve` au transform : `scripts/patch-mikroorm.pl` neutralise les chemins dynamiques Node-only (tryImport, extensions seeder/migrator, fs-utils/metadataCache, folder-based discovery, attachDatabases, dataloader optionnel, dynamicImportProvider par défaut). **Chaque bump MikroORM le casse** → régénérer : `pnpm patch <pkg>` → `perl scripts/patch-mikroorm.pl <dir>` → `pnpm patch-commit <dir>` |
+| R10 | **Build cache gradle → `.so` natif stale après un bump de module natif (Nitro)** | Symptôme : warning `Nitro runtime 0.35.6 vs JS 0.37.1` + `TypeError: undefined is not a function` dans quick-base64/quick-crypto. pnpm hoisted garde le MÊME chemin `node_modules/<pkg>` → le build cache gradle ne détecte pas le changement de contenu et ressert le `.so` d'un build antérieur. Fix : `android/gradlew clean` + `org.gradle.caching=false` (actuellement en place) puis rebuild. Réactiver le cache seulement après un build natif propre vérifié |
 | R6 | **DevConsole** | UI : préfixe `file://` obligatoire (expo-file-system exige une URI) ; natif : chemin POSIX **sans** `file://` ; DB reset au boot dev → charger une fixture exige un thérapeute persisté (`THERAPIST_NOT_FOUND`) |
 | R7 | **Versions flottantes ONNX Android** | 3 AAR `latest.integration` non épinglés → builds non reproductibles. À épingler (P6, L2) |
 | R8 | **16 KB page size (Android 15/16)** | AAR Microsoft non alignés → **bloquant Google Play** avant distribution. Vérifier variants 16 KB, épingler, `check-elf-alignment` (P6) |
@@ -97,17 +99,17 @@ tar -xzf onnxruntime-react-native-<version>.tgz
   - `State/Onboarding/VoiceState.ts:146` — `if (existing)` sur une `Promise` (toujours truthy) : **le calibrage passait sans modèle téléchargé** → `await getLocalPath('speaker_id')` ; 2 tests ajoutés à `tests/State/VoiceState.test.ts` ;
   - `Exception/RecordingTooShortError.ts` — code manquant (`undefined`) et `name` hérité `'Error'` → `RECORDING_TOO_SHORT` + `this.name` ; 4 tests (`tests/Exception/RecordingTooShortError.test.ts`) ;
   - `Screen/Onboarding/StepAccount.tsx:137` — typing `onPress` vs Paper 5.15 → `void handleSubmit(onSubmit)()` (bug purement typographique, validé par tsc ; test d'écran reporté au chantier RNTL, cf. P6).
-- [ ] **[ARBITRAGE] Biocode** : AGENTS.md dit `Hash(SpeakerVector + Salt)` ; implémenté = projection vectorielle. Trancher et aligner spec + AGENTS.md.
-- [ ] **Sécurité — `CryptoEngine` (vault)** 🔎 *constat inchangé (CBC + PBKDF2 1 000, lignes 11-14)* : migrer vers AES-256-GCM, itérations ≥ 600 000 (ou Argon2/scrypt). Ne pas confondre avec `generateDeterministicBytes` (PRF, pas un secret).
-- [ ] **[ARBITRAGE] `Container.initialize()` / `AppConfig.getInstance()`** 🔎 *toujours en place* : double singleton, violation « passive holder ». Décider règle vs code (~44 `Container.get/register` en bas de fichiers).
-- [ ] **[ARBITRAGE] Pull vs Push** : l'archi doc décrit `readChunkAt(offset)` (pull) ; l'implémentation est `stream(path)` + events (push). 🔎 *Aucun `readChunkAt` dans `src/` ni `modules/`* — trancher et aligner code + doc **avant** l'orchestrateur (P3/P4).
+- [x] **[ARBITRAGE] Biocode** ✅ 28/10/2026 : **projection vectorielle actée** — le hash à sens unique rendrait le matching multi-séances (P4) impossible ; `Biocode = ProjectionMatrix × SpeakerVector`, matching cosinus, AGENTS.md aligné
+- [x] **Sécurité — `CryptoEngine` (vault)** ✅ 28/10/2026 (TDD, 5 tests rouges → 502 verts) : AES-256-GCM (format `IV 12B ‖ tag 16B ‖ chiffré`, auth GCM testée sur chiffre et tag corrompus), PBKDF2 ≥ 600 000 pour `keyFromPassword` (OWASP) ; `generateDeterministicBytes` reste un PRF rapide (1 000 itérations, séparé en constante dédiée). ⚠️ Rend les blobs CBC persistés indéchiffrables — ok en dev (DB reset au boot, règle R6) ; `RecoveryCode` garde ses 100 000 itérations (code ~2^60, hors périmètre P0)
+- [x] **[ARBITRAGE] `Container.initialize()` / `AppConfig.getInstance()`** ✅ 28/10/2026 : `AppConfig.getInstance()` avait déjà disparu (MikroORM) ; **`Container.initialize()` supprimé** — `AppConfig` et `AppLogger` s'auto-enregistrent en bas de leur fichier (même pattern que les ~44 autres classes), `Container` ne connaît plus aucune classe concrète ; 4 sites d'appel et tests mis à jour (502 verts)
+- [x] **[ARBITRAGE] Pull vs Push** ✅ 28/10/2026 : **push acté** (`stream(path)` + `onChunkLoaded`). Justification : 4 h ≈ 460 Mo de PCM → jamais tout en RAM ; le déchiffré n'existe qu'en RAM (jamais au disque en clair) ; les modèles exigent des fenêtres fixes que l'orchestrateur assemble au fil des chunks. `readChunkAt` retiré de la doc d'archi (§6 + §11), le WIP « Pull-style orchestrator » devient « Push orchestrator ». Le checkpoint P4 avance `processingOffset` à chaque chunk
 - [ ] **Sourcer + convertir les extraits TV** (§2 recettes) — en parallèle, indépendant du code.
 
 ### P1 — Validation plateforme + fixtures
 
-- [ ] **Build natif iOS complet** (`pnpm ios:dev`) — dernière validation plateforme restante (Android fait) : SceneDelegate SDK 58 + inférence CAM++ réelle.
-- [ ] **Charger ~6 encounters** depuis les extraits TV via DevConsole (`status = ToProcess`, multi-locuteurs, biocode thérapeute valide) + footprint thérapeute.
-- [ ] **`SpeakerId` (CAM++)** 🔎 *confirmé* : `// TODO: Load and parse config.yaml` — dimensions hardcodées `embeddingDim: 192, numMelBins: 80` (lignes 124-129). Parser le vrai `config.yaml`.
+- [x] **Build natif iOS complet** ✅ 28/10/2026 (iPhone 17 Pro / iOS 26.5 simulateur) : build `pnpm ios:dev` OK (SceneDelegate SDK 58), **inférence CAM++ réelle validée de bout en bout** : decrypt GCM → fenêtrage → ONNX → biocode 512-dim persisté (`Create Dev Therapist`, ~45 s d'inférence). Android fait précédemment.
+- [x] **Charger ~6 encounters** ✅ 28/10/2026 : 6 encounters / 6 patients / 6 queue_items `to_process` + 1 thérapeute (biocode 512-dim) en DB simulateur. Fixtures : extraits Gloria Rogers (5 wavs, anglais — ok pour fixtures, cf. `fixtures-local/`). ⚠️ Le reset DB au boot (R6) a vidé la base 2× en cours de route — re-seed complet refait (thérapeute + fixtures). Contournement UI : les boutons sous y≈0,62 sont inatteignables après focus d'un champ (pitfall simulateur, pas un bug produit) — charges faites avec liste réduite. `_04` chargé 2× (même duo, pour le matching multi-séances P4)
+- [x] **`SpeakerId` (CAM++)** ✅ 28/10/2026 (TDD, 516 verts / tsc stable) : `config.yaml` du bundle parsé — nouvelle classe `SpeakerIdConfig` (schéma Zod sur le YAML 3D-Speaker, `js-yaml` ajouté aux deps ; invariant `feat_dim == num_mel_bins`), `Downloader.getArtifactText(capability, fileName)` lit l'artifact, `SpeakerId.getConfig()` expose `embeddingDim` / `numMelBins` / `sampleRateHz` / `frameLengthMs` / `frameShiftMs` (plus aucun fallback hardcodé). 🔎 **Découverte : le vrai `embed_dim` = 512, pas 192** — le hardcodé était faux ; `num_mel_bins` 80 confirmé. NB : `embeddingDim` n'est consommé nulle part à ce jour (aucun breakage), mais le pipeline futur doit attendre du 512-dim
 
 ### P2 — Spike runtime & modèles *(go/no-go, branche dédiée — AVANT l'ASR)*
 
@@ -121,7 +123,7 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 
 ### P3 — ASR *(blocage central de la chaîne de valeur)*
 
-- [ ] **`AutomaticSpeechRecognizer.run()`** 🔎 *stub confirmé (ligne 139) + TODOs internes* : tokenizer jamais parsé (`AsrTokenizer = Record<string, never>`), sessions encoder/decoder jamais chargées (`asr_encoder`/`asr_decoder` déclarés mais non câblés), config Whisper Medium hardcodée. À implémenter selon verdict P2 (boucle Whisper ou TDT/Parakeet) **avec timestamps mot**.
+- [ ] **`AutomaticSpeechRecognizer.run()`** 🔎 *stub confirmé (ligne 139) + TODOs internes* : tokenizer jamais parsé (`AsrTokenizer = Record<string, never>`), sessions encoder/decoder jamais chargées (`asr_encoder`/`asr_decoder` déclarés mais non câblés), config Whisper Medium hardcodée. À implémenter selon verdict P2 (boucle Whisper ou TDT/Parakeet) **avec timestamps mot**. NB 28/10 : le contrat `InferenceModelFile` porte désormais un champ **`role`** (`model` / `config` / `tokenizer` / `preprocessor_config` / `generation_config` ; fallback `files[0]` pour `model` sur payloads legacy, résolution par `ModelArtifactStorage.getFileByRole`) — les 2ᵉ fichiers `.onnx` ASR (encoder) sont **sans rôle** : à arbitrer avec le P3 (rôles `encoder`/`decoder` ou autre). Génération API réparée (28/10) : toolchain isolée `scripts/api-generator/` (`@hey-api/openapi-ts@0.99.0` + `typescript@6.0.3` — le TS 7 natif n'expose plus l'API compilateur JS) ; `pnpm generate:api` régénère `src/Api/generated/` depuis `src/Api/spec.yaml` — ne jamais éditer le généré à la main.
 - [ ] **Décision fbank (C2)** : extraction log-mel JS (`AudioFeatureExtractor`, mathjs « approximate ») inacceptable pour l'ASR (4 h d'audio). Choisir : **(a)** fbank natif vDSP/Swift + Kotlin dans `secure-recorder` *(reco)* · **(b)** graphe ONNX de prétraitement · **(c)** `fft.js` sur `Float32Array`. ASR + CAM++ (fbank 80) + pitch (trames 16 kHz) partagent un front-end commun → le mettre une fois en natif (bénéfice sécurité : JS n'a plus jamais d'audio en clair).
 - [ ] **DSP client** : `pcm16ToFloat32` (lossless), normalisation EBU R128 (transcript only). Jitter/shimmer/HNR = server-side (acté).
 - [ ] **VAD + Pitch comme capacités `Runtime`** 🔎 *écart confirmé* : `Setup.CAPABILITIES` déclare `vad`/`pitch`, `Runtime.createModel` ne connaît que `speaker_id`/`asr` (erreur `Unknown model capability`). Même pattern que `SpeakerId`. VAD = Silero v5 ; pitch selon verdict P2 (CREPE vs SwiftF0). ⚠️ `Runtime` est **single-session** (unload de la session précédente) — l'enchaînement VAD→ASR→CAM++ par segment devra composer avec cette contrainte.
@@ -161,7 +163,7 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 - [ ] Fichiers à ne pas suivre 🔎 *toujours suivis* : `repomix-output.xml` (33 k lignes au dernier diff !), **`tiro-scribe.sqlite` suivie dans git (⚠️ risque données sensibles — vérifier et purger l'historique si besoin)**, `.DS_Store`, `scripts-tmp-babel-test.js`, `expo-main/` (vide).
 - [ ] Mocks : garder **un** mécanisme (`json-server` vs `msw` — msw 3.x dispo).
 - [ ] Doc API : `docs/api-generation.md` décrit encore OpenAPI-Generator alors que `generate-api.js` utilise `@hey-api/openapi-ts` → retirer `@openapitools/openapi-generator-cli` (2.32 → 2.42 dispo mais à supprimer), aligner script/doc.
-- [ ] Code mort `src/` 🔎 *nuancé à l'audit* : `Util/AsyncQueue.ts` (0 utilisateur), `Util/Timer.ts` (à confirmer), **`Util/EventLoop.ts` est utilisé par `VoiceState`** (`await EventLoop.yield()`) — ne pas supprimer sans recâblage ; `Core/AppRouter.ts` (toujours enregistré dans `Container.initialize`), `Components/AsyncButtonUtils.tsx`. ⚠️ Certains prévus pour l'ASR/pipeline — **valider un par un**.
+- [ ] Code mort `src/` 🔎 *nuancé à l'audit* : `Util/AsyncQueue.ts` (0 utilisateur), `Util/Timer.ts` (à confirmer), **`Util/EventLoop.ts` est utilisé par `VoiceState`** (`await EventLoop.yield()`) — ne pas supprimer sans recâblage ; `Components/AsyncButtonUtils.tsx`. *(retraité de la liste : `Core/AppRouter.ts`, utilisé par `HomeState`/`RecoveryState`/écrans)* ⚠️ Certains prévus pour l'ASR/pipeline — **valider un par un**.
 - [ ] Exceptions : 23 fichiers, 16 classes référencées ≤ 1 fois hors `Exception/` → supprimer ou regrouper (~8 fichiers). Suffixes incohérents (`*Error` vs `*Exception`).
 
 **Vague 1 — industrialisation plateforme** :
@@ -237,18 +239,18 @@ tar -xzf onnxruntime-react-native-<version>.tgz
 
 #### Dette existante
 
-- [ ] **71 erreurs `pnpm run type-check`** 🔎 *compte revalidé au 27/10 (129 → 71 : les fichiers retouchés par les Vagues A/B ont été réparés, tsc reste vert sur eux)*. Côté `src/` (6), l'audit a confirmé et précisé :
+- [x] **71 erreurs `pnpm run type-check`** 🔎 *résolues au 28/10 (migration MikroORM + purge) : il n'en reste que 3, toutes préexistantes et hors ORM* :
   - `Context/ServicesContext.tsx:6-7` — importe `Service/Anonymizer` et `Service/AudioProcessing` **inexistants** (cassée à brancher en P5 ou imports à retirer) ;
-  - `Database/index.ts:17` — exporte `registry` (c'est `Registry`) — prérequis fixtures ;
-  - `Database/Type.ts:67` — `AbstractEntity` non importé ;
-  - `App.tsx:3` — `../assets/app/_layout` non résolu par tsc (fonctionne via Metro).
-- [ ] **39 erreurs tsc `tests/`** (dette préexistante hors revue) : `InferenceModelDownloader` ×26 (`jest.mock<typeof Downloader>` invalide en Jest 30 — un fix mécanique règle tout le fichier), `mockEntity` ×6 (nom `Entity` non importé), `ConfigProvider` ×3, `Criteria` ×2 (`@ts-expect-error` inutiles), `AsyncButton` ×1, `Encounter` ×1 — à nettoyer dans un passage dédié.
-- [ ] **Test-sentinelles decorators** : un test Jest qui échoue explicitement si le patch babel-preset n'est plus appliqué **ou** plus nécessaire (R1). Suivre l'issue upstream ; nettoyer `Column.initializer` / `ensureColumnAccessors` (accessors posés deux fois).
+  - `tests/Components/AsyncButton.test.tsx:47` — comparaison impossible entre variants d'enum.
+  - *(résolues entre-temps : `Database/index.ts` registry, `Database/Type.ts` AbstractEntity, `App.tsx` supprimé)*
+- [x] **39 erreurs tsc `tests/`** — résolues par la migration (Downloader, mockEntity, ConfigProvider, Criteria, Encounter corrigés/supprimés ; seul `AsyncButton` ×1 reste, voir ci-dessus).
+- [x] **Test-sentinelles decorators** — obsolète : plus aucun décorateur depuis MikroORM ; le patch R1 ne protège plus que le profil `hermes-stable`.
 - [ ] Relancer `test:kotlin` / `test:swift` (tests natifs — non relancés depuis l'audit).
 - [ ] **Réparer l'infra des tests de composants** 🔎 *(découvert au 27/10)* : tout `render()` RNTL crashe — le mock `Text` du preset RN 0.88 charge `react-native/react-private-interface` qui **n'existe pas** dans le paquet (`jest-expo` + mapper `^react-native/.*`). Symptôme : `Could not locate module react-native/react-private-interface`. Aucun test existant ne render de composants (AsyncButton teste de la logique pure) — le trou est invisible tant qu'on n'écrit pas de test d'écran. À régler avec le bump RNTL 14 (P6) ; premier candidat : `StepAccount` (voir son fix P0).
-- [ ] `RecordNormalizer` 🔎 *existe toujours, référencé dans la doc de `EntityMetadata`* — vérifier s'il duplique `Repository.normalizeForWrite` ; exports `Repository/index.ts` incomplets ; scripts `preios`/`clean:metro` redondants.
+- [x] `RecordNormalizer` — supprimé par la migration MikroORM ; exports `Repository/index.ts` complets (3 repositories). *(reste : scripts `preios`/`clean:metro` redondants)*
 - [ ] `Context/ServicesProvider` — 3 services `null` : à brancher au fil de P3-P5.
-- [ ] Migrations DB : absentes (schema sync additive seulement — pas de versioning/drop).
+- [ ] Migrations DB versionnées : absentes (MikroORM `orm.schema.update()` = sync additive au lancement — pas de versioning/drop).
+- [ ] **DevConsole : rattachement `.dat` perdu après reboot** 🔎 *(découvert au 28/10)* : `AudioScanner` cherche `<name>.dat` mais `AudioFileEncryptor` écrit `fixture_<uuid>.dat` → après un redémarrage, les `.dat` ne sont plus rattachés aux `.wav` (boutons « Encrypt » au lieu de « Load ») ; contournement actuel : ré-encrypter. Correctif : nommage déterministe `${name}.dat`.
 
 ---
 

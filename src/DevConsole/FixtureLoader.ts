@@ -1,12 +1,10 @@
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { Registry } from '@/Database/Registry';
+import { Database } from '@/Database/Database';
 import { Encounter } from '@/Entity/Encounter';
 import { Patient } from '@/Entity/Patient';
 import { QueueItem } from '@/Entity/QueueItem';
 import { EncounterStatus } from '@/Entity/Type';
-import type { EncounterRepository } from '@/Repository/EncounterRepository';
-import type { QueueItemRepository } from '@/Repository/QueueItemRepository';
 import { EncounterFixture } from './Data/EncounterFixture';
 import { FixtureException } from './FixtureException';
 
@@ -19,7 +17,6 @@ import { FixtureException } from './FixtureException';
  */
 export class FixtureLoader {
     public constructor(
-        private readonly registry: Registry,
         private readonly logger: AppLogger,
     ) {}
 
@@ -33,9 +30,10 @@ export class FixtureLoader {
         const patient = new Patient({ encounterId: encounter.getUuid() });
         const queueItem = QueueItem.createForEncounter(encounter.getUuid(), encryptedPath);
 
-        await this.registry.getRepository<EncounterRepository>(Encounter).persist(encounter);
-        await this.registry.getRepository(Patient).persist(patient);
-        await this.registry.getRepository<QueueItemRepository>(QueueItem).persist(queueItem);
+        const em = Database.getEntityManager();
+        await em.getRepository(Encounter).persist(encounter);
+        await em.upsert(patient);
+        await em.getRepository(QueueItem).persist(queueItem);
 
         this.logger.info('FixtureLoader: encounter fixture loaded', {
             encounterUuid: encounter.getUuid(),
@@ -78,5 +76,5 @@ export class FixtureLoader {
 
 Container.register(
     FixtureLoader,
-    () => new FixtureLoader(Container.get(Registry), Container.get(AppLogger)),
+    () => new FixtureLoader(Container.get(AppLogger)),
 );

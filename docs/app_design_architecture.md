@@ -76,6 +76,15 @@ On each PCM buffer, two virtual paths:
 
 **Status:** ✅ **Done** – Encounter, Transcription, ProsodyMetrics, Patient, QueueItem, Utterance, VoiceFrame, DetectedSpeakerProfile in Type.ts; `processingOffset` on QueueItem.
 
+**Persistence layer (MikroORM)**
+
+- **ORM:** MikroORM v7 (Doctrine-style: Data Mapper, Unit of Work, Identity Map) on top of Expo SQLite via the kysely-expo dialect.
+- **Entities:** declared with `defineEntity` (schema-first); the rich domain classes `export class X extends XSchema.class` keep getters/setters and apply all defaults in their constructor. `Dayjs` fields map to ISO strings through `DayjsType`.
+- **Bootstrap:** `Database.initialize({ entities: ENTITY_CLASSES })` at app start (`app/index.tsx`), followed by additive schema sync (`orm.schema.update()` — no destructive migration).
+- **Access:** `Database.getEntityManager().getRepository(X)` — custom repositories are inferred automatically when the entity declares one.
+- **Repositories (`src/Repository/`):** one per aggregate root (Therapist, Encounter, QueueItem, DownloadQueue); base `AbstractRepository` provides `persist` (upsert semantics), `exists` and `delete`. Entities without a custom repository use `em.upsert()` directly.
+- **Removed:** the legacy homegrown micro-ORM (`src/Decorator/`, Registry/Criteria/QueryBuilder/Collection) and the FTS5 virtual-table layer.
+
 ---
 
 ## 5. Operating modes: Standard vs Incognito
@@ -109,14 +118,14 @@ On each PCM buffer, two virtual paths:
 - **Record (EncryptionStream):** Accumulate raw audio in RAM up to 16 KB → encrypt (AES-GCM) and write when buffer full.  
 - **Read (StreamDecryptionManager):** Accumulate decrypted blocks in native RAM up to ~512 KB (~16 s) → one `onChunkLoaded` event to JS.
 
-**AI engine (JS / ONNX)**  
-- **Pattern:** Doc describes “Pull” (JS calls `readChunkAt(offset)`, native responds by event).  
-- **Current API:** `stream(encryptedPath)` + events; no `readChunkAt(offset)` in JS or native.  
+**AI engine (JS / ONNX)**
+- **Pattern (décidé 28/10/2026) : « Push » streaming** – JS appelle `stream(encryptedPath)` une fois ; le natif pousse des chunks déchiffrés via `onChunkLoaded` (double buffering 16 KB écriture / 512 KB lecture). Aucun `readChunkAt(offset)` n'existe ni en JS ni en natif — le pull n'est plus une option documentée.
+- **Pourquoi le push (contraintes fondatrices) :** une séance de 4 h ≈ 460 Mo de PCM (16 kHz, 16 bits, mono) → jamais tout en RAM d'un coup ; le contenu déchiffré n'existe qu'en RAM (jamais sur disque en clair) ; les modèles consomment des fenêtres fixes (VAD par trames, Whisper 28 s max) que l'orchestrateur assemble au fil des chunks puis libère.
 - **Models:** VAD (e.g. Silero), ASR (e.g. whisper_small_int8), Speaker (CAM++), Pitch (CREPE).  
 - **Language-aware model selection:** For language-dependent use cases (notably ASR), the config API exposes one entry per role with a `variants` array (each variant has `language`, `id`, `url`, etc.). The app selects one variant by **app/device language** to reduce download size (e.g. English-only ASR when the phone is in English). No duplicate role keys; client resolves to a single asset per use_case.  
-- **Segmentation:** Rolling buffer; if duration > 2 s and VAD silence → cut & process; hard cap 28 s (Whisper).
+- **Segmentation:** Rolling buffer; if duration > 2 s and VAD silence → cut & process; hard cap 28 s (Whisper).
 
-**Status:** ✅ **Done** – EncryptionStream, StreamDecryptionManager, `stream(path)` + listeners. 🚧 **WIP** – Pull-style orchestrator and ONNX integration. ⚠️ **Incoherent** – Doc says `readChunkAt(offset)`; implementation is event-driven `stream(path)`.
+**Status:** ✅ **Done** – EncryptionStream, StreamDecryptionManager, `stream(path)` + listeners. 🚧 **WIP** – Push-style orchestrator (consumes `onChunkLoaded`, advances `QueueItem.processingOffset`) and ONNX integration.
 
 ---
 
@@ -255,10 +264,10 @@ To maintain clinical neutrality, indicators are presented as **indices of change
 | Entities (Encounter, Transcription, ProsodyMetrics, Patient, QueueItem) | ✅ Done | Utterance, VoiceFrame, DetectedSpeakerProfile |
 | QueueItem resumable (processingOffset) | ✅ Done | |
 | Incognito flag (Encounter.isIncognito) | ✅ Done | |
-| Decryption API (stream + events) | ✅ Done | No readChunkAt(offset) |
+| Decryption API (stream + events) | ✅ Done | Push acté 28/10/2026 : le déchiffré n'existe qu'en RAM, fenêtres moteur assemblées au fil des chunks |
 | Time units (ms) | ✅ Done | Utterance, VoiceFrame, Encounter.totalDuration all in milliseconds |
 | VoiceFrame naming (startTime, periodicity) | ✅ Done | Doc and code aligned |
-| Pull-mode orchestrator (readChunkAt) | ⚠️ Incoherent | Doc describes pull; API is push/events |
+| Push orchestrator (onChunkLoaded → VAD/ASR) | 🚧 WIP | Remplace le « pull readChunkAt » (jamais implémenté, retiré de la doc) |
 | ONNX pipeline (VAD, ASR, Speaker) | 🚧 WIP | ArtifactRegistry, AudioProcessing; full pipeline in progress |
 | High-fidelity models (Whisper Medium, CREPE pitch, CAM++ speaker) | 🚧 WIP | CREPE and CAM++ chosen; config-driven rollout |
 | DSP (client: pcm16ToFloat32, EBU R128 transcript only; jitter/shimmer/HNR server-side) | ❌ Not started | Micro-prosody derived server-side from prosody metrics |

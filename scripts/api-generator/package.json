@@ -1,0 +1,9 @@
+{
+    "name": "tiro-scribe-api-generator",
+    "private": true,
+    "description": "Isolated toolchain for `pnpm generate:api`. @hey-api/openapi-ts drives the TypeScript compiler API (SyntaxKind, NewLineKind...), which the project-wide typescript@7 (native compiler) no longer ships — so the generator pins the exact TS it declares (6.0.3) in its own node_modules, kept out of the workspace hoisted layout.",
+    "dependencies": {
+        "@hey-api/openapi-ts": "0.99.0",
+        "typescript": "6.0.3"
+    }
+}

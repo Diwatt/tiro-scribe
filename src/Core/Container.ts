@@ -1,68 +1,39 @@
-import { AppConfig } from '@/Core/AppConfig';
-import { AppLogger } from '@/Core/AppLogger';
-import { AppRouter } from '@/Core/AppRouter';
-import { GlobalActivityStatus } from '@/State/GlobalActivityStatus';
+import { DependencyResolutionException } from '@/Exception';
 
-// Enhanced version with class-based keys
+export type ClassType<TInstance = unknown> = abstract new (...args: never[]) => TInstance;
 
-/**
- * Type representing a constructor function that might accept arbitrary arguments.
- */
-
-// biome-ignore lint/suspicious/noExplicitAny: <this is necessary for a flexible factory function>
-export type ClassType<T = unknown> = new (...args: any[]) => T;
-
-/**
- * Enhanced Container with class-based keys for better type safety
- *
- * Usage examples:
- * Container.register(AppConfig)                           // No-args constructor
- * Container.register(AppLogger, () => new AppLogger())     // Custom factory
- * Container.register(AppLogger, () => new AppLogger(Container.get(AppConfig))) // With dependencies
- *
- * const appConfig = Container.get(AppConfig)              // Get instance
- * const logger = Container.get(AppLogger)                // Get instance
- */
 export class Container {
     private static readonly dependencies = new Map<ClassType | symbol, unknown>();
     private static readonly factories = new Map<ClassType | symbol, () => unknown>();
 
-    /**
-     * Initializes the container by preloading essential dependencies.
-     */
-    public static initialize(): void {
-        // Register AppConfig using its singleton instance
-        Container.register(AppConfig, () => AppConfig.getInstance(), true);
+    public static get<T>(key: ClassType<T> | symbol): T {
+        if (Container.dependencies.has(key)) {
+            return Container.dependencies.get(key) as T;
+        }
 
-        // Ensure AppLogger is initialized with its dependency
-        const config = Container.get(AppConfig);
-        Container.register(AppLogger, () => new AppLogger(config), true);
-
-        // Register GlobalActivityStatus
-        Container.register(GlobalActivityStatus, () => new GlobalActivityStatus(), true);
-
-        // Register AppRouter (depends on AppLogger)
-        Container.register(AppRouter, () => new AppRouter(Container.get(AppLogger)), true);
+        const instance = Container.getFactory<T>(key)();
+        Container.dependencies.set(key, instance);
+        return instance;
     }
 
-    public static register<T>(cls: ClassType<T>, factory: () => T, forceCreation = false): void {
-        Container.factories.set(cls, factory);
+    public static register<T>(key: ClassType<T> | symbol, factory: () => T, forceCreation = false): void {
+        Container.factories.set(key, factory);
+        Container.dependencies.delete(key);
 
         if (forceCreation) {
-            Container.dependencies.set(cls, factory());
+            Container.dependencies.set(key, factory());
         }
     }
 
-    public static get<T>(cls: ClassType<T>): T {
-        let instance = Container.dependencies.get(cls) as T;
-        if (!instance) {
-            const Factory = Container.factories.get(cls);
-            if (!Factory) {
-                throw new Error(`No factory registered for ${cls.toString()}`);
-            }
-            instance = Factory() as T;
-            Container.dependencies.set(cls, instance);
+    private static getFactory<T>(key: ClassType<T> | symbol): () => T {
+        const factory = Container.factories.get(key);
+        if (!factory) {
+            throw new DependencyResolutionException(`No factory registered for ${Container.registrationKeyToString(key)}`);
         }
-        return instance;
+        return factory as () => T;
+    }
+
+    private static registrationKeyToString(key: ClassType | symbol): string {
+        return typeof key === 'symbol' ? key.toString() : (key.name || key.toString());
     }
 }

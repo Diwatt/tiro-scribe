@@ -2,12 +2,19 @@ import { Container } from '@/Core/Container';
 import { Localization } from '@/Localization';
 import { StartupOrchestrator, StartupState } from '@/State/StartupOrchestrator';
 import { GlobalActivityStatus, ActivityStatus } from '@/State/GlobalActivityStatus';
-import { Registry } from '@/Database/Registry';
 import { Downloader } from '@/InferenceModel/Downloader';
 import { DownloadState } from '@/InferenceModel/Download/Type';
 import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
-import type { TherapistRepository } from '@/Repository';
-import { Therapist } from '@/Entity/Therapist';
+
+const mockTherapistRepository = { hasActiveSession: jest.fn().mockResolvedValue(false) };
+
+jest.mock('@/Database/Database', () => ({
+    Database: {
+        getEntityManager: () => ({
+            getRepository: () => mockTherapistRepository,
+        }),
+    },
+}));
 
 jest.mock('@/Core/AppLogger', () => {
     const mockLogger = {
@@ -17,10 +24,7 @@ jest.mock('@/Core/AppLogger', () => {
         error: jest.fn(),
     };
     return {
-        AppLogger: {
-            getInstance: jest.fn(() => mockLogger),
-            ...mockLogger,
-        },
+        AppLogger: mockLogger,
     };
 });
 
@@ -29,7 +33,6 @@ describe('StartupOrchestrator', () => {
         jest.useFakeTimers();
 
         Container.register(GlobalActivityStatus, () => new GlobalActivityStatus(), true);
-        Container.register(Registry, () => ({ getRepository: jest.fn() } as any), true);
         Container.register(Downloader, () => ({ download: jest.fn() } as any), true);
         Container.register(DeviceCompatibilityGate as any, () => ({ ensureCompatible: jest.fn(), isCompatible: jest.fn(() => true) } as any), true);
         Container.register(StartupOrchestrator, () => new StartupOrchestrator(), true);
@@ -37,13 +40,8 @@ describe('StartupOrchestrator', () => {
         // clear any previous activity
         Container.get(GlobalActivityStatus).reset();
 
-        // stub registry so we don't hit a real database
-        jest.spyOn(Container.get(Registry), 'getRepository').mockImplementation(() => {
-            // return minimal repo satisfying the interface
-            return ({
-                hasActiveSession: jest.fn().mockResolvedValue(false),
-            } as unknown) as TherapistRepository;
-        });
+        // stub the therapist repository so we don't hit a real database
+        mockTherapistRepository.hasActiveSession.mockReset().mockResolvedValue(false);
 
         // stub downloader behaviour; simulate downloading state initially
         jest.spyOn(Container.get(Downloader), 'download').mockResolvedValue({
@@ -142,9 +140,7 @@ describe('StartupOrchestrator', () => {
 
     it('sets Ready state when a session already exists', async () => {
         // override repository to simulate an active session
-        (Container.get(Registry).getRepository as any).mockReturnValue({
-            hasActiveSession: jest.fn().mockResolvedValue(true),
-        });
+        mockTherapistRepository.hasActiveSession.mockResolvedValue(true);
 
         await Container.get(StartupOrchestrator).run();
         expect(Container.get(StartupOrchestrator).stateObservable.get()).toBe(StartupState.Ready);

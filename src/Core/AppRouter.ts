@@ -1,5 +1,6 @@
 import { type Href, router } from 'expo-router';
-import type { AppLogger } from '@/Core/AppLogger';
+import { Container } from '@/Core/Container';
+import { AppLogger } from '@/Core/AppLogger';
 
 export class AppRouter {
     public constructor(private readonly logger: AppLogger) {}
@@ -32,3 +33,5 @@ export class AppRouter {
         }
     }
 }
+
+Container.register(AppRouter, () => new AppRouter(Container.get(AppLogger)));

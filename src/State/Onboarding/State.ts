@@ -1,6 +1,6 @@
 /**
  * OnboardingState – ViewModel for the onboarding wizard. Orchestrates flow via Entity (Therapist),
- * Database (registry), and Service (VoiceCalibrator). Manages observables and RecoveryKit (UI-bound).
+ * Database (MikroORM), and Service (VoiceCalibrator). Manages observables and RecoveryKit (UI-bound).
  */
 
 import { computed, type ObservableComputed, observable } from '@legendapp/state';
