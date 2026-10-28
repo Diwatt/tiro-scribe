@@ -110,7 +110,7 @@ On each PCM buffer, two virtual paths:
 ## 6. Native module & processing pattern
 
 **Global:** “Store now, process later” – light live recording → deferred AI on charger.  
-**Stack:** Expo modules (Kotlin/Swift), React Native, ONNX.
+**Stack:** Expo modules (Kotlin/Swift), React Native. On-device inference: **one engine at a time — ExecuTorch** (P2 verdict 28/10/2026 — active maintenance, XNNPACK/CoreML/MLX backends). ONNX Runtime lives in the repo only for the transition and will be removed once the migration completes; it is **not** a runtime fallback. The engine is a configuration choice, never an automatic switchover. Interchangeability proven by the P2 benchmark (ExecuTorch vs ONNX Runtime: cosine 1.000000 on device, same weights/inputs).
 
 **Sensor implementation:** The `secure-recorder` native module implements this section (capture format, encryption, decryption, limits). The contract is declared here and in the module README (`Reference architecture (mandatory for AI)`); changes to format or limits must keep both aligned.
 
@@ -121,11 +121,11 @@ On each PCM buffer, two virtual paths:
 **AI engine (JS / ONNX)**
 - **Pattern (décidé 28/10/2026) : « Push » streaming** – JS appelle `stream(encryptedPath)` une fois ; le natif pousse des chunks déchiffrés via `onChunkLoaded` (double buffering 16 KB écriture / 512 KB lecture). Aucun `readChunkAt(offset)` n'existe ni en JS ni en natif — le pull n'est plus une option documentée.
 - **Pourquoi le push (contraintes fondatrices) :** une séance de 4 h ≈ 460 Mo de PCM (16 kHz, 16 bits, mono) → jamais tout en RAM d'un coup ; le contenu déchiffré n'existe qu'en RAM (jamais sur disque en clair) ; les modèles consomment des fenêtres fixes (VAD par trames, Whisper 28 s max) que l'orchestrateur assemble au fil des chunks puis libère.
-- **Models:** VAD (e.g. Silero), ASR (e.g. whisper_small_int8), Speaker (CAM++), Pitch (CREPE).  
+- **Models:** Speaker CAM++ (biocode, 512-d, `.onnx` + `.pte` interchangeable), VAD (Silero v5 conservé ; FSMN pré-packagé react-native-executorch en alternative swap-friendly), ASR (whisper-small pré-packagé pour Porte 3 ; Parakeet-TDT = effort custom conditionnel), Pitch (CREPE — remis en cause, SwiftF0 évalué). Doctrine (acté 28/10) : privilégier le **catalogue pré-packagé** react-native-executorch ; export/hébergement custom seulement si aucun modèle ne couvre le besoin. Les graphes on-device sont **figés en taille d'entrée** (onnxsim → export) — requis pour la correction ORT mobile (le graphe dynamique original est exécuté faux, silencieusement, par onnxruntime mobile).  
 - **Language-aware model selection:** For language-dependent use cases (notably ASR), the config API exposes one entry per role with a `variants` array (each variant has `language`, `id`, `url`, etc.). The app selects one variant by **app/device language** to reduce download size (e.g. English-only ASR when the phone is in English). No duplicate role keys; client resolves to a single asset per use_case.  
 - **Segmentation:** Rolling buffer; if duration > 2 s and VAD silence → cut & process; hard cap 28 s (Whisper).
 
-**Status:** ✅ **Done** – EncryptionStream, StreamDecryptionManager, `stream(path)` + listeners. 🚧 **WIP** – Push-style orchestrator (consumes `onChunkLoaded`, advances `QueueItem.processingOffset`) and ONNX integration.
+**Status:** ✅ **Done** – EncryptionStream, StreamDecryptionManager, `stream(path)` + listeners. 🚧 **WIP** – Push-style orchestrator (consumes `onChunkLoaded`, advances `QueueItem.processingOffset`). ✅ **P2 verdict** – ExecuTorch primary (Porte 1 build iOS+Android ; Porte 2 interchangeabilité device, cosinus 1.0) ; reste à compléter : mesure RAM + devices physiques.
 
 ---
 
@@ -199,11 +199,11 @@ To maintain clinical neutrality, indicators are presented as **indices of change
 
 | Task | Status |
 |------|--------|
-| Silero VAD v5 (`silero_vad.onnx`) | 🚧 WIP – ArtifactRegistry from API; exact asset TBD |
-| Whisper Medium (e.g. int8, ~500–800 MB) | 🚧 WIP – Config-driven; small currently referenced |
-| Speaker: CAM++ (e.g. 512-d) | 🚧 WIP – chosen for speaker recognition |
-| Pitch f0: CREPE | 🚧 WIP – chosen for pitch extraction |
-| Language-specific ASR (e.g. en-only vs multilingual) | 🚧 WIP – select by app language to lower download size |
+| Silero VAD v5 (`silero_vad.onnx`) | ✅ Chosen + config-driven download pipeline (P1) ; FSMN VAD pré-packagé react-native-executorch = alternative swap-friendly (décision interchangeabilité) |
+| Whisper Medium (e.g. int8, ~500–800 MB) | ❌ Remis en cause (P2 revue) — **whisper-small pré-packagé** (Porte 3) puis Parakeet-TDT si insuffisant |
+| Speaker: CAM++ (e.g. 512-d) | ✅ Validé P1 (config.yaml 3D-Speaker, embed_dim réel 512) + P2 (`.pte` XNNPACK exporté, interchangeable ORT↔ExecuTorch, cosinus 1.0 device) |
+| Pitch f0: CREPE | 🚧 Conservé mais remis en cause — SwiftF0 (~42× plus rapide CPU) à évaluer (P3) |
+| Language-specific ASR (e.g. en-only vs multilingual) | ✅ Sélection par langue implémentée (`Setup` + `Downloader.isModelDownloaded`) |
 
 ### Phase 2 – DSP utilities (e.g. AudioUtils)
 
@@ -218,7 +218,7 @@ To maintain clinical neutrality, indicators are presented as **indices of change
 
 | Task | Status |
 |------|--------|
-| ONNX graph optimizations / NPU | ❌ Not started |
+| ONNX graph optimizations / NPU | ✅ Remplacé par le verdict P2 : **ExecuTorch moteur principal** (XNNPACK/CoreML/MLX), ORT conservé en fallback — graphes figés obligatoires (bug ORT mobile sur graphe dynamique, silencieux) |
 | Biocode projection (speaker vector → practitioner key) | 🚧 WIP – Biocode service exists |
 | Multi-pass: diarization/VAD → word-level Whisper → acoustic sync | 🚧 WIP – AudioProcessing pipeline; full multi-pass not done |
 | Formants (F1, F2) / vowel space | ❌ Not started |
