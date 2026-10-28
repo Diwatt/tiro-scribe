@@ -11,6 +11,7 @@ export { RuntimeBenchmark } from './RuntimeBenchmark';
 export { AudioIngest } from './Data/AudioIngest';
 export { EncounterFixture } from './Data/EncounterFixture';
 export { FixtureLoader } from './FixtureLoader';
+export { SpeechToTextBenchmark } from './SpeechToTextBenchmark';
 export { SourceIngestException } from './SourceIngestException';
 export { SourceFile } from './Data/SourceFile';
 export { AudioFileEncryptor } from './AudioFileEncryptor';

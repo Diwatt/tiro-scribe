@@ -1,7 +1,7 @@
 import { observer } from '@legendapp/state/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { documentDirectory } from 'expo-file-system/legacy';
-import { FileAudio, FolderOpen, Gauge, Lock, RefreshCw, UserRound } from 'lucide-react-native';
+import { FileAudio, FolderOpen, Gauge, Lock, Mic, RefreshCw, UserRound } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import {
@@ -16,13 +16,18 @@ import {
     TextInput,
     useTheme,
 } from 'react-native-paper';
+import { createWhisperSpeechToText, download, models } from 'react-native-executorch';
+import type { WhisperLanguage } from 'react-native-executorch';
 import { Container } from '@/Core/Container';
 import { AppLogger } from '@/Core/AppLogger';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { AudioState } from './AudioState';
+import { AudioSegmentExtractor } from './AudioSegmentExtractor';
 import { ExecuTorchEmbeddingEngine } from './ExecuTorchEmbeddingEngine';
 import { OrtEmbeddingEngine } from './OrtEmbeddingEngine';
 import { RuntimeBenchmark } from './RuntimeBenchmark';
+import { SpeechToTextBenchmark } from './SpeechToTextBenchmark';
+import type { SpeechToTextRunnerFactory } from './SpeechToTextBenchmark';
 
 export const AudioScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
@@ -36,6 +41,26 @@ export const AudioScreen = observer((): React.JSX.Element => {
                 new ExecuTorchEmbeddingEngine(),
             ),
     );
+    const [asrBenchmark] = React.useState(() => {
+        const factory: SpeechToTextRunnerFactory = {
+            create: async () => {
+                // download() télécharge les sources du catalogue et renvoie les chemins
+                // locaux : loadModel natif n'accepte que des fichiers, jamais des URL.
+                const localModel = await download(models.speechToText.WHISPER.SMALL.DEFAULT);
+                const runner = await createWhisperSpeechToText(localModel);
+                return {
+                    transcribe: (audio: Float32Array, language: string) =>
+                        runner.transcribe(audio, { language: language as WhisperLanguage }),
+                    dispose: () => Promise.resolve(runner.dispose()),
+                };
+            },
+        };
+        return new SpeechToTextBenchmark(
+            Container.get(AppLogger),
+            Container.get(AudioSegmentExtractor),
+            factory,
+        );
+    });
     const [inputPath, setInputPath] = React.useState('');
     const [therapistSourcePath, setTherapistSourcePath] = React.useState('');
     const [segmentStart, setSegmentStart] = React.useState('0');
@@ -44,6 +69,8 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const deviceDocuments = (documentDirectory ?? '').replace('file://', '');
     const [ptePath, setPtePath] = React.useState(deviceDocuments + 'campp_xnnpack.pte');
     const [ortPath, setOrtPath] = React.useState(deviceDocuments + 'campp_static_T500.onnx');
+    const [asrWavPath, setAsrWavPath] = React.useState(deviceDocuments + 'gloria_short_60s.wav');
+    const [asrLanguage, setAsrLanguage] = React.useState('en');
     const [embeddingDimInput, setEmbeddingDimInput] = React.useState('512');
 
     const isLoading = state.state$.isLoading.get();
@@ -58,13 +85,28 @@ export const AudioScreen = observer((): React.JSX.Element => {
         void benchmark.run(ortPath, ptePath, embeddingDim).catch(() => undefined);
     };
 
-    const autorun = useLocalSearchParams<{ autorun?: string }>().autorun === '1';
+    const searchParams = useLocalSearchParams<{ autorun?: string }>();
+    const autorunRuntime = searchParams.autorun === '1';
+    const autorunAsr = searchParams.autorun === 'asr';
+    const asrSnapshot = asrBenchmark.state$.get();
+
+    const runAsrBenchmark = (): void => {
+        void asrBenchmark.run(asrWavPath, asrLanguage).catch(() => undefined);
+    };
+
     React.useEffect(() => {
-        if (autorun && isBenchmarkFormValid && !benchmarkSnapshot.isLoading) {
+        if (autorunRuntime && isBenchmarkFormValid && !benchmarkSnapshot.isLoading) {
             runBenchmark();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autorun]);
+    }, [autorunRuntime]);
+
+    React.useEffect(() => {
+        if (autorunAsr && !asrSnapshot.isLoading) {
+            runAsrBenchmark();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autorunAsr]);
 
     const segmentStartMs = Number.parseInt(segmentStart, 10);
     const segmentEndMs = Number.parseInt(segmentEnd, 10);
@@ -256,6 +298,59 @@ export const AudioScreen = observer((): React.JSX.Element => {
                                     Cosine ORT vs ExecuTorch: {benchmarkSnapshot.cosine?.toFixed(6)} (max abs diff{' '}
                                     {benchmarkSnapshot.maxAbsDiff?.toFixed(6)})
                                 </Text>
+                            </View>
+                        )}
+                    </Card.Content>
+                </Card>
+
+                <Card style={STYLES.benchmarkCard}>
+                    <Card.Content>
+                        <Text variant="titleSmall" style={{ marginBottom: 8 }}>
+                            ASR Benchmark (P3: whisper-small pré-packagé)
+                        </Text>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                            Decrypt-free smoke test: wav 16 kHz mono → Whisper transcription (model downloaded from the
+                            packaged catalog on first run)
+                        </Text>
+                        <TextInput
+                            mode="outlined"
+                            label=".wav path (device Documents)"
+                            value={asrWavPath}
+                            onChangeText={setAsrWavPath}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <View style={STYLES.segmentRow}>
+                            <TextInput
+                                mode="outlined"
+                                label="Language"
+                                value={asrLanguage}
+                                onChangeText={setAsrLanguage}
+                                style={STYLES.segmentInput}
+                            />
+                            <Button
+                                mode="contained"
+                                onPress={runAsrBenchmark}
+                                loading={asrSnapshot.isLoading}
+                                disabled={asrSnapshot.isLoading || asrWavPath.length === 0 || asrLanguage.length === 0}
+                                icon={() => <Mic size={18} color={theme.colors.onPrimary} />}
+                                style={STYLES.segmentInput}
+                            >
+                                Transcribe
+                            </Button>
+                        </View>
+                        {asrSnapshot.error != null && (
+                            <Text variant="bodySmall" style={{ color: theme.colors.error }}>
+                                {asrSnapshot.error}
+                            </Text>
+                        )}
+                        {asrSnapshot.result != null && (
+                            <View style={STYLES.benchmarkResults}>
+                                <Text variant="bodySmall">
+                                    Load {asrSnapshot.result.loadLatencyMs} ms, transcribe {asrSnapshot.result.latencyMs}{' '}
+                                    ms for {asrSnapshot.result.audioDurationMs} ms audio (RTF{' '}
+                                    {asrSnapshot.result.rtf.toFixed(3)})
+                                </Text>
+                                <Text variant="bodyMedium">{asrSnapshot.result.transcript}</Text>
                             </View>
                         )}
                     </Card.Content>
