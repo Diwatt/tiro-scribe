@@ -3,6 +3,16 @@ import { CryptoEngine } from '@/Security/CryptoEngine';
 describe('CryptoEngine', () => {
     const crypto = new CryptoEngine();
 
+    describe('configuration', () => {
+        it('uses AES-256-GCM for authenticated encryption', () => {
+            expect(CryptoEngine.ALGORITHM).toBe('aes-256-gcm');
+        });
+
+        it('derives password keys with OWASP-recommended PBKDF2 iteration count (>= 600k)', () => {
+            expect(CryptoEngine.PBKDF2_PASSWORD_ITERATIONS).toBeGreaterThanOrEqual(600_000);
+        });
+    });
+
     describe('salt', () => {
         it('returns tag-prefixed string with uuid', () => {
             expect(crypto.salt('uuid-1', 'vault_primary')).toBe('scribe_vault_primary_uuid-1');
@@ -44,11 +54,10 @@ describe('CryptoEngine', () => {
             expect(crypto.decrypt(ciphertext, key)).toBe(plaintext);
         });
 
-        it('prefixes the ciphertext with a 16-byte IV before the encrypted blocks', () => {
-            const combined = Buffer.from(crypto.encrypt('note', key), 'base64');
+        it('formats ciphertext as base64 of IV (12) || auth tag (16) || encrypted bytes', () => {
+            const combined = Buffer.from(crypto.encrypt('A'.repeat(30), key), 'base64');
 
-            // IV (16) + at least one padded AES block (16)
-            expect(combined.length).toBeGreaterThanOrEqual(32);
+            expect(combined.length).toBe(CryptoEngine.IV_BYTES + CryptoEngine.AUTH_TAG_BYTES + 30);
         });
 
         it('produces different ciphertexts for the same plaintext (random IV)', () => {
@@ -68,6 +77,20 @@ describe('CryptoEngine', () => {
             const otherKey = crypto.keyFromPassword('therapist-passphrase', 'scribe_vault_uuid-2');
 
             expect(() => crypto.decrypt(ciphertext, otherKey)).toThrow();
+        });
+
+        it('rejects tampered ciphertext (GCM authentication)', () => {
+            const combined = Buffer.from(crypto.encrypt('clinical note', key), 'base64');
+            combined[combined.length - 1] ^= 0xff;
+
+            expect(() => crypto.decrypt(combined.toString('base64'), key)).toThrow();
+        });
+
+        it('rejects a corrupted auth tag', () => {
+            const combined = Buffer.from(crypto.encrypt('clinical note', key), 'base64');
+            combined[CryptoEngine.IV_BYTES] ^= 0xff;
+
+            expect(() => crypto.decrypt(combined.toString('base64'), key)).toThrow();
         });
 
         it('decrypts empty plaintext', () => {
@@ -102,6 +125,10 @@ describe('CryptoEngine', () => {
 
     describe('generateDeterministicBytes', () => {
         const keyHex = crypto.keyFromPassword('pass', 'salt');
+
+        it('keeps PRF derivation cheap, separate from password hardening', () => {
+            expect(CryptoEngine.PBKDF2_PRF_ITERATIONS).toBeLessThan(CryptoEngine.PBKDF2_PASSWORD_ITERATIONS);
+        });
 
         it('is deterministic for the same key material and salt', () => {
             const a = crypto.generateDeterministicBytes(keyHex, 'tag', 32);
