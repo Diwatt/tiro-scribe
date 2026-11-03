@@ -105,6 +105,7 @@ Argent MCP is installed (global `@swmansion/argent`) and exposes live device too
 - **Dual-Stream Processing:** DSP (measurement) + ASR (transcription) pipelines
 - **Two Operating Modes:** Standard (Clinical) vs Incognito (Bunker)
 - **Processing Pattern:** "Store now, process later" — deferred AI on charger
+- **NO Real-Time:** Never propose live feedback/transcription — the therapist never looks at the screen during a session; timestamps and streaming features serve post-processing only
 
 ### Core Principles
 1. **Privacy by Design:** PII anonymized before any storage or transmission
