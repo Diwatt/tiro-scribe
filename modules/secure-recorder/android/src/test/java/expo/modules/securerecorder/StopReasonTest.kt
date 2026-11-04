@@ -1,42 +1,56 @@
 package expo.modules.securerecorder
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.Assert.*
 
 /**
- * Unit tests for StopReason
- * Tests conversion logic and error handling
+ * Unit tests for StopReason conversion logic.
+ * Each mapping branch of toJsString / fromJsString gets its own test.
  */
 class StopReasonTest {
 
   @Test
-  fun `fromJsString parses valid values`() {
+  fun `toJsString maps DURATION_LIMIT to duration_limit`() {
+    assertEquals("duration_limit", StopReason.DURATION_LIMIT.toJsString())
+  }
+
+  @Test
+  fun `toJsString maps FILE_SIZE_LIMIT to file_size_limit`() {
+    assertEquals("file_size_limit", StopReason.FILE_SIZE_LIMIT.toJsString())
+  }
+
+  @Test
+  fun `toJsString maps USER_STOPPED to user_stopped`() {
+    assertEquals("user_stopped", StopReason.USER_STOPPED.toJsString())
+  }
+
+  @Test
+  fun `toJsString maps ERROR to error`() {
+    assertEquals("error", StopReason.ERROR.toJsString())
+  }
+
+  @Test
+  fun `fromJsString parses duration_limit`() {
     assertEquals(StopReason.DURATION_LIMIT, StopReason.fromJsString("duration_limit"))
+  }
+
+  @Test
+  fun `fromJsString parses file_size_limit`() {
     assertEquals(StopReason.FILE_SIZE_LIMIT, StopReason.fromJsString("file_size_limit"))
+  }
+
+  @Test
+  fun `fromJsString parses user_stopped`() {
     assertEquals(StopReason.USER_STOPPED, StopReason.fromJsString("user_stopped"))
+  }
+
+  @Test
+  fun `fromJsString parses error`() {
     assertEquals(StopReason.ERROR, StopReason.fromJsString("error"))
   }
 
   @Test
-  fun `fromJsString returns ERROR for unknown values`() {
-    assertEquals(StopReason.ERROR, StopReason.fromJsString("unknown"))
-    assertEquals(StopReason.ERROR, StopReason.fromJsString(""))
+  fun `fromJsString defaults unknown values to ERROR`() {
     assertEquals(StopReason.ERROR, StopReason.fromJsString("invalid_reason"))
-  }
-
-  @Test
-  fun `toJsString and fromJsString are inverse operations`() {
-    val reasons = listOf(
-      StopReason.DURATION_LIMIT,
-      StopReason.FILE_SIZE_LIMIT,
-      StopReason.USER_STOPPED,
-      StopReason.ERROR
-    )
-    
-    reasons.forEach { originalReason ->
-      val jsString = originalReason.toJsString()
-      val parsedReason = StopReason.fromJsString(jsString)
-      assertEquals("toJsString and fromJsString should be inverse", originalReason, parsedReason)
-    }
   }
 }

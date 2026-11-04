@@ -110,26 +110,27 @@ runs:
       if: (steps.check-workspace.outputs.exists == 'true' || inputs.skip-prebuild == 'false') && inputs.run-tests == 'true'
       id: test
       shell: bash
-      working-directory: ios
+      working-directory: modules/secure-recorder/ios
       run: |
-        echo "::group::Swift Unit Tests"
-        # Find first available iPhone simulator
+        echo "::group::Swift Unit Tests (SecureRecorder package)"
         SIMULATOR=$(xcrun simctl list devices available iPhone | grep -m 1 "iPhone" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
-        
+
         if [ -z "$SIMULATOR" ]; then
           echo "::error::No iPhone simulator found"
           exit 1
         fi
-        
+
         echo "Using simulator: $SIMULATOR"
-        
+
         xcodebuild test \
-          -workspace TiroScribe.xcworkspace \
-          -scheme TiroScribe \
+          -scheme SecureRecorder-Package \
           -destination "id=$SIMULATOR" \
-          -only-testing:TiroScribeTests \
-          -quiet \
           | tee xcodebuild-test.log
+
+        # Extract test summary
+        TEST_COUNT=$(grep -o "Executed [0-9]* tests" xcodebuild-test.log | tail -1 || echo "completed")
+        echo "summary=✅ Tests $TEST_COUNT" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
         
         # Extract test summary
         TEST_COUNT=$(grep -o "Test Suite.*passed" xcodebuild-test.log | tail -1 || echo "completed")

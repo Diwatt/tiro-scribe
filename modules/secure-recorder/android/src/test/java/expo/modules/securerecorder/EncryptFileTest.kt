@@ -1,35 +1,57 @@
 package expo.modules.securerecorder
 
+import expo.modules.securerecorder.exception.InitializationException
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
-import org.junit.Assert.*
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import java.io.File
-import java.nio.ByteBuffer
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 /**
- * Tests for encryptFile pipeline behavior
+ * Tests for SecureRecorderModule.encryptFile and encryptBytes.
  *
- * Mimics the private `encryptFile(inputPath, outputPath)` method on SecureRecorderModule:
- * creates an EncryptionStream, initializes it, reads the input file in chunks, writes each
- * chunk to the stream, and closes it. Then decrypts the result with StreamDecryptionManager
- * to verify round-trip integrity, chunk structure, and unique IVs.
+ * The real module methods are called (no algorithm re-implementation) with an injected
+ * KeyManagerInterface test double, then round-tripped through StreamDecryptionManager
+ * to verify content integrity, chunk structure, and unique IVs.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class EncryptFileTest {
 
   private lateinit var tempDir: File
   private lateinit var secretKey: SecretKey
+  private lateinit var module: SecureRecorderModule
 
   @Before
   fun setUp() {
-    tempDir = File(System.getProperty("java.io.tmpdir"), "encrypt-file-test-${System.currentTimeMillis()}")
+    tempDir = File(
+      RuntimeEnvironment.getApplication().filesDir,
+      "encrypt-test-${System.currentTimeMillis()}"
+    )
     tempDir.mkdirs()
 
     val keyGenerator = KeyGenerator.getInstance("AES")
     keyGenerator.init(256)
     secretKey = keyGenerator.generateKey()
+
+    val mockKeyManager = mockk<KeyManagerInterface> {
+      every { getOrCreateKey(any()) } returns secretKey
+    }
+    module = SecureRecorderModule(
+      injectedContext = RuntimeEnvironment.getApplication(),
+      keyManagerFactory = { mockKeyManager }
+    )
   }
 
   @After
@@ -37,118 +59,87 @@ class EncryptFileTest {
     tempDir.deleteRecursively()
   }
 
-  // MARK: - Helpers
+  @Test
+  fun `encryptFile round-trips a small file`() {
+    val plaintextFile = createPlaintextFile("small_plain.dat", 4 * 1024)
+    val encryptedFile = File(tempDir, "small_encrypted.dat")
+
+    val outputPath = module.encryptFile(plaintextFile.absolutePath, encryptedFile.absolutePath)
+
+    assertEquals(encryptedFile.absolutePath, outputPath)
+    assertArrayEquals(plaintextFile.readBytes(), decryptedContent(encryptedFile))
+  }
+
+  @Test
+  fun `encryptFile round-trips a large file across multiple chunks`() {
+    val plaintextFile = createPlaintextFile("large_plain.dat", 40 * 1024)
+    val encryptedFile = File(tempDir, "large_encrypted.dat")
+
+    module.encryptFile(plaintextFile.absolutePath, encryptedFile.absolutePath)
+
+    val chunks = decryptedChunks(encryptedFile)
+    assertTrue("Large file should produce multiple chunks", chunks.size > 1)
+    assertArrayEquals(plaintextFile.readBytes(), chunks.reduce { acc, bytes -> acc + bytes })
+  }
+
+  @Test
+  fun `encryptFile throws InitializationException when the input file does not exist`() {
+    val missingPath = File(tempDir, "missing.dat").absolutePath
+
+    val exception = assertThrows(InitializationException::class.java) {
+      module.encryptFile(missingPath, File(tempDir, "out.dat").absolutePath)
+    }
+
+    assertEquals("Input file not found: $missingPath", exception.message)
+  }
+
+  @Test
+  fun `encryptBytes round-trips bytes`() {
+    val data = ByteArray(2 * 1024) { (it % 251).toByte() }
+    val encryptedFile = File(tempDir, "bytes_encrypted.dat")
+
+    val outputPath = module.encryptBytes(data, encryptedFile.absolutePath)
+
+    assertEquals(encryptedFile.absolutePath, outputPath)
+    assertArrayEquals(data, decryptedContent(encryptedFile))
+  }
+
+  @Test
+  fun `encryptBytes splits data larger than one chunk into multiple sealed boxes`() {
+    val data = ByteArray(40 * 1024) { (it % 251).toByte() }
+    val encryptedFile = File(tempDir, "bytes_large_encrypted.dat")
+
+    module.encryptBytes(data, encryptedFile.absolutePath)
+
+    val chunks = decryptedChunks(encryptedFile)
+    assertTrue("Data larger than 16KB should produce multiple chunks", chunks.size > 1)
+    assertArrayEquals(data, chunks.reduce { acc, bytes -> acc + bytes })
+  }
+
+  @Test
+  fun `encryptBytes produces an empty file for empty input`() {
+    val encryptedFile = File(tempDir, "bytes_empty_encrypted.dat")
+
+    module.encryptBytes(ByteArray(0), encryptedFile.absolutePath)
+
+    assertEquals("Empty input should produce no sealed chunk", 0L, encryptedFile.length())
+  }
 
   private fun createPlaintextFile(name: String, sizeBytes: Int): File {
     val file = File(tempDir, name)
-    val data = ByteArray(sizeBytes) { (it % 256).toByte() }
-    file.writeBytes(data)
+    file.writeBytes(ByteArray(sizeBytes) { (it % 256).toByte() })
     return file
   }
 
-  private fun encryptFile(inputFile: File, outputFile: File) {
-    val encryptionStream = EncryptionStream(secretKey, outputFile)
-    encryptionStream.initialize()
-
-    inputFile.inputStream().use { input ->
-      val buffer = ByteArray(8 * 1024)
-      var bytesRead: Int
-      while (input.read(buffer).also { bytesRead = it } != -1) {
-        val chunk = if (bytesRead < buffer.size) buffer.copyOf(bytesRead) else buffer
-        encryptionStream.write(chunk)
-      }
-    }
-
-    encryptionStream.close()
-  }
-
-  private fun decryptFile(encryptedFile: File): List<ByteArray> {
-    val manager = StreamDecryptionManager(secretKey, encryptedFile)
+  private fun decryptedChunks(encryptedFile: File): List<ByteArray> {
     val chunks = mutableListOf<ByteArray>()
-    manager.stream { data, _, _ ->
+    StreamDecryptionManager(secretKey, encryptedFile).stream { data, _, _ ->
       chunks.add(data)
     }
     return chunks
   }
 
-  // MARK: - Test: Round Trip Small File
-
-  @Test
-  fun testEncryptFileRoundTripSmallFile() {
-    val plaintextFile = createPlaintextFile("small_plain.dat", 4 * 1024)
-    val encryptedFile = File(tempDir, "small_encrypted.dat")
-
-    encryptFile(plaintextFile, encryptedFile)
-
-    val decryptedChunks = decryptFile(encryptedFile)
-    val decrypted = decryptedChunks.reduce { acc, bytes -> acc + bytes }
-
-    assertArrayEquals("Decrypted content should match original small file", plaintextFile.readBytes(), decrypted)
-  }
-
-  // MARK: - Test: Round Trip Large File
-
-  @Test
-  fun testEncryptFileRoundTripLargeFile() {
-    val plaintextSize = 40 * 1024
-    val plaintextFile = createPlaintextFile("large_plain.dat", plaintextSize)
-    val encryptedFile = File(tempDir, "large_encrypted.dat")
-
-    encryptFile(plaintextFile, encryptedFile)
-
-    val decryptedChunks = decryptFile(encryptedFile)
-    assertTrue("Large file should produce multiple chunks", decryptedChunks.size > 1)
-
-    val decrypted = decryptedChunks.reduce { acc, bytes -> acc + bytes }
-    assertArrayEquals("Decrypted content should match original large file", plaintextFile.readBytes(), decrypted)
-  }
-
-  // MARK: - Test: Chunk Structure
-
-  @Test
-  fun testEncryptFileProducesCorrectChunkStructure() {
-    val plaintextFile = createPlaintextFile("structure_plain.dat", 2 * 1024)
-    val encryptedFile = File(tempDir, "structure_encrypted.dat")
-
-    encryptFile(plaintextFile, encryptedFile)
-
-    val fileBytes = encryptedFile.readBytes()
-    assertTrue("Encrypted file should not be empty", fileBytes.isNotEmpty())
-
-    val chunkSize = ByteBuffer.wrap(fileBytes.copyOfRange(0, 4)).int
-    assertTrue("Chunk size should be at least 28 (12-byte IV + 16-byte tag)", chunkSize >= 28)
-
-    val expectedTotalSize = 4 + chunkSize
-    assertEquals("Single-chunk file size should equal 4 + chunkSize", expectedTotalSize, fileBytes.size)
-  }
-
-  // MARK: - Test: Unique IVs Across Chunks
-
-  @Test
-  fun testEncryptFileMultipleChunksHaveUniqueIVs() {
-    val plaintextSize = 40 * 1024
-    val plaintextFile = createPlaintextFile("unique_iv_plain.dat", plaintextSize)
-    val encryptedFile = File(tempDir, "unique_iv_encrypted.dat")
-
-    encryptFile(plaintextFile, encryptedFile)
-
-    val fileBytes = encryptedFile.readBytes()
-    val ivs = mutableListOf<ByteArray>()
-    var offset = 0
-
-    while (offset < fileBytes.size) {
-      val chunkSize = ByteBuffer.wrap(fileBytes.copyOfRange(offset, offset + 4)).int
-      val iv = fileBytes.copyOfRange(offset + 4, offset + 16)
-      ivs.add(iv)
-      offset += 4 + chunkSize
-    }
-
-    assertTrue("Should have multiple chunks", ivs.size > 1)
-
-    for (i in ivs.indices) {
-      for (j in i + 1 until ivs.size) {
-        assertFalse("Each chunk should have a unique IV", ivs[i].contentEquals(ivs[j]))
-      }
-    }
+  private fun decryptedContent(encryptedFile: File): ByteArray {
+    return decryptedChunks(encryptedFile).reduce { acc, bytes -> acc + bytes }
   }
 }

@@ -1,46 +1,48 @@
 package expo.modules.securerecorder
 
-import android.media.AudioFormat
-import org.junit.Before
+import android.media.AudioRecord
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.Implementation
+import org.robolectric.annotation.Implements
 
 /**
- * Unit tests for AudioConfig
- * Tests buffer size calculation logic
+ * Unit tests for AudioConfig buffer size calculation, run against the real
+ * Robolectric audio shadow. The fallback branch (invalid minimum buffer size)
+ * is exercised through a custom shadow returning an error code.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class AudioConfigTest {
 
-  private lateinit var audioConfig: AudioConfig
+  @Test
+  fun `bufferSize is twice the minimum buffer size when the minimum is valid`() {
+    val audioConfig = AudioConfig()
 
-  @Before
-  fun setup() {
-    audioConfig = AudioConfig()
+    val minSize = AudioRecord.getMinBufferSize(audioConfig.sampleRate, audioConfig.channelConfig, audioConfig.audioFormat)
+
+    assertTrue("Robolectric should report a valid minimum buffer size", minSize > 0)
+    assertEquals(minSize * 2, audioConfig.bufferSize)
   }
 
   @Test
-  fun `bufferSize calculation uses 2x minimum when available`() {
-    // Buffer size calculation: minSize * 2 if minSize > 0
-    val minSize = android.media.AudioRecord.getMinBufferSize(
-      audioConfig.sampleRate,
-      audioConfig.channelConfig,
-      audioConfig.audioFormat
-    )
-    
-    if (minSize > 0) {
-      assertTrue(
-        "Buffer size should be at least 2x minimum buffer size",
-        audioConfig.bufferSize >= minSize * 2
-      )
+  @Config(shadows = [AudioConfigTest.InvalidMinBufferSizeShadow::class])
+  fun `bufferSize falls back to 8192 when the minimum buffer size is invalid`() {
+    val audioConfig = AudioConfig()
+
+    assertEquals(8192, audioConfig.bufferSize)
+  }
+
+  @Implements(AudioRecord::class)
+  class InvalidMinBufferSizeShadow {
+    companion object {
+      @JvmStatic
+      @Implementation
+      fun getMinBufferSize(sampleRate: Int, channelConfig: Int, audioFormat: Int): Int = -2
     }
-  }
-
-  @Test
-  fun `bufferSize uses fallback when minimum is invalid`() {
-    // In test environment, getMinBufferSize may return -1
-    // Verify fallback value is reasonable (8KB = 4096 * 2)
-    val bufferSize = audioConfig.bufferSize
-    assertTrue("Buffer size should be reasonable even with fallback", bufferSize >= 4096 * 2)
-    assertTrue("Buffer size should be positive", bufferSize > 0)
   }
 }

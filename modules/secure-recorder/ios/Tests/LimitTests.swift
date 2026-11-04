@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for Limit (iOS/iPadOS)
@@ -29,19 +29,31 @@ class LimitTests: XCTestCase {
     XCTAssertTrue(limit.isExceeded(value: 1500), "Value above limit should be exceeded")
   }
   
-  func testDurationLimitIsExceededWorksWithMilliseconds() {
+  func testDurationLimitBelowThresholdIsNotExceeded() {
     let duration = Limit.Duration(maxValue: 3600000, reason: .durationLimit) // 1 hour
     let limit = Limit.duration(duration)
-    
+
     XCTAssertFalse(limit.isExceeded(value: 30 * 60 * 1000), "30 minutes should not exceed 1 hour limit")
+  }
+
+  func testDurationLimitAboveThresholdIsExceeded() {
+    let duration = Limit.Duration(maxValue: 3600000, reason: .durationLimit) // 1 hour
+    let limit = Limit.duration(duration)
+
     XCTAssertTrue(limit.isExceeded(value: 2 * 60 * 60 * 1000), "2 hours should exceed 1 hour limit")
   }
-  
-  func testFileSizeLimitIsExceededWorksWithBytes() {
+
+  func testFileSizeLimitBelowThresholdIsNotExceeded() {
     let fileSize = Limit.FileSize(maxValue: 1024, reason: .fileSizeLimit) // 1KB
     let limit = Limit.fileSize(fileSize)
-    
+
     XCTAssertFalse(limit.isExceeded(value: 512), "512 bytes should not exceed 1KB limit")
+  }
+
+  func testFileSizeLimitAboveThresholdIsExceeded() {
+    let fileSize = Limit.FileSize(maxValue: 1024, reason: .fileSizeLimit) // 1KB
+    let limit = Limit.fileSize(fileSize)
+
     XCTAssertTrue(limit.isExceeded(value: 2048), "2KB should exceed 1KB limit")
   }
 }

@@ -24,8 +24,8 @@ class AudioRecord {
   static let RECORDSTATE_STOPPED = 1
   static let RECORDSTATE_RECORDING = 3
   
-  private let engine: AVAudioEngine
-  private let inputNode: AVAudioInputNode
+  private let engine: AudioEngineProtocol
+  private let inputNode: AudioInputNodeProtocol
   private let audioConfig: AudioConfig
   private let onRelease: () -> Void // Session cleanup closure
   
@@ -44,7 +44,7 @@ class AudioRecord {
   private var converter: AVAudioConverter?
   private var targetFormat: AVAudioFormat?
   
-  internal init(engine: AVAudioEngine, inputNode: AVAudioInputNode, audioConfig: AudioConfig, onRelease: @escaping () -> Void) {
+  internal init(engine: AudioEngineProtocol, inputNode: AudioInputNodeProtocol, audioConfig: AudioConfig, onRelease: @escaping () -> Void) {
     self.engine = engine
     self.inputNode = inputNode
     self.audioConfig = audioConfig

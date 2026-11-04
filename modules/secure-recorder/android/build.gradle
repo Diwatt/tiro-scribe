@@ -24,7 +24,7 @@ android {
   }
 
   testOptions {
-    unitTests.returnDefaultValues = true
+    unitTests.includeAndroidResources = true
     unitTests.all {
       // Run tests on both phone and tablet configurations
       // Note: For device-specific tests, use AndroidTest with different device configurations
@@ -49,4 +49,5 @@ dependencies {
   testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:2.0.21'
   testImplementation 'io.mockk:mockk:1.13.8'
   testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+  testImplementation 'org.robolectric:robolectric:4.16'
 }

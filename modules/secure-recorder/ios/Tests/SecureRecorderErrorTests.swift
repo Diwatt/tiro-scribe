@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for SecureRecorderError (iOS/iPadOS)
@@ -8,36 +8,52 @@ import Foundation
 @available(iOS 13.0, *)
 class SecureRecorderErrorTests: XCTestCase {
   
-  func testInitializationFailedErrorFormatsMessageCorrectly() {
-    let customMessage = "Custom initialization error"
-    let error = SecureRecorderError.initializationFailed(customMessage)
-    
+  func testInitializationFailedExposesExpectedCode() {
+    let error = SecureRecorderError.initializationFailed("Custom initialization error")
+
     XCTAssertEqual("INITIALIZATION_FAILED", error.code)
-    XCTAssertEqual("Initialization failed: \(customMessage)", error.message)
   }
-  
-  func testRecordingFailedErrorFormatsMessageCorrectly() {
-    let customMessage = "Custom recording error"
-    let error = SecureRecorderError.recordingFailed(customMessage)
-    
+
+  func testInitializationFailedIncludesCustomMessage() {
+    let error = SecureRecorderError.initializationFailed("Custom initialization error")
+
+    XCTAssertEqual("Initialization failed: Custom initialization error", error.message)
+  }
+
+  func testRecordingFailedExposesExpectedCode() {
+    let error = SecureRecorderError.recordingFailed("Custom recording error")
+
     XCTAssertEqual("RECORDING_FAILED", error.code)
-    XCTAssertEqual("Failed to start recording: \(customMessage)", error.message)
   }
-  
-  func testStopFailedErrorFormatsMessageCorrectly() {
-    let customMessage = "Custom stop error"
-    let error = SecureRecorderError.stopFailed(customMessage)
-    
+
+  func testRecordingFailedIncludesCustomMessage() {
+    let error = SecureRecorderError.recordingFailed("Custom recording error")
+
+    XCTAssertEqual("Failed to start recording: Custom recording error", error.message)
+  }
+
+  func testStopFailedExposesExpectedCode() {
+    let error = SecureRecorderError.stopFailed("Custom stop error")
+
     XCTAssertEqual("STOP_FAILED", error.code)
-    XCTAssertEqual("Failed to stop recording: \(customMessage)", error.message)
   }
-  
-  func testKeychainErrorFormatsMessageCorrectly() {
-    let customMessage = "Custom keychain error"
-    let error = SecureRecorderError.keychainError(customMessage)
-    
+
+  func testStopFailedIncludesCustomMessage() {
+    let error = SecureRecorderError.stopFailed("Custom stop error")
+
+    XCTAssertEqual("Failed to stop recording: Custom stop error", error.message)
+  }
+
+  func testKeychainErrorExposesExpectedCode() {
+    let error = SecureRecorderError.keychainError("Custom keychain error")
+
     XCTAssertEqual("KEYCHAIN_ERROR", error.code)
-    XCTAssertEqual("Keychain error: \(customMessage)", error.message)
+  }
+
+  func testKeychainErrorIncludesCustomMessage() {
+    let error = SecureRecorderError.keychainError("Custom keychain error")
+
+    XCTAssertEqual("Keychain error: Custom keychain error", error.message)
   }
   
   func testAllErrorCodesAreUnique() {

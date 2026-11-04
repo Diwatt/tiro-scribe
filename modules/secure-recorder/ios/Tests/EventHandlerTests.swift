@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for EventHandler (iOS/iPadOS)
@@ -127,13 +127,15 @@ class EventHandlerTests: XCTestCase {
   // MARK: - Branch 3: onLimitReached without handler, onStop succeeds
   
   func testOnLimitReachedCallsOnStopWhenHandlerIsNil() {
+    let stopCalled = expectation(description: "onStop called")
     stopResult = "/path/to/file.dat"
-    
+
     let onStop: () throws -> String = {
       self.stopCallCount += 1
+      stopCalled.fulfill()
       return self.stopResult
     }
-    
+
     let outputFile = FileManager.default.temporaryDirectory.appendingPathComponent("test.dat")
     let eventHandler = EventHandler(
       sessionId: "test-session",
@@ -142,32 +144,30 @@ class EventHandlerTests: XCTestCase {
       onStop: onStop,
       onLimitReached: nil
     )
-    
+
     eventHandler.onLimitReached(reason: .userStopped)
-    
-    // Wait a bit for async Task to complete
-    Thread.sleep(forTimeInterval: 0.1)
-    
-    // Verify onStop was called
+
+    wait(for: [stopCalled], timeout: 1.0)
+
     XCTAssertEqual(1, stopCallCount, "onStop should be called even without handler")
-    
-    // Verify handler was NOT called
     XCTAssertEqual(0, limitReachedCallCount, "Handler should not be called when nil")
   }
   
   // MARK: - Branch 4: onLimitReached without handler, onStop throws
   
   func testOnLimitReachedCallsOnStopWhenHandlerIsNilAndStopThrows() {
+    let stopCalled = expectation(description: "onStop called")
     stopShouldThrow = true
-    
+
     let onStop: () throws -> String = {
       self.stopCallCount += 1
+      stopCalled.fulfill()
       if self.stopShouldThrow {
         throw SecureRecorderError.stopFailed("Stop failed")
       }
       return self.stopResult
     }
-    
+
     let outputFile = FileManager.default.temporaryDirectory.appendingPathComponent("test.dat")
     let eventHandler = EventHandler(
       sessionId: "test-session",
@@ -176,16 +176,12 @@ class EventHandlerTests: XCTestCase {
       onStop: onStop,
       onLimitReached: nil
     )
-    
+
     eventHandler.onLimitReached(reason: .error)
-    
-    // Wait a bit for async Task to complete
-    Thread.sleep(forTimeInterval: 0.1)
-    
-    // Verify onStop was called (and threw)
+
+    wait(for: [stopCalled], timeout: 1.0)
+
     XCTAssertEqual(1, stopCallCount, "onStop should be called even when it throws and handler is nil")
-    
-    // Verify handler was NOT called
     XCTAssertEqual(0, limitReachedCallCount, "Handler should not be called when nil")
   }
   
@@ -213,18 +209,33 @@ class EventHandlerTests: XCTestCase {
   
   // MARK: - Branch 6: onLimitReached passes correct reason
   
-  func testOnLimitReachedPassesCorrectReason() {
-    let expectation = XCTestExpectation(description: "onLimitReached called")
-    expectation.expectedFulfillmentCount = 4
+  func testOnLimitReachedPassesDurationLimitToHandler() {
+    assertHandlerReceivesReason(.durationLimit)
+  }
+
+  func testOnLimitReachedPassesFileSizeLimitToHandler() {
+    assertHandlerReceivesReason(.fileSizeLimit)
+  }
+
+  func testOnLimitReachedPassesUserStoppedToHandler() {
+    assertHandlerReceivesReason(.userStopped)
+  }
+
+  func testOnLimitReachedPassesErrorToHandler() {
+    assertHandlerReceivesReason(.error)
+  }
+
+  private func assertHandlerReceivesReason(_ reason: StopReason) {
+    let handlerCalled = expectation(description: "handler called with \(reason)")
     stopResult = "/path/to/file.dat"
-    
+
     let onStop: () throws -> String = { self.stopResult }
-    
-    let onLimitReached: (StopReason, String, String) async -> Void = { reason, _, _ in
-      self.limitReachedReason = reason
-      expectation.fulfill()
+
+    let onLimitReached: (StopReason, String, String) async -> Void = { receivedReason, _, _ in
+      XCTAssertEqual(reason, receivedReason, "Handler should receive the exact stop reason")
+      handlerCalled.fulfill()
     }
-    
+
     let outputFile = FileManager.default.temporaryDirectory.appendingPathComponent("test.dat")
     let eventHandler = EventHandler(
       sessionId: "test-session",
@@ -233,17 +244,10 @@ class EventHandlerTests: XCTestCase {
       onStop: onStop,
       onLimitReached: onLimitReached
     )
-    
-    let reasons: [StopReason] = [.durationLimit, .fileSizeLimit, .userStopped, .error]
-    
-    for reason in reasons {
-      eventHandler.onLimitReached(reason: reason)
-    }
-    
-    wait(for: [expectation], timeout: 2.0)
-    
-    // Last reason should be error
-    XCTAssertEqual(.error, limitReachedReason, "Last reason should be error")
+
+    eventHandler.onLimitReached(reason: reason)
+
+    wait(for: [handlerCalled], timeout: 1.0)
   }
 }
 

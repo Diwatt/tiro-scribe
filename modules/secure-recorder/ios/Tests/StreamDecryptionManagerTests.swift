@@ -40,15 +40,19 @@ class StreamDecryptionManagerTests: XCTestCase {
     
     let key = SymmetricKey(data: testKey)
     let sealedBox = try AES.GCM.seal(testData, using: key)
-    
+    guard let combined = sealedBox.combined else {
+      XCTFail("SealedBox should expose a combined representation")
+      return
+    }
+
     // Write: [4-byte size][nonce+ciphertext+tag]
     var fileData = Data()
-    let chunkSize = Int32(sealedBox.combined.count)
+    let chunkSize = Int32(combined.count)
     var bigEndianSize = chunkSize.bigEndian
     fileData.append(Data(bytes: &bigEndianSize, count: 4))
-    fileData.append(sealedBox.combined)
+    fileData.append(combined)
     try fileData.write(to: encryptedFile)
-    
+
     // Act: Decrypt
     let manager = StreamDecryptionManager(secretKey: testKey, encryptedFile: encryptedFile)
     var decryptedChunks: [Data] = []
@@ -77,12 +81,16 @@ class StreamDecryptionManagerTests: XCTestCase {
     for chunk in chunks {
       let chunkData = chunk.data(using: .utf8)!
       let sealedBox = try AES.GCM.seal(chunkData, using: key)
-      
+      guard let combined = sealedBox.combined else {
+        XCTFail("SealedBox should expose a combined representation")
+        return
+      }
+
       // Write: [4-byte size][nonce+ciphertext+tag]
-      let chunkSize = Int32(sealedBox.combined.count)
+      let chunkSize = Int32(combined.count)
       var bigEndianSize = chunkSize.bigEndian
       fileData.append(Data(bytes: &bigEndianSize, count: 4))
-      fileData.append(sealedBox.combined)
+      fileData.append(combined)
     }
     try fileData.write(to: encryptedFile)
     
@@ -123,11 +131,15 @@ class StreamDecryptionManagerTests: XCTestCase {
     for chunk in chunks {
       let chunkData = chunk.data(using: .utf8)!
       let sealedBox = try AES.GCM.seal(chunkData, using: key)
-      
-      let chunkSize = Int32(sealedBox.combined.count)
+      guard let combined = sealedBox.combined else {
+        XCTFail("SealedBox should expose a combined representation")
+        return
+      }
+
+      let chunkSize = Int32(combined.count)
       var bigEndianSize = chunkSize.bigEndian
       fileData.append(Data(bytes: &bigEndianSize, count: 4))
-      fileData.append(sealedBox.combined)
+      fileData.append(combined)
     }
     try fileData.write(to: encryptedFile)
     
@@ -155,6 +167,21 @@ class StreamDecryptionManagerTests: XCTestCase {
     XCTAssertTrue(decryptedChunks[2].isLast)
   }
   
+  // MARK: - Test: Empty File (Natural EOF)
+
+  func testStreamOnEmptyFileCompletesWithoutEmittingChunks() throws {
+    let encryptedFile = tempDir.appendingPathComponent("empty.dat")
+    FileManager.default.createFile(atPath: encryptedFile.path, contents: nil)
+
+    let manager = StreamDecryptionManager(secretKey: testKey, encryptedFile: encryptedFile)
+    var emittedChunks = 0
+
+    XCTAssertNoThrow(try manager.stream { _, _, _ in
+      emittedChunks += 1
+    })
+    XCTAssertEqual(0, emittedChunks, "Empty file should reach natural EOF without emitting chunks")
+  }
+
   // MARK: - Test: Corrupted File (Missing Chunk Size)
   
   func testCorruptedFileMissingChunkSize() throws {
@@ -224,12 +251,16 @@ class StreamDecryptionManagerTests: XCTestCase {
     // Encrypt with original key
     let encryptKey = SymmetricKey(data: testKey)
     let sealedBox = try AES.GCM.seal(testData, using: encryptKey)
-    
+    guard let combined = sealedBox.combined else {
+      XCTFail("SealedBox should expose a combined representation")
+      return
+    }
+
     var fileData = Data()
-    let chunkSize = Int32(sealedBox.combined.count)
+    let chunkSize = Int32(combined.count)
     var bigEndianSize = chunkSize.bigEndian
     fileData.append(Data(bytes: &bigEndianSize, count: 4))
-    fileData.append(sealedBox.combined)
+    fileData.append(combined)
     try fileData.write(to: encryptedFile)
     
     // Try to decrypt with different key

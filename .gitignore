@@ -66,6 +66,10 @@ yarn-error.log
 # Bundle artifact
 *.jsbundle
 
+# Swift module build artifacts (Package.swift generated)
+modules/secure-recorder/ios/.build/
+modules/secure-recorder/ios/.swiftpm/
+
 # CocoaPods (already covered above, but kept for clarity)
 
 # Temporary files

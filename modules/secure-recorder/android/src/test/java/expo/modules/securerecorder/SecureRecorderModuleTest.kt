@@ -1,564 +1,460 @@
-/**
- * Tests for SecureRecorderModule using ZOMBIES methodology.
- * 
- * Z - Zero: Empty/null sessionId, missing context, missing files
- * O - One: Single recording cycle (happy path)
- * M - Many: Multiple calls, race conditions, concurrent operations
- * B - Boundary: Special characters, long paths, edge values
- * I - Interface: Verify Session/KeyManager/AudioRecorder interactions, event emission
- * E - Exceptions: All exception types (RecordingInProgressException, PermissionDeniedException, etc.)
- */
-
 package expo.modules.securerecorder
 
 import android.Manifest
+import android.app.Application
 import android.content.Context
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
-import expo.modules.kotlin.AppContext
-import expo.modules.kotlin.modules.Module
-import expo.modules.securerecorder.exception.*
-import io.mockk.*
-import org.junit.After
+import expo.modules.securerecorder.exception.InitializationException
+import expo.modules.securerecorder.exception.KeyStoreException
+import expo.modules.securerecorder.exception.NoRecordingException
+import expo.modules.securerecorder.exception.PermissionDeniedException
+import expo.modules.securerecorder.exception.RecordingInProgressException
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.spyk
+import io.mockk.verify
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
-import org.junit.Assert.*
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 import java.io.File
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
+/**
+ * Unit tests for SecureRecorderModule.
+ *
+ * Sessions are injected through SessionFactory so every start/stop/pause/resume/status
+ * path is asserted against a SessionInterface test double. Crypto and file shredding
+ * paths run against real EncryptionStream/StreamDecryptionManager/FileShredder code.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class SecureRecorderModuleTest {
 
-  private lateinit var mockContext: Context
-  private lateinit var mockAppContext: AppContext
-  private lateinit var mockReactContext: Context
-  private lateinit var mockFilesDir: File
-  private lateinit var mockKeyManager: KeyManager
-  private lateinit var mockAudioRecorder: AudioRecorder
-  private lateinit var mockAudioConfig: AudioConfig
-  private lateinit var mockSession: Session
+  private lateinit var mockSessionFactory: SessionFactory
+  private lateinit var mockSession: SessionInterface
+  private lateinit var mockSessionTimer: RecordingTimer
+  private lateinit var mockKeyManager: KeyManagerInterface
   private lateinit var testKey: SecretKey
   private lateinit var module: SecureRecorderModule
-  
-  private var emittedEvents: MutableList<Pair<String, Map<String, Any?>>> = mutableListOf()
+  private val emittedEvents = mutableListOf<Pair<String, Map<String, Any?>>>()
+
+  private val androidContext: Context
+    get() = RuntimeEnvironment.getApplication()
 
   @Before
   fun setup() {
-    // Generate test key
-    val keyGen = KeyGenerator.getInstance("AES")
-    keyGen.init(256)
-    testKey = keyGen.generateKey()
-    
-    // Mock Context
-    mockContext = mockk(relaxed = true)
-    mockReactContext = mockk(relaxed = true)
-    mockFilesDir = File(System.getProperty("java.io.tmpdir"), "test_secure_recorder_${System.currentTimeMillis()}")
-    mockFilesDir.mkdirs()
-    
-    every { mockContext.filesDir } returns mockFilesDir
-    every { ContextCompat.checkSelfPermission(mockContext, Manifest.permission.RECORD_AUDIO) } returns PackageManager.PERMISSION_GRANTED
-    
-    // Mock AppContext
-    mockAppContext = mockk(relaxed = true) {
-      every { reactContext } returns mockReactContext
-    }
-    
-    // Mock dependencies
-    mockKeyManager = mockk(relaxed = true) {
-      every { getOrCreateKey(any<String>()) } returns testKey
-    }
-    
-    mockAudioRecorder = mockk(relaxed = true)
-    mockAudioConfig = mockk(relaxed = true)
-    
-    // Mock Session
+    val keyGenerator = KeyGenerator.getInstance("AES")
+    keyGenerator.init(256)
+    testKey = keyGenerator.generateKey()
+
+    shadowOf(androidContext as Application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+
+    mockSessionTimer = RecordingTimer()
     mockSession = mockk(relaxed = true) {
-      every { recordingTimer.isActive } returns true
-      every { getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", true)
-      every { stop() } returns "/path/to/file.dat"
-      every { cleanup() } just Runs
+      every { recordingTimer } returns mockSessionTimer
     }
-    
-    // Create module instance
-    // Note: SecureRecorderModule is final, so we can't extend it
-    // We'll test through public interface and use reflection where needed
-    module = SecureRecorderModule()
-    
-    // Mock sendEvent using spyk
-    module = spyk(module) {
+    mockKeyManager = mockk {
+      every { getOrCreateKey(any()) } returns testKey
+    }
+    mockSessionFactory = mockk {
+      every { create(any(), any(), any(), any(), any(), any()) } returns mockSession
+    }
+
+    module = spyk(
+      SecureRecorderModule(
+        injectedContext = androidContext,
+        keyManagerFactory = { mockKeyManager },
+        audioConfigFactory = { AudioConfig() },
+        audioRecorderFactory = { audioConfig -> AudioRecorder(audioConfig) },
+        sessionFactory = mockSessionFactory
+      )
+    ) {
       every { sendEvent(any<String>(), any<Map<String, Any?>>()) } answers {
-        val eventName = firstArg<String>()
-        val eventData = secondArg<Map<String, Any?>>()
-        emittedEvents.add(Pair(eventName, eventData))
+        emittedEvents.add(firstArg<String>() to secondArg<Map<String, Any?>>())
       }
     }
-  }
 
-  @After
-  fun tearDown() {
-    clearAllMocks()
-    mockFilesDir.deleteRecursively()
     emittedEvents.clear()
   }
 
-  // MARK: - Z - Zero Cases (Empty/Null/Missing Data)
+  // MARK: - Start
 
   @Test
-  fun `start throws when sessionId is empty`() {
-    // Note: start is private and async, so we test through public interface
-    // This test documents expected behavior - actual testing requires public API or refactoring
-    // The method should throw InitializationException with message containing "empty"
-    assertTrue("Test documents expected behavior", true)
+  fun `start throws InitializationException when sessionId is empty`() {
+    val exception = assertThrows(InitializationException::class.java) { module.start("") }
+
+    assertEquals("Session ID cannot be empty", exception.message)
+    verify(exactly = 0) { mockSessionFactory.create(any(), any(), any(), any(), any(), any()) }
   }
 
   @Test
-  fun `start throws when sessionId is blank`() {
-    // Note: start is private and async
-    // This test documents expected behavior
-    assertTrue("Test documents expected behavior", true)
+  fun `start throws InitializationException when sessionId is blank`() {
+    val exception = assertThrows(InitializationException::class.java) { module.start("   ") }
+
+    assertEquals("Session ID cannot be empty", exception.message)
+    verify(exactly = 0) { mockSessionFactory.create(any(), any(), any(), any(), any(), any()) }
   }
 
   @Test
-  fun `stop throws when no session exists`() {
-    // Note: stop is private and async
-    // This test documents expected behavior - should throw NoRecordingException
-    assertTrue("Test documents expected behavior", true)
+  fun `start throws RecordingInProgressException when a recording is already active`() {
+    startModuleSession()
+
+    val exception = assertThrows(RecordingInProgressException::class.java) { module.start("second") }
+
+    assertEquals("Recording already in progress", exception.message)
+    verify(exactly = 1) { mockSessionFactory.create(any(), any(), any(), any(), any(), any()) }
   }
 
   @Test
-  fun `status returns inactive when no session`() {
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("status")
-    method.isAccessible = true
-    @Suppress("UNCHECKED_CAST")
-    val result = method.invoke(module) as Map<String, Any?>
-    
-    assertEquals("inactive", result["state"])
-    assertNull(result["sessionId"])
-    assertNull(result["filePath"])
+  fun `start throws PermissionDeniedException when microphone permission is denied`() {
+    shadowOf(androidContext as Application).denyPermissions(Manifest.permission.RECORD_AUDIO)
+
+    val exception = assertThrows(PermissionDeniedException::class.java) { module.start("session-1") }
+
+    assertEquals("Microphone permission not granted", exception.message)
+    verify(exactly = 0) { mockSessionFactory.create(any(), any(), any(), any(), any(), any()) }
   }
 
   @Test
-  fun `stream throws when file does not exist`() {
-    // Note: stream is private and async
-    // This test documents expected behavior - should throw InitializationException
-    assertTrue("Test documents expected behavior", true)
+  fun `start creates the output file with the sessionId and the dat extension`() {
+    val outputFileSlot = slot<File>()
+    every { mockSessionFactory.create(any(), capture(outputFileSlot), any(), any(), any(), any()) } returns mockSession
+    every { mockSession.start(any()) } returns "/data/out.dat"
+
+    module.start("session-1")
+
+    assertEquals("session-1.dat", outputFileSlot.captured.name)
+    assertEquals(androidContext.filesDir, outputFileSlot.captured.parentFile)
   }
 
   @Test
-  fun `stream throws when encryptedPath is empty`() {
-    // Note: stream is private and async
-    // This test documents expected behavior
-    assertTrue("Test documents expected behavior", true)
-  }
+  fun `start starts the created session with the module key alias and returns its file path`() {
+    every { mockSession.start(any()) } returns "/data/out.dat"
 
-  // MARK: - O - One Cases (Happy Path)
+    val filePath = module.start("session-1")
 
-  @Test
-  fun `start successfully starts recording`() {
-    // Note: start is private and creates Session internally
-    // This test documents expected behavior - Session should be created and started
-    // Full testing requires refactoring SecureRecorderModule to accept Session factory
-    // For now, we verify the structure exists
-    val sessionId = "test-session"
-    val outputFile = File(mockFilesDir, "$sessionId.dat")
-    
-    // Verify Session can be created (structure test)
-    val realSession = Session(
-      sessionId = sessionId,
-      outputFile = outputFile,
-      keyManager = mockKeyManager,
-      audioRecorder = mockAudioRecorder,
-      audioConfig = mockAudioConfig
-    )
-    
-    assertNotNull("Session should be creatable", realSession)
-    assertEquals("Session should have correct sessionId", sessionId, realSession.getInfo().sessionId)
+    assertEquals("/data/out.dat", filePath)
+    verify(exactly = 1) { mockSession.start("secure_recorder_key") }
   }
 
   @Test
-  fun `hasPermission returns true when permission granted`() {
-    // Note: hasPermission is private and uses AVAudioSession
-    // This test documents expected behavior - should return true when permission granted
-    assertTrue("Test documents expected behavior", true)
+  fun `start wires its key manager into the created session`() {
+    val keyManagerSlot = slot<KeyManagerInterface>()
+    every { mockSessionFactory.create(any(), any(), capture(keyManagerSlot), any(), any(), any()) } returns mockSession
+    every { mockSession.start(any()) } returns "/data/out.dat"
+
+    module.start("session-1")
+
+    assertSame(mockKeyManager, keyManagerSlot.captured)
   }
 
   @Test
-  fun `createOutputFile creates file in filesDir`() {
-    // Note: createOutputFile is private
-    // This test documents expected behavior - file should be in filesDir with .dat extension
-    val sessionId = "test-session"
-    val expectedFileName = "$sessionId.dat"
-    assertEquals("File name should match pattern", expectedFileName, "$sessionId.dat")
-  }
+  fun `start emits a recording status event with sessionId and filePath`() {
+    every { mockSession.start(any()) } returns "/data/out.dat"
 
-  // MARK: - M - Many Cases (Multiple Calls, Race Conditions)
+    module.start("session-1")
 
-  @Test
-  fun `start throws when already recording`() {
-    // Note: start is private and async
-    // This test documents expected behavior - should throw RecordingInProgressException
-    assertTrue("Test documents expected behavior", true)
+    assertEquals(1, emittedEvents.size)
+    val event = emittedEvents.first()
+    assertEquals("onRecordingStatusChanged", event.first)
+    assertEquals("recording", event.second["state"])
+    assertEquals("session-1", event.second["sessionId"])
+    assertEquals("/data/out.dat", event.second["filePath"])
+    assertFalse(event.second.containsKey("reason"))
   }
 
   @Test
-  fun `stop succeeds when session is paused`() {
-    // Set up paused session (not active, but exists)
-    every { mockSession.recordingTimer.isActive } returns false
-    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
-    every { mockSession.stop() } returns "/path/to/file.dat"
+  fun `start resets the module to idle when the session fails to start with a SecureRecorderException`() {
+    every { mockSession.start(any()) } throws KeyStoreException("keystore failure")
 
-    // Inject mock session
-    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
-    sessionField.isAccessible = true
-    sessionField.set(module, mockSession)
+    assertThrows(KeyStoreException::class.java) { module.start("session-1") }
 
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("stop")
-    method.isAccessible = true
-
-    val result = method.invoke(module)
-
-    assertEquals("Should return file path", "/path/to/file.dat", result)
-    verify { mockSession.stop() }
+    assertEquals("inactive", module.status()["state"])
   }
 
   @Test
-  fun `status returns correct state when session exists`() {
-    // Note: status is private
-    // status() is defined as AsyncFunction in definition(), not a direct method
-    // This test documents expected behavior - when no session, should return inactive state
-    assertTrue("Test documents expected behavior - getStatusInternal returns inactive when no session", true)
-  }
+  fun `start wraps an unexpected session failure in InitializationException`() {
+    every { mockSession.start(any()) } throws RuntimeException("disk on fire")
 
-  // MARK: - B - Boundary Cases (Edge Cases)
+    val exception = assertThrows(InitializationException::class.java) { module.start("session-1") }
 
-  @Test
-  fun `start handles sessionId with special characters`() {
-    // Note: createOutputFile is private
-    // This test documents expected behavior - special characters should be handled
-    val sessionId = "session-123 (test) [2024]"
-    val expectedFileName = "$sessionId.dat"
-    assertTrue("File name should contain sessionId", expectedFileName.contains(sessionId))
+    assertEquals("Failed to start recording: disk on fire", exception.message)
   }
 
   @Test
-  fun `start handles sessionId with unicode characters`() {
-    // Note: createOutputFile is private
-    // This test documents expected behavior - unicode should be handled
-    val sessionId = "session-测试-файл"
-    val expectedFileName = "$sessionId.dat"
-    assertTrue("File name should handle unicode", expectedFileName.contains(sessionId))
+  fun `start can begin a new session after the previous one was stopped`() {
+    startModuleSession()
+    module.stop()
+    mockSessionTimer.deactivate()
+    every { mockSession.start(any()) } returns "/data/out.dat"
+
+    val filePath = module.start("session-1")
+
+    assertEquals("/data/out.dat", filePath)
+    verify(exactly = 2) { mockSessionFactory.create(any(), any(), any(), any(), any(), any()) }
+  }
+
+  // MARK: - Stop
+
+  @Test
+  fun `stop throws NoRecordingException when no session exists`() {
+    val exception = assertThrows(NoRecordingException::class.java) { module.stop() }
+
+    assertEquals("No recording in progress", exception.message)
   }
 
   @Test
-  fun `start handles very long sessionId`() {
-    // Note: createOutputFile is private
-    // This test documents expected behavior - long sessionId should be handled
-    val longSessionId = "a".repeat(1000)
-    val expectedFileName = "$longSessionId.dat"
-    assertEquals("File name should match", expectedFileName, "$longSessionId.dat")
-  }
+  fun `stop returns the file path and emits a stopped event with the user_stopped reason`() {
+    startModuleSession()
+    emittedEvents.clear()
 
-  // MARK: - I - Interface Cases (Mock Verification)
+    val filePath = module.stop()
 
-  @Test
-  fun `start calls keyManager getOrCreateKey with correct alias`() {
-    // Note: keyManager is private and lazy-initialized
-    // This test documents expected behavior - keyManager.getOrCreateKey("secure_recorder_key") should be called
-    assertTrue("Test documents expected behavior", true)
-  }
-
-  @Test
-  fun `cleanupSession calls session cleanup`() {
-    // Note: cleanupSession is private
-    // getStatus() is defined as AsyncFunction in definition(), not a direct method
-    // This test documents expected behavior - cleanup() should be called and session cleared
-    assertTrue("Test documents expected behavior - cleanupSession clears session", true)
+    assertEquals("/data/out.dat", filePath)
+    assertEquals(1, emittedEvents.size)
+    val event = emittedEvents.first()
+    assertEquals("onRecordingStatusChanged", event.first)
+    assertEquals("stopped", event.second["state"])
+    assertEquals("user_stopped", event.second["reason"])
+    assertEquals("session-1", event.second["sessionId"])
+    verify(exactly = 1) { mockSession.stop() }
   }
 
   @Test
-  fun `emitStatusChanged sends correct event data`() {
-    val method = SecureRecorderModule::class.java.getDeclaredMethod(
-      "emitStatusChanged",
-      RecorderState::class.java,
-      String::class.java,
-      String::class.java,
-      StopReason::class.java
-    )
-    method.isAccessible = true
-    
-    val moduleSpy = spyk(module) {
-      every { sendEvent(any<String>(), any<Map<String, Any?>>()) } answers {
-        val eventName = firstArg<String>()
-        val eventData = secondArg<Map<String, Any?>>()
-        emittedEvents.add(Pair(eventName, eventData))
-      }
+  fun `stop clears the current session so status becomes inactive`() {
+    startModuleSession()
+
+    module.stop()
+
+    val status = module.status()
+    assertEquals("inactive", status["state"])
+    assertNull(status["sessionId"])
+    assertNull(status["filePath"])
+  }
+
+  @Test
+  fun `stop cleans up the session and rethrows when stopping fails`() {
+    startModuleSession()
+    every { mockSession.stop() } throws InitializationException("close failed")
+
+    assertThrows(InitializationException::class.java) { module.stop() }
+
+    verify(exactly = 1) { mockSession.cleanup() }
+  }
+
+  // MARK: - Pause
+
+  @Test
+  fun `pause throws NoRecordingException when no session exists`() {
+    val exception = assertThrows(NoRecordingException::class.java) { module.pause() }
+
+    assertEquals("No recording in progress", exception.message)
+  }
+
+  @Test
+  fun `pause throws NoRecordingException when the session is not active`() {
+    startModuleSession(paused = true)
+
+    val exception = assertThrows(NoRecordingException::class.java) { module.pause() }
+
+    assertEquals("No recording in progress", exception.message)
+    verify(exactly = 0) { mockSession.pause() }
+  }
+
+  @Test
+  fun `pause returns the file path and emits a paused event`() {
+    startModuleSession()
+    every { mockSession.pause() } returns "/data/out.dat"
+    emittedEvents.clear()
+
+    val filePath = module.pause()
+
+    assertEquals("/data/out.dat", filePath)
+    assertEquals(1, emittedEvents.size)
+    val event = emittedEvents.first()
+    assertEquals("paused", event.second["state"])
+    assertEquals("session-1", event.second["sessionId"])
+    assertEquals("/data/out.dat", event.second["filePath"])
+    assertFalse(event.second.containsKey("reason"))
+  }
+
+  // MARK: - Resume
+
+  @Test
+  fun `resume throws NoRecordingException when no session exists`() {
+    val exception = assertThrows(NoRecordingException::class.java) { module.resume() }
+
+    assertEquals("No recording in progress", exception.message)
+  }
+
+  @Test
+  fun `resume throws RecordingInProgressException when the session is already active`() {
+    startModuleSession()
+
+    val exception = assertThrows(RecordingInProgressException::class.java) { module.resume() }
+
+    assertEquals("Recording already in progress", exception.message)
+    verify(exactly = 0) { mockSession.resume() }
+  }
+
+  @Test
+  fun `resume returns the file path and emits a recording event`() {
+    startModuleSession(paused = true)
+    every { mockSession.resume() } returns "/data/out.dat"
+    emittedEvents.clear()
+
+    val filePath = module.resume()
+
+    assertEquals("/data/out.dat", filePath)
+    assertEquals(1, emittedEvents.size)
+    val event = emittedEvents.first()
+    assertEquals("recording", event.second["state"])
+    assertEquals("session-1", event.second["sessionId"])
+    assertFalse(event.second.containsKey("reason"))
+  }
+
+  // MARK: - Status
+
+  @Test
+  fun `status returns the inactive state when no session exists`() {
+    val status = module.status()
+
+    assertEquals("inactive", status["state"])
+    assertNull(status["sessionId"])
+    assertNull(status["filePath"])
+  }
+
+  @Test
+  fun `status reports the paused state for an inactive session`() {
+    startModuleSession(paused = true)
+
+    val status = module.status()
+
+    assertEquals("paused", status["state"])
+    assertEquals("session-1", status["sessionId"])
+    assertEquals("/data/out.dat", status["filePath"])
+  }
+
+  @Test
+  fun `status reports the recording state for an active session`() {
+    startModuleSession()
+
+    val status = module.status()
+
+    assertEquals("recording", status["state"])
+    assertEquals("session-1", status["sessionId"])
+    assertEquals("/data/out.dat", status["filePath"])
+  }
+
+  // MARK: - Permission
+
+  @Test
+  fun `hasPermission returns false when microphone permission is denied`() {
+    shadowOf(androidContext as Application).denyPermissions(Manifest.permission.RECORD_AUDIO)
+
+    assertFalse(module.hasPermission())
+  }
+
+  @Test
+  fun `hasPermission returns true when microphone permission is granted`() {
+    assertTrue(module.hasPermission())
+  }
+
+  // MARK: - Stream
+
+  @Test
+  fun `stream throws InitializationException when the encrypted file does not exist`() {
+    val missingPath = File(androidContext.filesDir, "missing.dat").absolutePath
+
+    val exception = assertThrows(InitializationException::class.java) { module.stream(missingPath) }
+
+    assertEquals("Encrypted file not found: $missingPath", exception.message)
+  }
+
+  @Test
+  fun `stream propagates KeyStoreException when the key manager fails`() {
+    val encryptedFile = writeEncryptedFile(listOf(ByteArray(1024)))
+    every { mockKeyManager.getOrCreateKey(any()) } throws KeyStoreException("keystore failure")
+
+    assertThrows(KeyStoreException::class.java) { module.stream(encryptedFile.absolutePath) }
+
+    assertTrue(encryptedFile.exists())
+  }
+
+  @Test
+  fun `stream emits decrypted chunk events in order with last chunk flagged`() {
+    val chunk1 = ByteArray(16 * 1024) { 1 }
+    val chunk2 = ByteArray(16 * 1024) { 2 }
+    val encryptedFile = writeEncryptedFile(listOf(chunk1, chunk2))
+
+    module.stream(encryptedFile.absolutePath)
+
+    val chunkEvents = emittedEvents.filter { it.first == "onAudioChunkDecrypted" }
+    assertEquals(2, chunkEvents.size)
+    assertEquals(0, chunkEvents[0].second["index"])
+    assertFalse(chunkEvents[0].second["isLast"] as Boolean)
+    assertArrayEquals(chunk1, chunkEvents[0].second["data"] as ByteArray)
+    assertEquals(1, chunkEvents[1].second["index"])
+    assertTrue(chunkEvents[1].second["isLast"] as Boolean)
+    assertArrayEquals(chunk2, chunkEvents[1].second["data"] as ByteArray)
+  }
+
+  @Test
+  fun `stream shreds the encrypted file after successful streaming`() {
+    val encryptedFile = writeEncryptedFile(listOf(ByteArray(1024)))
+
+    module.stream(encryptedFile.absolutePath)
+
+    assertFalse("Encrypted file should be shredded after streaming", encryptedFile.exists())
+  }
+
+  @Test
+  fun `stream wraps decryption failures in InitializationException`() {
+    val corruptedFile = File(androidContext.filesDir, "corrupted_${System.currentTimeMillis()}.dat")
+    corruptedFile.writeBytes(byteArrayOf(0, 0, 0, 50, 1, 2, 3, 4))
+
+    val exception = assertThrows(InitializationException::class.java) {
+      module.stream(corruptedFile.absolutePath)
     }
-    
-    method.invoke(
-      moduleSpy,
-      RecorderState.RECORDING,
-      "test-session",
-      "/path/to/file.dat",
-      StopReason.USER_STOPPED
-    )
-    
-    assertEquals("Should emit one event", 1, emittedEvents.size)
-    assertEquals("onRecordingStatusChanged", emittedEvents[0].first)
-    val eventData = emittedEvents[0].second
-    assertEquals("recording", eventData["state"])
-    assertEquals("test-session", eventData["sessionId"])
-    assertEquals("/path/to/file.dat", eventData["filePath"])
-    assertEquals("user_stopped", eventData["reason"])
+
+    assertTrue(exception.message!!.contains("Failed to decrypt audio"))
+    assertTrue("Corrupted file should remain for retry", corruptedFile.exists())
   }
 
-  @Test
-  fun `emitStatusChanged sends event without reason when reason is null`() {
-    val method = SecureRecorderModule::class.java.getDeclaredMethod(
-      "emitStatusChanged",
-      RecorderState::class.java,
-      String::class.java,
-      String::class.java,
-      StopReason::class.java
-    )
-    method.isAccessible = true
-    
-    val moduleSpy = spyk(module) {
-      every { sendEvent(any<String>(), any<Map<String, Any?>>()) } answers {
-        val eventName = firstArg<String>()
-        val eventData = secondArg<Map<String, Any?>>()
-        emittedEvents.add(Pair(eventName, eventData))
-      }
+  // MARK: - Helpers
+
+  private fun startModuleSession(paused: Boolean = false) {
+    every { mockSession.start(any()) } returns "/data/out.dat"
+    every { mockSession.stop() } returns "/data/out.dat"
+    every { mockSession.getInfo() } returns Session.SessionInfo("session-1", "/data/out.dat", !paused)
+    module.start("session-1")
+    if (!paused) {
+      mockSessionTimer.activate()
     }
-    
-    // Use null for reason
-    val nullReason: StopReason? = null
-    method.invoke(
-      moduleSpy,
-      RecorderState.RECORDING,
-      "test-session",
-      "/path/to/file.dat",
-      nullReason
-    )
-    
-    val eventData = emittedEvents[0].second
-    assertFalse("Event should not contain reason when null", eventData.containsKey("reason"))
+    emittedEvents.clear()
   }
 
-  // MARK: - E - Exception Cases (Error Handling)
-
-  @Test
-  fun `start throws PermissionDeniedException when no permission`() {
-    // Note: hasPermission is private and uses Context
-    // This test documents expected behavior - should throw PermissionDeniedException
-    assertTrue("Test documents expected behavior", true)
+  private fun writeEncryptedFile(chunks: List<ByteArray>): File {
+    val encryptedFile = File(androidContext.filesDir, "stream_${System.currentTimeMillis()}.dat")
+    val encryptionStream = EncryptionStream(testKey, encryptedFile)
+    encryptionStream.initialize()
+    chunks.forEach { encryptionStream.write(it) }
+    encryptionStream.close()
+    return encryptedFile
   }
 
-  @Test
-  fun `start throws InitializationException when KeyManager fails`() {
-    // Note: KeyManager is private and lazy-initialized
-    // This test documents expected behavior - KeyStoreException should be wrapped in InitializationException
-    assertTrue("Test documents expected behavior", true)
-  }
-
-  @Test
-  fun `start calls cleanupSession on SecureRecorderException`() {
-    // Note: cleanupSession is private
-    // This test documents expected behavior - cleanupSession should be called on errors
-    assertTrue("Test documents expected behavior", true)
-  }
-
-  @Test
-  fun `stop calls cleanupSession on exception`() {
-    // Note: stopRecordingInternal is private and async
-    // This test documents expected behavior - cleanupSession should be called on errors
-    assertTrue("Test documents expected behavior", true)
-  }
-
-  @Test
-  fun `stream throws InitializationException when KeyManager fails`() {
-    // Note: streamDecryptionInternal is private and async
-    // This test documents expected behavior - KeyStoreException should be wrapped in InitializationException
-    assertTrue("Test documents expected behavior", true)
-  }
-
-  @Test
-  fun `stream handles FileShredder errors gracefully`() {
-    // Note: streamDecryptionInternal is private and async
-    // This test documents expected behavior - FileShredder errors should be silently ignored (try?)
-    assertTrue("Test documents expected behavior", true)
-  }
-
-  @Test
-  fun `pause throws when no session exists`() {
-    // Access private method via reflection
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("pause")
-    method.isAccessible = true
-    
-    val invocationException = try {
-      method.invoke(module)
-      null
-    } catch (e: java.lang.reflect.InvocationTargetException) {
-      e
-    }
-    
-    val cause = invocationException?.cause
-    assertTrue("Should throw NoRecordingException", cause is NoRecordingException)
-  }
-
-  @Test
-  fun `pause throws when session not active`() {
-    // Set up inactive session
-    every { mockSession.recordingTimer.isActive } returns false
-    
-    // Inject mock session
-    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
-    sessionField.isAccessible = true
-    sessionField.set(module, mockSession)
-    
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("pause")
-    method.isAccessible = true
-    
-    val invocationException = try {
-      method.invoke(module)
-      null
-    } catch (e: java.lang.reflect.InvocationTargetException) {
-      e
-    }
-    
-    val cause = invocationException?.cause
-    assertTrue("Should throw NoRecordingException", cause is NoRecordingException)
-  }
-
-  @Test
-  fun `resume throws when no session exists`() {
-    // Access private method via reflection
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("resume")
-    method.isAccessible = true
-    
-    val invocationException = try {
-      method.invoke(module)
-      null
-    } catch (e: java.lang.reflect.InvocationTargetException) {
-      e
-    }
-    
-    val cause = invocationException?.cause
-    assertTrue("Should throw NoRecordingException", cause is NoRecordingException)
-  }
-
-  @Test
-  fun `resume throws when session is active`() {
-    // Set up active session
-    every { mockSession.recordingTimer.isActive } returns true
-    
-    // Inject mock session
-    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
-    sessionField.isAccessible = true
-    sessionField.set(module, mockSession)
-    
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("resume")
-    method.isAccessible = true
-    
-    val invocationException = try {
-      method.invoke(module)
-      null
-    } catch (e: java.lang.reflect.InvocationTargetException) {
-      e
-    }
-    
-    val cause = invocationException?.cause
-    assertTrue("Should throw RecordingInProgressException", cause is RecordingInProgressException)
-  }
-
-  @Test
-  fun `pause emits paused state event`() {
-    // Set up active session with pause support
-    every { mockSession.recordingTimer.isActive } returns true
-    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", true)
-    every { mockSession.pause() } returns "/path/to/file.dat"
-    
-    // Inject mock session
-    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
-    sessionField.isAccessible = true
-    sessionField.set(module, mockSession)
-    
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("pause")
-    method.isAccessible = true
-    
-    method.invoke(module)
-    
-    assertEquals("Should emit one event", 1, emittedEvents.size)
-    assertEquals("onRecordingStatusChanged", emittedEvents[0].first)
-    val eventData = emittedEvents[0].second
-    assertEquals("paused", eventData["state"])
-    assertEquals("test-session", eventData["sessionId"])
-    assertEquals("/path/to/file.dat", eventData["filePath"])
-    assertFalse("Should not contain reason", eventData.containsKey("reason"))
-  }
-
-  @Test
-  fun `resume emits recording state event`() {
-    // Set up paused session (not active, but has filePath)
-    every { mockSession.recordingTimer.isActive } returns false
-    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
-    every { mockSession.resume() } returns "/path/to/file.dat"
-    
-    // Inject mock session
-    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
-    sessionField.isAccessible = true
-    sessionField.set(module, mockSession)
-    
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("resume")
-    method.isAccessible = true
-    
-    method.invoke(module)
-    
-    assertEquals("Should emit one event", 1, emittedEvents.size)
-    assertEquals("onRecordingStatusChanged", emittedEvents[0].first)
-    val eventData = emittedEvents[0].second
-    assertEquals("recording", eventData["state"])
-    assertEquals("test-session", eventData["sessionId"])
-    assertEquals("/path/to/file.dat", eventData["filePath"])
-    assertFalse("Should not contain reason", eventData.containsKey("reason"))
-  }
-
-  @Test
-  fun `status returns paused when session exists but not active`() {
-    // Set up paused session
-    every { mockSession.recordingTimer.isActive } returns false
-    every { mockSession.getInfo() } returns Session.SessionInfo("test-session", "/path/to/file.dat", false)
-    
-    // Inject mock session
-    val sessionField = SecureRecorderModule::class.java.getDeclaredField("currentSession")
-    sessionField.isAccessible = true
-    sessionField.set(module, mockSession)
-    
-    val method = SecureRecorderModule::class.java.getDeclaredMethod("status")
-    method.isAccessible = true
-    @Suppress("UNCHECKED_CAST")
-    val result = method.invoke(module) as Map<String, Any?>
-    
-    assertEquals("paused", result["state"])
-    assertEquals("test-session", result["sessionId"])
-    assertEquals("/path/to/file.dat", result["filePath"])
-  }
-
-  @Test
-  fun `all exceptions include code property`() {
-    // Verify all custom exceptions have code property
-    val recordingInProgress = RecordingInProgressException()
-    assertNotNull("Should have code property", recordingInProgress.code)
-    
-    val noRecording = NoRecordingException()
-    assertNotNull("Should have code property", noRecording.code)
-    
-    val permissionDenied = PermissionDeniedException()
-    assertNotNull("Should have code property", permissionDenied.code)
-    
-    val initialization = InitializationException("Test")
-    assertNotNull("Should have code property", initialization.code)
-    
-    val keyStore = KeyStoreException("Test")
-    assertNotNull("Should have code property", keyStore.code)
+  private fun assertArrayEquals(expected: ByteArray, actual: ByteArray) {
+    assertTrue("Byte arrays should match", expected.contentEquals(actual))
   }
 }

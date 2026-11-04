@@ -14,7 +14,7 @@ package expo.modules.securerecorder
 class EventHandler(
   private val sessionId: String,
   private val outputFile: java.io.File,
-  private val recordingTimer: RecordingTimer,
+  private val recordingTimer: RecordingTimerInterface,
   private val onStop: suspend () -> String,
   private val onLimitReached: (suspend (StopReason, String, String) -> Unit)?
 ) {

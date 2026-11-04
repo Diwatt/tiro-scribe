@@ -12,40 +12,57 @@ import java.io.FileInputStream
 
 /**
  * Expo module for SecureRecorder on Android
- * 
+ *
  * Thin wrapper that delegates to Session. Provides Expo module interface for
  * starting/stopping recordings, checking permissions, and decrypting audio files.
  * Manages session lifecycle and emits status change events.
- * 
+ *
  * ISOMORPHIC: Matches iOS SecureRecorderModule exactly
  * - Both: startRecording, stopRecording, pauseRecording, resumeRecording, getStatus
  * - Both: Emits onRecordingStatusChanged with state, sessionId, filePath
- * 
+ *
  * ANDROID SPECIFICITY:
  * - Synchronous methods (Kotlin, wrapped in AsyncFunction by Expo)
  * - Uses Context.filesDir for file storage
  * - Permission check via ContextCompat.checkSelfPermission
  * - Exception classes with code property
  * - KeyManager requires Context parameter (needed for AndroidKeyStore)
- * 
+ *
  * ERROR CODE MAPPING (to TypeScript SecureRecorderError.code):
  * - RecordingInProgressException → "RECORDING_IN_PROGRESS"
  * - NoRecordingException → "NO_RECORDING_IN_PROGRESS"
  * - PermissionDeniedException → "PERMISSION_DENIED"
  * - InitializationException → "INITIALIZATION_FAILED"
  * - KeyStoreException → "KEYCHAIN_ERROR"
- * 
+ *
  * All exceptions include code property that Expo framework converts to JavaScript {code, message} objects.
  */
-class SecureRecorderModule : Module() {
+class SecureRecorderModule(
+  // SAFETY: test seam - production resolves the react context from appContext (Expo)
+  private val injectedContext: Context? = null,
+  internal val keyManagerFactory: (Context) -> KeyManagerInterface = { context -> KeyManager(context) },
+  internal val audioRecorderFactory: (AudioConfig) -> AudioRecorder = { audioConfig -> AudioRecorder(audioConfig) },
+  internal val audioConfigFactory: () -> AudioConfig = { AudioConfig() },
+  internal val sessionFactory: SessionFactory = SessionFactory { sessionId, outputFile, keyManager, audioRecorder, audioConfig, onLimitReached ->
+    Session(
+      sessionId = sessionId,
+      outputFile = outputFile,
+      keyManager = keyManager,
+      audioRecorder = audioRecorder,
+      audioConfig = audioConfig,
+      onLimitReached = onLimitReached
+    )
+  }
+) : Module() {
   private val context: Context
-    get() = appContext.reactContext ?: throw IllegalStateException("ReactContext not available")
-  private val audioConfig: AudioConfig by lazy { AudioConfig() }
-  private val keyManager: KeyManager by lazy { KeyManager(context) }
-  private val audioRecorder: AudioRecorder by lazy { AudioRecorder(audioConfig) }
-  private var currentSession: Session? = null
+    get() = injectedContext
+      ?: (appContext.reactContext ?: throw IllegalStateException("ReactContext not available"))
+  private val audioConfig: AudioConfig by lazy { audioConfigFactory() }
+  private val keyManager: KeyManagerInterface by lazy { keyManagerFactory(context) }
+  private val audioRecorder: AudioRecorder by lazy { audioRecorderFactory(audioConfig) }
+  private var currentSession: SessionInterface? = null
   private val keyAlias = "secure_recorder_key"
-  
+
   override fun definition() = ModuleDefinition {
     Name("SecureRecorder")
 
@@ -87,7 +104,7 @@ class SecureRecorderModule : Module() {
       encryptBytes(data, outputPath)
     }
   }
-  
+
   private fun emitStatusChanged(state: RecorderState, sessionId: String?, filePath: String?, reason: StopReason? = null) {
     val eventData = mutableMapOf<String, Any?>(
       "state" to state.toJsString(),
@@ -112,7 +129,7 @@ class SecureRecorderModule : Module() {
     return session.recordingTimer.isActive
   }
 
-  private fun start(sessionId: String): String {
+  internal fun start(sessionId: String): String {
     // Validate session ID
     if (sessionId.isBlank()) {
       throw InitializationException("Session ID cannot be empty")
@@ -138,9 +155,9 @@ class SecureRecorderModule : Module() {
         currentSession = null
         emitStatusChanged(RecorderState.STOPPED, sessionId, filePath, reason)
       }
-      
+
       // Create new recording session with handler
-      val session = Session(
+      val session = sessionFactory.create(
         sessionId = sessionId,
         outputFile = outputFile,
         keyManager = keyManager,
@@ -165,7 +182,7 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun stop(): String {
+  internal fun stop(): String {
     val session = currentSession ?: throw NoRecordingException()
     val sessionInfo = session.getInfo()
 
@@ -185,7 +202,7 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun pause(): String {
+  internal fun pause(): String {
     if (!isRecording()) {
       throw NoRecordingException()
     }
@@ -203,7 +220,7 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun resume(): String {
+  internal fun resume(): String {
     val session = currentSession ?: throw NoRecordingException()
     if (session.recordingTimer.isActive) {
       throw RecordingInProgressException()
@@ -221,7 +238,7 @@ class SecureRecorderModule : Module() {
     }
   }
 
-  private fun status(): Map<String, Any?> {
+  internal fun status(): Map<String, Any?> {
     val session = currentSession ?: return mapOf(
       "state" to RecorderState.INACTIVE.toJsString(),
       "sessionId" to null,
@@ -239,35 +256,35 @@ class SecureRecorderModule : Module() {
     )
   }
 
-  private fun createOutputFile(sessionId: String): File {
+  internal fun createOutputFile(sessionId: String): File {
     val filesDir = context.filesDir
     return File(filesDir, "$sessionId.dat")
   }
 
   /**
    * Stream decrypt encrypted audio file, emitting events for each chunk
-   * 
+   *
    * MEMORY SAFE: Uses true streaming (FileInputStream) to read chunks incrementally.
    * Emits "onAudioChunkDecrypted" event for each decrypted chunk immediately,
    * then discards the data to prevent OOM on large files.
-   * 
+   *
    * @throws SecureRecorderException if decryption fails
    */
-  private fun stream(encryptedPath: String) {
+  internal fun stream(encryptedPath: String) {
     try {
       val encryptedFile = File(encryptedPath)
-      
+
       // Validate encrypted file exists
       if (!encryptedFile.exists()) {
         throw InitializationException("Encrypted file not found: $encryptedPath")
       }
-      
+
       // Get encryption key
       val secretKey = keyManager.getOrCreateKey(keyAlias)
-      
+
       // Stream decrypt and emit events
       val streamManager = StreamDecryptionManager(secretKey, encryptedFile)
-      
+
       streamManager.stream { data, index, isLast ->
         // Emit event immediately - Expo SDK 54 converts ByteArray → Uint8Array automatically
         val eventData = mapOf(
@@ -276,10 +293,10 @@ class SecureRecorderModule : Module() {
           "isLast" to isLast
         )
         sendEvent("onAudioChunkDecrypted", eventData)
-        
+
         // Data is automatically discarded after this scope
       }
-      
+
       // Paranoid Self-Destruct: Secure Data Shredding (Overwrite + Delete)
       // Only in success path - if streaming fails, file remains for retry
       // Silently ignore deletion errors (e.g. permission issues) since streaming succeeded
@@ -305,7 +322,7 @@ class SecureRecorderModule : Module() {
    * @return The output path
    * @throws InitializationException if input file is missing or encryption fails
    */
-  private fun encryptFile(inputPath: String, outputPath: String): String {
+  internal fun encryptFile(inputPath: String, outputPath: String): String {
     val inputFile = File(inputPath)
 
     if (!inputFile.exists()) {
@@ -351,7 +368,7 @@ class SecureRecorderModule : Module() {
    * @return The output path
    * @throws InitializationException if encryption fails
    */
-  private fun encryptBytes(data: ByteArray, outputPath: String): String {
+  internal fun encryptBytes(data: ByteArray, outputPath: String): String {
     try {
       val secretKey = keyManager.getOrCreateKey(keyAlias)
       val outputFile = File(outputPath)
@@ -381,7 +398,7 @@ class SecureRecorderModule : Module() {
    * Check if RECORD_AUDIO permission is granted
    * Note: Permission requests are handled via expo-audio in JavaScript
    */
-  private fun hasPermission(): Boolean {
+  internal fun hasPermission(): Boolean {
     return ContextCompat.checkSelfPermission(
       context,
       Manifest.permission.RECORD_AUDIO

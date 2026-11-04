@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for StopReason (iOS/iPadOS)

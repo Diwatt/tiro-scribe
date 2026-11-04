@@ -1,5 +1,6 @@
 import XCTest
 import AVFoundation
+@testable import SecureRecorder
 
 @available(iOS 13.0, *)
 class AudioRecordTests: XCTestCase {
@@ -55,16 +56,19 @@ class AudioRecordTests: XCTestCase {
     XCTAssertEqual(0, bytesRead, "read should return 0 when no data is available")
   }
 
-  func testReadReturnsNegativeWhenNotRecordingOrReleased() {
-    // Not recording yet
+  func testReadReturnsNegativeWhenNotRecording() {
     var buffer = [UInt8](repeating: 0, count: 256)
-    let bytesNotRecording = record.read(&buffer, offset: 0, size: buffer.count)
-    XCTAssertLessThan(bytesNotRecording, 0, "read should return negative when not recording")
+    let bytesRead = record.read(&buffer, offset: 0, size: buffer.count)
+    XCTAssertLessThan(bytesRead, 0, "read should return negative when not recording")
+  }
 
-    // After release
+  func testReadReturnsNegativeAfterRelease() throws {
+    try record.startRecording()
     record.release()
-    let bytesAfterRelease = record.read(&buffer, offset: 0, size: buffer.count)
-    XCTAssertLessThan(bytesAfterRelease, 0, "read should return negative after release")
+
+    var buffer = [UInt8](repeating: 0, count: 256)
+    let bytesRead = record.read(&buffer, offset: 0, size: buffer.count)
+    XCTAssertLessThan(bytesRead, 0, "read should return negative after release")
   }
 
   // MARK: - B - Boundary / Data Flow Cases
@@ -119,9 +123,11 @@ class AudioRecordTests: XCTestCase {
     inputNode.triggerTap(buffer: pcm)
 
     // Stop should clear queue, remove tap and stop engine
+    // Note: startRecording pre-cleans the tap (removeTap) before installing its own,
+    // so the total count after stop is 2.
     record.stop()
     XCTAssertEqual(AudioRecord.RECORDSTATE_STOPPED, record.recordingState)
-    XCTAssertEqual(1, inputNode.removeTapCallCount, "removeTap should be called once")
+    XCTAssertEqual(2, inputNode.removeTapCallCount, "removeTap should be called by start pre-clean and stop")
     XCTAssertEqual(1, engine.stopCallCount, "engine.stop should be called once")
 
     // Further reads should return negative (not recording)
@@ -131,7 +137,7 @@ class AudioRecordTests: XCTestCase {
 
     // Idempotent stop
     record.stop()
-    XCTAssertEqual(1, inputNode.removeTapCallCount, "removeTap should not be called again")
+    XCTAssertEqual(2, inputNode.removeTapCallCount, "removeTap should not be called again")
     XCTAssertEqual(1, engine.stopCallCount, "stop should not be called again when already stopped")
   }
 
@@ -171,58 +177,5 @@ class AudioRecordTests: XCTestCase {
     }
 
     XCTAssertEqual(10, totalReadsWithData, "Should only retain up to maxQueueSize buffers")
-  }
-}
-
-// MARK: - Mocks
-
-class MockAudioEngine: AVAudioEngine {
-  private var _isRunning = false
-  var startCallCount = 0
-  var stopCallCount = 0
-
-  override var isRunning: Bool { _isRunning }
-
-  override func start() throws {
-    startCallCount += 1
-    _isRunning = true
-  }
-
-  override func stop() {
-    stopCallCount += 1
-    _isRunning = false
-  }
-}
-
-class MockAudioInputNode: AVAudioInputNode {
-  var installTapCallCount = 0
-  var removeTapCallCount = 0
-  private var installedTap: ((AVAudioPCMBuffer, AVAudioTime) -> Void)?
-  private let fmt: AVAudioFormat
-
-  override init() {
-    // Create a 16kHz mono Int16 format to align with AudioConfig
-    self.fmt = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000.0, channels: 1, interleaved: true)!
-    super.init()
-  }
-
-  override func inputFormat(forBus bus: AVAudioNodeBus) -> AVAudioFormat {
-    return fmt
-  }
-
-  override func installTap(onBus bus: AVAudioNodeBus, bufferSize: AVAudioFrameCount, format: AVAudioFormat?, block tapBlock: @escaping AVAudioNodeTapBlock) {
-    installTapCallCount += 1
-    installedTap = tapBlock
-  }
-
-  override func removeTap(onBus bus: AVAudioNodeBus) {
-    removeTapCallCount += 1
-    installedTap = nil
-  }
-
-  func triggerTap(buffer: AVAudioPCMBuffer) {
-    guard let tap = installedTap else { return }
-    let time = AVAudioTime(sampleTime: 0, atRate: buffer.format.sampleRate)
-    tap(buffer, time)
   }
 }

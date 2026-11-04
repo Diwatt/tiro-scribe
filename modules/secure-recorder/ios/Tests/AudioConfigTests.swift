@@ -1,5 +1,6 @@
 import XCTest
 import AVFoundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for AudioConfig (iOS/iPadOS)
@@ -19,12 +20,9 @@ class AudioConfigTests: XCTestCase {
     super.tearDown()
   }
     
-  func testBufferSizeCalculationUsesMaxOfTargetAndMinimum() {
-    // Buffer size calculation: max(targetFrames, minFrames) where targetFrames = sampleRate * 0.01
-    // At 16kHz: targetFrames = 160, minFrames = 256, so max(160, 256) = 256
+  func testBufferSizeReturnsMinimumWhenTargetFramesAreSmaller() {
     let bufferSize = audioConfig.bufferSize
     XCTAssertEqual(256, bufferSize, "When target (160) < minimum (256), should return minimum")
-    XCTAssertLessThanOrEqual(bufferSize, 4096, "Buffer size should not be excessive")
   }
 
   func testCreateFormatReturnsValidAVAudioFormat() {
@@ -42,13 +40,6 @@ class AudioConfigTests: XCTestCase {
     let first = audioConfig.bufferSize
     let second = audioConfig.bufferSize
     XCTAssertEqual(first, second, "Buffer size should be memoized and not change between accesses")
-  }
-
-  func testTargetFramesCalculationCommentExpectation() {
-    // Validate target frames for 10ms at 16kHz would be 160, but min of 256 wins
-    let targetFrames = Int(16000.0 * 0.01)
-    XCTAssertEqual(targetFrames, 160, "Target frames for 10ms at 16kHz should be 160")
-    XCTAssertEqual(audioConfig.bufferSize, 256, "Minimum buffer size should override target frames when larger")
   }
 
   func testFormatMatchesConfigurationConstants() {

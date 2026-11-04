@@ -15,7 +15,7 @@ import AVFoundation
  * - Uses FileManager.attributesOfItem[.size] for file size
  */
 class Pipeline {
-  private let audioRecord: AudioRecord
+  private let audioRecord: AudioRecordProtocol
   private let encryptionStream: EncryptionStreamProtocol
   private let audioConfig: AudioConfig
   private let outputFile: URL
@@ -25,7 +25,7 @@ class Pipeline {
   private let onError: (String) -> Void
   
   internal init(
-    audioRecord: AudioRecord,
+    audioRecord: AudioRecordProtocol,
     encryptionStream: EncryptionStreamProtocol,
     audioConfig: AudioConfig,
     outputFile: URL,

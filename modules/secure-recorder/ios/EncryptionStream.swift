@@ -44,7 +44,11 @@ class EncryptionStream {
       FileManager.default.createFile(atPath: outputFile.path, contents: nil, attributes: nil)
     }
     
-    fileHandle = try FileHandle(forWritingTo: outputFile)
+    do {
+      fileHandle = try FileHandle(forWritingTo: outputFile)
+    } catch {
+      throw SecureRecorderError.initializationFailed("Failed to open output file for writing: \(error.localizedDescription)")
+    }
   }
   
   /**

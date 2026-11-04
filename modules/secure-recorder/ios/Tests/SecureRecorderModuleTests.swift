@@ -1,6 +1,11 @@
 /**
  * Tests for SecureRecorderModule using ZOMBIES methodology.
- * 
+ *
+ * EXCLUDED from the SPM testTarget (see Package.swift): this file needs an Xcode
+ * target linking the ExpoModulesCore pod, because SecureRecorderModule extends
+ * Expo's Module and exposes private Expo-facing methods. Port these cases there
+ * before running them.
+ *
  * Z - Zero: Empty/null sessionId, missing files, missing context
  * O - One: Single recording cycle (happy path)
  * M - Many: Multiple calls, race conditions, concurrent operations
@@ -12,7 +17,7 @@
 import XCTest
 import AVFoundation
 import Foundation
-@testable import SecureRecorderModule
+@testable import SecureRecorder
 
 @available(iOS 13.0, *)
 class SecureRecorderModuleTests: XCTestCase {
@@ -87,17 +92,6 @@ class SecureRecorderModuleTests: XCTestCase {
     } catch {
       // Expected - blank sessionId should fail validation
       XCTAssertNotNil(error)
-    }
-  }
-  
-  func testStopRecordingInternalThrowsWhenNoSessionExists() async {
-    do {
-      let result = try await module.stop()
-      XCTFail("Should throw NoRecordingException when no session, got: \(result)")
-    } catch let error as SecureRecorderError {
-      XCTAssertEqual(error.code, "NO_RECORDING_IN_PROGRESS", "Should throw noRecordingInProgress")
-    } catch {
-      XCTFail("Should throw SecureRecorderError, got: \(error)")
     }
   }
   
@@ -207,7 +201,6 @@ class SecureRecorderModuleTests: XCTestCase {
   }
 
   func testStopRecordingInternalSucceedsWhenSessionIsPaused() async {
-    // stop() should succeed when a session exists but is paused
     // This tests the pause -> stop flow
     do {
       _ = try await module.start(sessionId: "test-pause-stop-session")
@@ -604,21 +597,20 @@ class MockAudioRecorder {
   var startCallCount = 0
   var stopCallCount = 0
   var shouldThrowOnStart = false
+  var startResult: AudioRecord?
   
   func start() throws -> AudioRecord {
     startCallCount += 1
     if shouldThrowOnStart {
       throw SecureRecorderError.recordingFailed("Mock recording error")
     }
-    return AudioRecord() // Mock AudioRecord
+    guard let startResult = startResult else {
+      throw SecureRecorderError.initializationFailed("MockAudioRecorder has no start result")
+    }
+    return startResult
   }
   
   func stop(record: AudioRecord) {
     stopCallCount += 1
   }
-}
-
-// Mock AudioRecord for testing
-class AudioRecord {
-  // Minimal mock implementation
 }

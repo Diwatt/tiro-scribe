@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for State (iOS/iPadOS)
@@ -25,20 +25,5 @@ class StateTests: XCTestCase {
     
     XCTAssertEqual(state1.hashValue, state2.hashValue, 
                    "Equal states should have equal hash values")
-  }
-}
-
-// Extend State to be Equatable and Hashable for tests
-extension State: Equatable, Hashable {
-  static func == (lhs: State, rhs: State) -> Bool {
-    return lhs.isRecording == rhs.isRecording &&
-           lhs.sessionId == rhs.sessionId &&
-           lhs.filePath == rhs.filePath
-  }
-  
-  func hash(into hasher: inout Hasher) {
-    hasher.combine(isRecording)
-    hasher.combine(sessionId)
-    hasher.combine(filePath)
   }
 }

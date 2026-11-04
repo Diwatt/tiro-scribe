@@ -17,13 +17,13 @@ import AVFoundation
  */
 class AudioRecorder {
   private let sessionFactory: () -> AudioSessionProtocol
-  private let factory: () -> AVAudioEngine
+  private let factory: () -> AudioEngineProtocol
   private let audioConfig: AudioConfig
   
   internal init(
     audioConfig: AudioConfig,
     sessionFactory: @escaping () -> AudioSessionProtocol = { AVAudioSession.sharedInstance() },
-    factory: @escaping () -> AVAudioEngine = { AVAudioEngine() }
+    factory: @escaping () -> AudioEngineProtocol = { AVAudioEngine() }
   ) {
     self.audioConfig = audioConfig
     self.sessionFactory = sessionFactory
@@ -53,7 +53,7 @@ class AudioRecorder {
     
     // Create and prepare audio engine
     let engine = factory()
-    let inputNode = engine.inputNode
+    let inputNode = engine.audioInputNode
     
     // Prepare engine (doesn't start it - that happens in AudioRecord.startRecording())
     engine.prepare()

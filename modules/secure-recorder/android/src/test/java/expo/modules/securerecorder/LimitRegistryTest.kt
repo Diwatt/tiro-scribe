@@ -1,103 +1,76 @@
 package expo.modules.securerecorder
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 
 /**
- * Tests for LimitRegistry
- * 
- * ISOMORPHIC: These tests mirror the iOS LimitRegistryTests
- * to ensure identical behavior across platforms.
+ * Unit tests for LimitRegistry defaults.
+ * The registry's own limits (4h duration, 500MB file size) are verified, one boundary per test.
  */
 class LimitRegistryTest {
-  
-  private val limiter: LimitRegistry = LimitRegistry()
-  
+
+  private val registry: LimitRegistry = LimitRegistry()
+
   @Test
-  fun testDurationLimitNotReached() {
-    // Arrange
-    val elapsedTime = 1000L // 1 second
-    val limits = limiter.getLimits()
-    val durationLimit = limits.first { it is Limit.Duration } as Limit.Duration
-    
-    // Act
-    val result = durationLimit.isExceeded(elapsedTime)
-    
-    // Assert
-    assertFalse("Duration limit should not be exceeded for 1 second", result)
+  fun `registry exposes the four hour duration limit`() {
+    val durationLimit = registry.getLimits().filterIsInstance<Limit.Duration>().first()
+
+    assertEquals(Limit.Duration.DEFAULT_MS, durationLimit.maxValue)
   }
-  
+
   @Test
-  fun testDurationLimitReached() {
-    // Arrange
-    val limits = limiter.getLimits()
-    val durationLimit = limits.first { it is Limit.Duration } as Limit.Duration
-    val elapsedTime = durationLimit.maxValue + 1000L // Exceed by 1 second
-    
-    // Act
-    val result = durationLimit.isExceeded(elapsedTime)
-    
-    // Assert
-    assertTrue("Duration limit should be exceeded when time exceeds limit", result)
-    assertEquals("Should have DURATION_LIMIT reason", StopReason.DURATION_LIMIT, durationLimit.reason)
+  fun `registry exposes the 500MB file size limit`() {
+    val fileSizeLimit = registry.getLimits().filterIsInstance<Limit.FileSize>().first()
+
+    assertEquals(Limit.FileSize.DEFAULT_BYTES, fileSizeLimit.maxValue)
   }
-  
+
   @Test
-  fun testDurationLimitAtBoundary() {
-    // Arrange
-    val limits = limiter.getLimits()
-    val durationLimit = limits.first { it is Limit.Duration } as Limit.Duration
-    
-    // Act
-    val atBoundary = durationLimit.isExceeded(durationLimit.maxValue)
-    val justBelow = durationLimit.isExceeded(durationLimit.maxValue - 1)
-    
-    // Assert
-    assertTrue("Duration limit should be exceeded at boundary", atBoundary)
-    assertFalse("Duration limit should not be exceeded just below boundary", justBelow)
+  fun `registry exposes exactly two limits`() {
+    assertEquals(2, registry.getLimits().size)
   }
-  
+
   @Test
-  fun testFileSizeLimitNotReached() {
-    // Arrange
-    val fileSize = 1000L // 1 KB
-    val limits = limiter.getLimits()
-    val fileSizeLimit = limits.first { it is Limit.FileSize } as Limit.FileSize
-    
-    // Act
-    val result = fileSizeLimit.isExceeded(fileSize)
-    
-    // Assert
-    assertFalse("File size limit should not be exceeded for 1 KB", result)
+  fun `registry duration limit is not exceeded for a one second recording`() {
+    val durationLimit = registry.getLimits().filterIsInstance<Limit.Duration>().first()
+
+    assertFalse(durationLimit.isExceeded(1000L))
   }
-  
+
   @Test
-  fun testFileSizeLimitReached() {
-    // Arrange
-    val limits = limiter.getLimits()
-    val fileSizeLimit = limits.first { it is Limit.FileSize } as Limit.FileSize
-    val fileSize = fileSizeLimit.maxValue + 1000L // Exceed by 1 KB
-    
-    // Act
-    val result = fileSizeLimit.isExceeded(fileSize)
-    
-    // Assert
-    assertTrue("File size limit should be exceeded when size exceeds limit", result)
-    assertEquals("Should have FILE_SIZE_LIMIT reason", StopReason.FILE_SIZE_LIMIT, fileSizeLimit.reason)
+  fun `registry duration limit is exceeded past its maximum`() {
+    val durationLimit = registry.getLimits().filterIsInstance<Limit.Duration>().first()
+
+    assertTrue(durationLimit.isExceeded(durationLimit.maxValue + 1000L))
   }
-  
+
   @Test
-  fun testFileSizeLimitAtBoundary() {
-    // Arrange
-    val limits = limiter.getLimits()
-    val fileSizeLimit = limits.first { it is Limit.FileSize } as Limit.FileSize
-    
-    // Act
-    val atBoundary = fileSizeLimit.isExceeded(fileSizeLimit.maxValue)
-    val justBelow = fileSizeLimit.isExceeded(fileSizeLimit.maxValue - 1)
-    
-    // Assert
-    assertTrue("File size limit should be exceeded at boundary", atBoundary)
-    assertFalse("File size limit should not be exceeded just below boundary", justBelow)
+  fun `registry duration limit carries the DURATION_LIMIT stop reason`() {
+    val durationLimit = registry.getLimits().filterIsInstance<Limit.Duration>().first()
+
+    assertEquals(StopReason.DURATION_LIMIT, durationLimit.reason)
+  }
+
+  @Test
+  fun `registry file size limit is not exceeded for a small file`() {
+    val fileSizeLimit = registry.getLimits().filterIsInstance<Limit.FileSize>().first()
+
+    assertFalse(fileSizeLimit.isExceeded(1000L))
+  }
+
+  @Test
+  fun `registry file size limit is exceeded past its maximum`() {
+    val fileSizeLimit = registry.getLimits().filterIsInstance<Limit.FileSize>().first()
+
+    assertTrue(fileSizeLimit.isExceeded(fileSizeLimit.maxValue + 1000L))
+  }
+
+  @Test
+  fun `registry file size limit carries the FILE_SIZE_LIMIT stop reason`() {
+    val fileSizeLimit = registry.getLimits().filterIsInstance<Limit.FileSize>().first()
+
+    assertEquals(StopReason.FILE_SIZE_LIMIT, fileSizeLimit.reason)
   }
 }

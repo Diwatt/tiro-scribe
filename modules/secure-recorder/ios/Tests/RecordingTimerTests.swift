@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for RecordingTimer (iOS/iPadOS)
@@ -51,15 +51,14 @@ class RecordingTimerTests: XCTestCase {
   
   func testGetElapsedTimeIncreasesAfterActivation() {
     recordingTimer.activate()
-    
+
     let initialTime = recordingTimer.getElapsedTime()
     XCTAssertTrue(initialTime >= 0, "Initial elapsed time should be >= 0")
-    
-    // Wait a bit
-    Thread.sleep(forTimeInterval: 0.01)
-    
+
+    waitForWallClockTime(milliseconds: 50)
+
     let laterTime = recordingTimer.getElapsedTime()
-    XCTAssertTrue(laterTime > initialTime, "Elapsed time should increase")
+    XCTAssertGreaterThan(laterTime, initialTime, "Elapsed time should increase")
   }
   
   func testGetStartTimeReturnsZeroWhenNotActive() {
@@ -77,11 +76,10 @@ class RecordingTimerTests: XCTestCase {
   
   func testGetStartTimeIsSetOnActivation() {
     recordingTimer.activate()
-    let startTimeBefore = recordingTimer.getStartTime()
-    
+
     recordingTimer.deactivate()
     let startTimeAfter = recordingTimer.getStartTime()
-    
+
     XCTAssertEqual(0, startTimeAfter, "Start time should be reset to 0 after deactivate()")
   }
   
@@ -97,11 +95,20 @@ class RecordingTimerTests: XCTestCase {
   func testActivateUpdatesStartTime() {
     recordingTimer.activate()
     let firstStartTime = recordingTimer.getStartTime()
-    
-    Thread.sleep(forTimeInterval: 0.01)
+
+    waitForWallClockTime(milliseconds: 50)
+
     recordingTimer.activate()
     let secondStartTime = recordingTimer.getStartTime()
-    
-    XCTAssertTrue(secondStartTime > firstStartTime, "Start time should be updated on reactivation")
+
+    XCTAssertGreaterThan(secondStartTime, firstStartTime, "Start time should be updated on reactivation")
+  }
+
+  private func waitForWallClockTime(milliseconds: Int) {
+    let expectation = expectation(description: "Wall clock time advanced by \(milliseconds)ms")
+    DispatchQueue.global().asyncAfter(deadline: .now() + Double(milliseconds) / 1000.0) {
+      expectation.fulfill()
+    }
+    wait(for: [expectation], timeout: 2.0)
   }
 }

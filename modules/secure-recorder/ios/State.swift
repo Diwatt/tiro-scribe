@@ -3,7 +3,7 @@ import Foundation
 /**
  * Immutable recording state (thread-safe)
  */
-internal struct State {
+internal struct State: Equatable, Hashable {
   internal let isRecording: Bool
   internal let sessionId: String?
   internal let filePath: String?

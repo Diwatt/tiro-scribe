@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
   }
 
   s.source_files = "ios/**/*.{h,m,mm,swift,hpp,cpp}"
-  s.exclude_files = "ios/Tests/**/*"
+  s.exclude_files = "ios/Tests/**/*", "ios/Package.swift"
   
   # Help IDE indexing by explicitly defining module structure
   s.preserve_paths = "ios/**/*.swift"

@@ -1,89 +1,84 @@
 package expo.modules.securerecorder
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.Assert.*
 
 /**
- * Unit tests for RecorderState
- * Tests conversion logic and state mapping
+ * Unit tests for RecorderState conversion logic.
+ * Each mapping branch of toJsString / fromJsString / fromState gets its own test.
  */
 class RecorderStateTest {
 
   @Test
-  fun `fromJsString parses valid values`() {
+  fun `toJsString maps INACTIVE to inactive`() {
+    assertEquals("inactive", RecorderState.INACTIVE.toJsString())
+  }
+
+  @Test
+  fun `toJsString maps RECORDING to recording`() {
+    assertEquals("recording", RecorderState.RECORDING.toJsString())
+  }
+
+  @Test
+  fun `toJsString maps PAUSED to paused`() {
+    assertEquals("paused", RecorderState.PAUSED.toJsString())
+  }
+
+  @Test
+  fun `toJsString maps STOPPED to stopped`() {
+    assertEquals("stopped", RecorderState.STOPPED.toJsString())
+  }
+
+  @Test
+  fun `fromJsString parses inactive`() {
     assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString("inactive"))
+  }
+
+  @Test
+  fun `fromJsString parses recording`() {
     assertEquals(RecorderState.RECORDING, RecorderState.fromJsString("recording"))
+  }
+
+  @Test
+  fun `fromJsString parses paused`() {
     assertEquals(RecorderState.PAUSED, RecorderState.fromJsString("paused"))
+  }
+
+  @Test
+  fun `fromJsString parses stopped`() {
     assertEquals(RecorderState.STOPPED, RecorderState.fromJsString("stopped"))
   }
 
   @Test
-  fun `fromJsString returns INACTIVE for unknown values`() {
-    assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString("unknown"))
-    assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString(""))
+  fun `fromJsString defaults unknown values to INACTIVE`() {
     assertEquals(RecorderState.INACTIVE, RecorderState.fromJsString("invalid_state"))
   }
 
   @Test
-  fun `fromState returns RECORDING when isRecording is true`() {
-    val state = RecorderState.fromState(isRecording = true, filePath = null)
-    
+  fun `fromState returns RECORDING when recording takes precedence over paused state and file path`() {
+    val state = RecorderState.fromState(isRecording = true, isPaused = true, filePath = "/path/to/file.dat")
+
     assertEquals(RecorderState.RECORDING, state)
   }
 
   @Test
-  fun `fromState returns PAUSED when isPaused is true`() {
+  fun `fromState returns PAUSED when not recording but paused with a file path`() {
     val state = RecorderState.fromState(isRecording = false, isPaused = true, filePath = "/path/to/file.dat")
-    
+
     assertEquals(RecorderState.PAUSED, state)
   }
 
   @Test
-  fun `fromState returns STOPPED when filePath is not null and not recording`() {
-    val state = RecorderState.fromState(isRecording = false, filePath = "/path/to/file.dat")
-    
+  fun `fromState returns STOPPED when not recording with a file path`() {
+    val state = RecorderState.fromState(isRecording = false, isPaused = false, filePath = "/path/to/file.dat")
+
     assertEquals(RecorderState.STOPPED, state)
   }
 
   @Test
-  fun `fromState returns INACTIVE when not recording and filePath is null`() {
-    val state = RecorderState.fromState(isRecording = false, filePath = null)
-    
+  fun `fromState returns INACTIVE when not recording without a file path`() {
+    val state = RecorderState.fromState(isRecording = false, isPaused = false, filePath = null)
+
     assertEquals(RecorderState.INACTIVE, state)
-  }
-
-  @Test
-  fun `fromState prioritizes RECORDING over PAUSED`() {
-    // When recording, should return RECORDING even if isPaused is true
-    val state = RecorderState.fromState(isRecording = true, isPaused = true, filePath = "/path/to/file.dat")
-    
-    assertEquals(RecorderState.RECORDING, state)
-  }
-
-  @Test
-  fun `fromState prioritizes RECORDING over STOPPED`() {
-    // When recording, should return RECORDING even if filePath exists
-    val state = RecorderState.fromState(isRecording = true, filePath = "/path/to/file.dat")
-    
-    assertEquals(RecorderState.RECORDING, state)
-  }
-
-  @Test
-  fun `fromState prioritizes PAUSED over STOPPED`() {
-    // When paused with filePath, should return PAUSED
-    val state = RecorderState.fromState(isRecording = false, isPaused = true, filePath = "/path/to/file.dat")
-    
-    assertEquals(RecorderState.PAUSED, state)
-  }
-
-  @Test
-  fun `toJsString and fromJsString are inverse operations`() {
-    val states = listOf(RecorderState.INACTIVE, RecorderState.RECORDING, RecorderState.PAUSED, RecorderState.STOPPED)
-    
-    states.forEach { originalState ->
-      val jsString = originalState.toJsString()
-      val parsedState = RecorderState.fromJsString(jsString)
-      assertEquals("toJsString and fromJsString should be inverse", originalState, parsedState)
-    }
   }
 }

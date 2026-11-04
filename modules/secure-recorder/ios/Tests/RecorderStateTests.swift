@@ -1,5 +1,5 @@
 import XCTest
-import Foundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for RecorderState (iOS/iPadOS)
@@ -8,16 +8,31 @@ import Foundation
 @available(iOS 13.0, *)
 class RecorderStateTests: XCTestCase {
   
-  func testFromJsStringParsesValidValues() {
+  func testFromJsStringParsesInactive() {
     XCTAssertEqual(RecorderState.inactive, RecorderState.fromJsString("inactive"))
+  }
+
+  func testFromJsStringParsesRecording() {
     XCTAssertEqual(RecorderState.recording, RecorderState.fromJsString("recording"))
+  }
+
+  func testFromJsStringParsesPaused() {
     XCTAssertEqual(RecorderState.paused, RecorderState.fromJsString("paused"))
+  }
+
+  func testFromJsStringParsesStopped() {
     XCTAssertEqual(RecorderState.stopped, RecorderState.fromJsString("stopped"))
   }
-  
-  func testFromJsStringReturnsInactiveForUnknownValues() {
+
+  func testFromJsStringReturnsInactiveForUnknownValue() {
     XCTAssertEqual(RecorderState.inactive, RecorderState.fromJsString("unknown"))
+  }
+
+  func testFromJsStringReturnsInactiveForEmptyValue() {
     XCTAssertEqual(RecorderState.inactive, RecorderState.fromJsString(""))
+  }
+
+  func testFromJsStringReturnsInactiveForInvalidStateName() {
     XCTAssertEqual(RecorderState.inactive, RecorderState.fromJsString("invalid_state"))
   }
   

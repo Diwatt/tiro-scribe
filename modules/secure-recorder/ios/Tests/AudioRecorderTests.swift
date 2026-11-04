@@ -1,5 +1,6 @@
 import XCTest
 import AVFoundation
+@testable import SecureRecorder
 
 /**
  * Unit tests for AudioRecorder (iOS/iPadOS)
@@ -205,87 +206,5 @@ class AudioRecorderTests: XCTestCase {
     // Verify still stopped and released
     XCTAssertEqual(AudioRecord.RECORDSTATE_STOPPED, audioRecord.recordingState, "AudioRecord should still be stopped")
     XCTAssertEqual(AudioRecord.STATE_UNINITIALIZED, audioRecord.state, "AudioRecord should be released after stop()")
-  }
-}
-
-// MARK: - Mock implementations
-
-class MockAudioSession: AudioSessionProtocol {
-  var setCategoryCallCount = 0
-  var setCategoryCategory: AVAudioSession.Category?
-  var setCategoryMode: AVAudioSession.Mode?
-  var setCategoryOptions: AVAudioSession.CategoryOptions?
-  var setCategoryShouldThrow = false
-  
-  var setActiveCallCount = 0
-  var setActiveActive: Bool?
-  var setActiveOptions: AVAudioSession.SetActiveOptions?
-  var setActiveShouldThrow = false
-  
-  func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode, options: AVAudioSession.CategoryOptions) throws {
-    setCategoryCallCount += 1
-    setCategoryCategory = category
-    setCategoryMode = mode
-    setCategoryOptions = options
-    
-    if setCategoryShouldThrow {
-      throw NSError(domain: "MockAudioSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
-    }
-  }
-  
-  func setActive(_ active: Bool, options: AVAudioSession.SetActiveOptions) throws {
-    setActiveCallCount += 1
-    setActiveActive = active
-    setActiveOptions = options
-    
-    if setActiveShouldThrow {
-      throw NSError(domain: "MockAudioSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Mock error"])
-    }
-  }
-}
-
-class MockAudioEngine: AVAudioEngine {
-  private let _isRunning: Bool
-  var stopCallCount = 0
-  var prepareCallCount = 0
-  var stopShouldThrow = false
-  var prepareShouldThrow = false
-  
-  init(isRunning: Bool = false) {
-    self._isRunning = isRunning
-    super.init()
-  }
-  
-  override var isRunning: Bool {
-    return _isRunning
-  }
-  
-  override func prepare() {
-    prepareCallCount += 1
-    if prepareShouldThrow {
-      // Simulate exception
-      return
-    }
-    // Don't call super.prepare() to avoid actual engine operations
-  }
-  
-  override func stop() {
-    stopCallCount += 1
-    if stopShouldThrow {
-      // Simulate exception by not calling super
-      return
-    }
-    // Don't call super.stop() to avoid actual engine operations
-  }
-}
-
-class MockAudioInputNode: AVAudioInputNode {
-  var removeTapCallCount = 0
-  var removeTapBus: AVAudioNodeBus?
-  
-  override func removeTap(onBus bus: AVAudioNodeBus) {
-    removeTapCallCount += 1
-    removeTapBus = bus
-    // Don't call super.removeTap() to avoid actual node operations
   }
 }

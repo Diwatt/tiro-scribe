@@ -14,14 +14,14 @@ import Foundation
 class EventHandler {
   private let sessionId: String
   private let outputFile: URL
-  private let recordingTimer: RecordingTimer
+  private let recordingTimer: RecordingTimerProtocol
   private let onStop: () throws -> String
   private let onLimitReached: ((StopReason, String, String) async -> Void)?
   
   internal init(
     sessionId: String,
     outputFile: URL,
-    recordingTimer: RecordingTimer,
+    recordingTimer: RecordingTimerProtocol,
     onStop: @escaping () throws -> String,
     onLimitReached: ((StopReason, String, String) async -> Void)?
   ) {

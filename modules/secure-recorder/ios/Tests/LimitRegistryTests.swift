@@ -1,5 +1,5 @@
 import XCTest
-@testable import SecureRecorderModule
+@testable import SecureRecorder
 
 /**
  * Tests for LimitRegistry

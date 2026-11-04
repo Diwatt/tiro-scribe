@@ -1,6 +1,6 @@
 import XCTest
-import Foundation
 import Security
+@testable import SecureRecorder
 
 /**
  * Unit tests for KeyManager (iOS/iPadOS)
@@ -10,9 +10,24 @@ import Security
 class KeyManagerTests: XCTestCase {
   var keyManager: KeyManager!
 
-  override func setUp() {
-    super.setUp()
+  override func setUpWithError() throws {
+    try super.setUpWithError()
     keyManager = KeyManager()
+    try assertKeychainIsUsable()
+  }
+
+  private func assertKeychainIsUsable() throws {
+    let probe: [String: Any] = [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: "expo.modules.securerecorder",
+      kSecAttrAccount as String: "keychain_availability_probe"
+    ]
+    let status = SecItemAdd(probe as CFDictionary, nil)
+    try XCTSkipUnless(
+      status == errSecSuccess || status == errSecDuplicateItem,
+      "Keychain unavailable in the unhosted SwiftPM xctest runner (SecItemAdd status \(status)); run these tests from an entitled test host (pod/Xcode target)"
+    )
+    SecItemDelete(probe as CFDictionary)
   }
   
   override func tearDown() {
@@ -36,8 +51,7 @@ class KeyManagerTests: XCTestCase {
   func testGetOrCreateKeyReturnsAData() throws {
     // Equivalent to Android: "getOrCreateKey returns a SecretKey"
     let key = try keyManager.getOrCreateKey(alias: "test_alias")
-    XCTAssertNotNil(key, "getOrCreateKey should return a non-nil Data")
-    XCTAssertTrue(key is Data, "getOrCreateKey should return Data")
+    XCTAssertEqual(32, key.count, "getOrCreateKey should return raw key bytes")
   }
   
   func testGetOrCreateKeyGenerates256BitKey() throws {

@@ -36,7 +36,7 @@ class Session {
   internal init(
     sessionId: String,
     outputFile: URL,
-    keyManager: KeyManager,
+    keyManager: KeyManagerProtocol,
     audioRecorder: AudioRecorder,
     audioConfig: AudioConfig,
     limiter: LimitRegistry = LimitRegistry(),

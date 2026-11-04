@@ -1,190 +1,127 @@
 import XCTest
-import AVFoundation
 import Foundation
-import Security
+@testable import SecureRecorder
 
 /**
  * Unit tests for Session (iOS/iPadOS)
- * Tests session lifecycle and format handling
+ *
+ * Session is exercised with a mocked key store and mocked audio hardware
+ * (MockAudioSession + MockAudioEngine) so lifecycle tests are deterministic
+ * on the simulator - no real microphone or Keychain access is involved.
  */
-@available(iOS 13.0, *)
 class SessionTests: XCTestCase {
-  
-  private var keyManager: KeyManager!
-  private var audioRecorder: AudioRecorder!
+
+  private var mockKeyManager: MockKeyManager!
   private var audioConfig: AudioConfig!
   private var outputFile: URL!
   private var session: Session!
-  
+
   override func setUp() {
     super.setUp()
-    
-    keyManager = KeyManager()
+
+    mockKeyManager = MockKeyManager()
     audioConfig = AudioConfig()
-    audioRecorder = AudioRecorder(audioConfig: audioConfig)
-    
-    // Create temporary output file
+
     let tempDir = FileManager.default.temporaryDirectory
     outputFile = tempDir.appendingPathComponent("test_session_\(UUID().uuidString).dat")
-    
-    session = Session(
-      sessionId: "test-session",
-      outputFile: outputFile,
-      keyManager: keyManager,
-      audioRecorder: audioRecorder,
-      audioConfig: audioConfig
-    )
+
+    session = createSession()
   }
-  
+
   override func tearDown() {
-    // Clean up session
-    try? session.cleanup()
+    session?.cleanup()
     session = nil
-    
-    // Clean up test key
-    let deleteQuery: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: "expo.modules.securerecorder",
-      kSecAttrAccount as String: "test-key-alias"
-    ]
-    SecItemDelete(deleteQuery as CFDictionary)
-    
-    // Remove test file
+
     if FileManager.default.fileExists(atPath: outputFile.path) {
       try? FileManager.default.removeItem(at: outputFile)
     }
-    
-    keyManager = nil
-    audioRecorder = nil
+
+    mockKeyManager = nil
     audioConfig = nil
     outputFile = nil
-    
+
     super.tearDown()
   }
-  
-  // MARK: - Hardware Format Tests
-  
-  func testStartUsesHardwareFormatForTap() throws {
-    // This test verifies that Session.start() uses the input node's hardware format
-    // rather than a custom 16kHz format, which would cause a crash
-    
-    // Note: This test requires audio permissions and hardware access
-    // In a real device/simulator with permissions, we can test the actual behavior
-    // For now, we verify the code structure and that it doesn't use a fixed format
-    
-    do {
-      let filePath = try session.start(keyAlias: "test-key-alias")
-      
-      // Verify session started successfully
-      XCTAssertNotNil(filePath, "Session should return file path")
-      XCTAssertTrue(FileManager.default.fileExists(atPath: filePath), "Output file should exist")
-      
-      // Verify session is active
-      let info = session.getInfo()
-      XCTAssertTrue(info.isActive, "Session should be active after start")
-      XCTAssertEqual("test-session", info.sessionId, "Session ID should match")
-      
-      // Clean up
-      _ = try? session.stop()
-    } catch {
-      // In test environment without audio permissions, this is expected
-      // The important thing is that the code structure is correct
-      // (uses hardware format, not fixed 16kHz format)
-      XCTAssertNotNil(error, "May fail in test environment without permissions")
+
+  // MARK: - Start
+
+  func testStartReturnsFilePathAndActivatesSession() throws {
+    let filePath = try session.start(keyAlias: "test-key-alias")
+
+    XCTAssertEqual(outputFile.path, filePath, "start should return the output file path")
+    XCTAssertTrue(FileManager.default.fileExists(atPath: filePath), "Output file should exist after start")
+    XCTAssertTrue(session.getInfo().isActive, "Session should be active after start")
+    XCTAssertEqual("test-key-alias", mockKeyManager.lastAlias, "Key should be requested with the provided alias")
+  }
+
+  func testStartReplacesExistingOutputFileWithEmptyFile() throws {
+    try Data(repeating: 0xFF, count: 512).write(to: outputFile)
+
+    _ = try session.start(keyAlias: "test-key-alias")
+    defer { _ = try? session.stop() }
+
+    let fileSize = try FileManager.default.attributesOfItem(atPath: outputFile.path)[.size] as? Int
+    XCTAssertEqual(0, fileSize, "Fresh start should replace the previous file with an empty one")
+  }
+
+  func testStartThrowsWhenKeyManagerFails() {
+    mockKeyManager.shouldThrow = true
+
+    XCTAssertThrowsError(try session.start(keyAlias: "test-key-alias")) { error in
+      if let recorderError = error as? SecureRecorderError,
+         case .keychainError(let message) = recorderError {
+        XCTAssertTrue(message.contains("Mock keychain error"), "Error should carry the key manager failure")
+      } else {
+        XCTFail("Expected SecureRecorderError.keychainError, got \(error)")
+      }
     }
+    XCTAssertFalse(session.getInfo().isActive, "Session should stay inactive when start fails")
   }
-  
-  func testStartCalculatesBufferSizeBasedOnHardwareFormat() throws {
-    // This test verifies that buffer size is calculated based on hardware sample rate
-    // rather than using a fixed size
-    
-    do {
-      // Try to start session (may fail in test environment)
-      _ = try session.start(keyAlias: "test-key-alias")
-      
-      // If we get here, session started successfully
-      // The buffer size calculation in Session.start() uses hardwareFormat.sampleRate
-      // which ensures compatibility with the hardware
-      
-      // Clean up
-      _ = try? session.stop()
-      
-      // Test passes if no crash occurs (verifies format matching)
-      XCTAssertTrue(true, "Session should use hardware format for buffer calculation")
-    } catch {
-      // Expected in test environment - test structure is what matters
-      XCTAssertNotNil(error)
-    }
+
+  // MARK: - Pause / Resume / Stop
+
+  func testPauseAfterStartReturnsFilePathAndDeactivatesSession() throws {
+    _ = try session.start(keyAlias: "test-key-alias")
+
+    let filePath = try session.pause()
+
+    XCTAssertEqual(outputFile.path, filePath, "pause should return the output file path")
+    XCTAssertFalse(session.getInfo().isActive, "Session should be inactive after pause")
   }
-  
-  func testSessionHandlesFormatMismatchCorrectly() {
-    // This test documents that Session now handles format conversion correctly
-    // The Pipeline will convert from hardware format to 16kHz
-    
-    // Verify session is initialized
-    XCTAssertNotNil(session, "Session should be initialized")
-    
-    // The key fix: Session uses hardwareFormat (from inputNode.inputFormat)
-    // instead of a fixed 16kHz format, preventing the crash
-    // Pipeline then converts to 16kHz for processing
-    
-    let info = session.getInfo()
-    XCTAssertEqual("test-session", info.sessionId, "Session ID should be set")
-    XCTAssertFalse(info.isActive, "Session should not be active initially")
+
+  func testResumeAfterPauseRestartsCapture() throws {
+    _ = try session.start(keyAlias: "test-key-alias")
+    _ = try session.pause()
+
+    let filePath = try session.resume()
+    defer { _ = try? session.stop() }
+
+    XCTAssertEqual(outputFile.path, filePath, "resume should return the output file path")
+    XCTAssertTrue(session.getInfo().isActive, "Session should be active again after resume")
   }
-  
-  func testSessionCleanupIsIdempotent() {
-    // Verify cleanup can be called multiple times safely
-    session.cleanup()
-    session.cleanup()
-    session.cleanup()
-    
-    // Should not crash
-    XCTAssertTrue(true, "Cleanup should be idempotent")
+
+  func testStopAfterStartReturnsFilePathAndDeactivatesSession() throws {
+    _ = try session.start(keyAlias: "test-key-alias")
+
+    let filePath = try session.stop()
+
+    XCTAssertEqual(outputFile.path, filePath, "stop should return the output file path")
+    XCTAssertFalse(session.getInfo().isActive, "Session should be inactive after stop")
   }
-  
-  func testGetInfoReturnsCorrectValues() {
-    let info = session.getInfo()
-    
-    XCTAssertEqual("test-session", info.sessionId, "Session ID should match")
-    XCTAssertEqual(outputFile.path, info.filePath, "File path should match")
-    XCTAssertFalse(info.isActive, "Session should not be active initially")
-  }
-  
-  // MARK: - Pause/Resume Tests
-  
+
   func testPauseThrowsWhenNotRecording() {
     XCTAssertThrowsError(try session.pause()) { error in
-      if let recorderError = error as? SecureRecorderError {
-        XCTAssertEqual(recorderError.code, "NO_RECORDING_IN_PROGRESS")
+      if let recorderError = error as? SecureRecorderError,
+         case .noRecordingInProgress = recorderError {
+        XCTAssertEqual("NO_RECORDING_IN_PROGRESS", recorderError.code)
       } else {
         XCTFail("Expected SecureRecorderError.noRecordingInProgress")
       }
     }
   }
-  
-  func testResumeThrowsWhenNotPaused() {
-    // Resume without prior start should throw because encryption stream is nil
+
+  func testResumeThrowsWhenNeverStarted() {
     XCTAssertThrowsError(try session.resume()) { error in
-      if let recorderError = error as? SecureRecorderError {
-        XCTAssertEqual(recorderError.code, "INITIALIZATION_FAILED")
-      } else {
-        XCTFail("Expected SecureRecorderError.initializationFailed")
-      }
-    }
-  }
-  
-  func testResumeThrowsWhenEncryptionStreamNotInitialized() {
-    // Create a session that was never started
-    let freshSession = Session(
-      sessionId: "fresh-session",
-      outputFile: outputFile,
-      keyManager: keyManager,
-      audioRecorder: audioRecorder,
-      audioConfig: audioConfig
-    )
-    
-    XCTAssertThrowsError(try freshSession.resume()) { error in
       if let recorderError = error as? SecureRecorderError,
          case .initializationFailed(let message) = recorderError {
         XCTAssertTrue(message.contains("No encryption stream"), "Should mention missing encryption stream")
@@ -194,21 +131,39 @@ class SessionTests: XCTestCase {
     }
   }
 
-  func testStopSucceedsWhenSessionIsPaused() throws {
-    // Start the session first (may fail in test environment without permissions)
-    do {
-      _ = try session.start(keyAlias: "test-key-alias")
-      _ = try session.pause()
+  // MARK: - Info / Cleanup
 
-      let filePath = try session.stop()
+  func testGetInfoReturnsCorrectValues() {
+    let info = session.getInfo()
 
-      XCTAssertFalse(filePath.isEmpty, "Should return a file path")
-      XCTAssertEqual(outputFile.path, filePath, "File path should match output file")
-    } catch {
-      // Expected in test environment without audio permissions
-      // The key assertion is that stop() does NOT throw noRecordingInProgress
-      // when a session exists but is paused
-      XCTAssertNotNil(error)
-    }
+    XCTAssertEqual("test-session", info.sessionId, "Session ID should match")
+    XCTAssertEqual(outputFile.path, info.filePath, "File path should match")
+    XCTAssertFalse(info.isActive, "Session should not be active initially")
+  }
+
+  func testSessionCleanupIsIdempotent() {
+    session.cleanup()
+    session.cleanup()
+    session.cleanup()
+
+    XCTAssertFalse(session.getInfo().isActive, "Cleanup should leave the session inactive without crashing")
+  }
+
+  // MARK: - Helpers
+
+  private func createSession() -> Session {
+    let audioRecorder = AudioRecorder(
+      audioConfig: audioConfig,
+      sessionFactory: { MockAudioSession() },
+      factory: { MockAudioEngine() }
+    )
+
+    return Session(
+      sessionId: "test-session",
+      outputFile: outputFile,
+      keyManager: mockKeyManager,
+      audioRecorder: audioRecorder,
+      audioConfig: audioConfig
+    )
   }
 }

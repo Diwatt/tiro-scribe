@@ -1,9 +1,9 @@
 package expo.modules.securerecorder
 
 import org.junit.After
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.junit.Assert.*
 import java.io.File
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -80,13 +80,25 @@ class EncryptionStreamTest {
   @Test
   fun `write throws when not initialized`() {
     val plaintext = "test".toByteArray()
-    
-    try {
+
+    val exception = org.junit.Assert.assertThrows(IllegalStateException::class.java) {
       encryptionStream.write(plaintext)
-      fail("Should throw IllegalStateException when not initialized")
-    } catch (e: IllegalStateException) {
-      assertEquals("Encryption stream not initialized", e.message)
     }
+    org.junit.Assert.assertEquals("Encryption stream not initialized", exception.message)
+  }
+
+  @Test
+  fun `flush before initialization is a no-op and does not create the file`() {
+    encryptionStream.flush()
+
+    assertFalse("File should not exist after an early flush", outputFile.exists())
+  }
+
+  @Test
+  fun `close before initialization is a no-op and does not create the file`() {
+    encryptionStream.close()
+
+    assertFalse("File should not exist after an early close", outputFile.exists())
   }
 
 

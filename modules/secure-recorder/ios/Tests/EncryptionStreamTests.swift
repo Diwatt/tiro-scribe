@@ -1,6 +1,8 @@
 import XCTest
 import Foundation
 import CryptoKit
+import Security
+@testable import SecureRecorder
 
 /**
  * Unit tests for EncryptionStream (iOS/iPadOS)
@@ -40,6 +42,22 @@ class EncryptionStreamTests: XCTestCase {
   
   // MARK: - initialize() tests
   
+  func testInitializeThrowsSecureRecorderErrorWhenFileCannotBeCreated() {
+    let missingDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+      .appendingPathComponent("missing_parent.dat")
+    let stream = EncryptionStream(secretKey: secretKey, outputFile: missingDirectory)
+
+    XCTAssertThrowsError(try stream.initialize()) { error in
+      if let recorderError = error as? SecureRecorderError,
+         case .initializationFailed(let message) = recorderError {
+        XCTAssertTrue(message.contains("Failed to open output file"), "Error should mention the file open failure")
+      } else {
+        XCTFail("Expected SecureRecorderError.initializationFailed, got \(error)")
+      }
+    }
+  }
+
   func testInitializeCreatesOutputFile() throws {
     XCTAssertFalse(FileManager.default.fileExists(atPath: outputFile.path), 
                    "File should not exist initially")
@@ -114,68 +132,72 @@ class EncryptionStreamTests: XCTestCase {
     XCTAssertEqual(plaintext, decrypted, "Decrypted data should match original plaintext")
   }
   
-  func testMultipleWritesCreateMultipleSealedBoxes() throws {
+  func testMultipleWritesCreateOneSealedBoxPerFlush() throws {
     // Use large chunks that individually exceed the encryption threshold (16KB)
     // so that each write flushes independently and creates its own sealed box.
     let chunkSize = 16 * 1024
-    let chunk1 = Data(repeating: 1, count: chunkSize)
-    let chunk2 = Data(repeating: 2, count: chunkSize)
-    let chunk3 = Data(repeating: 3, count: chunkSize)
-    
+    let chunks = [
+      Data(repeating: 1, count: chunkSize),
+      Data(repeating: 2, count: chunkSize),
+      Data(repeating: 3, count: chunkSize)
+    ]
+
     try encryptionStream.initialize()
-    try encryptionStream.write(data: chunk1)
-    try encryptionStream.write(data: chunk2)
-    try encryptionStream.write(data: chunk3)
+    for chunk in chunks {
+      try encryptionStream.write(data: chunk)
+    }
     encryptionStream.close()
-    
+
     let fileBytes = try Data(contentsOf: outputFile)
-    
-    // Each chunk creates its own sealed box: 4 (size) + 12 (nonce) + data + 16 (tag)
-    let expectedSize = (4 + 12 + chunk1.count + 16) + 
-                      (4 + 12 + chunk2.count + 16) + 
-                      (4 + 12 + chunk3.count + 16)
-    XCTAssertEqual(expectedSize, fileBytes.count, 
-                   "File should contain three sealed boxes")
-    
-    // Decrypt each sealed box independently
+    let boxes = try parseSealedBoxes(from: fileBytes)
+
+    XCTAssertEqual(3, boxes.count, "File should contain three sealed boxes")
+    for (box, chunk) in zip(boxes, chunks) {
+      XCTAssertEqual(box.count, chunk.count + 12 + 16, "Each box should hold nonce + ciphertext + tag")
+    }
+  }
+
+  func testEachSealedBoxDecryptsToItsWrittenChunk() throws {
+    let chunkSize = 16 * 1024
+    let chunks = [
+      Data(repeating: 1, count: chunkSize),
+      Data(repeating: 2, count: chunkSize),
+      Data(repeating: 3, count: chunkSize)
+    ]
+
+    try encryptionStream.initialize()
+    for chunk in chunks {
+      try encryptionStream.write(data: chunk)
+    }
+    encryptionStream.close()
+
+    let fileBytes = try Data(contentsOf: outputFile)
+    let boxes = try parseSealedBoxes(from: fileBytes)
     let symmetricKey = SymmetricKey(data: secretKey)
+
+    XCTAssertEqual(3, boxes.count, "File should contain three sealed boxes")
+    for (box, chunk) in zip(boxes, chunks) {
+      let sealedBox = try AES.GCM.SealedBox(combined: box)
+      let decrypted = try AES.GCM.open(sealedBox, using: symmetricKey)
+      XCTAssertEqual(chunk, decrypted, "Each decrypted chunk should match its written data")
+    }
+  }
+
+  private func parseSealedBoxes(from fileBytes: Data) throws -> [Data] {
+    var boxes: [Data] = []
     var offset = 0
-    var decryptedChunks: [Data] = []
-    
-    // Decrypt chunk 1
-    // Read and skip 4-byte size header
-    let box1SizeData = fileBytes[offset..<offset + 4]
-    let box1Size = box1SizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
-    offset += 4
 
-    let box1Data = fileBytes[offset..<offset + Int(box1Size)]
-    let box1 = try AES.GCM.SealedBox(combined: box1Data)
-    decryptedChunks.append(try AES.GCM.open(box1, using: symmetricKey))
-    offset += Int(box1Size)
-    
-    // Decrypt chunk 2
-    let box2SizeData = fileBytes[offset..<offset + 4]
-    let box2Size = box2SizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
-    offset += 4
+    while offset < fileBytes.count {
+      let sizeData = fileBytes[offset..<offset + 4]
+      let chunkSize = sizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
+      offset += 4
 
-    let box2Data = fileBytes[offset..<offset + Int(box2Size)]
-    let box2 = try AES.GCM.SealedBox(combined: box2Data)
-    decryptedChunks.append(try AES.GCM.open(box2, using: symmetricKey))
-    offset += Int(box2Size)
-    
-    // Decrypt chunk 3
-    let box3SizeData = fileBytes[offset..<offset + 4]
-    let box3Size = box3SizeData.withUnsafeBytes { $0.load(as: Int32.self).bigEndian }
-    offset += 4
+      let box = fileBytes[offset..<offset + Int(chunkSize)]
+      boxes.append(box)
+      offset += Int(chunkSize)
+    }
 
-    let box3Data = fileBytes[offset..<offset + Int(box3Size)]
-    let box3 = try AES.GCM.SealedBox(combined: box3Data)
-    decryptedChunks.append(try AES.GCM.open(box3, using: symmetricKey))
-    
-    // Verify each chunk
-    XCTAssertEqual(chunk1, decryptedChunks[0])
-    XCTAssertEqual(chunk2, decryptedChunks[1])
-    XCTAssertEqual(chunk3, decryptedChunks[2])
+    return boxes
   }
   
   func testCloseCanBeCalledMultipleTimesSafely() throws {

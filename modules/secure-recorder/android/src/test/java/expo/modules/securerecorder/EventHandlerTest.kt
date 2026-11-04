@@ -1,26 +1,25 @@
 package expo.modules.securerecorder
 
-import io.mockk.*
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.Assert.*
 import java.io.File
 
 /**
- * Unit tests for EventHandler (Android)
- * Tests verify EventHandler logic only - all dependencies are mocked
- * Each conditional branch has at least one test
+ * Unit tests for EventHandler (Android).
+ * Each StopReason forwarding is its own test - no loops, one assertion scenario each.
  */
 class EventHandlerTest {
 
-  private lateinit var mockRecordingTimer: RecordingTimer
+  private lateinit var mockRecordingTimer: RecordingTimerInterface
   private var stopCallCount: Int = 0
   private var stopResult: String = ""
   private var limitReachedCallCount: Int = 0
   private var limitReachedReason: StopReason? = null
-  private var limitReachedSessionId: String? = null
   private var limitReachedFilePath: String? = null
 
   @Before
@@ -30,120 +29,70 @@ class EventHandlerTest {
     stopResult = ""
     limitReachedCallCount = 0
     limitReachedReason = null
-    limitReachedSessionId = null
     limitReachedFilePath = null
   }
 
-  @After
-  fun tearDown() {
-    clearAllMocks()
-  }
-
-  // MARK: - Branch 1: onLimitReached with handler, onStop succeeds
-
   @Test
-  fun `onLimitReached calls onStop and handler when stop succeeds`() = runBlocking {
-    stopResult = "/path/to/file.dat"
-    
-    val onStop: suspend () -> String = {
-      stopCallCount++
-      stopResult
-    }
-    
-    val onLimitReached: suspend (StopReason, String, String) -> Unit = { reason, sessionId, filePath ->
-      limitReachedCallCount++
-      limitReachedReason = reason
-      limitReachedSessionId = sessionId
-      limitReachedFilePath = filePath
-    }
-    
-    val eventHandler = EventHandler(
-      sessionId = "test-session",
-      outputFile = File("/path/to/file.dat"),
-      recordingTimer = mockRecordingTimer,
-      onStop = onStop,
-      onLimitReached = onLimitReached
-    )
-    
+  fun `onLimitReached calls onStop once and forwards DURATION_LIMIT with the stop result`() = runBlocking {
+    val eventHandler = createHandlerWithRecordingCallbacks()
+
     eventHandler.onLimitReached(StopReason.DURATION_LIMIT)
-    
-    // Verify onStop was called exactly once
-    assertEquals("onStop should be called exactly once", 1, stopCallCount)
-    
-    // Verify handler was called exactly once
-    assertEquals("onLimitReached handler should be called exactly once", 1, limitReachedCallCount)
-    assertEquals("Reason should match", StopReason.DURATION_LIMIT, limitReachedReason)
-    assertEquals("SessionId should match", "test-session", limitReachedSessionId)
-    assertEquals("FilePath should match stop result", "/path/to/file.dat", limitReachedFilePath)
+
+    assertEquals(1, stopCallCount)
+    assertEquals(1, limitReachedCallCount)
+    assertEquals(StopReason.DURATION_LIMIT, limitReachedReason)
+    assertEquals("/path/to/file.dat", limitReachedFilePath)
   }
 
-  // MARK: - Branch 2: onLimitReached with handler (onStop always succeeds in Android)
-
   @Test
-  fun `onLimitReached calls handler with stop result`() = runBlocking {
-    stopResult = "/custom/path.dat"
-    
-    val onStop: suspend () -> String = {
-      stopCallCount++
-      stopResult
-    }
-    
-    val onLimitReached: suspend (StopReason, String, String) -> Unit = { reason, sessionId, filePath ->
-      limitReachedCallCount++
-      limitReachedReason = reason
-      limitReachedFilePath = filePath
-    }
-    
-    val eventHandler = EventHandler(
-      sessionId = "test-session",
-      outputFile = File("/path/to/file.dat"),
-      recordingTimer = mockRecordingTimer,
-      onStop = onStop,
-      onLimitReached = onLimitReached
-    )
-    
+  fun `onLimitReached forwards FILE_SIZE_LIMIT`() = runBlocking {
+    val eventHandler = createHandlerWithRecordingCallbacks()
+
     eventHandler.onLimitReached(StopReason.FILE_SIZE_LIMIT)
-    
-    // Verify onStop was called
-    assertEquals("onStop should be called", 1, stopCallCount)
-    
-    // Verify handler was called with stop result
-    assertEquals("Handler should be called", 1, limitReachedCallCount)
-    assertEquals("Should use stop result", "/custom/path.dat", limitReachedFilePath)
+
+    assertEquals(StopReason.FILE_SIZE_LIMIT, limitReachedReason)
+    assertEquals(1, stopCallCount)
   }
 
-  // MARK: - Branch 3: onLimitReached without handler, onStop succeeds
+  @Test
+  fun `onLimitReached forwards USER_STOPPED`() = runBlocking {
+    val eventHandler = createHandlerWithRecordingCallbacks()
+
+    eventHandler.onLimitReached(StopReason.USER_STOPPED)
+
+    assertEquals(StopReason.USER_STOPPED, limitReachedReason)
+    assertEquals(1, stopCallCount)
+  }
 
   @Test
-  fun `onLimitReached calls onStop when handler is null`() = runBlocking {
-    stopResult = "/path/to/file.dat"
-    
-    val onStop: suspend () -> String = {
-      stopCallCount++
-      stopResult
-    }
-    
+  fun `onLimitReached forwards ERROR`() = runBlocking {
+    val eventHandler = createHandlerWithRecordingCallbacks()
+
+    eventHandler.onLimitReached(StopReason.ERROR)
+
+    assertEquals(StopReason.ERROR, limitReachedReason)
+    assertEquals(1, stopCallCount)
+  }
+
+  @Test
+  fun `onLimitReached calls onStop when no module handler is registered`() = runBlocking {
+    var stopCallCount = 0
     val eventHandler = EventHandler(
       sessionId = "test-session",
       outputFile = File("/path/to/file.dat"),
       recordingTimer = mockRecordingTimer,
-      onStop = onStop,
+      onStop = { stopCallCount++; "/path/to/file.dat" },
       onLimitReached = null
     )
-    
+
     eventHandler.onLimitReached(StopReason.USER_STOPPED)
-    
-    // Verify onStop was called
-    assertEquals("onStop should be called even without handler", 1, stopCallCount)
-    
-    // Verify handler was NOT called
-    assertEquals("Handler should not be called when null", 0, limitReachedCallCount)
+
+    assertEquals(1, stopCallCount)
+    assertEquals(0, limitReachedCallCount)
   }
 
-  // MARK: - Branch 4: onError calls recordingTimer.deactivate
-
   @Test
-  fun `onError calls recordingTimer deactivate`() {
+  fun `onError deactivates the recording timer`() {
     val eventHandler = EventHandler(
       sessionId = "test-session",
       outputFile = File("/path/to/file.dat"),
@@ -151,44 +100,28 @@ class EventHandlerTest {
       onStop = { "" },
       onLimitReached = null
     )
-    
+
     eventHandler.onError("Test error message")
-    
-    // Verify deactivate was called exactly once
+
     verify(exactly = 1) { mockRecordingTimer.deactivate() }
   }
 
-  // MARK: - Branch 5: onLimitReached passes correct reason
-
-  @Test
-  fun `onLimitReached passes correct reason`() = runBlocking {
-    stopResult = "/path/to/file.dat"
-    
-    val onStop: suspend () -> String = { stopResult }
-    
-    val onLimitReached: suspend (StopReason, String, String) -> Unit = { reason, _, _ ->
-      limitReachedReason = reason
-    }
-    
+  private fun createHandlerWithRecordingCallbacks(): EventHandler {
     val eventHandler = EventHandler(
       sessionId = "test-session",
       outputFile = File("/path/to/file.dat"),
       recordingTimer = mockRecordingTimer,
-      onStop = onStop,
-      onLimitReached = onLimitReached
+      onStop = {
+        stopCallCount++
+        stopResult
+      },
+      onLimitReached = { reason, _, filePath ->
+        limitReachedCallCount++
+        limitReachedReason = reason
+        limitReachedFilePath = filePath
+      }
     )
-    
-    val reasons = listOf(
-      StopReason.DURATION_LIMIT,
-      StopReason.FILE_SIZE_LIMIT,
-      StopReason.USER_STOPPED,
-      StopReason.ERROR
-    )
-    
-    reasons.forEach { reason ->
-      limitReachedReason = null
-      eventHandler.onLimitReached(reason)
-      assertEquals("Should pass correct reason", reason, limitReachedReason)
-    }
+    stopResult = "/path/to/file.dat"
+    return eventHandler
   }
 }

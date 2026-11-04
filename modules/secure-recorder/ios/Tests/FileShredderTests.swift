@@ -138,50 +138,41 @@ class FileShredderTests: XCTestCase {
   
   // MARK: - Test: Shred File in Non-Writable Location (Permission Error Handling)
   
-  func testShredFileWithPermissionError() throws {
-    // Arrange: Create file in temp directory (should be writable)
+  func testShredSucceedsAndDeletesFileInWritableLocation() throws {
     let testFile = tempDir.appendingPathComponent("permission_test.dat")
     let testData = "Test data".data(using: .utf8)!
     try testData.write(to: testFile)
     XCTAssertTrue(FileManager.default.fileExists(atPath: testFile.path))
-    
-    // Act: Should handle gracefully even if there are permission issues
-    // In normal temp directory, this should succeed
-    do {
-      try FileShredder.shred(fileURL: testFile)
-      // If we get here, file should be deleted
-      XCTAssertFalse(FileManager.default.fileExists(atPath: testFile.path))
-    } catch {
-      // If permission error occurs, file might still exist, but that's acceptable
-      // The important thing is that the method handles the error gracefully
-      XCTFail("Shredding should not throw in normal circumstances: \(error)")
-    }
+
+    try FileShredder.shred(fileURL: testFile)
+
+    XCTAssertFalse(FileManager.default.fileExists(atPath: testFile.path), "Shredding should delete the file without throwing")
   }
-  
-  // MARK: - Test: Shred Multiple Files Sequentially
-  
-  func testShredMultipleFilesSequentially() throws {
-    // Arrange: Create multiple files
-    let files = (0..<5).map { index in
+
+  func testShredDeletesFileWhenOpenForWritingFails() throws {
+    let testFile = tempDir.appendingPathComponent("locked.dat")
+    let testData = "Test data".data(using: .utf8)!
+    try testData.write(to: testFile)
+    try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: testFile.path)
+
+    try FileShredder.shred(fileURL: testFile)
+
+    XCTAssertFalse(FileManager.default.fileExists(atPath: testFile.path), "Unopenable file should still be deleted")
+  }
+
+  func testShredLeavesOtherFilesUntouched() throws {
+    var files: [URL] = []
+    for index in 0..<5 {
       let file = tempDir.appendingPathComponent("file_\(index).dat")
-      let data = "File \(index) content".data(using: .utf8)!
-      try! data.write(to: file)
-      return file
+      try "File \(index) content".data(using: .utf8)!.write(to: file)
+      files.append(file)
     }
-    
-    // Verify all files exist
-    for file in files {
-      XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
-    }
-    
-    // Act: Shred all files
-    for file in files {
-      try FileShredder.shred(fileURL: file)
-    }
-    
-    // Assert: All files should be deleted
-    for file in files {
-      XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+
+    try FileShredder.shred(fileURL: files[0])
+
+    XCTAssertFalse(FileManager.default.fileExists(atPath: files[0].path), "Shredded file should be deleted")
+    for file in files.dropFirst() {
+      XCTAssertTrue(FileManager.default.fileExists(atPath: file.path), "Other files should remain untouched")
     }
   }
 }
