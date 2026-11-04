@@ -57,7 +57,7 @@ class Pipeline {
     let startTime = Date()
     var iteration = 0
 
-    while recordingTimer.isActive {
+    while recordingTimer.isActive && !Task.isCancelled {
       iteration += 1
       // SECURITY: Check all limits
       let limits = limiter.getLimits()

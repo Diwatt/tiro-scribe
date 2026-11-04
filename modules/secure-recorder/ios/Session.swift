@@ -29,7 +29,7 @@ class Session {
   private var audioRecord: AudioRecord!
   private var eventHandler: EventHandler!
   private var pipeline: Pipeline?
-  private var recordingQueue: DispatchQueue?
+  private var recordingJob: Task<Void, Never>?
   
   internal let recordingTimer = RecordingTimer()
   
@@ -126,10 +126,7 @@ class Session {
       throw SecureRecorderError.initializationFailed("Pipeline not initialized")
     }
     
-    let queue = DispatchQueue(label: "com.tiroscribe.secure-recorder.pipeline", qos: .userInitiated)
-    recordingQueue = queue
-    
-    queue.async { [weak pipelineRef] in
+    recordingJob = Task { [weak pipelineRef] in
       pipelineRef?.process()
     }
   }
@@ -146,17 +143,20 @@ class Session {
       throw SecureRecorderError.noRecordingInProgress
     }
     
+    // Cancel recording job (isomorphic: matches Android recordingJob.cancel())
+    recordingJob?.cancel()
+    recordingJob = nil
+
     // Stop audio recording
     if audioRecord != nil {
       audioRecorder.stop(record: audioRecord)
     }
-    
+
     // Flush buffered audio to disk (encryption stream stays open)
     try encryptionStream.flush()
-    
+
     recordingTimer.deactivate()
     pipeline = nil
-    recordingQueue = nil
     audioRecord = nil
     
     return outputFile.path
@@ -205,10 +205,12 @@ class Session {
     
     // Deactivate timer
     recordingTimer.deactivate()
-    
+
+    recordingJob?.cancel()
+    recordingJob = nil
+
     audioRecord = nil
     pipeline = nil
-    recordingQueue = nil
     
     return outputFile.path
   }
@@ -228,9 +230,10 @@ class Session {
     }
     
     recordingTimer.deactivate()
+    recordingJob?.cancel()
+    recordingJob = nil
     audioRecord = nil
     pipeline = nil
-    recordingQueue = nil
   }
   
   /**
