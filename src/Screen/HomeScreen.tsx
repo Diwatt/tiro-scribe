@@ -19,7 +19,6 @@ export const Home = observer((): React.JSX.Element => {
     // Bind to observables
     const executors = homeState.executors.get();
     const isDownloading = executors.isDownloading.get();
-    const _progress = executors.progress.get();
     const currentCapability = executors.currentCapability$.get();
     const currentCapabilityProgress = executors.currentCapabilityProgress$.get();
     const currentFileName = executors.currentFileName$.get();

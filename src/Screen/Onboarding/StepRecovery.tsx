@@ -53,6 +53,7 @@ export const StepRecovery = observer(function stepRecovery(): React.JSX.Element 
                 <AsyncButton
                     idleLabel={LL.onboarding.saveRecoveryKit()}
                     pendingLabel={LL.onboarding.recoveryKitPending()}
+                    successLabel={LL.activity.done()}
                     onPress={handleSaveRecoveryKit}
                     icon={({ size, color }) => <FileText size={size} color={color} />}
                     style={[STYLES.primaryButton, { backgroundColor: theme.colors.primary }]}

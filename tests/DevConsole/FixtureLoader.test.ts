@@ -41,8 +41,8 @@ jest.mock('@/Entity/Encounter', () => ({ Encounter: require('../helpers/fakeEnti
 jest.mock('@/Entity/Patient', () => ({ Patient: require('../helpers/fakeEntities').FakePatient }));
 jest.mock('@/Entity/QueueItem', () => ({ QueueItem: require('../helpers/fakeEntities').FakeQueueItem }));
 
-import { FixtureLoader } from '@/DevConsole/FixtureLoader';
-import { FixtureException } from '@/DevConsole/FixtureException';
+import { FixtureLoader } from '@/DevConsole/Fixture/FixtureLoader';
+import { FixtureException } from '@/DevConsole/Fixture/FixtureException';
 import { EncounterStatus, PipelineStage, QueueItemStatus } from '@/Entity/Type';
 
 const THERAPIST_ID = 'therapist-uuid-1';

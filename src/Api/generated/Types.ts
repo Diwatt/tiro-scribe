@@ -13,11 +13,12 @@ export type InferenceModelFile = {
     hash: string;
     sizeBytes: number;
     /**
-     * Role of the file within the bundle. 'model' is the primary ONNX weights file.
+     * Role of the file within the bundle. 'model' is the primary weights file.
      * Optional for legacy payloads; clients fall back to the first file when resolving 'model' without roles.
+     * Multi-program pipelines (ExecuTorch) declare encoder/decoder/joint roles per program file.
      *
      */
-    role?: 'model' | 'config' | 'tokenizer' | 'preprocessor_config' | 'generation_config';
+    role?: 'model' | 'config' | 'tokenizer' | 'preprocessor_config' | 'generation_config' | 'encoder' | 'decoder' | 'joint' | 'mel_filters';
 };
 
 /**

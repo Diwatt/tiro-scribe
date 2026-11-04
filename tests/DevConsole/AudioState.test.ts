@@ -17,8 +17,9 @@ jest.mock('@/Core/Container', () => ({
     },
 }));
 
-import { AudioState } from '@/DevConsole/AudioState';
-import { FixtureException } from '@/DevConsole/FixtureException';
+import { AudioState } from '@/DevConsole/State/AudioState';
+import { AudioFileEntry } from '@/DevConsole/Data/AudioFileEntry';
+import { FixtureException } from '@/DevConsole/Fixture/FixtureException';
 
 const SOURCE_AUDIO = '/documents/scene_01.wav';
 const ENCRYPTED_PATH = '/documents/fixture_abc123.dat';
@@ -33,17 +34,24 @@ const createState = (): AudioState =>
         { error: jest.fn() } as never,
     );
 
+const fillTherapistForm = (state: AudioState, sourcePath: string, start: string, end: string): void => {
+    state.setTherapistSourcePath(sourcePath);
+    state.setSegmentStart(start);
+    state.setSegmentEnd(end);
+};
+
 describe('AudioState', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
     describe('createTherapistFromAudio', () => {
-        it('creates the therapist from the audio segment and reports the uuid', async () => {
+        it('creates the therapist from the form fields and reports the uuid', async () => {
             const state = createState();
+            fillTherapistForm(state, SOURCE_AUDIO, '0', '2000');
             mockOnboardingFns.createFromAudio.mockResolvedValueOnce({ getUuid: () => 'therapist-uuid-9' });
 
-            await state.createTherapistFromAudio(SOURCE_AUDIO, 0, 2_000);
+            await state.createTherapistFromAudio();
 
             expect(mockOnboardingFns.createFromAudio).toHaveBeenCalledTimes(1);
             expect(mockOnboardingFns.createFromAudio).toHaveBeenCalledWith(
@@ -60,8 +68,9 @@ describe('AudioState', () => {
 
         it('rejects an empty source audio path without calling the onboarding', async () => {
             const state = createState();
+            fillTherapistForm(state, '', '0', '2000');
 
-            await expect(state.createTherapistFromAudio('', 0, 2_000)).rejects.toThrow(FixtureException);
+            await expect(state.createTherapistFromAudio()).rejects.toThrow(FixtureException);
 
             expect(mockOnboardingFns.createFromAudio).not.toHaveBeenCalled();
             expect(state.state$.notification.get()?.type).toBe('error');
@@ -69,22 +78,71 @@ describe('AudioState', () => {
 
         it('rejects a segment where end is not after start', async () => {
             const state = createState();
+            fillTherapistForm(state, SOURCE_AUDIO, '2000', '2000');
 
-            await expect(state.createTherapistFromAudio(SOURCE_AUDIO, 2_000, 2_000)).rejects.toThrow(
-                FixtureException,
-            );
+            await expect(state.createTherapistFromAudio()).rejects.toThrow(FixtureException);
 
             expect(mockOnboardingFns.createFromAudio).not.toHaveBeenCalled();
         });
 
         it('reports the onboarding failure through the notification and rethrows', async () => {
             const state = createState();
+            fillTherapistForm(state, SOURCE_AUDIO, '0', '2000');
             mockOnboardingFns.createFromAudio.mockRejectedValueOnce(new Error('Segment starts out of bounds'));
 
-            await expect(state.createTherapistFromAudio(SOURCE_AUDIO, 0, 2_000)).rejects.toThrow(FixtureException);
+            await expect(state.createTherapistFromAudio()).rejects.toThrow(FixtureException);
 
             expect(state.state$.notification.get()?.type).toBe('error');
             expect(state.state$.lastError.get()).toContain('Segment starts out of bounds');
+        });
+    });
+
+    describe('isTherapistFormValid', () => {
+        it('accepts a source path with a start before the end', () => {
+            const state = createState();
+            fillTherapistForm(state, SOURCE_AUDIO, '0', '2000');
+
+            expect(state.isTherapistFormValid).toBe(true);
+        });
+
+        it('rejects an empty source path', () => {
+            const state = createState();
+            fillTherapistForm(state, '', '0', '2000');
+
+            expect(state.isTherapistFormValid).toBe(false);
+        });
+
+        it('rejects a non-numeric segment bound', () => {
+            const state = createState();
+            fillTherapistForm(state, SOURCE_AUDIO, 'abc', '2000');
+
+            expect(state.isTherapistFormValid).toBe(false);
+        });
+
+        it('rejects a segment where end is not after start', () => {
+            const state = createState();
+            fillTherapistForm(state, SOURCE_AUDIO, '2000', '2000');
+
+            expect(state.isTherapistFormValid).toBe(false);
+        });
+    });
+
+    describe('firstUnencryptedPath', () => {
+        it('returns the first file that is not encrypted', () => {
+            const state = createState();
+            state.state$.files.set([
+                AudioFileEntry.create('a.wav', '/a.wav', 1, '/a.dat', true, 1),
+                AudioFileEntry.create('b.wav', '/b.wav', 2, null, false, null),
+            ]);
+
+            expect(state.firstUnencryptedPath).toBe('/b.wav');
+        });
+
+        it('returns an empty string when every file is encrypted', () => {
+            const state = createState();
+            state.state$.files.set([AudioFileEntry.create('a.wav', '/a.wav', 1, '/a.dat', true, 1)]);
+
+            expect(state.firstUnencryptedPath).toBe('');
         });
     });
 

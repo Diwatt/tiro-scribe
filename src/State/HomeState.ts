@@ -22,8 +22,6 @@ export class HomeState {
     public readonly setupBannerVisible: Observable<boolean> = observable(false);
     public readonly downloadSizeMB: Observable<number> = observable(0);
     public readonly initialized: Observable<boolean> = observable(false);
-    public readonly currentFileName: Observable<string | undefined> = observable(undefined);
-    public readonly currentCapability: Observable<string | undefined> = observable(undefined);
 
     private readonly wifiVerifier: WifiVerifier;
     private wifiCheckInterval: ReturnType<typeof setInterval> | null = null;

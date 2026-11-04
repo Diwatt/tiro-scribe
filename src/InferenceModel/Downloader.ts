@@ -2,16 +2,17 @@ import { AppConfig } from '@/Core/AppConfig';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { Database } from '@/Database/Database';
+import { InferenceModelDownloaderException } from '@/Exception';
 import type { ModelConfig } from '../Api';
 import { DownloadQueue } from '../Entity';
 import { ConfigProvider } from './ConfigProvider';
 import { ChecksumVerifier } from './Download/ChecksumVerifier';
 import { DownloadTaskExecutor } from './Download/DownloadTaskExecutor';
 import { DownloadTaskManager } from './Download/DownloadTaskManager';
+import type { ModelArtifact } from './Download/ModelArtifact';
 import type { InferenceModelFileRole } from './Download/ModelArtifactStorage';
 import { ModelArtifactStorage } from './Download/ModelArtifactStorage';
 import { DownloadState } from './Download/Type';
-import { InferenceModelDownloaderException } from '@/Exception';
 
 // Re-export types from Api
 export type { ModelConfig } from '../Api';
@@ -72,16 +73,14 @@ export class Downloader {
     }
 
     /**
-     * Reads a text artifact from a downloaded bundle, resolved by file role
-     * (e.g. 'config' for the model configuration). Returns null only when the
-     * artifact is not on disk; an absent role throws from the storage.
+     * Resolves a bundle artifact by role (e.g. 'config' for the model
+     * configuration, 'encoder' for a multi-program ExecuTorch bundle). The
+     * artifact reads its URI and text lazily from disk; an absent role throws
+     * from the storage.
      */
-    public async getArtifactText(capability: string, role: InferenceModelFileRole): Promise<string | null> {
+    public async getArtifact(capability: string, role: InferenceModelFileRole): Promise<ModelArtifact> {
         const config = await this.configProvider.getConfig(capability);
-        const file = this.artifactStorage.getFileByRole(config, role);
-
-        const artifact = this.artifactStorage.getFile(config, file);
-        return artifact.exists ? artifact.text() : null;
+        return this.artifactStorage.getArtifact(config, role);
     }
 
     public async getConfig(key: string, appLanguage?: string): Promise<ModelConfig> {

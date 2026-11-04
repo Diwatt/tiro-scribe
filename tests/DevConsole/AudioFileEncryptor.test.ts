@@ -29,23 +29,22 @@ jest.mock('expo-crypto', () => ({
     randomUUID: jest.fn(() => 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
 }));
 
-jest.mock('@/DevConsole/AudioSegmentExtractor', () => ({
+jest.mock('@/DevConsole/Ingest/AudioSegmentExtractor', () => ({
     AudioSegmentExtractor: {
         SAMPLES_PER_MS: 16,
-        BYTES_PER_SAMPLE: 2,
-        float32ToInt16: jest.fn(),
     },
 }));
 
-import { AudioFileEncryptor } from '@/DevConsole/AudioFileEncryptor';
-import { SourceIngestException } from '@/DevConsole/SourceIngestException';
-import { AudioSegmentExtractor } from '@/DevConsole/AudioSegmentExtractor';
+import { AudioFileEncryptor } from '@/DevConsole/Ingest/AudioFileEncryptor';
+import { SourceIngestException } from '@/DevConsole/Ingest/SourceIngestException';
+import { AudioSegmentExtractor } from '@/DevConsole/Ingest/AudioSegmentExtractor';
+import type { PcmSampleConverter } from '@/DevConsole/Ingest/PcmSampleConverter';
 import type { FileInfo } from 'expo-file-system/legacy';
 import { getInfoAsync } from 'expo-file-system/legacy';
 import { SecureRecorder } from 'secure-recorder';
 
 const mockGetInfoAsync = jest.mocked(getInfoAsync);
-const mockFloat32ToInt16 = jest.mocked(AudioSegmentExtractor.float32ToInt16);
+const mockFloat32ToInt16 = jest.fn();
 const mockEncryptBytes = jest.mocked(SecureRecorder.encryptBytes);
 const mockEncryptFile = jest.mocked(SecureRecorder.encryptFile);
 
@@ -64,7 +63,11 @@ const missingFile = (): FileInfo => ({
 });
 
 const createEncryptor = (readFullPcm: jest.Mock = jest.fn()): AudioFileEncryptor =>
-    new AudioFileEncryptor({ debug: jest.fn() } as never, { readFullPcm } as never);
+    new AudioFileEncryptor(
+        { debug: jest.fn() } as never,
+        { readFullPcm } as never,
+        { float32ToInt16: mockFloat32ToInt16 } as unknown as PcmSampleConverter,
+    );
 
 describe('AudioFileEncryptor duration computation', () => {
     describe('durationFromSamples', () => {

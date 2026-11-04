@@ -6,10 +6,8 @@ import type { Database, SqlJsStatic, SqlValue } from 'sql.js';
 /** Single-connection Kysely driver over an in-memory sql.js (WASM SQLite) database. */
 export class SqlJsDriver implements Driver, DatabaseConnection {
     private database: Database | undefined;
-    private readonly engine: SqlJsStatic;
 
-    public constructor(engine: SqlJsStatic) {
-        this.engine = engine;
+    public constructor(private readonly engine: SqlJsStatic) {
         this.database = new engine.Database();
     }
 

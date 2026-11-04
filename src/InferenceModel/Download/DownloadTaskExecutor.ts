@@ -1,13 +1,10 @@
 /**
  * DownloadTaskExecutor – Executes a single download task with state and progress tracking.
- * Takes a plain DownloadQueue entity and owns all runtime observables.
  * Single Responsibility: Execute the download process for a queued item.
  */
 
 import type { Observable } from '@legendapp/state';
 import { observable } from '@legendapp/state';
-import type { Dayjs } from 'dayjs';
-import dayjs from 'dayjs';
 import type { InferenceModelFile, ModelConfig } from '@/Api';
 import type { AppLogger } from '@/Core/AppLogger';
 import { DownloadQueue } from '@/Entity/DownloadQueue';
@@ -19,12 +16,10 @@ import { DownloadState } from './Type';
 export class DownloadTaskExecutor {
     /** Error message used to identify user‑cancelled downloads */
     private static readonly CANCELLATION_ERROR_MESSAGE = 'Download cancelled by user';
-    private readonly _completedAt$ = observable<Dayjs | undefined>(undefined);
     private readonly _currentFileName$ = observable<string | undefined>(undefined);
     private readonly _currentFileProgress$ = observable<number>(0);
     private readonly _error$ = observable<string | undefined>(undefined);
     private readonly _progress$ = observable<number>(0);
-    private readonly _startedAt: Dayjs;
     private readonly _state$ = observable<DownloadState>(DownloadState.Pending);
 
     public constructor(
@@ -33,12 +28,7 @@ export class DownloadTaskExecutor {
         private readonly modelConfig: ModelConfig,
         private readonly checksumVerifier: ChecksumVerifier,
         private readonly artifactStorage: ModelArtifactStorage,
-        private readonly onProgress?: (progress: number) => void,
-        private readonly onError?: (error: Error) => Promise<void>,
-        private readonly onComplete?: () => Promise<void>,
-        startedAt: Dayjs = dayjs(),
     ) {
-        this._startedAt = startedAt;
         this._error$ = observable<string | undefined>(queueEntity.errorMessage || undefined);
         this._progress$ = observable<number>(queueEntity.progressPercent);
         this._state$ = observable<DownloadState>(queueEntity.status as unknown as DownloadState);
@@ -52,7 +42,6 @@ export class DownloadTaskExecutor {
         if (this.isDownloading()) {
             this.setState(DownloadState.Cancelled);
             this.setError(DownloadTaskExecutor.CANCELLATION_ERROR_MESSAGE);
-            this.setCompletedAt(dayjs());
             return true;
         }
         return false;
@@ -60,10 +49,6 @@ export class DownloadTaskExecutor {
 
     public get capability(): string {
         return this.queueEntity.capability;
-    }
-
-    public get completedAt$() {
-        return this._completedAt$;
     }
 
     public get currentFileName$(): Observable<string | undefined> {
@@ -104,32 +89,12 @@ export class DownloadTaskExecutor {
         // make sure observables are in the completed state using setters
         executor.setState(DownloadState.Completed);
         executor.setProgress(100);
-        executor.setCompletedAt(dayjs());
 
         return executor;
     }
 
-    /**
-     * Observable for error message.
-     */
-    public get error$(): Observable<string | undefined> {
-        return this._error$;
-    }
-
-    public getCompletedAt(): Dayjs | undefined {
-        return this._completedAt$.get();
-    }
-
     public getError(): string | undefined {
         return this._error$.get();
-    }
-
-    public getProgress(): number {
-        return this._progress$.get();
-    }
-
-    public getQueueEntity(): DownloadQueue {
-        return this.queueEntity;
     }
 
     public getState(): DownloadState {
@@ -139,7 +104,7 @@ export class DownloadTaskExecutor {
     /**
      * Total bytes for all files in this executor's model config.
      */
-    public get totalBytes(): number {
+    private get totalBytes(): number {
         return this.modelConfig.files.reduce((sum, file) => sum + file.sizeBytes, 0);
     }
 
@@ -183,35 +148,18 @@ export class DownloadTaskExecutor {
             // Mark as completed
             this.setState(DownloadState.Completed);
             this.setProgress(100);
-            this.setCompletedAt(dayjs());
 
             this.logger.debug('[DownloadTaskExecutor] Download completed successfully');
-
-            // Call completion callback if provided
-            if (this.onComplete) {
-                await this.onComplete();
-            }
         } catch (error) {
             // Mark as failed
             this.setState(DownloadState.Failed);
             const errorMessage = error instanceof Error ? error.message : String(error);
             this.setError(errorMessage);
-            this.setCompletedAt(dayjs());
 
             this.logger.error('[DownloadTaskExecutor] Download failed', error);
 
-            // Call error callback if provided
-            if (this.onError) {
-                const errorObj = error instanceof Error ? error : new Error(String(error));
-                await this.onError(errorObj);
-            }
-
             throw error;
         }
-    }
-
-    public get startedAt(): Dayjs {
-        return this._startedAt;
     }
 
     /**
@@ -246,21 +194,10 @@ export class DownloadTaskExecutor {
             const progressPercent = overallProgress * 100;
 
             this.setProgress(progressPercent);
-
-            if (this.onProgress) {
-                this.onProgress(progressPercent);
-            }
         });
 
         // Verify hash using the strict 64KB chunk reader
         await this.checksumVerifier.verify(destination, file.hash);
-    }
-
-    /**
-     * Record completion timestamp.
-     */
-    private setCompletedAt(time: Dayjs | undefined): void {
-        this._completedAt$.set(time);
     }
 
     /**

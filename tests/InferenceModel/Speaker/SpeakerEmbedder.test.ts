@@ -7,7 +7,7 @@
 
 
 
-import { SessionNotInitializedError, SpeakerVectorExtractionError } from '@/Exception';
+import { SpeakerVectorExtractionError } from '@/Exception';
 import { SpeakerEmbedder } from '@/InferenceModel/Speaker/SpeakerEmbedder';
 import { SpeakerVector } from '@/InferenceModel/Speaker/SpeakerVector';
 
@@ -53,7 +53,7 @@ describe('SpeakerEmbedder', () => {
   describe('extract', () => {
     it('wraps runtime failure in SpeakerVectorExtractionError', async () => {
       // runtime rejects when the speaker_id model was never loaded
-      mockRuntime.getModel.mockRejectedValueOnce(new SessionNotInitializedError('no session'));
+      mockRuntime.getModel.mockRejectedValueOnce(new Error('no session'));
       await expect(embedder.extract(new Float32Array([1]))).rejects.toThrow(SpeakerVectorExtractionError);
     });
 

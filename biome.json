@@ -13,6 +13,7 @@
             "**/modules/**",
             "**/tests/**",
             "!!src/Api/generated",
+            "!modules/secure-recorder/.eslintrc.js",
             "!!tests",
             "!!vitest",
             "!**/__tests__",
@@ -207,6 +208,14 @@
                 "rules": {
                     "complexity": { "noExcessiveCognitiveComplexity": "off" },
                     "style": { "useNamingConvention": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["src/DevConsole/**"],
+            "linter": {
+                "rules": {
+                    "style": { "useComponentExportOnlyModules": "off" }
                 }
             }
         },

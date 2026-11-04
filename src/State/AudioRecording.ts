@@ -10,7 +10,7 @@ dayjs.extend(duration);
 
 /**
  * AudioRecording: State class (ViewModel) for audio recording.
- * 
+ *
  * Follows MVVM pattern:
  * - Delegates business logic to EncounterRecorder service
  * - Exposes observable state for UI components
@@ -30,17 +30,15 @@ export class AudioRecording {
 
     private readonly _isRecording$: ObservableComputed<boolean>;
     private readonly _formattedDuration$: ObservableComputed<string>;
-    private readonly recorder: EncounterRecorder;
-    private readonly logger: AppLogger;
 
     private durationIntervalId: ReturnType<typeof setInterval> | null = null;
     private recordingStartTime: number | null = null;
     private accumulatedDuration = 0;
 
-    public constructor(recorder: EncounterRecorder, logger: AppLogger) {
-        this.recorder = recorder;
-        this.logger = logger;
-
+    public constructor(
+        private readonly recorder: EncounterRecorder,
+        private readonly logger: AppLogger,
+    ) {
         this._isRecording$ = computed(() => {
             return this.state.get() === RecorderState.Recording;
         });
@@ -248,14 +246,14 @@ Container.register(
 /**
  * React hook for accessing the AudioRecording singleton.
  * Components should use this hook to access the audio recording state and methods.
- * 
+ *
  * @returns The shared AudioRecording instance
- * 
+ *
  * @example
  * ```tsx
  * const audioRecording = useAudioRecording();
  * const isRecording = audioRecording.isRecording;
- * 
+ *
  * const handleStart = () => audioRecording.start();
  * ```
  */

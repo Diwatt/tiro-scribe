@@ -1,5 +1,5 @@
-import { AsyncButton, getLabel } from '@/Components/AsyncButton';
-import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
+import { AsyncButtonLabel } from '@/Components/AsyncButtonLabel';
+import { ActivityStatus, GlobalActivityStatus } from '@/State';
 import { Container } from '@/Core/Container';
 
 // A very small smoke test that exercises the component's ability to read from
@@ -15,7 +15,7 @@ describe('AsyncButton component', () => {
     it('shows idle label when there is no activity', () => {
         const statusProp = undefined;
         const status = statusProp ?? Container.get(GlobalActivityStatus).getStatus() ?? ActivityStatus.Ready;
-        const label = getLabel(status, 'idle', 'pending', 'done');
+        const label = AsyncButtonLabel.resolve(status, 'idle', 'pending', 'done');
 
         expect(label).toBe('idle');
         const pending = status === ActivityStatus.Pending;
@@ -28,7 +28,7 @@ describe('AsyncButton component', () => {
         Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Pending, 'working');
         const statusProp = undefined;
         const status = statusProp ?? Container.get(GlobalActivityStatus).getStatus() ?? ActivityStatus.Ready;
-        const label = getLabel(status, 'idle', 'pending', 'done');
+        const label = AsyncButtonLabel.resolve(status, 'idle', 'pending', 'done');
 
         expect(label).toBe('pending');
         const pending = status === ActivityStatus.Pending;
@@ -41,12 +41,8 @@ describe('AsyncButton component', () => {
         Container.get(GlobalActivityStatus).setStatus(ActivityStatus.Pending, 'working');
         const statusProp = ActivityStatus.Success;
         const status = statusProp ?? Container.get(GlobalActivityStatus).getStatus() ?? ActivityStatus.Ready;
-        const label = getLabel(status, 'idle', 'pending', 'done');
+        const label = AsyncButtonLabel.resolve(status, 'idle', 'pending', 'done');
 
         expect(label).toBe('done');
-        const pending = status === ActivityStatus.Pending;
-        const success = status === ActivityStatus.Success;
-        expect(pending).toBe(false);
-        expect(success).toBe(true);
     });
 });

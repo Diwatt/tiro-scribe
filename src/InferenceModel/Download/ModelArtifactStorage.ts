@@ -13,6 +13,7 @@ import type { InferenceModelFile, ModelConfig } from '@/Api';
 import type { AppConfig } from '@/Core/AppConfig';
 import type { AppLogger } from '@/Core/AppLogger';
 import { InferenceModelDownloaderException } from '@/Exception';
+import { ModelArtifact } from './ModelArtifact';
 
 export type InferenceModelFileRole = NonNullable<InferenceModelFile['role']>;
 
@@ -21,45 +22,6 @@ export class ModelArtifactStorage {
         private readonly logger: AppLogger,
         private readonly appConfig: AppConfig,
     ) {}
-
-    /**
-     * Calculates the total size of all cached model artifacts.
-     *
-     * @param configs - Array of model configurations to calculate size for
-     * @returns Total size in bytes of all cached artifacts
-     */
-    public async calculateTotalSize(configs: ModelConfig[]): Promise<number> {
-        let totalSize = 0;
-        for (const config of configs) {
-            for (const file of config.files) {
-                const artifactFile = this.getFile(config, file);
-                if (artifactFile.exists) {
-                    totalSize += artifactFile.size;
-                }
-            }
-        }
-
-        return totalSize;
-    }
-
-    /**
-     * Deletes all artifact files for a model configuration.
-     *
-     * @param config - The model configuration to delete
-     * @throws {Error} If file deletion fails
-     */
-    public async deleteModelConfig(config: ModelConfig): Promise<void> {
-        const configDir = new Directory(Paths.document, this.appConfig.artifactStorageDirName, config.id);
-        if (configDir.exists) {
-            for (const file of config.files) {
-                const artifactFile = this.getFile(config, file);
-                if (artifactFile.exists) {
-                    artifactFile.delete();
-                }
-            }
-            this.logger.debug(`Deleted model artifacts for ${config.capability} (${config.id})`);
-        }
-    }
 
     /**
      * Ensures that storage directories exist for a model configuration.
@@ -139,6 +101,21 @@ export class ModelArtifactStorage {
     }
 
     /**
+     * Resolves the bundle file carrying the requested role into a lazily-read
+     * artifact (URI stable, text read from disk on demand). Legacy payloads
+     * without roles fall back to the first file for 'model'.
+     *
+     * @param config - The model configuration
+     * @param role - The role to resolve ('model', 'config', 'tokenizer', ...)
+     * @returns The artifact for the role
+     * @throws {InferenceModelDownloaderException} If the configuration has no files, or the role is not declared and has no fallback
+     */
+    public getArtifact(config: ModelConfig, role: InferenceModelFileRole): ModelArtifact {
+        const file = this.getFileByRole(config, role);
+        return new ModelArtifact(this.getFile(config, file), this.getUri(config, file));
+    }
+
+    /**
      * Gets the absolute file URI for a specific model artifact.
      * Ensures the result always starts with `file://` or `/`.
      *
@@ -156,12 +133,10 @@ export class ModelArtifactStorage {
 
     /**
      * Convert a relative storage path (e.g. "artifacts/foo.onnx") into a full
-     * file URI.  This is used by callers who may accidentally obtain a relative
-     * string from the downloader; the conversion logic lives here so that the
-     * expo-file-system dependency is confined to a single class and can be
-     * mocked easily in tests.
+     * file URI.  The conversion logic lives here so that the expo-file-system
+     * dependency is confined to a single class and can be mocked easily in tests.
      */
-    public toAbsoluteUri(relativePath: string): string {
+    private toAbsoluteUri(relativePath: string): string {
         const segments = relativePath.split('/');
         const file = new File(Paths.document, ...segments);
         return file.uri;
@@ -181,25 +156,12 @@ export class ModelArtifactStorage {
             );
         }
 
-        // Check if all files exist
         for (const file of config.files) {
             if (!this.getFile(config, file).exists) {
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Resolves the local file system path for a specific model artifact.
-     * The path is relative to the document directory.
-     *
-     * @param config - The model configuration
-     * @param artifactFile - The artifact file metadata
-     * @returns The local file system path (e.g., "artifacts/{configId}/{filename}")
-     */
-    public resolvePath(config: ModelConfig, file: InferenceModelFile): string {
-        return `${this.appConfig.artifactStorageDirName}/${config.id}/${this.extractFilenameFromUrl(file.url)}`;
     }
 
     /**

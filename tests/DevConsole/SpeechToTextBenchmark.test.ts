@@ -5,9 +5,15 @@ jest.mock('@/Core/Container', () => ({
     },
 }));
 
-import { SpeechToTextBenchmark } from '@/DevConsole/SpeechToTextBenchmark';
-import type { SpeechToTextRunner, SpeechToTextRunnerFactory } from '@/DevConsole/SpeechToTextBenchmark';
-import { AudioSegmentExtractor } from '@/DevConsole/AudioSegmentExtractor';
+jest.mock('react-native-executorch', () => ({
+    download: jest.fn(),
+    models: { speechToText: { WHISPER: { SMALL: { DEFAULT: 'whisper-small' } } } },
+    createWhisperSpeechToText: jest.fn(),
+}));
+
+import { SpeechToTextBenchmark } from '@/DevConsole/State/SpeechToTextBenchmark';
+import type { SpeechToTextRunner, SpeechToTextRunnerFactory } from '@/DevConsole/State/SpeechToTextBenchmark';
+import { AudioSegmentExtractor } from '@/DevConsole/Ingest/AudioSegmentExtractor';
 import { AppLogger } from '@/Core/AppLogger';
 
 const WAV_PATH = '/Documents/gloria_rogers_01.wav';
@@ -72,6 +78,20 @@ describe('SpeechToTextBenchmark', () => {
 
         expect(runner.dispose).toHaveBeenCalled();
         expect(benchmark.isLoading).toBe(false);
+    });
+
+    it('runs from the form fields set through the setters', async () => {
+        const extractor = createFakeExtractor(16000);
+        const runner = createFakeRunner('bonjour');
+        const benchmark = createBenchmark(extractor, runner);
+
+        benchmark.setWavPath(WAV_PATH);
+        benchmark.setLanguage('fr');
+        await benchmark.runFromForm();
+
+        expect(extractor.readFullPcm).toHaveBeenCalledWith(WAV_PATH);
+        expect(runner.transcribe).toHaveBeenCalledWith(expect.any(Float32Array), 'fr');
+        expect(benchmark.snapshot.result?.transcript).toBe('bonjour');
     });
 
     it('rejects an empty language', async () => {

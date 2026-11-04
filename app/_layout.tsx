@@ -12,12 +12,12 @@ installQuickCrypto();
 setTelemetryEnabled(false);
 
 import 'react-native-gesture-handler';
-import { setTelemetryEnabled } from 'react-native-executorch';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Slot } from 'expo-router';
 import type React from 'react';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { setTelemetryEnabled } from 'react-native-executorch';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';

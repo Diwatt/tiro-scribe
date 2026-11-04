@@ -6,7 +6,11 @@
 
 ### Language
 
-All agent output addressed to the user is **French** — chat, explanations, questions, plans, summaries, documentation, README, commit messages, branch names. Never produce English prose for the user. Code identifiers and comments follow the existing codebase conventions (English). User-facing product strings go through `Localization/` (en/fr), never hardcoded.
+Chat output addressed to the user is **French** — chat, explanations, questions, plans, summaries, commit messages, branch names. Never produce English prose in the chat.
+
+**No French in the code, ever.** Everything that lives inside the codebase is **English only**: identifiers, comments, JSDoc, exception messages, log strings, user-facing literals (these also go through `Localization/`), and any README or doc file placed inside code folders (`src/**`, `tests/**`, `modules/**`, `ios/**`, `android/**`, `plugins/**`). Exception: a doc the user explicitly asks for in French — it then lives in `docs/`, never inside code folders.
+
+Project-level steering documents (`TODO.md`, `docs/`) keep the existing French convention.
 
 ### Delivery boundary — human in the loop (critical)
 
@@ -82,12 +86,13 @@ Argent MCP is installed (global `@swmansion/argent`) and exposes live device too
 - **NO React.FC** — Use `interface Props` and return `React.JSX.Element`
 - **NO abbreviations** (`pk`, `fk`) — Full words only. Exceptions: `id`, `uid`
 - **NO JSDoc for simple methods** — Self-documenting code preferred
-- **NO hand-written `interface`/`type` for untrusted payloads** — Define a Zod schema and infer (`z.infer<typeof Schema>`): API responses, form input, any external JSON. Trusted internal domain data uses classes with `readonly` fields + static factory, never bare `type`/`interface` aliases
+- **NO hand-written `interface`/`type` for untrusted payloads** — Define a Zod schema and infer (`z.infer<typeof Schema>`): API responses, form input, any external JSON. Trusted internal domain data uses classes with `readonly` fields + static factory, never bare `type`/`interface` aliases. A dataclass earns its file when it crosses a class boundary or carries domain meaning (options, results) — an internal helper object inside one class stays an inferred object, and trivially derivable metadata is recomputed, never shipped
+- **NO data shapes as bare `interface`/`type`** — Every domain data structure is a **dataclass**: a named class with `public readonly` fields built through a static factory (`ExecuTorchRunInput.create(...)`), including options and result payloads passed between classes. `interface`/`type` are reserved for typing third-party shapes and Zod inference (`z.infer<...>`)
 
 ### Tooling & Formatting
 
 - **NO terminal formatting** — DO NOT run `pnpm run biome` or `pnpm run lint`. User handles formatting via `Shift+Alt+S`
-- **NO ignore Biome/ESLint errors** — Fix styling, import, or typing issues before finalizing
+- **NO ignore Biome errors** — Fix styling, import, or typing issues before finalizing
 
 ### Architecture
 
@@ -201,7 +206,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - Unified toolchain for linting and formatting
 - Enforces: formatting, naming, imports, visibility
 - **Line width: 120 columns** (`lineWidth: 120`), never format or wrap at 80
-- **Important:** Do not ignore errors flagged by Biome or ESLint. Fix styling, import, or typing issues before finalizing code
+- **Important:** Do not ignore errors flagged by Biome. Fix styling, import, or typing issues before finalizing code
 - **NO Terminal Formatting:** DO NOT run `pnpm run biome` or `pnpm run lint`. The user handles formatting locally via `Shift+Alt+S`
 
 ### MikroORM
@@ -253,6 +258,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - **Service Naming:** Use capability names (e.g. `VoiceCalibration`), NEVER append `*Service`
 - **No pattern-speak in class names:** never suffix a class with `Gateway`, `Resolver`, `Handler`, `Manager`, `Wrapper`, or similar organizational labels — name the capability it performs
 - **Dependency Injection:** Inject via constructor using Interfaces/Types. Never instantiate inside a class
+- **Parameter Properties:** When a constructor parameter maps 1:1 to a field, use a TypeScript parameter property (`public readonly name: string`) instead of declaring the field and assigning it in the body. Fields computed in the constructor body keep an explicit declaration. Exception: classes inside `jest.mock()` factories — Babel's mock hoisting forbids parameter properties there
 - **No Object Literals in Classes:** Use a `const INITIAL_STATE` or static factory instead
 - **No standalone `const` object literals as module-level exports**
   - NEVER: `export const Schema = { ... } as const`
@@ -296,6 +302,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - **No plurals in type names:** a type grouping several things takes a singular role name (`Bootstrap`, never `RuntimeAssets`). Same for directories: `Tool/`, never `Tools/`
 - **Booleans read like sentences:** prefix boolean values with `is`/`has` (`isComplete`, `hasOverrides`)
 - **Getters carry the verb:** a value getter reads `getExpiresAt()`, never `expiresAt()`; boolean predicates stay `is*`/`has*`
+- **Enums over literal unions:** for discriminants/tags, prefer a TypeScript enum (PascalCase members, values = wire tags) over a union of string literals (`ExecuTorchDimensionKind.Constant`, not `'constant'`)
 - **Method verbs describe the real contract:** no generic domain verbs — name the destination and the purpose (`fillUntilDelimiter`, not `readNext`). A callee never borrows the caller's vocabulary
 
 ### Logging

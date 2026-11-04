@@ -26,27 +26,15 @@ export class OnboardingState implements PendingTherapistProvider {
     public readonly error: ObservableComputed<string | undefined>;
     public readonly isBusy: ObservableComputed<boolean>;
 
-    public readonly account: AccountState;
-    public readonly profile: ProfileState;
-    public readonly voice: VoiceState;
-    public readonly recovery: RecoveryState;
-
     private readonly pendingTherapist = observable<Therapist | null>(null);
-    private readonly logger: AppLogger;
 
     public constructor(
-        account: AccountState,
-        profile: ProfileState,
-        voice: VoiceState,
-        recovery: RecoveryState,
-        logger: AppLogger,
+        public readonly account: AccountState,
+        public readonly profile: ProfileState,
+        public readonly voice: VoiceState,
+        public readonly recovery: RecoveryState,
+        private readonly logger: AppLogger,
     ) {
-        this.account = account;
-        this.profile = profile;
-        this.voice = voice;
-        this.recovery = recovery;
-        this.logger = logger;
-
         // aggregate values that depend on all children
         const children = [this.account, this.profile, this.voice, this.recovery] as const;
         this.error = computed(() => {

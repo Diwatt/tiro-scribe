@@ -89,7 +89,7 @@ export class ProjectionMatrixFactory {
             for (const val of row) {
                 sumSq += val * val;
             }
-            const mag = Math.sqrt(sumSq) || 1; // || 1 pour éviter la division par zéro
+            const mag = Math.sqrt(sumSq) || 1; // Fallback to 1 guards against division by zero
             return row.map((val) => val / mag);
         });
     }

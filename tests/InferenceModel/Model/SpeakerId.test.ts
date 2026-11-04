@@ -1,121 +1,173 @@
-import type { AppLogger } from '@/Core/AppLogger';
-import { InferenceModelDownloaderException } from '@/Exception';
-import type { Downloader } from '@/InferenceModel/Downloader';
-import type { DownloadTaskExecutor } from '@/InferenceModel/Download/DownloadTaskExecutor';
+import { ExecuTorchProgram, ExecuTorchRunInput, ExecuTorchRuntime } from '@/InferenceModel/ExecuTorch';
 import { SpeakerId } from '@/InferenceModel/Model/SpeakerId';
-import type { Runtime } from '@/InferenceModel/Runtime';
+import type { Downloader } from '@/InferenceModel/Downloader';
+import { ModelArtifact } from '@/InferenceModel/Download/ModelArtifact';
+import { ExecuTorchException, InferenceModelDownloaderException, SpeakerIdException } from '@/Exception';
+import type { AppLogger } from '@/Core/AppLogger';
+import type { File } from 'expo-file-system';
 
-const CAMPLUS_YAML = `dataset_args:
-  fbank_args:
-    frame_length: 25
-    frame_shift: 10
-    num_mel_bins: 80
-  resample_rate: 16000
+const CONFIG_YAML = `
 model_args:
   embed_dim: 512
   feat_dim: 80
+dataset_args:
+  resample_rate: 16000
+  fbank_args:
+    num_mel_bins: 80
+    frame_length: 0.025
+    frame_shift: 0.01
 `;
 
-const createMockLogger = (): AppLogger =>
-    ({ debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() }) as unknown as AppLogger;
+const EMBEDDING_DIM = 512;
+const NUM_MEL_BINS = 80;
+const FIXED_TIME_FRAMES = 500;
 
-const createMockDownloader = (artifactText: string | null): Downloader =>
-    ({
-        download: jest.fn().mockResolvedValue({ config: { capability: 'speaker_id' } } as DownloadTaskExecutor),
-        ensureDownloaded: jest.fn().mockResolvedValue({ config: { capability: 'speaker_id' } } as DownloadTaskExecutor),
-        getArtifactText: jest.fn().mockResolvedValue(artifactText),
-    }) as unknown as Downloader;
+const makeArtifact = (options: { text?: string | null; uri?: string }): ModelArtifact =>
+    new ModelArtifact(
+        { exists: true, text: async () => options.text ?? '' } as unknown as File,
+        options.uri ?? '/bundle/artifact',
+    );
 
-const createMockRuntime = (runRaw: jest.Mock): Runtime =>
-    ({ load: jest.fn().mockResolvedValue(undefined), runRaw }) as unknown as Runtime;
+interface Harness {
+    readonly speakerId: SpeakerId;
+    readonly downloader: { ensureDownloaded: jest.Mock; getArtifact: jest.Mock };
+    readonly executorch: { load: jest.Mock; run: jest.Mock };
+    readonly disposeProgram: jest.Mock;
+}
+
+const createHarness = (overrides: {
+    configText?: string | null;
+    runOutput?: Float32Array;
+} = {}): Harness => {
+    const disposeProgram = jest.fn();
+    const program = new ExecuTorchProgram(
+        '/bundle/cam++.pte',
+        new Map([]),
+        jest.fn(),
+        disposeProgram,
+    );
+
+    const downloader = {
+        ensureDownloaded: jest.fn().mockResolvedValue({ config: { capability: 'speaker_id' } }),
+        getArtifact: jest.fn(async (_capability: string, role: string) => {
+            if (role === 'encoder') {
+                return makeArtifact({ uri: '/bundle/cam++.pte' });
+            }
+            return makeArtifact({ text: overrides.configText === undefined ? CONFIG_YAML : overrides.configText });
+        }),
+    };
+
+    const executorch = {
+        load: jest.fn().mockResolvedValue(program),
+        run: jest.fn().mockReturnValue([overrides.runOutput ?? new Float32Array(EMBEDDING_DIM).fill(0.25)]),
+    };
+
+    const speakerId = new SpeakerId(
+        downloader as unknown as Downloader,
+        executorch as unknown as ExecuTorchRuntime,
+        { debug: jest.fn(), error: jest.fn() } as unknown as AppLogger,
+    );
+
+    return { speakerId, downloader, executorch, disposeProgram };
+};
 
 describe('SpeakerId', () => {
-    let runRaw: jest.Mock;
-    let logger: AppLogger;
-
-    beforeEach(() => {
-        runRaw = jest.fn().mockResolvedValue(new Array<number>(512).fill(0.1));
-        logger = createMockLogger();
-    });
-
-    const createSpeakerId = (artifactText: string | null = CAMPLUS_YAML): SpeakerId =>
-        new SpeakerId(createMockDownloader(artifactText), createMockRuntime(runRaw), logger);
-
     describe('initialize', () => {
-        it('parses the downloaded config.yaml into model parameters', async () => {
-            const speakerId = createSpeakerId();
+        it('downloads the bundle, loads the program and parses the config', async () => {
+            const { speakerId, downloader, executorch } = createHarness();
 
             await speakerId.initialize();
 
-            const config = speakerId.getConfig();
-            expect(config.embeddingDim).toBe(512);
-            expect(config.numMelBins).toBe(80);
-            expect(config.sampleRateHz).toBe(16000);
+            expect(downloader.ensureDownloaded).toHaveBeenCalledWith('speaker_id');
+            expect(downloader.getArtifact).toHaveBeenCalledWith('speaker_id', 'encoder');
+            expect(executorch.load).toHaveBeenCalledWith('/bundle/cam++.pte');
+            expect(await speakerId.isReady()).toBe(true);
+            expect(speakerId.getConfig().numMelBins).toBe(NUM_MEL_BINS);
+            expect(speakerId.getConfig().embeddingDim).toBe(EMBEDDING_DIM);
         });
 
-        it('rejects initialization when config.yaml is missing from the artifacts', async () => {
-            const speakerId = createSpeakerId(null);
-
-            await expect(speakerId.initialize()).rejects.toThrow(InferenceModelDownloaderException);
-            await expect(speakerId.initialize()).rejects.toThrow(/not downloaded/);
-        });
-
-        it('requests the config artifact by role from the downloader', async () => {
-            const getArtifactText = jest.fn().mockResolvedValue(CAMPLUS_YAML);
-            const downloader = {
-                ensureDownloaded: jest.fn().mockResolvedValue({}),
-                getArtifactText,
-            } as unknown as Downloader;
-            const speakerId = new SpeakerId(downloader, createMockRuntime(runRaw), logger);
+        it('is a no-op when already initialized', async () => {
+            const { speakerId, downloader, executorch } = createHarness();
 
             await speakerId.initialize();
+            await speakerId.initialize();
 
-            expect(getArtifactText).toHaveBeenCalledWith('speaker_id', 'config');
+            expect(downloader.ensureDownloaded).toHaveBeenCalledTimes(1);
+            expect(executorch.load).toHaveBeenCalledTimes(1);
         });
 
-        it('rejects initialization when config.yaml is not parseable', async () => {
-            const speakerId = createSpeakerId('not: [a: valid: yaml');
+        it('rejects when the config artifact is not parseable', async () => {
+            const { speakerId } = createHarness({ configText: null });
 
             await expect(speakerId.initialize()).rejects.toThrow(InferenceModelDownloaderException);
+            expect(await speakerId.isReady()).toBe(false);
         });
     });
 
     describe('run', () => {
-        it('shapes the mel features with the parsed numMelBins before inference', async () => {
-            const speakerId = createSpeakerId();
+        it('executes the program with the frozen input shape and returns the embedding', async () => {
+            const embedding = new Float32Array(EMBEDDING_DIM).fill(0.5);
+            const { speakerId, executorch } = createHarness({ runOutput: embedding });
             await speakerId.initialize();
 
-            await speakerId.run(new Float32Array(80 * 7));
+            const features = new Float32Array(FIXED_TIME_FRAMES * NUM_MEL_BINS);
+            const result = await speakerId.run(features);
 
-            expect(runRaw).toHaveBeenCalledTimes(1);
-            const [capability, buffer, shape] = runRaw.mock.calls[0] as [string, Float32Array, readonly number[]];
-            expect(capability).toBe('speaker_id');
-            expect(shape).toEqual([1, 7, 80]);
-            expect(buffer.length).toBe(80 * 7);
+            expect(Array.from(result)).toEqual(Array.from(embedding));
+            const [, runInputs] = executorch.run.mock.calls[0] as unknown as [ExecuTorchProgram, ExecuTorchRunInput[]];
+            expect(runInputs.length).toBe(1);
+            expect(runInputs[0].shape).toEqual([1, FIXED_TIME_FRAMES, NUM_MEL_BINS]);
         });
 
-        it('truncates incomplete trailing frames from the feature buffer', async () => {
-            const speakerId = createSpeakerId();
+        it('truncates features longer than the frozen window', async () => {
+            const { speakerId, executorch } = createHarness();
             await speakerId.initialize();
 
-            await speakerId.run(new Float32Array(80 * 7 + 40));
+            const features = new Float32Array((FIXED_TIME_FRAMES + 120) * NUM_MEL_BINS);
+            await speakerId.run(features);
 
-            const [, buffer, shape] = runRaw.mock.calls[0] as [string, Float32Array, readonly number[]];
-            expect(shape).toEqual([1, 7, 80]);
-            expect(buffer.length).toBe(80 * 7);
+            const [, runInputs] = executorch.run.mock.calls[0] as unknown as [ExecuTorchProgram, ExecuTorchRunInput[]];
+            expect(runInputs[0].data.length).toBe(FIXED_TIME_FRAMES * NUM_MEL_BINS);
         });
 
-        it('throws when features contain no complete frame', async () => {
-            const speakerId = createSpeakerId();
+        it('pads features shorter than the frozen window with zeros', async () => {
+            const { speakerId, executorch } = createHarness();
             await speakerId.initialize();
 
-            await expect(speakerId.run(new Float32Array(79))).rejects.toThrow(/no complete frames/);
+            const features = new Float32Array(120 * NUM_MEL_BINS);
+            features[0] = 7;
+            await speakerId.run(features);
+
+            const [, runInputs] = executorch.run.mock.calls[0] as unknown as [ExecuTorchProgram, ExecuTorchRunInput[]];
+            expect(runInputs[0].data.length).toBe(FIXED_TIME_FRAMES * NUM_MEL_BINS);
+            expect((runInputs[0].data as Float32Array)[0]).toBe(7);
+            expect((runInputs[0].data as Float32Array)[features.length]).toBe(0);
         });
 
-        it('throws when run is called before initialize', async () => {
-            const speakerId = createSpeakerId();
+        it('rejects run before initialize', async () => {
+            const { speakerId } = createHarness();
 
-            await expect(speakerId.run(new Float32Array(80))).rejects.toThrow(/not initialized/);
+            await expect(speakerId.run(new Float32Array(8))).rejects.toThrow(SpeakerIdException);
+        });
+    });
+
+    describe('dispose', () => {
+        it('disposes the loaded program and resets readiness', async () => {
+            const { speakerId, disposeProgram } = createHarness();
+            await speakerId.initialize();
+
+            await speakerId.dispose();
+
+            expect(disposeProgram).toHaveBeenCalledTimes(1);
+            expect(await speakerId.isReady()).toBe(false);
+        });
+
+        it('is a no-op when nothing was loaded', async () => {
+            const { speakerId, disposeProgram } = createHarness();
+
+            await speakerId.dispose();
+
+            expect(disposeProgram).not.toHaveBeenCalled();
         });
     });
 });

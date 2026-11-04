@@ -10,9 +10,11 @@
 import type { ModelConfig } from '@/Api';
 import type { AppLogger } from '@/Core/AppLogger';
 import { observable } from '@legendapp/state';
+import type { File } from 'expo-file-system';
 import { Downloader } from '@/InferenceModel/Downloader';
 import { DownloadTaskExecutor } from '@/InferenceModel/Download/DownloadTaskExecutor';
 import { DownloadTaskManager } from '@/InferenceModel/Download/DownloadTaskManager';
+import { ModelArtifact } from '@/InferenceModel/Download/ModelArtifact';
 import { ModelArtifactStorage } from '@/InferenceModel/Download/ModelArtifactStorage';
 import { DownloadState } from '@/InferenceModel/Download/Type';
 
@@ -51,10 +53,7 @@ const createMockTaskManager = (overrides: Partial<jest.Mocked<DownloadTaskManage
     ({
         add: jest.fn(),
         getActiveSession: jest.fn(),
-        getActiveSessions: jest.fn().mockReturnValue([]),
         getOrCreateExecutor: jest.fn(),
-        removeSession: jest.fn(),
-        getByCapability: jest.fn(),
         ...overrides,
     } as unknown as jest.Mocked<DownloadTaskManager>);
 
@@ -62,7 +61,6 @@ const createMockArtifactStorage = (overrides: Partial<jest.Mocked<ModelArtifactS
     ({
         hasAllFiles: jest.fn(),
         getUri: jest.fn(),
-        toAbsoluteUri: jest.fn((uri: string) => uri),
         getFileByRole: jest.fn((config: ModelConfig) => config.files[0]),
         ...overrides,
     } as unknown as jest.Mocked<ModelArtifactStorage>);
@@ -708,7 +706,7 @@ describe('Downloader', () => {
         });
     });
 
-    describe('getArtifactText', () => {
+    describe('getArtifact', () => {
         const bundleConfig: ModelConfig = {
             ...speakerConfig,
             files: [
@@ -730,38 +728,28 @@ describe('Downloader', () => {
                 createMockConfigProvider({ getConfig }) as unknown as ConstructorParameters<typeof Downloader>[3],
             );
 
-        it('resolves the file by role through the artifact storage and returns its text', async () => {
-            const artifactFile = { exists: true, text: () => 'model: CAMPPlus' };
+        it('resolves the role-resolved artifact through the artifact storage', async () => {
+            const artifact = new ModelArtifact(
+                { exists: true, text: async () => 'model: CAMPPlus' } as unknown as File,
+                'file:///documents/artifacts/config.yaml',
+            );
             const downloader = createDownloader(jest.fn().mockResolvedValue(bundleConfig), {
-                getFileByRole: jest.fn().mockReturnValue(bundleConfig.files[1]),
-                getFile: jest.fn().mockReturnValue(artifactFile),
+                getArtifact: jest.fn().mockReturnValue(artifact),
             });
 
-            const text = await downloader.getArtifactText('speaker_id', 'config');
+            const resolved = await downloader.getArtifact('speaker_id', 'config');
 
-            expect(text).toBe('model: CAMPPlus');
-        });
-
-        it('returns null when the role-resolved artifact is not on disk yet', async () => {
-            const artifactFile = { exists: false, text: () => 'should not be read' };
-            const downloader = createDownloader(jest.fn().mockResolvedValue(bundleConfig), {
-                getFileByRole: jest.fn().mockReturnValue(bundleConfig.files[1]),
-                getFile: jest.fn().mockReturnValue(artifactFile),
-            });
-
-            const text = await downloader.getArtifactText('speaker_id', 'config');
-
-            expect(text).toBeNull();
+            expect(resolved).toBe(artifact);
         });
 
         it('propagates the storage exception when the role is absent from the bundle', async () => {
             const downloader = createDownloader(jest.fn().mockResolvedValue(bundleConfig), {
-                getFileByRole: jest.fn().mockImplementation(() => {
+                getArtifact: jest.fn().mockImplementation(() => {
                     throw new Error("No file with role 'config'");
                 }),
             });
 
-            await expect(downloader.getArtifactText('speaker_id', 'config')).rejects.toThrow("No file with role 'config'");
+            await expect(downloader.getArtifact('speaker_id', 'config')).rejects.toThrow("No file with role 'config'");
         });
     });
 });

@@ -2,3 +2,4 @@
 // file-relative paths.  Only stable public APIs should be re-exported here.
 
 export { AudioRecording, useAudioRecording } from './AudioRecording';
+export { ActivityStatus, GlobalActivityStatus } from './GlobalActivityStatus';

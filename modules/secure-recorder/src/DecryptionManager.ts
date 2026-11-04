@@ -8,11 +8,8 @@ import type { NativeRecorderModule } from './Type';
  */
 export class DecryptionManager {
     private errorNormalizer = new ErrorNormalizer();
-    private nativeModule: NativeRecorderModule;
 
-    public constructor(nativeModule: NativeRecorderModule) {
-        this.nativeModule = nativeModule;
-    }
+    public constructor(private nativeModule: NativeRecorderModule) {}
 
     /**
      * Stream decrypt encrypted audio file, emitting events for each chunk

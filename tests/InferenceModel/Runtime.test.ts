@@ -1,195 +1,154 @@
 /**
  * Runtime tests
  *
- * Ensure the high-level runtime wrapper loads models and runs inference with
- * the expected shape logic. Behavior is observed through the public API
- * (load / release / runRaw), never through internal state.
+ * Ensure the runtime resolves and initializes self-managed ExecuTorch models
+ * per capability. Behavior is observed through the public API
+ * (load / getModel / dispose), never through internal state.
  */
 
-
-// we will mock the underlying onnxruntime-react-native module
-const mockDispose = jest.fn();
-const mockSession = {
-  inputNames: ['input'],
-  outputNames: ['output'],
-  run: jest.fn(),
-  dispose: mockDispose,
-};
-
-const mockInferenceSession = Object.assign(jest.fn().mockResolvedValue(mockSession), {
-    // InferenceSession.create is the callable factory in the real native binding
-    create: jest.fn().mockResolvedValue(mockSession),
-}) as jest.Mock & { create: jest.Mock };
-
-const mockOrt = {
-  InferenceSession: mockInferenceSession,
-  Tensor: jest.fn().mockImplementation(function(this: any, type: any, data: any, shape: any) {
-    this.data = data;
-    this.shape = shape;
-  }),
-};
-
-jest.mock('onnxruntime-react-native', () => mockOrt);
-
-
-import { observable } from '@legendapp/state';
+// The ExecuTorch JSI bridge throws at import time without the native module;
+// the runtimes are exercised through spied prototype methods and mocked
+// downloader artifacts (see ExecuTorch tests for the engine itself).
+jest.mock('react-native-executorch', () => ({ loadModel: jest.fn(), tensor: jest.fn() }));
 
 import { Runtime } from '@/InferenceModel/Runtime';
-import { SessionNotInitializedError } from '@/Exception';
-import { DownloadState } from '@/InferenceModel/Download/Type';
+import { ExecuTorchProgram, ExecuTorchRuntime } from '@/InferenceModel/ExecuTorch';
+import { ModelArtifact } from '@/InferenceModel/Download/ModelArtifact';
+import type { File } from 'expo-file-system';
 
-describe('Runtime', () => {
-  let runtime: Runtime;
-  const mockDownloader = { getLocalPath: jest.fn(), download: jest.fn(), ensureDownloaded: jest.fn(), getArtifactText: jest.fn() };
-  beforeEach(() => {
-    jest.clearAllMocks();
+const ASR_CONFIG_YAML = '{}';
 
-    // default downloader returns path immediately
-    mockDownloader.getLocalPath.mockResolvedValue('/m.onnx');
-
-    // ensureDownloaded resolves to a completed executor (no wait needed)
-    mockDownloader.ensureDownloaded.mockResolvedValue({
-      config: { capability: 'speaker_id' },
-      state$: observable(DownloadState.Completed),
-    });
-
-    // SpeakerId.initialize() reads the config.yaml artifact from the bundle
-    mockDownloader.getArtifactText.mockResolvedValue(
-      [
-        'dataset_args:',
-        '  resample_rate: 16000',
-        '  fbank_args: { num_mel_bins: 80, frame_length: 25, frame_shift: 10 }',
-        'model_args: { embed_dim: 512, feat_dim: 80 }',
-      ].join('\n'),
+const makeArtifact = (options: { text?: string | null; uri?: string }): ModelArtifact =>
+    new ModelArtifact(
+        { exists: true, text: async () => options.text ?? '' } as unknown as File,
+        options.uri ?? '/bundle/artifact',
     );
 
-    // Ensure model initialization does not crash when downloader is used
-    mockDownloader.download.mockResolvedValue({
-      config: {
-        files: ['dummy_encoder.onnx', 'dummy_decoder.onnx'],
-      },
-      state$: observable(DownloadState.Completed),
+describe('Runtime', () => {
+    let runtime: Runtime;
+    const mockLogger = { debug: jest.fn(), error: jest.fn(), info: jest.fn(), warn: jest.fn() };
+    const mockDownloader = {
+        ensureDownloaded: jest.fn(),
+        getArtifact: jest.fn(),
+        isModelDownloaded: jest.fn(),
+        getTotalSize: jest.fn(),
+        download: jest.fn(),
+        getLocalPath: jest.fn(),
+    };
+
+    const mockProgram = (): ExecuTorchProgram =>
+        new ExecuTorchProgram('/bundle/program.pte', new Map([]), jest.fn(), jest.fn());
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockDownloader.ensureDownloaded.mockResolvedValue({ config: { capability: 'test' } });
+        mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+            if (role === 'encoder') {
+                return makeArtifact({ uri: '/bundle/program.pte' });
+            }
+            return makeArtifact({ text: ASR_CONFIG_YAML });
+        });
+        jest.spyOn(ExecuTorchRuntime.prototype, 'load').mockResolvedValue(mockProgram());
+        runtime = new Runtime(mockLogger as never, mockDownloader as never);
     });
 
+    describe('load', () => {
+        it('initializes a speaker_id model on the ExecuTorch path without creating an ORT session', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder') {
+                    return makeArtifact({ uri: '/bundle/cam++.pte' });
+                }
+                return makeArtifact({
+                    text: [
+                        'model_args:',
+                        '  embed_dim: 512',
+                        '  feat_dim: 80',
+                        'dataset_args:',
+                        '  resample_rate: 16000',
+                        '  fbank_args:',
+                        '    num_mel_bins: 80',
+                        '    frame_length: 0.025',
+                        '    frame_shift: 0.01',
+                    ].join('\n'),
+                });
+            });
 
-    runtime = new Runtime({ debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any, mockDownloader as any);
-  });
+            await runtime.load('speaker_id');
 
-  describe('load', () => {
-    it('creates the session once and reuses it on subsequent loads', async () => {
-      await runtime.load('speaker_id');
-      expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/m.onnx', { executionProviders: ['cpu'] });
-      await runtime.load('speaker_id');
-      expect(mockOrt.InferenceSession.create).toHaveBeenCalledTimes(1);
+            expect(mockDownloader.ensureDownloaded).toHaveBeenCalledWith('speaker_id');
+            const model = await runtime.getModel('speaker_id');
+            expect(await model.isReady()).toBe(true);
+        });
+
+        it('initializes the asr recognizer', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder' || role === 'decoder' || role === 'joint') {
+                    return makeArtifact({ uri: '/bundle/program.pte' });
+                }
+                const text =
+                    role === 'tokenizer'
+                        ? JSON.stringify(Array.from({ length: 16 }, (_, index) => `piece_${index}`))
+                        : JSON.stringify({ rows: 128, cols: 257, data: Array.from({ length: 128 }, () => new Array<number>(257).fill(0)) });
+                return makeArtifact({ text });
+            });
+
+            await runtime.load('asr');
+
+            const model = await runtime.getModel('asr');
+            expect(await model.isReady()).toBe(true);
+        });
+
+        it('initializes each model only once', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder' || role === 'decoder' || role === 'joint') {
+                    return makeArtifact({ uri: '/bundle/program.pte' });
+                }
+                const text =
+                    role === 'tokenizer'
+                        ? JSON.stringify(Array.from({ length: 16 }, (_, index) => `piece_${index}`))
+                        : JSON.stringify({ rows: 128, cols: 257, data: Array.from({ length: 128 }, () => new Array<number>(257).fill(0)) });
+                return makeArtifact({ text });
+            });
+
+            await runtime.load('asr');
+            await runtime.load('asr');
+
+            expect(mockDownloader.ensureDownloaded).toHaveBeenCalledTimes(1);
+        });
+
+        it('rejects an unknown capability', async () => {
+            await expect(runtime.load('pitch')).rejects.toThrow(/Unknown model capability/);
+        });
     });
 
-    it('downloads the model then creates the session when no local file exists', async () => {
-      mockDownloader.getLocalPath.mockResolvedValueOnce(undefined);
+    describe('dispose', () => {
+        it('disposes every loaded model', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder') {
+                    return makeArtifact({ uri: '/bundle/cam++.pte' });
+                }
+                return makeArtifact({
+                    text: [
+                        'model_args:',
+                        '  embed_dim: 512',
+                        '  feat_dim: 80',
+                        'dataset_args:',
+                        '  resample_rate: 16000',
+                        '  fbank_args:',
+                        '    num_mel_bins: 80',
+                        '    frame_length: 0.025',
+                        '    frame_shift: 0.01',
+                    ].join('\n'),
+                });
+            });
+            const disposeSpy = jest.spyOn(ExecuTorchProgram.prototype, 'dispose');
+            await runtime.load('speaker_id');
+            const model = await runtime.getModel('speaker_id');
 
-      await runtime.load('speaker_id');
+            await runtime.dispose();
 
-      expect(mockDownloader.download).toHaveBeenCalledWith('speaker_id');
-      expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/m.onnx', { executionProviders: ['cpu'] });
+            expect(disposeSpy).toHaveBeenCalled();
+            expect(await model.isReady()).toBe(false);
+        });
     });
-
-    it('waits for an in-progress download to complete before creating the session', async () => {
-      const executorState$ = observable(DownloadState.Downloading);
-      const executor = { config: { files: [] }, state$: executorState$ };
-
-      // The local file only becomes available once the download completed.
-      mockDownloader.getLocalPath.mockImplementation(async () =>
-        executorState$.get() === DownloadState.Completed ? '/m.onnx' : undefined,
-      );
-      mockDownloader.download.mockImplementation(async () => {
-        setTimeout(() => executorState$.set(DownloadState.Completed), 10);
-        return executor;
-      });
-
-      await runtime.load('speaker_id');
-
-      expect(mockOrt.InferenceSession.create).toHaveBeenCalledWith('/m.onnx', { executionProviders: ['cpu'] });
-    });
-
-    it('rejects when the in-progress download fails', async () => {
-      const executorState$ = observable(DownloadState.Downloading);
-      const executor = { config: { files: [] }, state$: executorState$ };
-
-      mockDownloader.getLocalPath.mockResolvedValue(undefined);
-      mockDownloader.download.mockImplementation(async () => {
-        setTimeout(() => executorState$.set(DownloadState.Failed), 10);
-        return executor;
-      });
-
-      await expect(runtime.load('speaker_id')).rejects.toThrow(`Model download ended with state ${DownloadState.Failed}`);
-
-      expect(mockOrt.InferenceSession.create).not.toHaveBeenCalled();
-    });
-
-    it('rejects when the model is still unavailable after downloading', async () => {
-      mockDownloader.getLocalPath.mockResolvedValue(undefined);
-
-      await expect(runtime.load('speaker_id')).rejects.toThrow('Model for speaker_id not available');
-
-      expect(mockOrt.InferenceSession.create).not.toHaveBeenCalled();
-    });
-
-    it('rejects with Unknown model capability error for an unregistered capability', async () => {
-      await expect(runtime.load('traduction')).rejects.toThrow('Unknown model capability: traduction');
-
-      expect(mockDownloader.download).not.toHaveBeenCalled();
-      expect(mockOrt.InferenceSession.create).not.toHaveBeenCalled();
-    });
-
-    it('unloads the previous capability when loading a different one', async () => {
-      await runtime.load('speaker_id');
-
-      // change downloader path to simulate a different model being fetched
-      mockDownloader.getLocalPath.mockResolvedValue('/other.onnx');
-      await runtime.load('asr');
-
-      await expect(runtime.runRaw('speaker_id', new Float32Array(1), [1])).rejects.toThrow(SessionNotInitializedError);
-
-      mockSession.run.mockResolvedValue({ output: { data: new Float32Array([7]) } });
-      const result = await runtime.runRaw('asr', new Float32Array(1), [1]);
-
-      expect(result).toEqual([7]);
-      expect(mockOrt.InferenceSession.create).toHaveBeenLastCalledWith('/other.onnx', { executionProviders: ['cpu'] });
-    });
-  });
-
-  describe('release', () => {
-    it('disposes the session and leaves the capability unusable', async () => {
-      await runtime.load('speaker_id');
-
-      await runtime.release('speaker_id');
-
-      expect(mockDispose).toHaveBeenCalledTimes(1);
-      await expect(runtime.runRaw('speaker_id', new Float32Array(1), [1])).rejects.toThrow(SessionNotInitializedError);
-    });
-  });
-
-  describe('runRaw', () => {
-    it('rejects with SessionNotInitializedError before the session is loaded', async () => {
-      await expect(runtime.runRaw('speaker_id', new Float32Array(1), [1])).rejects.toThrow(SessionNotInitializedError);
-    });
-
-    it('returns the session output as a number array', async () => {
-      await runtime.load('speaker_id');
-      mockSession.run.mockResolvedValue({ output: { data: new Float32Array([1, 2, 3]) } });
-
-      const result = await runtime.runRaw('speaker_id', new Float32Array([0, 0, 0]), [1, 3]);
-
-      expect(result).toEqual([1, 2, 3]);
-    });
-
-    it('creates tensor using provided shape', async () => {
-      await runtime.load('speaker_id');
-      mockSession.run.mockResolvedValue({ output: { data: new Float32Array([0]) } });
-
-      const features = new Float32Array(6);
-      await runtime.runRaw('speaker_id', features, [2, 3]);
-
-      expect(mockOrt.Tensor).toHaveBeenCalledWith('float32', features, [2, 3]);
-    });
-  });
 });

@@ -35,13 +35,11 @@ export type { DecryptedChunkEvent } from './SecureRecorderModule';
  * ```
  */
 export class SecureRecorder {
-    private readonly errorNormalizer: ErrorNormalizer;
+    private readonly errorNormalizer = new ErrorNormalizer();
     private eventSubscription: EventSubscription | null = null;
     private readonly _sessionId: string;
     private _state: RecorderState = RecorderState.Inactive;
     private _filePath: string | null = null;
-    private readonly nativeModule: NativeRecorderModule;
-    private readonly eventEmitter: EventEmitter;
 
     private static permissionManager: PermissionManager | null = null;
     private static decryptionManager: DecryptionManager | null = null;
@@ -70,14 +68,9 @@ export class SecureRecorder {
      */
     public constructor(
         sessionId: string,
-        nativeModule: NativeRecorderModule = SecureRecorderModule,
-        eventEmitter: EventEmitter = SecureRecorderModule,
+        private readonly nativeModule: NativeRecorderModule = SecureRecorderModule,
+        private readonly eventEmitter: EventEmitter = SecureRecorderModule,
     ) {
-        // Initialize dependencies first
-        this.errorNormalizer = new ErrorNormalizer();
-        this.nativeModule = nativeModule;
-        this.eventEmitter = eventEmitter;
-
         // Validate session ID
         if (!sessionId || sessionId.trim().length === 0) {
             throw this.createError(ErrorCode.InvalidSessionId, 'Session ID cannot be empty');
@@ -164,10 +157,7 @@ export class SecureRecorder {
         }
 
         if (currentState === RecorderState.Paused) {
-            throw this.createError(
-                ErrorCode.InvalidState,
-                'Recording is paused. Use resume() instead.',
-            );
+            throw this.createError(ErrorCode.InvalidState, 'Recording is paused. Use resume() instead.');
         }
 
         try {
@@ -211,7 +201,10 @@ export class SecureRecorder {
      */
     public async resume(): Promise<string> {
         if (this.state !== RecorderState.Paused) {
-            throw this.createError(ErrorCode.InvalidState, 'Recording is not paused. Use start() to begin a new recording.');
+            throw this.createError(
+                ErrorCode.InvalidState,
+                'Recording is not paused. Use start() to begin a new recording.',
+            );
         }
 
         try {
@@ -295,7 +288,9 @@ export class SecureRecorder {
      *
      * await SecureRecorder.stream(filePath);
      */
-    public static async addDecryptionListener(listener: (event: DecryptedChunkEvent) => void): Promise<EventSubscription> {
+    public static async addDecryptionListener(
+        listener: (event: DecryptedChunkEvent) => void,
+    ): Promise<EventSubscription> {
         return await SecureRecorderModule.addListener(SecureRecorderModule.eventAudioChunkDecrypted, listener);
     }
 
@@ -402,13 +397,10 @@ export class SecureRecorder {
     // during module evaluation (the static import chain forces expo-audio to
     // initialize before the native module registry is ready).
     private static async getPermissionManager(): Promise<PermissionManager> {
-        SecureRecorder.permissionManager ??= new PermissionManager(
-            SecureRecorderModule,
-            async () => {
-                const { requestRecordingPermissionsAsync } = await import('expo-audio');
-                return await requestRecordingPermissionsAsync();
-            },
-        );
+        SecureRecorder.permissionManager ??= new PermissionManager(SecureRecorderModule, async () => {
+            const { requestRecordingPermissionsAsync } = await import('expo-audio');
+            return await requestRecordingPermissionsAsync();
+        });
 
         return SecureRecorder.permissionManager;
     }

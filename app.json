@@ -35,8 +35,7 @@
             "packagingOptions": {
               "pickFirst": [
                 "**/libc++_shared.so",
-                "**/libfbjni.so",
-                "**/libonnxruntime.so"
+                "**/libfbjni.so"
               ]
             },
             "minSdkVersion": 29,
@@ -62,9 +61,6 @@
       ],
       "expo-file-system",
       "expo-asset",
-      "./plugins/withGradleLimits",
-      "./plugins/withOnnxruntime",
-      "onnxruntime-react-native",
       "@react-native-community/datetimepicker",
       "expo-localization",
       "expo-router",

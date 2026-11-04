@@ -5,10 +5,12 @@
 
 export { SpeakerVectorExtractionError } from '../InferenceModel/Speaker/SpeakerVectorExtractionError';
 export { ApiClientException } from './ApiClientException';
+export { AsrException } from './AsrException';
 export { DatabaseException, NoActiveTherapistException } from './DatabaseException';
+export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
 export { DependencyResolutionException } from './DependencyResolutionException';
 export { EncounterNotFound } from './EncounterNotFound';
-export { DecoratorException, MULTIPLE_DECORATORS_NOT_SUPPORTED } from './DecoratorException';
+export { ExecuTorchException } from './ExecuTorchException';
 export { FileOperationError } from './FileOperationError';
 export { HardwareGuardException } from './HardwareGuardException';
 export { InferenceModelDownloaderException } from './InferenceModelDownloaderException';
@@ -22,8 +24,7 @@ export type { RecordingError } from './RecordingError';
 export { RecordingErrorType } from './RecordingErrorType';
 export { RecordingPermissionError } from './RecordingPermissionError';
 export { RecordingUriUnavailableError } from './RecordingUriUnavailableError';
-export { OnnxRuntimeError } from './OnnxRuntimeError';
-export { SessionNotInitializedError } from './SessionNotInitializedError';
+export { SpeakerIdException } from './SpeakerIdException';
 export { SystemVerifierException } from './SystemVerifierException';
 export { TiroScribeException } from './TiroScribeException';
 export { TranscriptionNotImplementedError } from './TranscriptionNotImplementedError';

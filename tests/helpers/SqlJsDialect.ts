@@ -6,11 +6,7 @@ import { SqlJsDriver } from './SqlJsDriver';
 
 /** Kysely dialect over an in-memory sql.js (WASM SQLite) database. */
 export class SqlJsDialect implements Dialect {
-    private readonly engine: SqlJsStatic;
-
-    public constructor(engine: SqlJsStatic) {
-        this.engine = engine;
-    }
+    public constructor(private readonly engine: SqlJsStatic) {}
 
     public createAdapter(): DialectAdapter {
         return new SqliteAdapter();

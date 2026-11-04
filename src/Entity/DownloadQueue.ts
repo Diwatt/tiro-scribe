@@ -87,7 +87,7 @@ export class DownloadQueue extends DownloadQueueSchema.class {
         entity.language = task.language || '';
         entity.nbRetries = task.nbRetries;
         entity.maxRetries = task.maxRetries;
-        // Cast DownloadTaskStatus to DownloadQueueStatus (they have identical values)
+        // Cast DownloadState to DownloadQueueStatus (they have identical values)
         entity.status = task.status as unknown as DownloadQueueStatus;
         entity.errorMessage = task.error?.message || '';
         entity.createdAt = dayjs(task.createdAt);

@@ -3,9 +3,9 @@ import type React from 'react';
 import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 import { Button, type ButtonProps, useTheme } from 'react-native-paper';
 import { Container } from '@/Core/Container';
-import { ActivityStatus, GlobalActivityStatus } from '../State/GlobalActivityStatus';
+import { ActivityStatus, GlobalActivityStatus } from '@/State';
 import type { ExtendedTheme } from '../theme/AppTheme';
-import { getLabel } from './AsyncButtonUtils';
+import { AsyncButtonLabel } from './AsyncButtonLabel';
 
 export interface AsyncButtonProps extends Omit<ButtonProps, 'loading' | 'disabled' | 'children'> {
     readonly status?: ActivityStatus;
@@ -56,7 +56,7 @@ export function AsyncButtonInner(props: Readonly<AsyncButtonProps>): React.JSX.E
             contentStyle={contentStyle}
             labelStyle={labelColor ? { color: labelColor } : undefined}
         >
-            {getLabel(status, idleLabel, pendingLabel, successLabel)}
+            {AsyncButtonLabel.resolve(status, idleLabel, pendingLabel, successLabel)}
         </Button>
     );
 }
@@ -66,5 +66,3 @@ const OBSERVED_ASYNC_BUTTON = observer(AsyncButtonInner);
 export function AsyncButton(props: Readonly<AsyncButtonProps>): React.JSX.Element {
     return <OBSERVED_ASYNC_BUTTON {...props} />;
 }
-
-export { getLabel } from './AsyncButtonUtils';

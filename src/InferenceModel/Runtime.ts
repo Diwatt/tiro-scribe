@@ -1,21 +1,16 @@
-import type * as Ort from 'onnxruntime-react-native';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { InferenceModelDownloaderException, OnnxRuntimeError, SessionNotInitializedError } from '@/Exception';
-import type { DownloadTaskExecutor } from './Download/DownloadTaskExecutor';
-import { DownloadState } from './Download/Type';
 import { Downloader } from './Downloader';
 import type { InferenceModel } from './Model';
 
-type DisposableSession = {
-    dispose?: () => Promise<void> | void;
-    release?: () => Promise<void> | void;
-};
-
-export class Runtime implements InferenceModel {
-    private static cachedOrt: typeof Ort | null = null;
-
-    private sessions = new Map<string, Ort.InferenceSession>();
+/**
+ * Runtime – Single entry point of the inference stack. Every capability is a
+ * self-managed ExecuTorch pipeline: the model owns its engine end to end — it
+ * downloads its own bundle and drives the ExecuTorch runtime itself (the
+ * Runtime never attaches an ONNX session) — so this class only resolves,
+ * initializes and caches model instances per capability.
+ */
+export class Runtime {
     private models = new Map<string, InferenceModel>();
     private isInitialized = false;
 
@@ -24,59 +19,23 @@ export class Runtime implements InferenceModel {
         private readonly downloader: Downloader = Container.get(Downloader),
     ) {}
 
-    public static async ensureOrt(): Promise<typeof Ort> {
-        if (Runtime.cachedOrt == null) {
-            try {
-                Runtime.cachedOrt = await import('onnxruntime-react-native');
-            } catch (err) {
-                const original = err instanceof Error ? err : new Error(String(err));
-                throw new OnnxRuntimeError(
-                    'onnxruntime-react-native native module unavailable. Make sure you are running a development build (npx expo run:android / npx expo run:ios) or an EAS build, not Expo Go.',
-                    original,
-                );
-            }
-
-            if (!Runtime.cachedOrt || typeof Runtime.cachedOrt.InferenceSession !== 'function') {
-                throw new OnnxRuntimeError(
-                    'onnxruntime-react-native initialization failed: native bindings are missing. ' +
-                        'Ensure the app is built with the onnxruntime native module and is running in a dev/client build.',
-                );
-            }
-        }
-
-        return Runtime.cachedOrt;
-    }
-
     public async initialize(): Promise<void> {
         if (this.isInitialized) {
             return;
         }
 
-        try {
-            this.isInitialized = true;
-            this.logger.debug('[Runtime] Initialized');
-        } catch (error) {
-            this.logger.error('[Runtime] Failed to initialize', { error });
-            throw error;
-        }
+        this.isInitialized = true;
+        this.logger.debug('[Runtime] Initialized');
     }
 
     public async dispose(): Promise<void> {
-        try {
-            for (const model of this.models.values()) {
-                await model.dispose();
-            }
-            this.models.clear();
-
-            for (const capability of this.sessions.keys()) {
-                await this.release(capability);
-            }
-
-            this.isInitialized = false;
-            this.logger.debug('[Runtime] Disposed all models and sessions');
-        } catch (error) {
-            this.logger.error('[Runtime] Error during dispose', { error });
+        for (const model of this.models.values()) {
+            await model.dispose();
         }
+        this.models.clear();
+
+        this.isInitialized = false;
+        this.logger.debug('[Runtime] Disposed all models');
     }
 
     public async isReady(): Promise<boolean> {
@@ -89,35 +48,6 @@ export class Runtime implements InferenceModel {
             this.models.set(capability, model);
             await model.initialize();
         }
-
-        if (this.sessions.has(capability)) {
-            return;
-        }
-
-        if (this.sessions.size > 0) {
-            for (const existing of this.sessions.keys()) {
-                this.sessions.delete(existing);
-                this.logger.debug('[Runtime] unloaded previous session', { capability: existing });
-            }
-        }
-
-        let modelPath = await this.downloader.getLocalPath(capability);
-        if (!modelPath) {
-            const executor = await this.downloader.download(capability);
-            await this.waitForDownload(executor);
-            modelPath = await this.downloader.getLocalPath(capability);
-        }
-
-        if (!modelPath) {
-            throw new Error(`Model for ${capability} not available`);
-        }
-
-        const ort = await Runtime.ensureOrt();
-        const session = await ort.InferenceSession.create(modelPath, {
-            executionProviders: ['cpu'],
-        });
-        this.sessions.set(capability, session);
-        this.logger.debug('[Runtime] session loaded', { capability, modelPath });
     }
 
     public async getModel<T extends InferenceModel>(capability: string): Promise<T> {
@@ -129,75 +59,26 @@ export class Runtime implements InferenceModel {
         return model as T;
     }
 
-    public async release(capability: string): Promise<void> {
-        const session = this.sessions.get(capability);
-        if (session) {
-            const maybe = session as unknown as DisposableSession;
-            if (typeof maybe.dispose === 'function') {
-                await maybe.dispose();
-            } else if (typeof maybe.release === 'function') {
-                await maybe.release();
-            }
-            this.sessions.delete(capability);
-            this.logger.debug('[Runtime] session released', { capability });
-        }
-    }
-
-    public async run(capability: string, features: Float32Array, shape: readonly number[], ..._args: unknown[]): Promise<number[]> {
-        return this.runRaw(capability, features, shape);
-    }
-
-    public async runRaw(capability: string, features: Float32Array, shape: readonly number[]): Promise<number[]> {
-        const session = this.sessions.get(capability);
-        if (!session) {
-            throw new SessionNotInitializedError(`ONNX Runtime session not initialized for ${capability}`);
-        }
-
-        const inputName = session.inputNames[0];
-        const outputName = session.outputNames[0];
-
-        const ort = await Runtime.ensureOrt();
-        const tensor = new ort.Tensor('float32', features, shape);
-        const results = await session.run({ [inputName]: tensor });
-        const outputTensor = results[outputName];
-        return Array.from(outputTensor.data as Float32Array);
-    }
-
     private async createModel(capability: string): Promise<InferenceModel> {
         switch (capability) {
             case 'speaker_id': {
                 const { SpeakerId } = await import('./Model/SpeakerId');
-                return new SpeakerId(this.downloader, this, this.logger);
+                return new SpeakerId(this.downloader, await this.createExecuTorchRuntime(), this.logger);
             }
             case 'asr': {
-                const { AutomaticSpeechRecognizer } = await import('./Model/AutomaticSpeechRecognizer');
-                return new AutomaticSpeechRecognizer(this.downloader, this, this.logger);
+                const { Asr } = await import('./Model/Asr');
+                return new Asr(this.downloader, await this.createExecuTorchRuntime(), this.logger);
             }
             default:
                 throw new Error(`Unknown model capability: ${capability}`);
         }
     }
 
-    private async waitForDownload(executor: DownloadTaskExecutor): Promise<void> {
-        const state = executor.state$.get();
-        if (state === DownloadState.Completed) {
-            return;
-        }
-        if (state === DownloadState.Failed || state === DownloadState.Cancelled) {
-            throw new InferenceModelDownloaderException(`Model download ended with state ${state}`);
-        }
+    private async createExecuTorchRuntime(): Promise<import('./ExecuTorch').ExecuTorchRuntime> {
+        const { ExecuTorchRuntime } = await import('./ExecuTorch');
+        const { ReactNativeExecuTorchBackend } = await import('./ExecuTorch/ReactNativeExecuTorchBackend');
 
-        return new Promise<void>((resolve, reject) => {
-            const unsubscribe = executor.state$.onChange(({ value }) => {
-                if (value === DownloadState.Completed) {
-                    unsubscribe();
-                    resolve();
-                } else if (value === DownloadState.Failed || value === DownloadState.Cancelled) {
-                    unsubscribe();
-                    reject(new InferenceModelDownloaderException(`Model download ended with state ${value}`));
-                }
-            });
-        });
+        return new ExecuTorchRuntime(new ReactNativeExecuTorchBackend());
     }
 }
 

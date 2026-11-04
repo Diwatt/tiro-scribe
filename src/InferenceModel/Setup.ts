@@ -9,15 +9,12 @@ import { ExecutorCollection } from './Download/ExecutorCollection';
 import { Downloader } from './Downloader';
 
 export class Setup {
-    private static readonly CAPABILITIES = ['vad', 'asr', 'pitch', 'speaker_id'] as const;
+    private static readonly CAPABILITIES = ['vad', 'pitch', 'speaker_id'] as const;
 
-    private readonly localization: Localization;
-    private readonly modelDownloader: Downloader;
-
-    public constructor(localization: Localization, modelDownloader: Downloader) {
-        this.localization = localization;
-        this.modelDownloader = modelDownloader;
-    }
+    public constructor(
+        private readonly localization: Localization,
+        private readonly modelDownloader: Downloader,
+    ) {}
 
     /**
      * Check if all required models are already downloaded.

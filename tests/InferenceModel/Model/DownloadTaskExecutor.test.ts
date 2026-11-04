@@ -154,22 +154,23 @@ describe('DownloadTaskExecutor', () => {
             const config = makeConfig([fileA, fileB]);
 
             const progressValues: number[] = [];
-            const onProgress = (progress: number) => {
-                progressValues.push(progress);
-            };
-
             const executor = new DownloadTaskExecutor(
                 mockLogger,
                 makeQueueEntity(),
                 config,
                 { verify: mockVerify } as any,
                 { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                onProgress,
             );
+            const dispose = executor.progress$.onChange(({ value }) => {
+                if (value !== progressValues[progressValues.length - 1]) {
+                    progressValues.push(value);
+                }
+            });
 
             await executor.start();
+            dispose();
 
-            // Each file's downloader fires onProgress(0.5) then onProgress(1)
+            // Each file's downloader fires chunk progress 0.5 then 1
             // File A: 0 + 0.5*1000 / 4000 = 12.5%, 0 + 1*1000 / 4000 = 25%
             // File B: 1000 + 0.5*3000 / 4000 = 62.5%, 1000 + 1*3000 / 4000 = 100%
             expect(progressValues).toEqual([12.5, 25, 62.5, 100]);
@@ -182,23 +183,21 @@ describe('DownloadTaskExecutor', () => {
             const config = makeConfig([fileA, fileB]);
 
             const fileNames: string[] = [];
-            const onProgress = () => {
-                const name = executor.currentFileName$.get();
-                if (name && name !== fileNames[fileNames.length - 1]) {
-                    fileNames.push(name);
-                }
-            };
-
             const executor = new DownloadTaskExecutor(
                 mockLogger,
                 makeQueueEntity(),
                 config,
                 { verify: mockVerify } as any,
                 { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                onProgress,
             );
+            const dispose = executor.currentFileName$.onChange(({ value }) => {
+                if (value) {
+                    fileNames.push(value);
+                }
+            });
 
             await executor.start();
+            dispose();
 
             expect(fileNames).toEqual(['alpha.bin', 'bravo.bin']);
         });
@@ -270,115 +269,24 @@ describe('DownloadTaskExecutor', () => {
             const config = makeConfig([makeFile({ sizeBytes: 2000 })]);
 
             const fileProgressValues: number[] = [];
-            const onProgress = () => {
-                fileProgressValues.push(executor.currentFileProgress$.get());
-            };
-
             const executor = new DownloadTaskExecutor(
                 mockLogger,
                 makeQueueEntity(),
                 config,
                 { verify: mockVerify } as any,
                 { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                onProgress,
             );
+            const dispose = executor.currentFileProgress$.onChange(({ value }) => {
+                if (value !== fileProgressValues[fileProgressValues.length - 1]) {
+                    fileProgressValues.push(value);
+                }
+            });
 
             await executor.start();
+            dispose();
 
-            // Mock fires onProgress(0.5) → 50%, then onProgress(1) → 100%
+            // Mock fires chunk progress 0.5 → 50%, then 1 → 100%
             expect(fileProgressValues).toEqual([50, 100]);
-        });
-
-        it('should call onComplete callback after successful download', async () => {
-            const onComplete = jest.fn().mockResolvedValue(undefined);
-            const config = makeConfig([makeFile()]);
-            const executor = new DownloadTaskExecutor(
-                mockLogger,
-                makeQueueEntity(),
-                config,
-                { verify: mockVerify } as any,
-                { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                undefined,
-                undefined,
-                onComplete,
-            );
-
-            await executor.start();
-
-            expect(onComplete).toHaveBeenCalledTimes(1);
-        });
-
-        it('should call onError callback when download fails', async () => {
-            mockDownload.mockRejectedValueOnce(new Error('disk full'));
-            const onError = jest.fn().mockResolvedValue(undefined);
-            const config = makeConfig([makeFile()]);
-            const executor = new DownloadTaskExecutor(
-                mockLogger,
-                makeQueueEntity(),
-                config,
-                { verify: mockVerify } as any,
-                { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                undefined,
-                onError,
-            );
-
-            await expect(executor.start()).rejects.toThrow('disk full');
-
-            expect(onError).toHaveBeenCalledTimes(1);
-            expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'disk full' }));
-        });
-
-        it('should pass onProgress callback to downloader for real-time updates', async () => {
-            const file = makeFile({ sizeBytes: 1000 });
-            const config = makeConfig([file]);
-
-            const executorProgressValues: number[] = [];
-            const onProgress = (progress: number) => {
-                executorProgressValues.push(progress);
-            };
-
-            const executor = new DownloadTaskExecutor(
-                mockLogger,
-                makeQueueEntity(),
-                config,
-                { verify: mockVerify } as any,
-                { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                onProgress,
-            );
-
-            await executor.start();
-
-            // The mock downloader fires onProgress(0.5) then onProgress(1)
-            // 0.5: (0 + 0.5 * 1000) / 1000 * 100 = 50%
-            // 1.0: (0 + 1 * 1000) / 1000 * 100 = 100%
-            expect(executorProgressValues).toEqual([50, 100]);
-        });
-
-        it('should call onProgress callback for each file', async () => {
-            const fileA = makeFile({ url: 'https://example.com/a.bin', sizeBytes: 500 });
-            const fileB = makeFile({ url: 'https://example.com/b.bin', sizeBytes: 500 });
-            const config = makeConfig([fileA, fileB]);
-
-            const onProgress = jest.fn();
-            const executor = new DownloadTaskExecutor(
-                mockLogger,
-                makeQueueEntity(),
-                config,
-                { verify: mockVerify } as any,
-                { getFile: mockGetFile, ensureDirectories: mockEnsureDirectories } as any,
-                onProgress,
-            );
-
-            await executor.start();
-
-            // Each file's mock fires onProgress(0.5) then onProgress(1)
-            // File A: 0.5 → (0+250)/1000=25%, 1.0 → (0+500)/1000=50%
-            // File B: 0.5 → (500+250)/1000=75%, 1.0 → (500+500)/1000=100%
-            expect(onProgress).toHaveBeenCalledTimes(4);
-            expect(onProgress).toHaveBeenNthCalledWith(1, 25);
-            expect(onProgress).toHaveBeenNthCalledWith(2, 50);
-            expect(onProgress).toHaveBeenNthCalledWith(3, 75);
-            expect(onProgress).toHaveBeenNthCalledWith(4, 100);
         });
     });
 
@@ -431,7 +339,7 @@ describe('DownloadTaskExecutor', () => {
             );
 
             expect(executor.getState()).toBe(DownloadState.Completed);
-            expect(executor.getProgress()).toBe(100);
+            expect(executor.progress$.get()).toBe(100);
         });
     });
 });

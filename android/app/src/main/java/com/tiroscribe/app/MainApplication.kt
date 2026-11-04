@@ -13,7 +13,6 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
-import ai.onnxruntime.reactnative.OnnxruntimePackage;
 
 class MainApplication : Application(), ReactApplication {
 
@@ -21,7 +20,7 @@ class MainApplication : Application(), ReactApplication {
     ExpoReactHostFactory.getDefaultReactHost(
       context = applicationContext,
       packageList =
-        PackageList(this).packages.apply { add(OnnxruntimePackage()) }.apply {
+        PackageList(this).packages.apply {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
         }

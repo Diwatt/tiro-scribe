@@ -19,8 +19,8 @@ jest.mock('expo-file-system/legacy', () => ({
     getInfoAsync: jest.fn(),
 }));
 
-import { TherapistOnboarding } from '@/DevConsole/TherapistOnboarding';
-import { SourceIngestException } from '@/DevConsole/SourceIngestException';
+import { TherapistOnboarding } from '@/DevConsole/Fixture/TherapistOnboarding';
+import { SourceIngestException } from '@/DevConsole/Ingest/SourceIngestException';
 import { AudioSegment } from '@/DevConsole/Data/AudioSegment';
 import type { FileInfo } from 'expo-file-system/legacy';
 import { getInfoAsync } from 'expo-file-system/legacy';
