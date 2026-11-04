@@ -14,6 +14,7 @@ jest.mock('react-native-executorch', () => ({ loadModel: jest.fn(), tensor: jest
 import { Runtime } from '@/InferenceModel/Runtime';
 import { ExecuTorchProgram, ExecuTorchRuntime } from '@/InferenceModel/ExecuTorch';
 import { ModelArtifact } from '@/InferenceModel/Download/ModelArtifact';
+import { UnsupportedCapabilityException } from '@/Exception';
 import type { File } from 'expo-file-system';
 
 const ASR_CONFIG_YAML = '{}';
@@ -116,8 +117,54 @@ describe('Runtime', () => {
             expect(mockDownloader.ensureDownloaded).toHaveBeenCalledTimes(1);
         });
 
+        it('initializes the vad detector', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder') {
+                    return makeArtifact({ uri: '/bundle/silero-vad.pte' });
+                }
+                return makeArtifact({
+                    text: [
+                        'vad_args:',
+                        '  sample_rate: 16000',
+                        '  window_samples: 512',
+                        '  context_samples: 0',
+                        '  hidden_size: 128',
+                    ].join('\n'),
+                });
+            });
+
+            await runtime.load('vad');
+
+            const model = await runtime.getModel('vad');
+            expect(await model.isReady()).toBe(true);
+        });
+
+        it('initializes the pitch estimator', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder') {
+                    return makeArtifact({ uri: '/bundle/crepe.pte' });
+                }
+                return makeArtifact({
+                    text: [
+                        'pitch_args:',
+                        '  sample_rate: 16000',
+                        '  frame_samples: 1024',
+                        '  pitch_bins: 360',
+                        '  cents_per_bin: 20',
+                        '  min_frequency_hz: 10',
+                        '  voiced_threshold: 0.6',
+                    ].join('\n'),
+                });
+            });
+
+            await runtime.load('pitch');
+
+            const model = await runtime.getModel('pitch');
+            expect(await model.isReady()).toBe(true);
+        });
+
         it('rejects an unknown capability', async () => {
-            await expect(runtime.load('pitch')).rejects.toThrow(/Unknown model capability/);
+            await expect(runtime.load('telepathy')).rejects.toThrow(UnsupportedCapabilityException);
         });
     });
 

@@ -1,5 +1,6 @@
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
+import { UnsupportedCapabilityException } from '@/Exception';
 import { Downloader } from './Downloader';
 import type { InferenceModel } from './Model';
 
@@ -54,7 +55,9 @@ export class Runtime {
         await this.load(capability);
         const model = this.models.get(capability);
         if (!model) {
-            throw new Error(`Model ${capability} could not be loaded`);
+            throw new UnsupportedCapabilityException(
+                `Model ${capability} could not be loaded after initialization`,
+            );
         }
         return model as T;
     }
@@ -69,8 +72,16 @@ export class Runtime {
                 const { Asr } = await import('./Model/Asr');
                 return new Asr(this.downloader, await this.createExecuTorchRuntime(), this.logger);
             }
+            case 'vad': {
+                const { Vad } = await import('./Model/Vad');
+                return new Vad(this.downloader, await this.createExecuTorchRuntime(), this.logger);
+            }
+            case 'pitch': {
+                const { Pitch } = await import('./Model/Pitch');
+                return new Pitch(this.downloader, await this.createExecuTorchRuntime(), this.logger);
+            }
             default:
-                throw new Error(`Unknown model capability: ${capability}`);
+                throw new UnsupportedCapabilityException(`Unknown model capability: ${capability}`);
         }
     }
 
