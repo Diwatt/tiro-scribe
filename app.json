@@ -28,7 +28,7 @@
       [
         "expo-build-properties",
         {
-          "buildReactNativeFromSource": true,
+          "buildReactNativeFromSource": false,
           "hermesEnabled": true,
           "android": {
             "hermesEnabled": true,
