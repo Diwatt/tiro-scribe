@@ -5,12 +5,22 @@ on:
     branches: [main, dev]
     paths:
       - 'modules/secure-recorder/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'app.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/secure-recorder.yml'
       - '.github/actions/verify-*/**'
   pull_request:
     branches: [main, dev]
     paths:
       - 'modules/secure-recorder/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'app.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/secure-recorder.yml'
       - '.github/actions/verify-*/**'
   workflow_dispatch:
