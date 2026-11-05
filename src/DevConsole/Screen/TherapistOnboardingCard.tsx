@@ -38,7 +38,7 @@ export const TherapistOnboardingCard = ({
     const theme = useTheme<ExtendedTheme>();
 
     return (
-        <Card style={STYLES.card}>
+        <Card>
             <Card.Content>
                 <Text variant="titleSmall" style={{ marginBottom: 8 }}>
                     Dev Therapist Onboarding
@@ -90,9 +90,6 @@ export const TherapistOnboardingCard = ({
 };
 
 const STYLES = StyleSheet.create({
-    card: {
-        marginTop: 16,
-    },
     segmentInput: {
         flex: 1,
     },

@@ -38,7 +38,7 @@ jest.mock('@/DevConsole/Ingest/AudioSegmentExtractor', () => ({
 import { AudioFileEncryptor } from '@/DevConsole/Ingest/AudioFileEncryptor';
 import { SourceIngestException } from '@/DevConsole/Ingest/SourceIngestException';
 import { AudioSegmentExtractor } from '@/DevConsole/Ingest/AudioSegmentExtractor';
-import type { PcmSampleConverter } from '@/DevConsole/Ingest/PcmSampleConverter';
+import type { PcmSampleConverter } from '@/Math';
 import type { FileInfo } from 'expo-file-system/legacy';
 import { getInfoAsync } from 'expo-file-system/legacy';
 import { SecureRecorder } from 'secure-recorder';

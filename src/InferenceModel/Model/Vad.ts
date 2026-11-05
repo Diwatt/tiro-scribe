@@ -12,9 +12,10 @@ import { VadConfig } from './VadConfig';
  * Vad – Silero VAD v5 speech activity detection over a frozen ExecuTorch program.
  *
  * The program is stateful: each call feeds the recurrent state forward and
- * returns the updated state alongside the speech probability. The state lives
- * in this class; reset() must be called when starting a new audio stream so a
- * previous session cannot leak into the next one.
+ * returns the updated state alongside the speech probability. Both the state
+ * and the sliding audio context live in this class; reset() must be called when
+ * starting a new audio stream so a previous session cannot leak into the next
+ * one. The program consumes contextSamples + windowSamples samples per call.
  */
 export class Vad extends AbstractModel implements InferenceModel {
     public static readonly CAPABILITY = 'vad';
@@ -25,6 +26,7 @@ export class Vad extends AbstractModel implements InferenceModel {
 
     private config: VadConfig | null = null;
     private hiddenState: Float32Array = new Float32Array(0);
+    private audioContext: Float32Array = new Float32Array(0);
 
     public constructor(
         downloader: Downloader,
@@ -48,13 +50,22 @@ export class Vad extends AbstractModel implements InferenceModel {
                 );
             }
 
+            const programSamples = config.contextSamples + config.windowSamples;
+            const programInput = new Float32Array(programSamples);
+            programInput.set(this.audioContext, 0);
+            programInput.set(pcmChunk, config.contextSamples);
+
             const stateShape = [Vad.STATE_BATCH, Vad.STATE_BATCHES, config.hiddenSize];
             const outputs = this.bundle.runProgram(Vad.ENCODER_FILE_ROLE, [
-                ExecuTorchRunInput.create(pcmChunk, [1, config.windowSamples]),
+                ExecuTorchRunInput.create(programInput, [1, programSamples]),
                 ExecuTorchRunInput.create(this.hiddenState, stateShape),
             ]);
 
             this.hiddenState = outputs[1];
+            if (config.contextSamples > 0) {
+                this.audioContext = pcmChunk.slice(pcmChunk.length - config.contextSamples);
+            }
+
             return outputs[0][0];
         } catch (error) {
             this.logger.error('[Vad] Inference failed', { error });
@@ -63,11 +74,12 @@ export class Vad extends AbstractModel implements InferenceModel {
     }
 
     /**
-     * Clear the recurrent state before analysing a new audio stream.
+     * Clear the recurrent state and the audio context before analysing a new audio stream.
      */
     public reset(): void {
         const config = this.getConfig();
         this.hiddenState = new Float32Array(Vad.STATE_BATCH * Vad.STATE_BATCHES * config.hiddenSize);
+        this.audioContext = new Float32Array(config.contextSamples);
     }
 
     /**
@@ -85,12 +97,14 @@ export class Vad extends AbstractModel implements InferenceModel {
     protected async loadBundle(): Promise<void> {
         this.config = await this.loadConfig();
         this.hiddenState = new Float32Array(Vad.STATE_BATCH * Vad.STATE_BATCHES * this.config.hiddenSize);
+        this.audioContext = new Float32Array(this.config.contextSamples);
         await this.bundle.loadProgram(Vad.ENCODER_FILE_ROLE);
     }
 
     protected releaseBundle(): void {
         this.config = null;
         this.hiddenState = new Float32Array(0);
+        this.audioContext = new Float32Array(0);
     }
 
     private async loadConfig(): Promise<VadConfig> {

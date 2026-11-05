@@ -1,0 +1,29 @@
+{
+    "name": "mel-spectrogram",
+    "version": "1.0.0",
+    "description": "Native mel spectrogram DSP (normalized log-mel + mel filter bank) over kaldi-native-fbank, built with Nitro",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "source": "src/index.ts",
+    "scripts": {
+        "nitrogen": "nitrogen",
+        "fetch:native-deps": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/FetchNativeDependencies.ts",
+        "prepare": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/FetchNativeDependencies.ts"
+    },
+    "peerDependencies": {
+        "react": "*",
+        "react-native": "*",
+        "react-native-nitro-modules": "*"
+    },
+    "devDependencies": {
+        "nitrogen": "0.37.2"
+    },
+    "files": [
+        "src",
+        "cpp",
+        "android",
+        "nitrogen",
+        "scripts",
+        "*.podspec"
+    ]
+}

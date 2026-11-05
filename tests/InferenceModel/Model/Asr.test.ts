@@ -12,7 +12,9 @@ import type {
 } from '@/InferenceModel/ExecuTorch';
 import type { Downloader } from '@/InferenceModel/Downloader';
 import { ModelArtifact } from '@/InferenceModel/Download/ModelArtifact';
-import { AsrMelSpectrogram } from '@/InferenceModel/Asr';
+import { MelSpectrogram } from '@/InferenceModel/Spectrogram';
+import type { MelSpectrogramExtractorInterface } from '@/InferenceModel/Spectrogram';
+import { PcmSampleConverter } from '@/Math';
 import { AsrException } from '@/Exception';
 import type { AppLogger } from '@/Core/AppLogger';
 import type { File } from 'expo-file-system';
@@ -28,11 +30,11 @@ const FIXED_MEL_FRAMES = 2800;
 const ENCODER_FRAMES = 350;
 const ENCODER_FRAME_SIZE = 640;
 const HIDDEN_STATE_SIZE = 1280;
+const NUM_MELS = 128;
+const MEL_HOP_SAMPLES = 160;
 
 const constantDims = (shape: readonly number[]) => shape.map((value) => ExecuTorchDimension.constant(value));
 const floatTensor = (shape: readonly number[]) => ExecuTorchParameter.tensor('float32', constantDims(shape));
-
-const zeroMelFilters = (): number[][] => Array.from({ length: 128 }, () => new Array<number>(257).fill(0));
 
 const makeSignal = (sampleCount: number): Float32Array => {
     const samples = new Float32Array(sampleCount);
@@ -103,7 +105,7 @@ class FakeBackend implements ExecuTorchBackend {
 const makeEncoderModel = (onInput: (data: Float32Array) => void, onDispose: () => void): ExecuTorchProgram =>
     new ExecuTorchProgram(
         '/bundle/encoder.pte',
-        new Map([['forward', [floatTensor([ENCODER_FRAMES, ENCODER_FRAME_SIZE])]]]),
+        new Map([['forward', [floatTensor([1, ENCODER_FRAMES, ENCODER_FRAME_SIZE])]]]),
         (_methodName: string, inputs: readonly ExecuTorchTensor[], outputTensors: readonly ExecuTorchTensor[]) => {
             onInput((inputs[0] as FakeTensor).data as Float32Array);
             (outputTensors[0] as FakeTensor).setData(new Float32Array(ENCODER_FRAMES * ENCODER_FRAME_SIZE));
@@ -154,15 +156,35 @@ const makeJointModel = (onDispose: () => void): ExecuTorchProgram => {
 const makeArtifact = (text: string | null, uri = '/bundle/artifact'): ModelArtifact =>
     new ModelArtifact({ exists: text != null, text: async () => text ?? '' } as unknown as File, uri);
 
+/**
+ * Mirrors the native front-end frame semantics validated by SpectrogramParity:
+ * one frame per hop plus a leading frame, deterministic non-zero values.
+ */
+const makeSpectrogram = (pcm16SampleCount: number): MelSpectrogram => {
+    const frameCount = Math.floor(pcm16SampleCount / MEL_HOP_SAMPLES) + 1;
+    const values = new Float32Array(frameCount * NUM_MELS);
+    for (let index = 0; index < values.length; index += 1) {
+        values[index] = (index % 251) / 251;
+    }
+
+    return MelSpectrogram.create(values, NUM_MELS);
+};
+
+const createExtractor = (): MelSpectrogramExtractorInterface => ({
+    extractLogMelSpectrogram: jest.fn(async (pcm16Samples: Int16Array) => makeSpectrogram(pcm16Samples.length)),
+    extractMelFilterBank: jest.fn(),
+});
+
 interface RecognizerHarness {
     readonly recognizer: Asr;
+    readonly extractor: MelSpectrogramExtractorInterface;
     readonly backend: FakeBackend;
     readonly downloader: { ensureDownloaded: jest.Mock; getArtifact: jest.Mock };
     readonly encoderInputs: Float32Array[];
     readonly disposedPaths: string[];
 }
 
-const createHarness = (artifacts: { tokenizerText?: string | null; melFiltersText?: string | null } = {}): RecognizerHarness => {
+const createHarness = (artifacts: { tokenizerText?: string | null } = {}): RecognizerHarness => {
     const encoderInputs: Float32Array[] = [];
     const disposedPaths: string[] = [];
     const trackDispose = (path: string): void => {
@@ -174,7 +196,6 @@ const createHarness = (artifacts: { tokenizerText?: string | null; melFiltersTex
     backend.models.set('/bundle/joint.pte', makeJointModel(() => trackDispose('/bundle/joint.pte')));
 
     const tokenizerText = artifacts.tokenizerText === undefined ? JSON.stringify(VOCABULARY_PIECES) : artifacts.tokenizerText;
-    const melFiltersText = artifacts.melFiltersText === undefined ? JSON.stringify({ rows: 128, cols: 257, data: zeroMelFilters() }) : artifacts.melFiltersText;
 
     const downloader = {
         ensureDownloaded: jest.fn().mockResolvedValue({ config: { capability: 'asr' } }),
@@ -182,21 +203,21 @@ const createHarness = (artifacts: { tokenizerText?: string | null; melFiltersTex
             if (role === 'tokenizer') {
                 return makeArtifact(tokenizerText);
             }
-            if (role === 'mel_filters') {
-                return makeArtifact(melFiltersText);
-            }
             return makeArtifact(null, `/bundle/${role}.pte`);
         }),
     };
 
     const logger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as unknown as AppLogger;
+    const extractor = createExtractor();
     const recognizer = new Asr(
         downloader as unknown as Downloader,
         new ExecuTorchRuntime(backend),
         logger,
+        extractor,
+        new PcmSampleConverter(),
     );
 
-    return { recognizer, backend, downloader, encoderInputs, disposedPaths };
+    return { recognizer, extractor, backend, downloader, encoderInputs, disposedPaths };
 };
 
 describe('Asr', () => {
@@ -209,7 +230,19 @@ describe('Asr', () => {
         expect(text).toBe('Atomes et matière.');
     });
 
-    it('pads the mel spectrogram to the frozen encoder frame count', async () => {
+    it('runs the audio through the native front-end before the encoder', async () => {
+        const { recognizer, extractor } = createHarness();
+        await recognizer.initialize();
+
+        await recognizer.run(makeSignal(16000));
+
+        expect(extractor.extractLogMelSpectrogram).toHaveBeenCalledTimes(1);
+        const [pcm16] = (extractor.extractLogMelSpectrogram as jest.Mock).mock.calls[0];
+        expect(pcm16).toBeInstanceOf(Int16Array);
+        expect(pcm16.length).toBe(16000);
+    });
+
+    it('pads the native spectrogram to the frozen encoder frame count', async () => {
         const { recognizer, encoderInputs } = createHarness();
         await recognizer.initialize();
 
@@ -221,7 +254,7 @@ describe('Asr', () => {
         expect(Array.from(tail).every((value) => value === 0)).toBe(true);
     });
 
-    it('truncates mel frames beyond the frozen encoder window', async () => {
+    it('truncates native spectrogram frames beyond the frozen encoder window', async () => {
         const { recognizer, encoderInputs } = createHarness();
         await recognizer.initialize();
         const signal = makeSignal(16000 * 30);
@@ -230,9 +263,8 @@ describe('Asr', () => {
 
         const input = encoderInputs[0];
         expect(input.length).toBe(FIXED_MEL_FRAMES * 128);
-        const spectrogram = AsrMelSpectrogram.create(zeroMelFilters());
-        const mel = spectrogram.compute(signal);
-        expect(Array.from(input.slice(0, 128))).toEqual(Array.from(mel.slice(0, 128)));
+        const expectedFirstRow = Float32Array.from({ length: 128 }, (_, index) => (index % 251) / 251);
+        expect(input.slice(0, 128)).toEqual(expectedFirstRow);
     });
 
     it('rejects run before initialize', async () => {
@@ -245,12 +277,6 @@ describe('Asr', () => {
         const { recognizer } = createHarness({ tokenizerText: null });
 
         await expect(recognizer.initialize()).rejects.toThrow(/vocabulary/i);
-    });
-
-    it('rejects initialize when the mel filters artifact is missing', async () => {
-        const { recognizer } = createHarness({ melFiltersText: null });
-
-        await expect(recognizer.initialize()).rejects.toThrow(/mel filters/i);
     });
 
     it('initializes only once on repeated calls', async () => {

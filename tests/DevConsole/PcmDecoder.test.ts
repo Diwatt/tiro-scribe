@@ -7,7 +7,7 @@ jest.mock('@/Core/Container', () => ({
 
 import { AppLogger } from '@/Core/AppLogger';
 import { PcmDecoder } from '@/DevConsole/Ingest/PcmDecoder';
-import { PcmSampleConverter } from '@/DevConsole/Ingest/PcmSampleConverter';
+import { PcmSampleConverter } from '@/Math';
 import { SourceIngestException } from '@/DevConsole/Ingest/SourceIngestException';
 
 const createLogger = (): AppLogger =>

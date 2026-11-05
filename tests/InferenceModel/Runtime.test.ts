@@ -99,6 +99,33 @@ describe('Runtime', () => {
             expect(await model.isReady()).toBe(true);
         });
 
+        it('retries initialization on the next load after a failed attempt', async () => {
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder' || role === 'decoder' || role === 'joint') {
+                    return makeArtifact({ uri: '/bundle/program.pte' });
+                }
+                return makeArtifact({ text: null });
+            });
+
+            await expect(runtime.load('asr')).rejects.toThrow();
+
+            mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
+                if (role === 'encoder' || role === 'decoder' || role === 'joint') {
+                    return makeArtifact({ uri: '/bundle/program.pte' });
+                }
+                const text =
+                    role === 'tokenizer'
+                        ? JSON.stringify(Array.from({ length: 16 }, (_, index) => `piece_${index}`))
+                        : JSON.stringify({ rows: 128, cols: 257, data: Array.from({ length: 128 }, () => new Array<number>(257).fill(0)) });
+                return makeArtifact({ text });
+            });
+
+            await runtime.load('asr');
+
+            const model = await runtime.getModel('asr');
+            expect(await model.isReady()).toBe(true);
+        });
+
         it('initializes each model only once', async () => {
             mockDownloader.getArtifact.mockImplementation(async (_capability: string, role: string) => {
                 if (role === 'encoder' || role === 'decoder' || role === 'joint') {

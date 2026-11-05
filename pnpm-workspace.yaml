@@ -16,18 +16,20 @@ allowBuilds:
   esbuild: true
   msw: true
   "@nestjs/core": true
-  "@openapitools/openapi-generator-cli": true
   "@parcel/watcher": true
   unrs-resolver: true
   react-native-executorch: true
+  node-pty: true
+  tree-sitter: true
+  tree-sitter-javascript: true
+  tree-sitter-typescript: true
+  "@fails-components/webtransport-transport-http3-quiche": true
 
 overrides:
-  react: "19.3.0"
-  react-dom: "19.3.0"
-  react-test-renderer: "19.3.0"
+  react: "19.3.1"
+  react-dom: "19.3.1"
 
 patchedDependencies:
-  '@mikro-orm/core@7.2.5': patches/@mikro-orm__core@7.2.5.patch
-  '@mikro-orm/sql@7.2.5': patches/@mikro-orm__sql@7.2.5.patch
-  '@react-native/babel-preset@0.85.3': patches/@react-native__babel-preset@0.85.3.patch
-  react-native-blob-util@0.25.1: patches/react-native-blob-util@0.25.1.patch
+  '@mikro-orm/core@7.2.7': patches/@mikro-orm__core@7.2.7.patch
+  '@mikro-orm/sql@7.2.7': patches/@mikro-orm__sql@7.2.7.patch
+  'react-native-blob-util@0.25.1': patches/react-native-blob-util@0.25.1.patch

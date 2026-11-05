@@ -3,12 +3,12 @@ PODS:
     - ReactNativeDependencies
   - DoubleConversion (1.1.6):
     - ReactNativeDependencies
-  - EXConstants (58.0.13):
+  - EXConstants (58.0.15):
     - ExpoModulesCore
   - EXJSONUtils (58.0.1)
   - EXManifests (58.0.1):
     - ExpoModulesCore
-  - Expo (58.0.19):
+  - Expo (58.0.23):
     - ExpoModulesCore
     - ExpoModulesJSI
     - hermes-engine
@@ -35,13 +35,13 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-client (58.0.15):
+  - expo-dev-client (58.0.18):
     - EXManifests
     - expo-dev-launcher
     - expo-dev-menu
     - expo-dev-menu-interface
     - EXUpdatesInterface
-  - expo-dev-launcher (58.0.15):
+  - expo-dev-launcher (58.0.18):
     - EXManifests
     - expo-dev-menu
     - expo-dev-menu-interface
@@ -72,8 +72,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - expo-dev-menu (58.0.11):
-    - expo-dev-menu/Main (= 58.0.11)
+  - expo-dev-menu (58.0.12):
+    - expo-dev-menu/Main (= 58.0.12)
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -97,7 +97,7 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - expo-dev-menu-interface (58.0.1)
-  - expo-dev-menu/Main (58.0.11):
+  - expo-dev-menu/Main (58.0.12):
     - EXManifests
     - expo-dev-menu-interface
     - ExpoModulesCore
@@ -125,9 +125,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoAsset (58.0.18):
+  - ExpoAsset (58.0.20):
     - ExpoModulesCore
-  - ExpoAudio (58.0.10):
+  - ExpoAudio (58.0.11):
     - ExpoModulesCore
   - ExpoClipboard (58.0.4):
     - ExpoModulesCore
@@ -137,21 +137,21 @@ PODS:
     - ExpoModulesCore
   - ExpoDomWebView (58.0.2):
     - ExpoModulesCore
-  - ExpoFileSystem (58.0.11):
+  - ExpoFileSystem (58.0.13):
     - ExpoModulesCore
-  - ExpoFont (58.0.10):
+  - ExpoFont (58.0.11):
     - ExpoModulesCore
   - ExpoGlassEffect (58.0.5):
     - ExpoModulesCore
   - ExpoKeepAwake (58.0.3):
     - ExpoModulesCore
-  - ExpoLinking (58.0.14):
+  - ExpoLinking (58.0.16):
     - ExpoModulesCore
   - ExpoLocalization (58.0.5):
     - ExpoModulesCore
-  - ExpoLogBox (58.0.13):
+  - ExpoLogBox (58.0.15):
     - React-Core
-  - ExpoModulesCore (58.0.26):
+  - ExpoModulesCore (58.0.30):
     - ExpoModulesJSI
     - hermes-engine
     - RCTRequired
@@ -176,31 +176,31 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoModulesJSI (58.0.19):
+  - ExpoModulesJSI (58.0.22):
     - React-Core
     - ReactCommon
-  - ExpoModulesWorklets (58.0.26):
+  - ExpoModulesWorklets (58.0.30):
     - ExpoModulesCore
     - ExpoModulesJSI
-  - ExpoModulesWorkletsAdapter (58.0.26):
+  - ExpoModulesWorkletsAdapter (58.0.30):
     - ExpoModulesCore
     - ExpoModulesJSI
     - ExpoModulesWorklets
     - RNWorklets
   - ExpoNetwork (58.0.4):
     - ExpoModulesCore
-  - ExpoPrint (58.0.7):
+  - ExpoPrint (58.0.8):
     - ExpoModulesCore
-  - ExpoRouter (58.0.26):
+  - ExpoRouter (58.0.30):
     - ExpoModulesCore
     - RNScreens
   - ExpoSecureStore (58.0.2):
     - ExpoModulesCore
-  - ExpoSharing (58.0.20):
+  - ExpoSharing (58.0.22):
     - ExpoModulesCore
-  - ExpoSplashScreen (58.0.11):
+  - ExpoSplashScreen (58.0.13):
     - ExpoModulesCore
-  - ExpoSQLite (58.0.14):
+  - ExpoSQLite (58.0.15):
     - ExpoModulesCore
   - ExpoStatusBar (58.0.4):
     - ExpoModulesCore
@@ -217,7 +217,31 @@ PODS:
   - hermes-engine (260318099.0.4):
     - hermes-engine/Pre-built (= 260318099.0.4)
   - hermes-engine/Pre-built (260318099.0.4)
-  - NitroModules (0.37.1):
+  - MelSpectrogram (1.0.0):
+    - hermes-engine
+    - NitroModules
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-cxxstableapi
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - NitroModules (0.37.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2385,7 +2409,7 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - RNScreens (4.30.0):
+  - RNScreens (4.30.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2408,9 +2432,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNScreens/common (= 4.30.0)
+    - RNScreens/common (= 4.30.1)
     - Yoga
-  - RNScreens/common (4.30.0):
+  - RNScreens/common (4.30.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2481,7 +2505,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets (0.13.0):
+  - RNWorklets (0.13.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2504,10 +2528,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/apple (= 0.13.0)
-    - RNWorklets/common (= 0.13.0)
+    - RNWorklets/apple (= 0.13.1)
+    - RNWorklets/common (= 0.13.1)
     - Yoga
-  - RNWorklets/apple (0.13.0):
+  - RNWorklets/apple (0.13.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2531,7 +2555,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets/common (0.13.0):
+  - RNWorklets/common (0.13.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2604,6 +2628,7 @@ DEPENDENCIES:
   - fmt (from `build/rndeps-facades/fmt`)
   - glog (from `build/rndeps-facades/glog`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - MelSpectrogram (from `../modules/mel-spectrogram`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - QuickCrypto (from `../node_modules/react-native-quick-crypto`)
   - RCT-Folly (from `build/rndeps-facades/RCT-Folly`)
@@ -2792,6 +2817,8 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v260318099.0.2
+  MelSpectrogram:
+    :path: "../modules/mel-spectrogram"
   NitroModules:
     :path: "../node_modules/react-native-nitro-modules"
   QuickCrypto:
@@ -2992,38 +3019,38 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   boost: 8502bfdc46e2804408af2e163049ece181009af4
   DoubleConversion: 501a575c40c0b50c89685762dd3e415e6bb26fb0
-  EXConstants: e90e362a4ffafaa03999f456bf81d7fb8021db9d
+  EXConstants: c1eb9dab7494834d85aa347165da9718cdfc21a6
   EXJSONUtils: d59bf6b18639752631a81818559b2675a46f99e2
   EXManifests: b0b83ad894166f7e080b18814c5e73aed46e366e
-  Expo: 6b9af29d697c41a023a6141f3123ae30bc650061
-  expo-dev-client: 630c10eb8c9a46f367b85158a8ed0baf8f82e196
-  expo-dev-launcher: 3ac904f435416eee36b1d6f29c0f55e4bfa67ba2
-  expo-dev-menu: 30871bb3aec457b0e21b0b26520134e997815557
+  Expo: f1442bfd3a128cb67832bac5fcc38e1900e94fdc
+  expo-dev-client: 7867f29321058ee54984eb78da7e18afc4366e88
+  expo-dev-launcher: d87869db0c6bdf21397d3f8ed0c6d28ea98a7ad9
+  expo-dev-menu: 11aa00e4fd73fa1ba132a6fdb1ae43ab35dda694
   expo-dev-menu-interface: d304e400271187edf1534704a4a05dcc140076e2
-  ExpoAsset: 9548991f0332bd8ed8819299e0b413d713104a1a
-  ExpoAudio: 7f919daf0ebf1b0e1cf8b7464b7c85be6664a412
+  ExpoAsset: c080026976ef8f00dca12c4958c658b2ebd4d4e0
+  ExpoAudio: 3320c6e180bc5db81ac1a8440d9925ba51b8439d
   ExpoClipboard: 244adf0a38b60ec7105e217042dd266a722f5a5e
   ExpoCrypto: 33ede543a3747abbef071c3bd747135ccc4e4fd5
   ExpoDevice: 77a9816436a09a0bfc00f5ace649c6ccb219b96d
   ExpoDomWebView: b2a6d681b9d34c23b1f584321386ca8da1d36afb
-  ExpoFileSystem: b35d87e5219408a4052ee5adde99962d014efb09
-  ExpoFont: b215bc738b2e3fba7ffed79903a6fccf66959dd0
+  ExpoFileSystem: b619d80b490c53117a9a9c976021a4ce5a9da440
+  ExpoFont: 77eaad26c6a7ef6be8d431963358def09d8e3a73
   ExpoGlassEffect: 6594e055df1e0b88d34cc189ba0b21589adec6bf
   ExpoKeepAwake: fd18a5d233329013c578030ad399d8e10b252b5f
-  ExpoLinking: 0937be9faa1580dee244062cc4c5a77732dc2c4d
+  ExpoLinking: 5d3b9857e4bc4200df3ae9279795440cbb3c4b24
   ExpoLocalization: ed930f5d68e7b3c2073a04787358839e1a8e1680
-  ExpoLogBox: 624d64042d73abe0dc230a24b1a9f835adb2cec9
-  ExpoModulesCore: 39fe5e0f4530e4b63729ee62225d93036ee86094
-  ExpoModulesJSI: 87b753f5491b015cb4abb3fed25f65b516d58d1d
-  ExpoModulesWorklets: 208e6112a0467df1cc21530e280d650a3adf6261
-  ExpoModulesWorkletsAdapter: 08c24eb3a4d547f1047057158de7b817873d70ca
+  ExpoLogBox: 9bfba7bb99c806b678703e6c62323f3c4785e706
+  ExpoModulesCore: bcda369ec5daee1e4768bc0b18f75a374a5f45c6
+  ExpoModulesJSI: 68a068c5214c88982f236bb26dd44fa004f10f35
+  ExpoModulesWorklets: 25684e76e7b886dd31bf4538c3fd657bf07a694b
+  ExpoModulesWorkletsAdapter: 39a95a62785e53476830a21d21444404ebb74659
   ExpoNetwork: a42e5fe6c3c70f517b0aad167f5a3eeec2fee7a4
-  ExpoPrint: e6103f99d8bfdcdc9fe4513b3c37e31b5c8cb7a9
-  ExpoRouter: c5f712d2c761df71f8c9a42739f6ecae38ba8315
+  ExpoPrint: 7f172d97269b3f900864356f2ed4e444c771e22a
+  ExpoRouter: 02792d7e25c9095634a56c5b7256556674411212
   ExpoSecureStore: 64e1fe78b5b0a1edb61beff044bb2cad03084f9c
-  ExpoSharing: 3287d1b7e0382c59f346df0c0b80da9acb899cb1
-  ExpoSplashScreen: 4a16996856aeceb61b1c253c5fc9b43208705fa5
-  ExpoSQLite: e36e471b931a62bae175a55fb659e2519df9a740
+  ExpoSharing: b56e856322e1ebf08d943998f42968fe59a67c7e
+  ExpoSplashScreen: 6acdd0b6a179e5d834398d5ed29da633113d32c4
+  ExpoSQLite: 580284867126f45f25a5a70a06a84df9664d3786
   ExpoStatusBar: 56aa9746e1bee4d8adbab12f4d7efc97000ac49f
   EXUpdatesInterface: 1c6a522d0eb0485f4de3fa55d0316288763b3f10
   fast_float: 7c925d1cebf8328d4018d061f49377e9f887e3b4
@@ -3031,7 +3058,8 @@ SPEC CHECKSUMS:
   fmt: ba0886e864ebb21d14c98b2e12e164b8002f5b93
   glog: 3cf7cb46f743c4bc758ae3e6d9c15bd1b4cfd6d4
   hermes-engine: a1158910bb7e300b9e3d2f1e2d433f817ec1a4b5
-  NitroModules: 92c2f230ec822ce8be72c8330fe292cdcf24e3a4
+  MelSpectrogram: 1cb36dce6907fd2ab875f4e3f4039498cb4c3041
+  NitroModules: 7bf29af7ff79c45abd39262df30a18b23dd5b04a
   opencv-rne: 2305807573b6e29c8c87e3416ab096d09047a7a0
   QuickCrypto: 0c876d5c8809264946107e01fe08a19a1e9e7351
   RCT-Folly: 82921e585c0400eda46fac1068297aa9dfb035e4
@@ -3124,10 +3152,10 @@ SPEC CHECKSUMS:
   RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNGestureHandler: ddbdf3f293a498368803f8181ff157271ac05c48
   RNReanimated: 5c641cc430b7255eae87c8039204eb0f816ea1b8
-  RNScreens: 33e0b4ed8fb203b1df7618cd49aa9b388d2b7f9b
+  RNScreens: e4c2c2aa9576604868c0b250096c295a487e1d9e
   RNSVG: c3f9498aa208ae99a217dd3d698251677b224890
-  RNWorklets: 488806637a21eb17812a48dadca7cb8c698c8cfd
-  SecureRecorder: a5685e1458d343291e21a9f0c57bb01368fcaa21
+  RNWorklets: c05b04d721cccc1d44182425cd09efeddb6b1bbe
+  SecureRecorder: cb5da2ca2bdb0ebf0105727d11afd29fcc193acf
   SocketRocket: 37aec555668fb852ec12e3c0de59a86ca58f0871
   Yoga: d1c536142c5ff8ec8cd856ab2a7c227a1d875c8e
 

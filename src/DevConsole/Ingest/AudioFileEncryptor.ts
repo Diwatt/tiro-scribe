@@ -6,8 +6,8 @@ import { Container } from '@/Core/Container';
 import { AudioIngest } from '../Data/AudioIngest';
 import { SourceFile } from '../Data/SourceFile';
 import { AudioSegmentExtractor } from './AudioSegmentExtractor';
-import { PcmSampleConverter } from './PcmSampleConverter';
 import { SourceIngestException } from './SourceIngestException';
+import { PcmSampleConverter } from '@/Math';
 
 /**
  * AudioFileEncryptor – Encrypts raw audio files into the app's native format.

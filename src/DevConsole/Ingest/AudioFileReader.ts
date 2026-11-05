@@ -9,10 +9,19 @@ import { Container } from '@/Core/Container';
  * DEV ONLY. Not for production use.
  */
 export class AudioFileReader {
+    private static readonly FILE_SCHEME = 'file://';
+
     public async readBytes(path: string): Promise<Uint8Array> {
-        const base64 = await readAsStringAsync(path, { encoding: EncodingType.Base64 });
+        const uri = path.startsWith(AudioFileReader.FILE_SCHEME) ? path : `${AudioFileReader.FILE_SCHEME}${path}`;
+        const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
         const bytes = Buffer.from(base64, 'base64');
         return new Uint8Array(bytes);
+    }
+
+    public async readText(path: string): Promise<string> {
+        const uri = path.startsWith(AudioFileReader.FILE_SCHEME) ? path : `${AudioFileReader.FILE_SCHEME}${path}`;
+
+        return readAsStringAsync(uri, { encoding: EncodingType.UTF8 });
     }
 }
 

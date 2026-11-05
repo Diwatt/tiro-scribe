@@ -1,4 +1,4 @@
-export { WhisperRunnerFactory } from './Benchmark/WhisperRunnerFactory';
+export { ParakeetRunnerFactory } from './Benchmark/ParakeetRunnerFactory';
 export { AudioFileEntry } from './Data/AudioFileEntry';
 export { AudioIngest } from './Data/AudioIngest';
 export { AudioNotification } from './Data/AudioNotification';
@@ -17,7 +17,6 @@ export { AudioResampler } from './Ingest/AudioResampler';
 export { AudioScanner } from './Ingest/AudioScanner';
 export { AudioSegmentExtractor } from './Ingest/AudioSegmentExtractor';
 export { PcmDecoder } from './Ingest/PcmDecoder';
-export { PcmSampleConverter } from './Ingest/PcmSampleConverter';
 export { SourceIngestException } from './Ingest/SourceIngestException';
 export { WavHeader } from './Ingest/WavHeader';
 export { AudioScreen } from './Screen/AudioScreen';

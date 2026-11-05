@@ -1,6 +1,7 @@
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { UnsupportedCapabilityException } from '@/Exception';
+import { PcmSampleConverter } from '@/Math';
 import { Downloader } from './Downloader';
 import type { InferenceModel } from './Model';
 
@@ -46,8 +47,10 @@ export class Runtime {
     public async load(capability: string): Promise<void> {
         if (!this.models.has(capability)) {
             const model = await this.createModel(capability);
-            this.models.set(capability, model);
+            // Initialize before caching: a failed initialization must not brick
+            // the capability — the next load retries with a fresh instance.
             await model.initialize();
+            this.models.set(capability, model);
         }
     }
 
@@ -70,7 +73,15 @@ export class Runtime {
             }
             case 'asr': {
                 const { Asr } = await import('./Model/Asr');
-                return new Asr(this.downloader, await this.createExecuTorchRuntime(), this.logger);
+                const { MelSpectrogramExtractor } = await import('./Spectrogram');
+
+                return new Asr(
+                    this.downloader,
+                    await this.createExecuTorchRuntime(),
+                    this.logger,
+                    Container.get(MelSpectrogramExtractor),
+                    Container.get(PcmSampleConverter),
+                );
             }
             case 'vad': {
                 const { Vad } = await import('./Model/Vad');

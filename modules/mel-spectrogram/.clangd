@@ -1,0 +1,4 @@
+# Silence clang-tidy noise that doesn't reflect build health in this vendored-code module.
+Diagnostics:
+  ClangTidy:
+    Remove: misc-include-cleaner

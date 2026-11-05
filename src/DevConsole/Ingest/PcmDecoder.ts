@@ -1,9 +1,9 @@
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { AudioResampler } from './AudioResampler';
-import { PcmSampleConverter } from './PcmSampleConverter';
 import { SourceIngestException } from './SourceIngestException';
 import { WavHeader } from './WavHeader';
+import { PcmSampleConverter } from '@/Math';
 
 /**
  * PcmDecoder – Detects the audio byte format (WAV or raw PCM), validates it

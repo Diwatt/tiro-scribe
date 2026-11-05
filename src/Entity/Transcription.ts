@@ -27,7 +27,7 @@ const TranscriptionSchema = defineEntity({
     properties: {
         uuid: p.uuid().length(36).primary().onCreate(() => uuidv4()),
         encounterId: p.manyToOne(Encounter).deleteRule('cascade').mapToPk(),
-        /** ASR model name (e.g. whisper-small-en). */
+        /** ASR model name (e.g. parakeet-tdt-0.6b-v3-int8). */
         modelName: p.string().length(64).default(''),
         /** ASR model version (e.g. 3.1). */
         modelVersion: p.string().length(16).default(''),

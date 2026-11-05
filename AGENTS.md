@@ -36,9 +36,21 @@ You have access to MCP servers. Use them proactively:
 Argent MCP is installed (global `@swmansion/argent`) and exposes live device tools: `list-devices`, `boot-device`, `launch-app`, `describe`, `screenshot`, `gesture-tap`, `gesture-swipe`, `keyboard`, `await-ui-element`, plus `debugger-*` (Metro/React tree, logs), `view-network-logs` and the `react-profiler-*` / `native-profiler-*` suites.
 
 - **Skills first:** detailed guides live in `.agents/skills/argent-*` (setup, device interaction, iOS, TV, e2e, profiling, screenshot diff). Read the matching skill before any device interaction
-- **Boot through Argent:** start devices with `boot-device` (AVD: `Pixel_7`), never manually — a manually booted emulator is invisible to Argent. Android package: `com.tiroscribe.app`
+- **Boot through Argent:** start devices with `boot-device` (AVD: `Pixel_8` — profile `pixel_8` factory settings plus `hw.ramSize=4096` (MB, no suffix — a `4G` value is silently ignored), `disk.dataPartition.size=12G`, `hw.gpu.enabled=yes`), never manually — a manually booted emulator is invisible to Argent. Android package: `com.tiroscribe.app`. A 2 GB AVD gets the ASR bundle killed by lmkd right after model load — keep 4 GB
 - **UX/UI debugging loop:** the user names a screen → agent navigates itself (`launch-app`, `gesture-tap`), captures evidence (`screenshot` + `describe` accessibility tree with tap coordinates), and audits against Material Design 3, touch targets (48dp), and contrast — cross-referencing `Screen/`, `State/` and `theme/` source code
 - The Android 16 KB compatibility dialog at launch is dev-only; dismiss it ("Don't Show Again")
+
+### Build & Memory Guardrails (critical)
+
+The dev Mac (24 GB) has hard-frozen when a native build, the Android emulator, Metro and ASR fixtures ran at once. Heavy work is serialized by `scripts/HeavyTask.ts` (one task at a time, waits for free memory) and `scripts/AndroidDev.ts` (build → emulator → Metro, in sequence).
+
+- **Use the pnpm scripts, never the raw tools:** `pnpm android:dev`, `pnpm ios:dev`, or `pnpm heavy <name> <minFreePercent> <command...>` for anything else heavy. Never run `expo run:*`, `gradlew`, `xcodebuild`, `pod install` or extraction of `fixtures-local/` archives (`tar`, `bsdtar`) directly
+- **Never run two heavy tasks in parallel,** not even from separate agents or background shells. Wait for the previous one to finish
+- **Thresholds:** native build ≥ 40 % free memory, emulator boot ≥ 35 %, Metro/install ≥ 30 %. Check with `memory_pressure` before anything not wrapped by `HeavyTask`
+- **Emulator via Argent:** `boot-device` is not wrapped by the guard. Before calling it, check that free memory is ≥ 35 % and that no `HeavyTask` is running (`$TMPDIR/tiro-heavy.lock` absent). `pnpm android:dev` refuses to start while an emulator is running, so use `pnpm start` for Metro only once Argent has booted one
+- **Android ABI:** only `arm64-v8a` is built (Pixel 8 / Apple Silicon emulator). Do not widen `buildArchs` or `reactNativeArchitectures` without asking
+- **Never run `pnpm prebuild`, `prebuild:clean`, `clean:native` or `android:fresh` / `ios:fresh` without an explicit request:** `android/` and `ios/` are versioned and would be overwritten
+- If a guarded script aborts for lack of memory, report the top consumers it prints and ask the user. Do not retry in a loop or bypass the guard
 
 ### Native Coding Style (Swift/Kotlin)
 

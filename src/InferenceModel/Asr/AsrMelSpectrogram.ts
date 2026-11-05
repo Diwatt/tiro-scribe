@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { AsrException } from '@/Exception';
 import { FftTransformer } from '@/Math';
 import { MelNormalizer } from './MelNormalizer';
@@ -18,6 +19,11 @@ export class AsrMelSpectrogram {
     public static readonly PREEMPHASIS = 0.97;
     public static readonly EPSILON = 1e-5;
     public static readonly LOG_GUARD = 2 ** -24;
+    public static readonly FILTERS_SCHEMA = z.object({
+        rows: z.number().int(),
+        cols: z.number().int(),
+        data: z.array(z.array(z.number())),
+    });
 
     private readonly melFilters: readonly (readonly number[])[];
     private readonly numFrequencyBins: number;

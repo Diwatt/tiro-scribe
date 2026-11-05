@@ -5,7 +5,7 @@ jest.mock('@/Core/Container', () => ({
     },
 }));
 
-import { PcmSampleConverter } from '@/DevConsole/Ingest/PcmSampleConverter';
+import { PcmSampleConverter } from '@/Math';
 
 describe('PcmSampleConverter', () => {
     let converter: PcmSampleConverter;

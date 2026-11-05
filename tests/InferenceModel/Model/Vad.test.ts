@@ -14,7 +14,16 @@ vad_args:
   hidden_size: 128
 `;
 
+const CONFIG_YAML_WITH_CONTEXT = `
+vad_args:
+  sample_rate: 16000
+  window_samples: 512
+  context_samples: 64
+  hidden_size: 128
+`;
+
 const WINDOW_SAMPLES = 512;
+const CONTEXT_SAMPLES = 64;
 const HIDDEN_SIZE = 128;
 const STATE_SIZE = 2 * HIDDEN_SIZE;
 const SPEECH_PROBABILITY = 0.87;
@@ -156,6 +165,56 @@ describe('Vad', () => {
             const { vad } = createHarness();
 
             await expect(vad.run(new Float32Array(WINDOW_SAMPLES))).rejects.toThrow(VadException);
+        });
+    });
+
+    describe('run with sliding audio context', () => {
+        const createRunningVad = async (): Promise<Harness> => {
+            const harness = createHarness({ configText: CONFIG_YAML_WITH_CONTEXT });
+            await harness.vad.initialize();
+            return harness;
+        };
+
+        it('feeds zero context followed by the window on the first call', async () => {
+            const { vad, executorch } = await createRunningVad();
+            const chunk = new Float32Array(WINDOW_SAMPLES).fill(0.25);
+
+            await vad.run(chunk);
+
+            const [, runInputs] = executorch.run.mock.calls[0] as unknown as [ExecuTorchProgram, ExecuTorchRunInput[]];
+            expect(runInputs[0].shape).toEqual([1, CONTEXT_SAMPLES + WINDOW_SAMPLES]);
+            const programData = runInputs[0].data as Float32Array;
+            expect(Array.from(programData.subarray(0, CONTEXT_SAMPLES))).toEqual(new Array(CONTEXT_SAMPLES).fill(0));
+            expect(Array.from(programData.subarray(CONTEXT_SAMPLES))).toEqual(Array.from(chunk));
+        });
+
+        it('slides the tail of the previous window into the next call', async () => {
+            const { vad, executorch } = await createRunningVad();
+            const firstChunk = new Float32Array(WINDOW_SAMPLES).fill(0.25);
+            await vad.run(firstChunk);
+
+            const secondChunk = new Float32Array(WINDOW_SAMPLES).fill(0.75);
+            await vad.run(secondChunk);
+
+            const secondInputs = executorch.run.mock.calls[1][1] as ExecuTorchRunInput[];
+            const programData = secondInputs[0].data as Float32Array;
+            const expectedTail = firstChunk.slice(WINDOW_SAMPLES - CONTEXT_SAMPLES);
+            expect(Array.from(programData.subarray(0, CONTEXT_SAMPLES))).toEqual(Array.from(expectedTail));
+            expect(Array.from(programData.subarray(CONTEXT_SAMPLES))).toEqual(Array.from(secondChunk));
+        });
+
+        it('starts the next window from zero context after reset', async () => {
+            const { vad, executorch } = await createRunningVad();
+            await vad.run(new Float32Array(WINDOW_SAMPLES).fill(0.25));
+            vad.reset();
+
+            const chunk = new Float32Array(WINDOW_SAMPLES).fill(0.5);
+            await vad.run(chunk);
+
+            const resetInputs = executorch.run.mock.calls[1][1] as ExecuTorchRunInput[];
+            const programData = resetInputs[0].data as Float32Array;
+            expect(Array.from(programData.subarray(0, CONTEXT_SAMPLES))).toEqual(new Array(CONTEXT_SAMPLES).fill(0));
+            expect(Array.from(programData.subarray(CONTEXT_SAMPLES))).toEqual(Array.from(chunk));
         });
     });
 

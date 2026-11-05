@@ -1,22 +1,31 @@
 import { observer } from '@legendapp/state/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, IconButton, Snackbar, Surface, Text, useTheme } from 'react-native-paper';
 import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { AudioState } from '../State/AudioState';
 import { SpeechToTextBenchmark } from '../State/SpeechToTextBenchmark';
+import { VadPitchSmoke } from '../State/VadPitchSmoke';
+import { SpectrogramBench } from '../State/SpectrogramBench';
+import { SpectrogramParity } from '../State/SpectrogramParity';
 import { AsrBenchmarkCard } from './AsrBenchmarkCard';
 import { AudioFilesCard } from './AudioFilesCard';
 import { SourceDirectoryCard } from './SourceDirectoryCard';
 import { TherapistOnboardingCard } from './TherapistOnboardingCard';
+import { VadPitchSmokeCard } from './VadPitchSmokeCard';
+import { SpectrogramBenchCard } from './SpectrogramBenchCard';
+import { SpectrogramParityCard } from './SpectrogramParityCard';
 
 export const AudioScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
     const router = useRouter();
     const state = Container.get(AudioState);
+    const spectrogramBench = Container.get(SpectrogramBench);
+    const spectrogramParity = Container.get(SpectrogramParity);
     const asrBenchmark = Container.get(SpeechToTextBenchmark);
+    const vadPitchSmoke = Container.get(VadPitchSmoke);
 
     const isLoading = state.state$.isLoading.get();
     const files = state.state$.files.get();
@@ -32,13 +41,40 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const asrWavPath = asrBenchmark.wavPath$.get();
     const asrLanguage = asrBenchmark.language$.get();
 
+    const smokeWavPath = vadPitchSmoke.voiceWavPath$.get();
+    const smokeSnapshot = vadPitchSmoke.state$.get();
+
+    const benchSnapshot = spectrogramBench.state$.get();
+    const parityWavPath = spectrogramParity.wavPath$.get();
+    const parityFiltersPath = spectrogramParity.filtersPath$.get();
+    const paritySnapshot = spectrogramParity.state$.get();
+
     const searchParams = useLocalSearchParams<{ autorun?: string }>();
     const autorunAsr = searchParams.autorun === 'asr';
+    const autorunSmoke = searchParams.autorun === '1' || searchParams.autorun === 'smoke';
 
-    // Stable reference required: the autorun effect below depends on this callback.
+    // Stable reference required: the autorun effects below depend on these callbacks.
     const runAsrBenchmark = React.useCallback((): void => {
         asrBenchmark.runFromForm().catch(() => undefined);
     }, [asrBenchmark]);
+
+    const runVadPitchSmoke = React.useCallback((): void => {
+        vadPitchSmoke.runFromForm().catch(() => undefined);
+    }, [vadPitchSmoke]);
+
+    const runSpectrogramBench = React.useCallback((): void => {
+        spectrogramBench.run().catch(() => undefined);
+    }, [spectrogramBench]);
+
+    const runSpectrogramParity = React.useCallback((): void => {
+        spectrogramParity.run().catch(() => undefined);
+    }, [spectrogramParity]);
+
+    React.useEffect(() => {
+        if (autorunSmoke && !vadPitchSmoke.isLoading) {
+            runVadPitchSmoke();
+        }
+    }, [autorunSmoke, runVadPitchSmoke, vadPitchSmoke]);
 
     React.useEffect(() => {
         if (autorunAsr && !asrBenchmark.isLoading) {
@@ -63,6 +99,9 @@ export const AudioScreen = observer((): React.JSX.Element => {
     };
     const handleAsrWavPathChange = (path: string): void => asrBenchmark.setWavPath(path);
     const handleAsrLanguageChange = (language: string): void => asrBenchmark.setLanguage(language);
+    const handleSmokeWavPathChange = (path: string): void => vadPitchSmoke.setVoiceWavPath(path);
+    const handleParityWavPathChange = (path: string): void => spectrogramParity.setWavPath(path);
+    const handleParityFiltersPathChange = (path: string): void => spectrogramParity.setFiltersPath(path);
     const handleDismissNotification = (): void => state.dismissNotification();
     const handleLoadFixture = (encryptedPath: string, durationMs: number): void => {
         state.loadEncounterFixture(encryptedPath, durationMs);
@@ -85,7 +124,11 @@ export const AudioScreen = observer((): React.JSX.Element => {
                 </Text>
             </Surface>
 
-            <View style={STYLES.content}>
+            <ScrollView
+                style={STYLES.content}
+                contentContainerStyle={STYLES.contentContainer}
+                keyboardShouldPersistTaps="handled"
+            >
                 <SourceDirectoryCard
                     directory={inputPath}
                     isLoading={isLoading}
@@ -121,6 +164,34 @@ export const AudioScreen = observer((): React.JSX.Element => {
                     </View>
                 )}
 
+                <SpectrogramBenchCard
+                    isLoading={benchSnapshot.isLoading}
+                    entries={benchSnapshot.entries}
+                    error={benchSnapshot.error}
+                    onRun={runSpectrogramBench}
+                />
+
+                <SpectrogramParityCard
+                    wavPath={parityWavPath}
+                    filtersPath={parityFiltersPath}
+                    isLoading={paritySnapshot.isLoading}
+                    result={paritySnapshot.result}
+                    error={paritySnapshot.error}
+                    onWavPathChange={handleParityWavPathChange}
+                    onFiltersPathChange={handleParityFiltersPathChange}
+                    onRun={runSpectrogramParity}
+                />
+
+                <VadPitchSmokeCard
+                    voiceWavPath={smokeWavPath}
+                    isLoading={smokeSnapshot.isLoading}
+                    checks={smokeSnapshot.checks}
+                    verdict={smokeSnapshot.verdict}
+                    error={smokeSnapshot.error}
+                    onWavPathChange={handleSmokeWavPathChange}
+                    onRun={runVadPitchSmoke}
+                />
+
                 <AsrBenchmarkCard
                     wavPath={asrWavPath}
                     language={asrLanguage}
@@ -145,7 +216,7 @@ export const AudioScreen = observer((): React.JSX.Element => {
                     onSegmentEndChange={handleSegmentEndChange}
                     onCreate={handleCreateTherapistFromAudio}
                 />
-            </View>
+            </ScrollView>
 
             <Snackbar
                 visible={notification != null}
@@ -165,7 +236,11 @@ const STYLES = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    contentContainer: {
+        gap: 16,
         padding: 16,
+        paddingBottom: 32,
     },
     header: {
         paddingHorizontal: 8,
@@ -181,8 +256,7 @@ const STYLES = StyleSheet.create({
     },
     emptyState: {
         alignItems: 'center',
-        flex: 1,
         justifyContent: 'center',
-        marginTop: 32,
+        paddingVertical: 48,
     },
 });

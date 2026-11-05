@@ -39,6 +39,7 @@ const transformedModules = [
   'react-native-nitro-modules',
   'react-native-nitro-sound',
   'react-native-worklets',
+  'mel-spectrogram',
   'lucide-react-native',
   'kysely-expo',
   'kysely',
@@ -47,7 +48,6 @@ const transformedModules = [
   '@mikro-orm',
   '@tanstack',
   'msw',
-  '@testing-library',
   'secure-recorder',
   'uuid',
 ].join('|');

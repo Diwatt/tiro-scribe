@@ -1,28 +1,27 @@
 import { z } from 'zod';
 import type { AppLogger } from '@/Core/AppLogger';
 import { AsrException } from '@/Exception';
-import {
-    AsrMelSpectrogram,
-    AsrVocabulary,
-    TdtGreedyDecoder,
-    TdtGreedyDecoderOptions,
-} from '../Asr';
+import { PcmSampleConverter } from '@/Math';
+import { AsrVocabulary, TdtGreedyDecoder, TdtGreedyDecoderOptions } from '../Asr';
 import type { Downloader } from '../Downloader';
 import type { ExecuTorchRuntime } from '../ExecuTorch';
 import { ExecuTorchRunInput, FixedWindow } from '../ExecuTorch';
+import { LogMelSpectrogramOptions } from '../Spectrogram';
+import type { MelSpectrogramExtractorInterface } from '../Spectrogram';
 import { AbstractModel } from './AbstractModel';
 import type { InferenceModel } from './InferenceModel';
 
 interface AsrPipeline {
     readonly vocabulary: AsrVocabulary;
-    readonly melSpectrogram: AsrMelSpectrogram;
     readonly decoder: TdtGreedyDecoder;
 }
 
 /**
  * Asr – Parakeet-TDT ASR over three frozen ExecuTorch programs
  * (encoder+projector, decoder step, joint) plus the SentencePiece
- * vocabulary and mel filter matrix shipped in the model bundle.
+ * vocabulary shipped in the model bundle. The mel front-end runs in the
+ * native MelSpectrogram module, parity-validated against the JS oracle
+ * (SpectrogramParity) — the JS AsrMelSpectrogram stays as the oracle only.
  *
  * Design: audio capture, VAD segmentation and decryption are handled upstream;
  * this class sees decrypted PCM samples only.
@@ -30,15 +29,11 @@ interface AsrPipeline {
 export class Asr extends AbstractModel implements InferenceModel {
     public static readonly CAPABILITY = 'asr';
     public static readonly VOCABULARY_SCHEMA = z.array(z.string());
-    public static readonly MEL_FILTERS_SCHEMA = z.object({
-        rows: z.number().int(),
-        cols: z.number().int(),
-        data: z.array(z.array(z.number())),
-    });
-    public static readonly NUM_MELS = AsrMelSpectrogram.NUM_MELS;
+    public static readonly NUM_MELS = LogMelSpectrogramOptions.DEFAULT_BAND_COUNT;
     public static readonly FIXED_MEL_FRAMES = 2800;
     public static readonly ENCODER_FRAME_SIZE = 640;
     public static readonly HIDDEN_STATE_SIZE = 1280;
+    private static readonly LOG_MEL_OPTIONS = LogMelSpectrogramOptions.create();
 
     private readonly decoderStep = (tokenId: number): Float32Array => {
         const outputs = this.bundle.runProgram('decoder', [
@@ -65,7 +60,13 @@ export class Asr extends AbstractModel implements InferenceModel {
     private decoderHiddenState: Float32Array = new Float32Array(0);
     private decoderCellState: Float32Array = new Float32Array(0);
 
-    public constructor(downloader: Downloader, executorch: ExecuTorchRuntime, logger: AppLogger) {
+    public constructor(
+        downloader: Downloader,
+        executorch: ExecuTorchRuntime,
+        logger: AppLogger,
+        private readonly extractor: MelSpectrogramExtractorInterface,
+        private readonly sampleConverter: PcmSampleConverter,
+    ) {
         super(Asr.CAPABILITY, downloader, executorch, logger);
     }
 
@@ -75,10 +76,11 @@ export class Asr extends AbstractModel implements InferenceModel {
             throw new AsrException('Asr model not initialized. Call initialize() first.');
         }
 
-        const mel = pipeline.melSpectrogram.compute(samples);
-        const window = FixedWindow.create(mel, Asr.FIXED_MEL_FRAMES * Asr.NUM_MELS);
+        const pcm16 = this.sampleConverter.float32ToInt16(samples);
+        const spectrogram = await this.extractor.extractLogMelSpectrogram(pcm16, Asr.LOG_MEL_OPTIONS);
+        const window = FixedWindow.create(spectrogram.values, Asr.FIXED_MEL_FRAMES * Asr.NUM_MELS);
         const encoded = this.bundle.runProgram('encoder', [
-            ExecuTorchRunInput.create(window, [Asr.FIXED_MEL_FRAMES, Asr.NUM_MELS]),
+            ExecuTorchRunInput.create(window, [1, Asr.FIXED_MEL_FRAMES, Asr.NUM_MELS]),
         ]);
         this.decoderHiddenState = new Float32Array(Asr.HIDDEN_STATE_SIZE);
         this.decoderCellState = new Float32Array(Asr.HIDDEN_STATE_SIZE);
@@ -93,7 +95,6 @@ export class Asr extends AbstractModel implements InferenceModel {
         await this.bundle.loadProgram('joint');
         this.pipeline = {
             vocabulary: await this.loadVocabulary(),
-            melSpectrogram: await this.loadMelSpectrogram(),
             decoder: this.buildDecoder(),
         };
     }
@@ -108,17 +109,7 @@ export class Asr extends AbstractModel implements InferenceModel {
         );
     }
 
-    private loadMelSpectrogram(): Promise<AsrMelSpectrogram> {
-        return this.readJsonArtifact('mel_filters', 'mel filters', Asr.MEL_FILTERS_SCHEMA).then((filters) =>
-            AsrMelSpectrogram.create(filters.data),
-        );
-    }
-
-    private async readJsonArtifact<T>(
-        role: 'tokenizer' | 'mel_filters',
-        label: string,
-        schema: z.ZodType<T>,
-    ): Promise<T> {
+    private async readJsonArtifact<T>(role: 'tokenizer', label: string, schema: z.ZodType<T>): Promise<T> {
         const text = await this.bundle.readText(role, label);
 
         return schema.parse(JSON.parse(text));

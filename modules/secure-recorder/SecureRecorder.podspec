@@ -21,9 +21,9 @@ Pod::Spec.new do |s|
     'OTHER_SWIFT_FLAGS' => '$(inherited) -Xfrontend -warn-long-function-bodies=100 -Xfrontend -warn-long-expression-type-checking=100'
   }
 
-  s.source_files = "ios/**/*.{h,m,mm,swift,hpp,cpp}"
+  s.source_files = "ios/**/*.{h,m,mm,swift}"
   s.exclude_files = "ios/Tests/**/*", "ios/Package.swift"
-  
+
   # Help IDE indexing by explicitly defining module structure
   s.preserve_paths = "ios/**/*.swift"
 end

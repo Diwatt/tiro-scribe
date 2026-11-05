@@ -2,7 +2,7 @@ import { observable } from '@legendapp/state';
 import { documentDirectory } from 'expo-file-system/legacy';
 import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
-import { WhisperRunnerFactory } from '../Benchmark/WhisperRunnerFactory';
+import { ParakeetRunnerFactory } from '../Benchmark/ParakeetRunnerFactory';
 import { SpeechToTextBenchmarkResult } from '../Data/SpeechToTextBenchmarkResult';
 import { SpeechToTextBenchmarkSnapshot } from '../Data/SpeechToTextBenchmarkSnapshot';
 import { AudioSegmentExtractor } from '../Ingest/AudioSegmentExtractor';
@@ -127,6 +127,6 @@ Container.register(
         new SpeechToTextBenchmark(
             Container.get(AppLogger),
             Container.get(AudioSegmentExtractor),
-            Container.get(WhisperRunnerFactory),
+            Container.get(ParakeetRunnerFactory),
         ),
 );

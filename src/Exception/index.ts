@@ -31,4 +31,5 @@ export { TiroScribeException } from './TiroScribeException';
 export { TranscriptionNotImplementedError } from './TranscriptionNotImplementedError';
 export { UnsupportedCapabilityException } from './UnsupportedCapabilityException';
 export { VadException } from './VadException';
+export { SpectrogramException } from './SpectrogramException';
 export { VectorLengthMismatchError } from './VectorLengthMismatchError';

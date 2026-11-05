@@ -25,7 +25,7 @@ export const SourceDirectoryCard = ({
     onEncryptAll,
 }: Props): React.JSX.Element => {
     return (
-        <Card style={STYLES.card}>
+        <Card>
             <Card.Content>
                 <Text variant="titleSmall" style={{ marginBottom: 8 }}>
                     Source Directory
@@ -59,9 +59,6 @@ export const SourceDirectoryCard = ({
 };
 
 const STYLES = StyleSheet.create({
-    card: {
-        marginBottom: 16,
-    },
     buttonRow: {
         flexDirection: 'row',
         gap: 12,

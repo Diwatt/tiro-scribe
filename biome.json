@@ -1,258 +1,235 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
-    "vcs": {
-        "enabled": true,
-        "clientKind": "git",
-        "useIgnoreFile": true
-    },
-    "files": {
-        "ignoreUnknown": true,
-        "includes": [
-            "**/src/**",
-            "**/app/**",
-            "**/modules/**",
-            "**/tests/**",
-            "!!src/Api/generated",
-            "!modules/secure-recorder/.eslintrc.js",
-            "!!tests",
-            "!!vitest",
-            "!**/__tests__",
-            "!**/*.test.ts",
-            "!**/*.test.tsx",
-            "!**/*.spec.ts",
-            "!**/*.spec.tsx"
-        ]
-    },
-    "assist": {
-        "enabled": true,
-        "actions": {
-            "source": {
-                "organizeImports": "on"
-            }
-        }
-    },
-    "formatter": {
-        "enabled": true,
-        "formatWithErrors": false,
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 120,
-        "lineEnding": "lf"
-    },
-    "javascript": {
-        "formatter": {
-            "quoteStyle": "single",
-            "jsxQuoteStyle": "double",
-            "semicolons": "always",
-            "arrowParentheses": "always",
-            "bracketSpacing": true,
-            "trailingCommas": "all"
-        }
-    },
-    "linter": {
-        "enabled": true,
-        "domains": {
-            "react": "all",
-            "project": "recommended"
-        },
-        "rules": {
-            "recommended": true,
-            "style": {
-                "noDefaultExport": "error",
-                "useBlockStatements": "error",
-                "noUselessElse": "error",
-                "useConsistentArrayType": {
-                    "level": "warn",
-                    "options": { "syntax": "shorthand" }
-                },
-                "useNamingConvention": {
-                    "level": "error",
-                    "options": {
-                        "strictCase": false,
-                        "requireAscii": true,
-                        "conventions": [
-                            {
-                                "selector": {
-                                    "kind": "const",
-                                    "scope": "global"
-                                },
-                                "formats": ["CONSTANT_CASE", "PascalCase"]
-                            },
-                            {
-                                "selector": { "kind": "typeLike" },
-                                "formats": ["PascalCase"]
-                            },
-                            {
-                                "selector": { "kind": "enumMember" },
-                                "formats": ["PascalCase"]
-                            },
-                            {
-                                "selector": { "kind": "typeParameter" },
-                                "formats": ["PascalCase"],
-                                "match": "T[A-Z][a-zA-Z0-9]*"
-                            },
-                            {
-                                "selector": { "kind": "function" },
-                                "formats": ["camelCase", "PascalCase"]
-                            },
-                            {
-                                "selector": { "kind": "classMember" },
-                                "formats": ["camelCase", "CONSTANT_CASE"],
-                                "match": "_?(.+?)\\$?"
-                            },
-                            {
-                                "selector": { "kind": "variable" },
-                                "formats": ["camelCase", "PascalCase"]
-                            }
-                        ]
-                    }
-                },
-                "noNonNullAssertion": "warn",
-                "useSelfClosingElements": "error",
-                "useFilenamingConvention": {
-                    "level": "error",
-                    "options": { "filenameCases": ["PascalCase", "camelCase"] }
-                },
-                "useImportType": "error",
-                "useExportType": "error",
-                "useForOf": "error",
-                "useShorthandFunctionType": "error",
-                "useTemplate": "error",
-                "noInferrableTypes": "error",
-                "noNamespace": "error",
-                "useConsistentMemberAccessibility": {
-                    "level": "error",
-                    "options": {
-                        "accessibility": "explicit"
-                    }
-                },
-                "noCommonJs": "error"
-            },
-            "complexity": {
-                "noExcessiveCognitiveComplexity": {
-                    "level": "warn",
-                    "options": { "maxAllowedComplexity": 15 }
-                },
-                "noStaticOnlyClass": "off",
-                "useArrowFunction": "off",
-                "noBannedTypes": "warn",
-                "noForEach": "warn",
-                "noUselessStringConcat": "error",
-                "noUselessUndefinedInitialization": "error",
-                "noVoid": "error",
-                "useLiteralKeys": "error",
-                "useOptionalChain": "error"
-            },
-            "suspicious": {
-                "noExplicitAny": "error",
-                "noConsole": "error",
-                "noArrayIndexKey": "warn",
-                "noEmptyBlockStatements": "warn",
-                "noShadowRestrictedNames": "warn",
-                "useIterableCallbackReturn": "warn",
-                "noDoubleEquals": "error",
-                "noConfusingVoidType": "error"
-            },
-            "correctness": {
-                "noUnusedVariables": "error",
-                "noUnusedImports": "error",
-                "noUnusedPrivateClassMembers": "error",
-                "noEmptyPattern": "warn",
-                "useExhaustiveDependencies": "error",
-                "useHookAtTopLevel": "error",
-                "noInvalidUseBeforeDeclaration": "error",
-                "noReactPropAssignments": "error"
-            },
-            "performance": {
-                "noAccumulatingSpread": "warn"
-            },
-            "nursery": {
-                "noLeakedRender": "error",
-                "noJsxPropsBind": "info",
-                "noUnknownAttribute": "warn"
-            }
-        }
-    },
-    "overrides": [
-        {
-            "includes": [
-                "**/*.config.js",
-                "**/*.config.ts",
-                "app/**",
-                "src/Navigation/types.ts",
-                "stories/**",
-                "src/Localization/**"
-            ],
-            "linter": {
-                "rules": {
-                    "style": {
-                        "noDefaultExport": "off",
-                        "useNamingConvention": "off",
-                        "useFilenamingConvention": "off"
-                    }
-                }
-            }
-        },
-        {
-            "includes": [".rnstorybook/**"],
-            "linter": {
-                "rules": {
-                    "style": { "noDefaultExport": "off" },
-                    "suspicious": { "noRedeclare": "off" }
-                }
-            }
-        },
-        {
-            "includes": ["vitest.setup.ts"],
-            "linter": {
-                "rules": {
-                    "complexity": { "noExcessiveCognitiveComplexity": "off" },
-                    "style": { "useNamingConvention": "off" }
-                }
-            }
-        },
-        {
-            "includes": ["src/DevConsole/**"],
-            "linter": {
-                "rules": {
-                    "style": { "useComponentExportOnlyModules": "off" }
-                }
-            }
-        },
-        {
-            "includes": ["modules/secure-recorder/**"],
-            "linter": {
-                "rules": {
-                    "complexity": { "noExcessiveCognitiveComplexity": "error" },
-                    "correctness": { "noVoidTypeReturn": "error" },
-                    "style": {
-                        "noDefaultExport": "off",
-                        "noNonNullAssertion": "error",
-                        "useNamingConvention": "error"
-                    },
-                    "suspicious": {
-                        "noExplicitAny": "error",
-                        "noEmptyBlockStatements": "error",
-                        "useIterableCallbackReturn": "error"
-                    }
-                }
-            }
-        },
-        {
-            "includes": ["modules/secure-recorder/jest.setup.js"],
-            "linter": {
-                "enabled": false
-            }
-        },
-        {
-            "includes": [
-                "src/Service/Anonymizer.ts",
-                "src/Service/AudioPipelineAdapter.ts",
-                "src/Service/AudioProcessing.ts"
-            ],
-            "linter": {
-                "enabled": false
-            }
-        }
-    ]
+	"$schema": "https://biomejs.dev/schemas/2.6.5/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": [
+			"**/src/**",
+			"**/app/**",
+			"**/modules/**",
+			"**/tests/**",
+			"!!src/Api/generated",
+			"!modules/secure-recorder/.eslintrc.js",
+			"!!tests",
+			"!**/__tests__",
+			"!**/*.test.ts",
+			"!**/*.test.tsx",
+			"!**/*.spec.ts",
+			"!**/*.spec.tsx"
+		]
+	},
+	"assist": {
+		"enabled": true,
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": false,
+		"indentStyle": "space",
+		"indentWidth": 4,
+		"lineWidth": 120,
+		"lineEnding": "lf"
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"jsxQuoteStyle": "double",
+			"semicolons": "always",
+			"arrowParentheses": "always",
+			"bracketSpacing": true,
+			"trailingCommas": "all"
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"domains": {
+			"react": "all",
+			"project": "recommended"
+		},
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				"noDefaultExport": "error",
+				"useBlockStatements": "error",
+				"noUselessElse": "error",
+				"useConsistentArrayType": {
+					"level": "warn",
+					"options": { "syntax": "shorthand" }
+				},
+				"useNamingConvention": {
+					"level": "error",
+					"options": {
+						"strictCase": false,
+						"requireAscii": true,
+						"conventions": [
+							{
+								"selector": {
+									"kind": "const",
+									"scope": "global"
+								},
+								"formats": ["CONSTANT_CASE", "PascalCase"]
+							},
+							{
+								"selector": { "kind": "typeLike" },
+								"formats": ["PascalCase"]
+							},
+							{
+								"selector": { "kind": "enumMember" },
+								"formats": ["PascalCase"]
+							},
+							{
+								"selector": { "kind": "typeParameter" },
+								"formats": ["PascalCase"],
+								"match": "T[A-Z][a-zA-Z0-9]*"
+							},
+							{
+								"selector": { "kind": "function" },
+								"formats": ["camelCase", "PascalCase"]
+							},
+							{
+								"selector": { "kind": "classMember" },
+								"formats": ["camelCase", "CONSTANT_CASE"],
+								"match": "_?(.+?)\\$?"
+							},
+							{
+								"selector": { "kind": "variable" },
+								"formats": ["camelCase", "PascalCase"]
+							}
+						]
+					}
+				},
+				"noNonNullAssertion": "warn",
+				"useSelfClosingElements": "error",
+				"useFilenamingConvention": {
+					"level": "error",
+					"options": { "filenameCases": ["PascalCase", "camelCase"] }
+				},
+				"useImportType": "error",
+				"useExportType": "error",
+				"useForOf": "error",
+				"useShorthandFunctionType": "error",
+				"useTemplate": "error",
+				"noInferrableTypes": "error",
+				"noNamespace": "error",
+				"useConsistentMemberAccessibility": {
+					"level": "error",
+					"options": {
+						"accessibility": "explicit"
+					}
+				},
+				"noCommonJs": "error"
+			},
+			"complexity": {
+				"noExcessiveCognitiveComplexity": {
+					"level": "warn",
+					"options": { "maxAllowedComplexity": 15 }
+				},
+				"noStaticOnlyClass": "off",
+				"useArrowFunction": "off",
+				"noBannedTypes": "warn",
+				"noForEach": "warn",
+				"noUselessStringConcat": "error",
+				"noUselessUndefinedInitialization": "error",
+				"noVoid": "error",
+				"useLiteralKeys": "error",
+				"useOptionalChain": "error"
+			},
+			"suspicious": {
+				"noExplicitAny": "error",
+				"noConsole": "error",
+				"noArrayIndexKey": "warn",
+				"noEmptyBlockStatements": "warn",
+				"noShadowRestrictedNames": "warn",
+				"useIterableCallbackReturn": "warn",
+				"noDoubleEquals": "error",
+				"noConfusingVoidType": "error",
+				"noLeakedRender": "error",
+				"noUnknownAttribute": "warn"
+			},
+			"correctness": {
+				"noUnusedVariables": "error",
+				"noUnusedImports": "error",
+				"noUnusedPrivateClassMembers": "error",
+				"noEmptyPattern": "warn",
+				"useExhaustiveDependencies": "error",
+				"useHookAtTopLevel": "error",
+				"noInvalidUseBeforeDeclaration": "error",
+				"noReactPropAssignments": "error"
+			},
+			"performance": {
+				"noAccumulatingSpread": "warn",
+				"noJsxPropsBind": "info"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"**/*.config.js",
+				"**/*.config.ts",
+				"app/**",
+				"stories/**",
+				"src/Localization/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noDefaultExport": "off",
+						"useNamingConvention": "off",
+						"useFilenamingConvention": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [".rnstorybook/**"],
+			"linter": {
+				"rules": {
+					"style": { "noDefaultExport": "off" },
+					"suspicious": { "noRedeclare": "off" }
+				}
+			}
+		},
+		{
+			"includes": ["src/DevConsole/**"],
+			"linter": {
+				"rules": {
+					"style": { "useComponentExportOnlyModules": "off" }
+				}
+			}
+		},
+		{
+			"includes": ["modules/secure-recorder/**"],
+			"linter": {
+				"rules": {
+					"complexity": { "noExcessiveCognitiveComplexity": "error" },
+					"correctness": { "noVoidTypeReturn": "error" },
+					"style": {
+						"noDefaultExport": "off",
+						"noNonNullAssertion": "error",
+						"useNamingConvention": "error"
+					},
+					"suspicious": {
+						"noExplicitAny": "error",
+						"noEmptyBlockStatements": "error",
+						"useIterableCallbackReturn": "error"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["modules/secure-recorder/jest.setup.js"],
+			"linter": {
+				"enabled": false
+			}
+		}
+	]
 }

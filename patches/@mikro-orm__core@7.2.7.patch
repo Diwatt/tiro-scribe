@@ -37,10 +37,10 @@ index b9f01b49ecc13a47e2a2423af39f4e85e691f8da..f049d20617208d29c48c254e8bf19075
  }
  /**
 diff --git a/metadata/MetadataDiscovery.js b/metadata/MetadataDiscovery.js
-index c350ff49e9b8be355bfb12412c8d8da52d686441..58afd0f0f9447bf0644955e81267b4c6b3fc1421 100644
+index 81adbc83ca48ccff98971b91f84f53fed755cb8f..f2f11d43625df49699ace158d6e01703458ddca1 100644
 --- a/metadata/MetadataDiscovery.js
 +++ b/metadata/MetadataDiscovery.js
-@@ -207,7 +207,8 @@ export class MetadataDiscovery {
+@@ -208,7 +208,8 @@ export class MetadataDiscovery {
              }
          }
          if (paths.length > 0) {
@@ -78,10 +78,10 @@ index 1725f2d187db30787a41bdfb99beefc179e24dd1..8bb0dafe82f1247d8afe2601b29dbfca
              return (this.DataLoader ??= DataLoader);
          }
 diff --git a/utils/Utils.js b/utils/Utils.js
-index 4ac4d01867ef19a4160e9463123a6a1401959de3..e8edcee9b2d9659ceddcaca9a6a32cc36ad3fdff 100644
+index 233d147679cc2fcdaa21a7673f6e6b9e76140660..807890f9f42481e80135e88c16b93496b4f9933b 100644
 --- a/utils/Utils.js
 +++ b/utils/Utils.js
-@@ -856,7 +856,8 @@ export class Utils {
+@@ -872,7 +872,8 @@ export class Utils {
      }
      static async tryImport({ module, warning, }) {
          try {

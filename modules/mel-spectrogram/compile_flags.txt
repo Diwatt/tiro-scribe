@@ -1,0 +1,21 @@
+# Clangd context mirroring the real build (MelSpectrogram.podspec + android/CMakeLists.txt).
+# Absolute paths: clangd does not reliably resolve relative -I paths from compile_flags.txt.
+# .clangd-includes/NitroModules reproduces the CocoaPods header map for <NitroModules/...> includes.
+-std=c++20
+-I/Users/florian/www/tiro-scribe/modules/mel-spectrogram/nitrogen/generated/shared/c++
+-I/Users/florian/www/tiro-scribe/modules/mel-spectrogram/.clangd-includes
+-I/Users/florian/www/tiro-scribe/modules/mel-spectrogram/cpp/vendor/kaldi-native-fbank
+-I/Users/florian/www/tiro-scribe/modules/mel-spectrogram/cpp/vendor/eigen
+-I/Users/florian/www/tiro-scribe/modules/mel-spectrogram/cpp/vendor/kissfft
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/core
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/utils
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/threading
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/prototype
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/registry
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/templates
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/platform
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/jsi
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/core/entrypoint
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/threading
+-I/Users/florian/www/tiro-scribe/node_modules/react-native-nitro-modules/cpp/views
+-I/Users/florian/www/tiro-scribe/node_modules/react-native/ReactCommon/jsi

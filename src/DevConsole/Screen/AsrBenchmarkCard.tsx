@@ -32,14 +32,14 @@ export const AsrBenchmarkCard = ({
     const theme = useTheme<ExtendedTheme>();
 
     return (
-        <Card style={STYLES.card}>
+        <Card>
             <Card.Content>
                 <Text variant="titleSmall" style={{ marginBottom: 8 }}>
-                    ASR Benchmark (P3: pre-packaged whisper-small)
+                    ASR Benchmark (P3: Parakeet-TDT via Runtime)
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
-                    Decrypt-free smoke test: wav 16 kHz mono → Whisper transcription (model downloaded from the packaged
-                    catalog on first run)
+                    Decrypt-free smoke test: wav 16 kHz mono → Parakeet transcription with the native mel front-end
+                    (model downloaded from the catalog on first run)
                 </Text>
                 <TextInput
                     mode="outlined"
@@ -87,9 +87,6 @@ export const AsrBenchmarkCard = ({
 };
 
 const STYLES = StyleSheet.create({
-    card: {
-        marginTop: 16,
-    },
     benchmarkResults: {
         gap: 4,
         marginTop: 8,

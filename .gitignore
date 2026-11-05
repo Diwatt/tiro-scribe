@@ -120,3 +120,17 @@ bun.lockb
 
 # Fixtures audio locales de dev — jamais versionnées
 fixtures-local/
+
+# Modèles Hugging Face locaux (miroir de Diwatt/tiro-scribe-models) — jamais versionnés
+hf/
+.agents/secrets.env
+
+# Dépendances natives DSP fetchées (CMake fetch_pinned_git / scripts/fetch-knf.sh iOS) — jamais versionnées
+modules/mel-spectrogram/cpp/vendor/
+modules/mel-spectrogram/cpp/.fetchcontent/
+modules/mel-spectrogram/build/
+modules/mel-spectrogram/.clangd-includes/
+modules/secure-recorder/android/.cxx/
+modules/secure-recorder/android/build/
+modules/secure-recorder/build/
+.argent/

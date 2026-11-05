@@ -15,11 +15,12 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "useDefineForClassFields": false,
     "experimentalDecorators": false,
     "emitDecoratorMetadata": false,
-    "types": ["jest", "@testing-library/jest-native"],
+    "types": ["jest"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -33,6 +34,7 @@
     "src/**/*",
     "app/**/*",
     "tests/**/*",
+    "scripts/**/*.ts",
     "index.js",
     "jest.config.js",
     "jest.setup.ts"
