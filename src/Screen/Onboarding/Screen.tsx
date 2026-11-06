@@ -1,110 +1,60 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { observer } from '@legendapp/state/react';
-import React, { useEffect } from 'react';
+import type React from 'react';
+import { useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableWithoutFeedback,
-    View,
-} from 'react-native';
-import { ProgressBar, useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { Container } from '@/Core/Container';
 import { useLocalization } from '@/Localization/Localization';
-import { ONBOARDING_STEPS, type OnboardingFormData, Schema } from '@/State/Onboarding';
+import { type OnboardingFormData, Schema } from '@/State/Onboarding';
 import { OnboardingState } from '@/State/Onboarding/State';
-
-
-import type { ExtendedTheme } from '@/theme/AppTheme';
-import { StepAccount } from './StepAccount';
-import { StepProfile } from './StepProfile';
+import { OnboardingStep } from '@/State/Onboarding/Types';
+import { PaperInk } from '@/theme/PaperInk';
 import { StepRecovery } from './StepRecovery';
+import { StepVault } from './StepVault';
 import { StepVoice } from './StepVoice';
 
 export interface OnboardingScreenProps {
     onComplete?: () => void;
 }
 
-/** Step views in order (index 0 = step 1). */
-const STEP_VIEWS = [StepProfile, StepAccount, StepVoice, StepRecovery] as const;
-
+/**
+ * Onboarding wizard: vault (languages + master password), voice calibration, recovery kit.
+ * The former practice-profile step is gone; any leftover Profile step falls back to the vault.
+ */
 export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.JSX.Element => {
-    const theme = useTheme<ExtendedTheme>();
-    const { locale, LL } = useLocalization();
+    const { locale } = useLocalization();
     const onboarding = Container.get(OnboardingState);
-
-
-
-    const rawStep = onboarding.step.get() ?? 1;
-    const step = Math.max(1, Math.min(rawStep, ONBOARDING_STEPS));
-    const progress = step / ONBOARDING_STEPS;
+    const step = onboarding.step.get() ?? OnboardingStep.Account;
+    // Recovery is bypassed for now (voice success finalizes), so only two steps are counted.
+    const visibleSteps = [OnboardingStep.Account, OnboardingStep.Voice];
+    const total = visibleSteps.length;
 
     const methods = useForm<OnboardingFormData>({
         defaultValues: { ...Schema.defaults, languages: [locale] },
         resolver: zodResolver(Schema.form),
-        mode: 'onBlur',
+        mode: 'onSubmit',
     });
 
     useEffect(() => {
         onboarding.reset();
     }, [onboarding]);
 
-    const stepComponent = STEP_VIEWS[step - 1] ?? null;
-
     return (
         <FormProvider {...methods}>
-            <SafeAreaView
-                style={[STYLES.container, { backgroundColor: theme.colors.background }]}
-                edges={['top', 'left', 'right', 'bottom']}
-            >
-                <KeyboardAvoidingView style={STYLES.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={STYLES.inner}>
-                            <ProgressBar progress={progress} color={theme.colors.tertiary} style={STYLES.progress} />
-                            <View style={STYLES.headerRow}>
-                                <Text style={[STYLES.stepLabel, { color: theme.colors.onSurfaceVariant }]}>
-                                    {LL.onboarding.step({ current: step, total: ONBOARDING_STEPS })}
-                                </Text>
-                            </View>
-                            <ScrollView
-                                contentContainerStyle={STYLES.scrollContent}
-                                keyboardShouldPersistTaps="always"
-                                keyboardDismissMode="on-drag"
-                                showsVerticalScrollIndicator={false}
-                            >
-                                {stepComponent ? React.createElement(stepComponent) : null}
-                            </ScrollView>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </KeyboardAvoidingView>
-            </SafeAreaView>
+            <KeyboardAvoidingView style={STYLES.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                {step === OnboardingStep.Voice ? (
+                    <StepVoice step={2} total={total} />
+                ) : step === OnboardingStep.Recovery ? (
+                    <StepRecovery step={total + 1} total={total + 1} />
+                ) : (
+                    <StepVault step={1} total={total} />
+                )}
+            </KeyboardAvoidingView>
         </FormProvider>
     );
 });
 
 const STYLES = StyleSheet.create({
-    container: { flex: 1 },
-    inner: {
-        flex: 1,
-        paddingHorizontal: 24,
-    },
-    progress: { height: 4, marginHorizontal: -24 },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 12,
-        marginBottom: 8,
-    },
-    stepLabel: { fontSize: 12 },
-    scrollContent: {
-        paddingTop: 8,
-        paddingBottom: 48,
-        flexGrow: 1,
-    },
+    root: { flex: 1, backgroundColor: PaperInk.PAPER },
 });

@@ -116,14 +116,14 @@ On each PCM buffer, two virtual paths:
 
 **Double buffering (I/O & bridge)**  
 - **Record (EncryptionStream):** Accumulate raw audio in RAM up to 16 KB → encrypt (AES-GCM) and write when buffer full.  
-- **Read (StreamDecryptionManager):** Accumulate decrypted blocks in native RAM up to ~512 KB (~16 s) → one `onChunkLoaded` event to JS.
+- **Read (pull itératif, révisé 06/11/2026):** `SecureRecorder.openDecryptedStream(path)` returns a `DecryptedStreamReader` handle that encapsulates the native reader id; `readNext()` pulls decrypted blocks one by one (512 KB blocks, the cursor lives on the native side), the last data block carries `isLast=true`, the call after it returns an empty block, and `close()` releases the handle early on abandonment. Pull failures are normalized into `SecureRecorderError`. The legacy push path (`stream(path)` + `onAudioChunkDecrypted` events) was removed on 06/11/2026 from JS and both native modules — it forced async consumers to hand-roll buffering and was never exploitable; the shred-after-consumption it performed moves to an explicit native `destroy(path)` at milestone 3.
 
 **AI engine (JS / ONNX)**
-- **Pattern (décidé 28/10/2026) : « Push » streaming** – JS appelle `stream(encryptedPath)` une fois ; le natif pousse des chunks déchiffrés via `onChunkLoaded` (double buffering 16 KB écriture / 512 KB lecture). Aucun `readChunkAt(offset)` n'existe ni en JS ni en natif — le pull n'est plus une option documentée.
-- **Pourquoi le push (contraintes fondatrices) :** une séance de 4 h ≈ 460 Mo de PCM (16 kHz, 16 bits, mono) → jamais tout en RAM d'un coup ; le contenu déchiffré n'existe qu'en RAM (jamais sur disque en clair) ; les modèles consomment des fenêtres fixes (VAD par trames, Whisper 28 s max) que l'orchestrateur assemble au fil des chunks puis libère.
+- **Pattern (acté 28/10/2026, révisé 06/11/2026) : « Pull itératif »** – the app pulls decrypted chunks sequentially through a `DecryptedStreamReader` handle; order and pace are guaranteed by construction, so async consumers (VAD/ASR per segment) never overlap. No `readChunkAt(offset)` random access exists (sequential cursor only), and no consumption events — the push pattern forced every async consumer to hand-roll buffering and sequencing.
+- **Why streaming (founding constraints) :** une séance de 4 h ≈ 460 Mo de PCM (16 kHz, 16 bits, mono) → jamais tout en RAM d'un coup ; le déchiffré n'existe qu'en RAM (jamais sur disque en clair) ; les modèles consomment des fenêtres fixes (VAD par trames, encoder 28 s max) que l'orchestrateur assemble au fil des chunks puis libère.
 - **Models:** Speaker CAM++ (biocode, 512-d, `.onnx` + `.pte` interchangeable), VAD (Silero v5 conservé ; FSMN pré-packagé react-native-executorch en alternative swap-friendly), ASR (whisper-small pré-packagé pour Porte 3 ; Parakeet-TDT = effort custom conditionnel), Pitch (CREPE — remis en cause, SwiftF0 évalué). Doctrine (acté 28/10) : privilégier le **catalogue pré-packagé** react-native-executorch ; export/hébergement custom seulement si aucun modèle ne couvre le besoin. Les graphes on-device sont **figés en taille d'entrée** (onnxsim → export) — requis pour la correction ORT mobile (le graphe dynamique original est exécuté faux, silencieusement, par onnxruntime mobile).  
 - **Language-aware model selection:** For language-dependent use cases (notably ASR), the config API exposes one entry per role with a `variants` array (each variant has `language`, `id`, `url`, etc.). The app selects one variant by **app/device language** to reduce download size (e.g. English-only ASR when the phone is in English). No duplicate role keys; client resolves to a single asset per use_case.  
-- **Segmentation:** Rolling buffer; if duration > 2 s and VAD silence → cut & process; hard cap 28 s (Whisper).
+- **Segmentation:** Rolling buffer; if duration > 2 s and VAD silence → cut & process; hard cap 28 s (encoder window).
 
 **Status:** ✅ **Done** – EncryptionStream, StreamDecryptionManager, `stream(path)` + listeners. 🚧 **WIP** – Push-style orchestrator (consumes `onChunkLoaded`, advances `QueueItem.processingOffset`). ✅ **P2 verdict** – ExecuTorch primary (Porte 1 build iOS+Android ; Porte 2 interchangeabilité device, cosinus 1.0) ; reste à compléter : mesure RAM + devices physiques.
 
@@ -264,10 +264,10 @@ To maintain clinical neutrality, indicators are presented as **indices of change
 | Entities (Encounter, Transcription, ProsodyMetrics, Patient, QueueItem) | ✅ Done | Utterance, VoiceFrame, DetectedSpeakerProfile |
 | QueueItem resumable (processingOffset) | ✅ Done | |
 | Incognito flag (Encounter.isIncognito) | ✅ Done | |
-| Decryption API (stream + events) | ✅ Done | Push acté 28/10/2026 : le déchiffré n'existe qu'en RAM, fenêtres moteur assemblées au fil des chunks |
+| Decryption API (pull itératif) | ✅ Done | Pull acté 06/11/2026 : handle objet `DecryptedStreamReader` (`readNext`/`close`, id natif encapsulé) ; chemin push legacy supprimé JS + natif ; le déchiffré n'existe qu'en RAM, fenêtres moteur assemblées au fil des blocs |
 | Time units (ms) | ✅ Done | Utterance, VoiceFrame, Encounter.totalDuration all in milliseconds |
 | VoiceFrame naming (startTime, periodicity) | ✅ Done | Doc and code aligned |
-| Push orchestrator (onChunkLoaded → VAD/ASR) | 🚧 WIP | Remplace le « pull readChunkAt » (jamais implémenté, retiré de la doc) |
+| Pull orchestrator (DecryptedStreamReader → VAD/ASR) | 🚧 WIP | Moteur jalon 2 ✅ 06/11 (`StreamTranscriber` TDD) ; persistance/checkpoint restants (jalon 3) |
 | ONNX pipeline (VAD, ASR, Speaker) | 🚧 WIP | ArtifactRegistry, AudioProcessing; full pipeline in progress |
 | High-fidelity models (Whisper Medium, CREPE pitch, CAM++ speaker) | 🚧 WIP | CREPE and CAM++ chosen; config-driven rollout |
 | DSP (client: pcm16ToFloat32, EBU R128 transcript only; jitter/shimmer/HNR server-side) | ❌ Not started | Micro-prosody derived server-side from prosody metrics |

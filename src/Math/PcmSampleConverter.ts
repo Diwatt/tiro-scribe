@@ -19,6 +19,18 @@ export class PcmSampleConverter {
         return floatArray;
     }
 
+    public bytesToInt16(data: Uint8Array): Int16Array {
+        const sampleCount = Math.floor(data.byteLength / PcmSampleConverter.BYTES_PER_SAMPLE);
+        const samples = new Int16Array(sampleCount);
+        const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+        for (let i = 0; i < sampleCount; i++) {
+            samples[i] = view.getInt16(i * PcmSampleConverter.BYTES_PER_SAMPLE, true);
+        }
+
+        return samples;
+    }
+
     public stereoToMono(int16Array: Int16Array): Float32Array {
         const sampleCount = Math.floor(int16Array.length / 2);
         const mono = new Float32Array(sampleCount);

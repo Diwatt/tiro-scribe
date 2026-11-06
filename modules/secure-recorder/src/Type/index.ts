@@ -1,4 +1,4 @@
-export type { DecryptedChunkEvent } from './DecryptedChunkEvent';
+export type { DecryptedChunk } from './DecryptedChunk';
 export type { EventEmitter } from './EventEmitter';
 export type { NativeRecorderModule } from './NativeRecorderModule';
 export type { RecordingStatus } from './RecordingStatus';

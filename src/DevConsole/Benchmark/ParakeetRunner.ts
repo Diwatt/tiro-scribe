@@ -10,7 +10,9 @@ export class ParakeetRunner implements SpeechToTextRunner {
     public constructor(private readonly model: Asr) {}
 
     public async transcribe(audio: Float32Array, _language: string): Promise<string> {
-        return this.model.run(audio);
+        const result = await this.model.run(audio);
+
+        return result.text;
     }
 
     public async dispose(): Promise<void> {

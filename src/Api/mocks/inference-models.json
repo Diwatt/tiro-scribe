@@ -71,13 +71,13 @@
                     },
                     {
                         "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/decoder.pte?download=true",
-                        "hash": "3ee48fdf8ed13b0fbd78344bc6c3eddce085352c5a607f1beddfe2ad58358e61",
-                        "sizeBytes": 48884992,
+                        "hash": "24a841c4ee03ef39ad5195d64d54a0218d9d13022fba3ae6c7d52d88532830b9",
+                        "sizeBytes": 48887168,
                         "role": "decoder"
                     },
                     {
                         "url": "https://huggingface.co/Diwatt/tiro-scribe-models/resolve/main/asr/joint.pte?download=true",
-                        "hash": "011a6b839bf573d2ef199bca22e68352553daafdbae2b2a447874656b0b82cfd",
+                        "hash": "b9c81fe4bc330e4cacf15a44f5473df53458a4d963babda97d0e38b900118959",
                         "sizeBytes": 21022104,
                         "role": "joint"
                     },

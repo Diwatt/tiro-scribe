@@ -1,10 +1,14 @@
 import { observer } from '@legendapp/state/react';
-import { AlertTriangle, WifiOff } from 'lucide-react-native';
+import { WifiOff } from 'lucide-react-native';
 import type React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
-import { Button, Surface, useTheme } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ButtonKind, Notice, PillButton } from '@/Components/Kit';
 import { useLocalization } from '@/Localization';
-import type { ExtendedTheme } from '@/theme/AppTheme';
+import { Metric } from '@/theme/Metric';
+import { PaperInk } from '@/theme/PaperInk';
+import { Tone } from '@/theme/Tone';
+import { TypeScale } from '@/theme/TypeScale';
 
 export interface WifiRequiredModalProps {
     readonly visible: boolean;
@@ -14,93 +18,41 @@ export interface WifiRequiredModalProps {
     readonly onClose: () => void;
 }
 
+/** Bottom sheet asking for Wi-Fi before downloading the on-device models. */
 export const WifiRequiredModal = observer((props: WifiRequiredModalProps): React.JSX.Element => {
-    const theme = useTheme<ExtendedTheme>();
     const { LL } = useLocalization();
-
-    const {
-        visible,
-        downloadSizeMB,
-        onOpenWifiSettings,
-        onDownloadAnyway,
-        onClose,
-    } = props;
+    const insets = useSafeAreaInsets();
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
-            <View style={STYLES.modalOverlay}>
-                <Surface style={[STYLES.modalContent, { backgroundColor: theme.colors.surface }]}>
-                    <View style={STYLES.modalHeader}>
-                        <AlertTriangle size={32} color={theme.colors.primary} />
-                        <Text style={[STYLES.modalTitle, { color: theme.colors.onSurface }]}>
-                            {LL.home.modalTitle()}
-                        </Text>
-                    </View>
-
-                    <View style={STYLES.modalBody}>
-                        <Text style={[STYLES.modalText, { color: theme.colors.onSurfaceVariant }]}>
-                            {LL.home.modalDownloadDescription({ downloadSizeMB })}
-                        </Text>
-
-                        <Text style={[STYLES.modalText, { color: theme.colors.onSurfaceVariant }]}>
-                            {LL.home.modalModelsDescription()}
-                        </Text>
-
-                        <View style={[STYLES.wifiStatus, { backgroundColor: theme.colors.statusWarning.background }]}>
-                            <WifiOff size={20} color={theme.colors.statusWarning.text} />
-                            <Text style={[STYLES.wifiText, { color: theme.colors.statusWarning.text }]}>
-                                {LL.home.wifiRequired()}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={STYLES.modalActions}>
-                        <Button
-                            mode="contained"
-                            onPress={onOpenWifiSettings}
-                            style={STYLES.modalButton}
-                        >
-                            {LL.home.openWifiSettings()}
-                        </Button>
-                        <Button
-                            mode="outlined"
-                            onPress={onDownloadAnyway}
-                            style={STYLES.modalButton}
-                        >
-                            {LL.home.downloadAnyway()}
-                        </Button>
-                        <Button
-                            mode="text"
-                            onPress={onClose}
-                            style={STYLES.modalButton}
-                        >
-                            {LL.home.remindMeLater()}
-                        </Button>
-                    </View>
-                </Surface>
+        <Modal visible={props.visible} animationType="slide" transparent onRequestClose={props.onClose}>
+            <View style={STYLES.backdrop}>
+                <View style={[STYLES.sheet, { paddingBottom: insets.bottom + 20 }]}>
+                    <View style={STYLES.grabber} />
+                    <Text style={TypeScale.TITLE_SMALL}>{LL.home.modalTitle()}</Text>
+                    <Text style={TypeScale.SUBHEAD}>{LL.home.modalDownloadDescription({ downloadSizeMB: props.downloadSizeMB })}</Text>
+                    <Text style={TypeScale.SUBHEAD}>{LL.home.modalModelsDescription()}</Text>
+                    <Notice text={LL.home.wifiRequired()} icon={WifiOff} tone={Tone.Ochre} />
+                    <PillButton label={LL.home.openWifiSettings()} onPress={props.onOpenWifiSettings} />
+                    <PillButton label={LL.home.downloadAnyway()} kind={ButtonKind.Outline} onPress={props.onDownloadAnyway} />
+                    <Text style={STYLES.link} onPress={props.onClose} accessibilityRole="button">
+                        {LL.home.remindMeLater()}
+                    </Text>
+                </View>
             </View>
         </Modal>
     );
 });
 
 const STYLES = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
+    backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: PaperInk.SCRIM },
+    grabber: { alignSelf: 'center', width: 38, height: 5, borderRadius: 3, backgroundColor: PaperInk.LINE_STRONG },
+    link: { textAlign: 'center', fontSize: 16, fontWeight: '500', color: PaperInk.ACCENT, paddingVertical: 10 },
+    sheet: {
+        gap: 12,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        borderTopLeftRadius: Metric.RADIUS_SHEET,
+        borderTopRightRadius: Metric.RADIUS_SHEET,
+        backgroundColor: PaperInk.CARD,
     },
-    modalContent: { width: '100%', maxWidth: 400, borderRadius: 16, padding: 24 },
-    modalHeader: { alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontWeight: '700', marginTop: 12, textAlign: 'center' },
-    modalBody: { marginBottom: 24 },
-    modalText: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
-    bold: { fontWeight: '700' },
-    wifiStatus: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, marginTop: 8 },
-    wifiText: { fontSize: 14, marginLeft: 8, fontWeight: '500' },
-    cellularWarning: { padding: 12, borderRadius: 8, marginTop: 16 },
-    cellularText: { fontSize: 13, lineHeight: 18 },
-    modalActions: { gap: 12 },
-    modalButton: { width: '100%' },
 });

@@ -33,11 +33,12 @@ public class SecureRecorderModule: Module {
   private lazy var audioRecorder: AudioRecorder = { AudioRecorder(audioConfig: audioConfig) }()
   private var currentSession: Session?
   private let keyAlias = "secure_recorder_key"
+  private var decryptedStreamReaders: [String: StreamDecryptionManager] = [:]
   
   public func definition() -> ModuleDefinition {
     Name("SecureRecorder")
     
-    Events("onRecordingStatusChanged", "onAudioChunkDecrypted")
+    Events("onRecordingStatusChanged")
     
     AsyncFunction("start") { (sessionId: String) -> String in
       return try await self.start(sessionId: sessionId)
@@ -62,9 +63,17 @@ public class SecureRecorderModule: Module {
     AsyncFunction("hasPermission") {
       return self.hasPermission()
     }
-    
-    AsyncFunction("stream") { (encryptedPath: String) -> Void in
-      try await self.stream(encryptedPath: encryptedPath)
+
+    AsyncFunction("openDecryptedStream") { (encryptedPath: String) -> String in
+      return try await self.openDecryptedStream(encryptedPath: encryptedPath)
+    }
+
+    AsyncFunction("readNextChunk") { (readerId: String) -> [String: Any] in
+      return try await self.readNextChunk(readerId: readerId)
+    }
+
+    AsyncFunction("closeDecryptedStream") { (readerId: String) -> Void in
+      return try await self.closeDecryptedStream(readerId: readerId)
     }
 
     AsyncFunction("encryptFile") { (inputPath: String, outputPath: String) -> String in
@@ -252,52 +261,58 @@ public class SecureRecorderModule: Module {
   }
   
   /**
-   * Stream decrypt encrypted audio file, emitting events for each chunk
-   * 
-   * MEMORY SAFE: Uses true streaming (FileHandle) to read chunks incrementally.
-   * Emits "onAudioChunkDecrypted" event for each decrypted chunk immediately,
-   * then discards the data to prevent OOM on large files.
-   * 
-   * @throws SecureRecorderError if decryption fails
+   * Opens a pull reader on an encrypted audio file: readNextChunk() returns
+   * each decrypted block in stream order until the reader is exhausted.
+   *
+   * @throws SecureRecorderError if the file does not exist
    */
-  private func stream(encryptedPath: String) async throws -> Void {
-    let encryptedFileURL = URL(fileURLWithPath: encryptedPath)
-    
-    // Validate encrypted file exists
+  private func openDecryptedStream(encryptedPath: String) async throws -> String {
     guard FileManager.default.fileExists(atPath: encryptedPath) else {
       throw SecureRecorderError.initializationFailed("Encrypted file not found: \(encryptedPath)")
     }
-    
-    do {
-      // Get encryption key
-      let key = try keyManager.getOrCreateKey(alias: keyAlias)
-      
-      // Stream decrypt and emit events
-      let streamManager = StreamDecryptionManager(secretKey: key, encryptedFile: encryptedFileURL)
-      
-      try streamManager.stream { data, index, isLast in
-        // Emit event immediately - Expo SDK 54 converts Data → Uint8Array automatically
-        let eventData: [String: Any] = [
-          "data": data,
-          "index": index,
-          "isLast": isLast
-        ]
-        self.sendEvent("onAudioChunkDecrypted", eventData)
-        
-        // Data is automatically discarded after this scope
+
+    let key = try keyManager.getOrCreateKey(alias: keyAlias)
+    let readerId = UUID().uuidString
+    decryptedStreamReaders[readerId] = StreamDecryptionManager(secretKey: key, encryptedFile: URL(fileURLWithPath: encryptedPath))
+
+    return readerId
+  }
+
+  /**
+   * Decrypts and returns the next block for the reader.
+   * The last data block carries isLast=true; the call after it returns an
+   * empty block with isLast=true and closes the reader.
+   *
+   * @throws SecureRecorderError if the reader is unknown
+   */
+  private func readNextChunk(readerId: String) async throws -> [String: Any] {
+    guard let streamManager = decryptedStreamReaders[readerId] else {
+      throw SecureRecorderError.stopFailed("Unknown decrypted stream reader: \(readerId)")
+    }
+
+    let chunk = try streamManager.readNext()
+    if let chunk = chunk {
+      if chunk.isLast {
+        decryptedStreamReaders.removeValue(forKey: readerId)
       }
-      
-      // Paranoid Self-Destruct: Secure Data Shredding (Overwrite + Delete)
-      // Only in success path - if streaming fails, file remains for retry
-      // Silently ignore deletion errors (e.g. permission issues) since streaming succeeded
-      try? FileShredder.shred(fileURL: encryptedFileURL)
-    } catch let error as SecureRecorderError {
-      throw error
-    } catch {
-      throw SecureRecorderError.initializationFailed("Failed to decrypt audio: \(error.localizedDescription)")
+
+      return ["data": chunk.data, "isLast": chunk.isLast]
+    }
+
+    decryptedStreamReaders.removeValue(forKey: readerId)
+
+    return ["data": Data(), "isLast": true]
+  }
+
+  /**
+   * Releases the native reader early when the consumer abandons mid-stream.
+   */
+  private func closeDecryptedStream(readerId: String) async throws {
+    if let streamManager = decryptedStreamReaders.removeValue(forKey: readerId) {
+      streamManager.close()
     }
   }
-  
+
   /**
    * Encrypt an existing file using the same key as recording.
    * Reads input file in chunks and writes encrypted output.

@@ -9,6 +9,8 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.securerecorder.exception.*
 import java.io.File
 import java.io.FileInputStream
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Expo module for SecureRecorder on Android
@@ -62,11 +64,12 @@ class SecureRecorderModule(
   private val audioRecorder: AudioRecorder by lazy { audioRecorderFactory(audioConfig) }
   private var currentSession: SessionInterface? = null
   private val keyAlias = "secure_recorder_key"
+  private val decryptedStreamReaders = ConcurrentHashMap<String, StreamDecryptionManager>()
 
   override fun definition() = ModuleDefinition {
     Name("SecureRecorder")
 
-    Events("onRecordingStatusChanged", "onAudioChunkDecrypted")
+    Events("onRecordingStatusChanged")
 
     AsyncFunction("start") { sessionId: String ->
       start(sessionId)
@@ -92,8 +95,16 @@ class SecureRecorderModule(
       hasPermission()
     }
 
-    AsyncFunction("stream") { encryptedPath: String ->
-      stream(encryptedPath)
+    AsyncFunction("openDecryptedStream") { encryptedPath: String ->
+      openDecryptedStream(encryptedPath)
+    }
+
+    AsyncFunction("readNextChunk") { readerId: String ->
+      readNextChunk(readerId)
+    }
+
+    AsyncFunction("closeDecryptedStream") { readerId: String ->
+      closeDecryptedStream(readerId)
     }
 
     AsyncFunction("encryptFile") { inputPath: String, outputPath: String ->
@@ -262,54 +273,56 @@ class SecureRecorderModule(
   }
 
   /**
-   * Stream decrypt encrypted audio file, emitting events for each chunk
-   *
-   * MEMORY SAFE: Uses true streaming (FileInputStream) to read chunks incrementally.
-   * Emits "onAudioChunkDecrypted" event for each decrypted chunk immediately,
-   * then discards the data to prevent OOM on large files.
-   *
-   * @throws SecureRecorderException if decryption fails
+   * Opens a pull reader on an encrypted audio file: readNextChunk() returns
+   * each decrypted block in stream order until the reader is exhausted.
    */
-  internal fun stream(encryptedPath: String) {
-    try {
-      val encryptedFile = File(encryptedPath)
-
-      // Validate encrypted file exists
-      if (!encryptedFile.exists()) {
-        throw InitializationException("Encrypted file not found: $encryptedPath")
-      }
-
-      // Get encryption key
-      val secretKey = keyManager.getOrCreateKey(keyAlias)
-
-      // Stream decrypt and emit events
-      val streamManager = StreamDecryptionManager(secretKey, encryptedFile)
-
-      streamManager.stream { data, index, isLast ->
-        // Emit event immediately - Expo SDK 54 converts ByteArray → Uint8Array automatically
-        val eventData = mapOf(
-          "data" to data,
-          "index" to index,
-          "isLast" to isLast
-        )
-        sendEvent("onAudioChunkDecrypted", eventData)
-
-        // Data is automatically discarded after this scope
-      }
-
-      // Paranoid Self-Destruct: Secure Data Shredding (Overwrite + Delete)
-      // Only in success path - if streaming fails, file remains for retry
-      // Silently ignore deletion errors (e.g. permission issues) since streaming succeeded
-      try {
-        FileShredder.shred(encryptedFile)
-      } catch (e: Exception) {
-        // Ignore deletion/overwrite errors - streaming succeeded, that's what matters
-      }
-    } catch (e: SecureRecorderException) {
-      throw e
-    } catch (e: Exception) {
-      throw InitializationException("Failed to decrypt audio: ${e.message}", e)
+  private fun openDecryptedStream(encryptedPath: String): String {
+    val encryptedFile = File(encryptedPath)
+    if (!encryptedFile.exists()) {
+      throw InitializationException("Encrypted file not found: $encryptedPath")
     }
+
+    val secretKey = keyManager.getOrCreateKey(keyAlias)
+    val readerId = UUID.randomUUID().toString()
+    decryptedStreamReaders[readerId] = StreamDecryptionManager(secretKey, encryptedFile)
+
+    return readerId
+  }
+
+  /**
+   * Decrypts and returns the next block for the reader.
+   * The last data block carries isLast=true; the call after it returns an
+   * empty block with isLast=true and closes the reader.
+   */
+  private fun readNextChunk(readerId: String): Map<String, Any?> {
+    val streamManager = decryptedStreamReaders[readerId]
+      ?: throw IllegalStateException("Unknown decrypted stream reader: $readerId")
+
+    val chunk = streamManager.readNext()
+    if (chunk == null) {
+      decryptedStreamReaders.remove(readerId)
+
+      return mapOf(
+        "data" to ByteArray(0),
+        "isLast" to true
+      )
+    }
+
+    if (chunk.isLast) {
+      decryptedStreamReaders.remove(readerId)
+    }
+
+    return mapOf(
+      "data" to chunk.data,
+      "isLast" to chunk.isLast
+    )
+  }
+
+  /**
+   * Releases the native reader early when the consumer abandons mid-stream.
+   */
+  private fun closeDecryptedStream(readerId: String) {
+    decryptedStreamReaders.remove(readerId)?.close()
   }
 
   /**

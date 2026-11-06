@@ -12,6 +12,7 @@ import type { MD3Theme } from 'react-native-paper';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import type { StatusColors } from '@/Components/Status/Status';
 import { ActivityStatus } from '@/State/GlobalActivityStatus';
+import { PaperInk } from '@/theme/PaperInk';
 import { SemanticStatusColors } from '@/theme/SemanticStatusColors';
 import { StatusState } from '@/Components/Status/StatusTypes';
 
@@ -22,10 +23,10 @@ extend([mixPlugin]);
 // ---------------------------------------------------------------------------
 
 const PRIMITIVES = {
-    // Brand (Scribe)
-    espresso: '#4A3B32',
-    taupe: '#9C8975',
-    teal: '#355052',
+    // Brand (Scribe) - Paper and ink
+    espresso: PaperInk.INK,
+    taupe: PaperInk.TEXT_MUTED,
+    teal: PaperInk.ACCENT,
     // Rainbow (Pastels)
     yellow: '#FAEDCB',
     mint: '#C9E4DE',
@@ -45,12 +46,12 @@ const PRIMITIVES = {
  * processing/ai, pending/draft.
  */
 const SEMANTIC = {
-    error: PRIMITIVES.pink,
-    warning: PRIMITIVES.yellow,
-    success: PRIMITIVES.mint,
-    info: PRIMITIVES.blue,
-    processing: PRIMITIVES.lavender,
-    pending: PRIMITIVES.peach,
+    error: PaperInk.DANGER_SOFT,
+    warning: PaperInk.OCHRE_SOFT,
+    success: PaperInk.ACCENT_SOFT,
+    info: PaperInk.CHIP,
+    processing: PaperInk.ACCENT_SOFT,
+    pending: PaperInk.OCHRE_SOFT,
 } as const;
 
 /** Brand colors from primitives; primaryContainer derived. */
@@ -62,7 +63,7 @@ const BRAND = {
 } as const;
 
 /** Neutrals for text/surface (not in PRIMITIVES); used only in derivations. */
-const TEXT_COLOR = '#2C2C2C';
+const TEXT_COLOR = PaperInk.TEXT;
 const TEXT_COLOR_LIGHT = '#FFFFFF';
 
 // ---------------------------------------------------------------------------
@@ -144,14 +145,14 @@ const SEMANTIC_THEME = {
     errorContainer: colord(SEMANTIC.error).lighten(0.3).toHex(),
     onErrorContainer: colord(SEMANTIC.error).darken(0.7).toHex(),
 
-    background: colord(SEMANTIC.success).lighten(0.95).toHex(),
+    background: PaperInk.PAPER,
     onBackground: TEXT_COLOR,
-    surface: TEXT_COLOR_LIGHT,
+    surface: PaperInk.CARD,
     onSurface: TEXT_COLOR,
-    surfaceVariant: colord(SEMANTIC.pending).lighten(0.4).toHex(),
-    onSurfaceVariant: colord(TEXT_COLOR).mix(TEXT_COLOR_LIGHT, 0.48).toHex(),
-    outline: colord(SEMANTIC.success).darken(0.3).toHex(),
-    outlineVariant: colord(SEMANTIC.success).lighten(0.2).toHex(),
+    surfaceVariant: PaperInk.CHIP,
+    onSurfaceVariant: PaperInk.TEXT_MUTED,
+    outline: PaperInk.LINE_STRONG,
+    outlineVariant: PaperInk.LINE,
     shadow: colord(PRIMITIVES.espresso).darken(0.9).toHex(),
     scrim: colord(PRIMITIVES.espresso).darken(1).alpha(0.5).toHex(),
     inverseSurface: colord(SEMANTIC.success).darken(0.7).toHex(),
@@ -159,11 +160,11 @@ const SEMANTIC_THEME = {
     inversePrimary: SEMANTIC.success,
     elevation: {
         level0: 'transparent',
-        level1: colord(SEMANTIC.pending).lighten(0.5).toHex(),
-        level2: colord(SEMANTIC.pending).lighten(0.45).toHex(),
-        level3: colord(SEMANTIC.pending).lighten(0.4).toHex(),
-        level4: colord(SEMANTIC.pending).lighten(0.35).toHex(),
-        level5: colord(SEMANTIC.pending).lighten(0.3).toHex(),
+        level1: PaperInk.CARD,
+        level2: PaperInk.CARD,
+        level3: PaperInk.CARD,
+        level4: PaperInk.PAPER,
+        level5: PaperInk.PAPER,
     },
     surfaceDisabled: colord(TEXT_COLOR).mix(TEXT_COLOR_LIGHT, 0.12).toHex(),
     onSurfaceDisabled: colord(TEXT_COLOR).mix(TEXT_COLOR_LIGHT, 0.38).toHex(),
@@ -189,10 +190,10 @@ const SEMANTIC_THEME = {
 
     actions: {
         critical: {
-            background: PRIMITIVES.amethyst,
+            background: PaperInk.DANGER,
             text: TEXT_COLOR_LIGHT,
-            pressed: colord(PRIMITIVES.amethyst).darken(0.15).toHex(),
-            shadow: colord(PRIMITIVES.amethyst).lighten(0.2).alpha(0.5).toHex(),
+            pressed: colord(PaperInk.DANGER).darken(0.15).toHex(),
+            shadow: colord(PaperInk.DANGER).lighten(0.2).alpha(0.5).toHex(),
         },
         primary: {
             background: BRAND.primary,
@@ -201,10 +202,10 @@ const SEMANTIC_THEME = {
             shadow: colord(BRAND.primary).lighten(0.2).alpha(0.5).toHex(),
         },
         success: {
-            background: PRIMITIVES.emerald,
+            background: PaperInk.ACCENT,
             text: TEXT_COLOR_LIGHT,
-            pressed: colord(PRIMITIVES.emerald).darken(0.15).toHex(),
-            shadow: colord(PRIMITIVES.emerald).lighten(0.2).alpha(0.5).toHex(),
+            pressed: PaperInk.ACCENT_DEEP,
+            shadow: colord(PaperInk.ACCENT).lighten(0.2).alpha(0.5).toHex(),
         },
     },
 };
@@ -219,7 +220,7 @@ export const APP_LIGHT_THEME: MD3Theme & { colors: ExtendedColors } = {
         ...MD3LightTheme.colors,
         ...SEMANTIC_THEME,
     },
-    roundness: 8,
+    roundness: 12,
 };
 
 // ---------------------------------------------------------------------------

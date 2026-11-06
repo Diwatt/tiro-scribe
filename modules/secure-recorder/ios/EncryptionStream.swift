@@ -24,7 +24,6 @@ class EncryptionStream {
   private var fileHandle: FileHandle?
   private var inputBuffer = Data()
   
-  private static let chunkSizeLength = 4
   private static let encryptionChunkSize = 16 * 1024 // 16KB
   
   internal init(secretKey: Data, outputFile: URL) {

@@ -20,13 +20,12 @@ export class Schema {
 
     public static readonly formBase = z.object({
         languages: z.array(z.string()).min(1, 'Please select at least one language.'),
-        qualifications: z.array(z.string()).min(1, 'Please select at least one qualification.'),
+        qualifications: z.array(z.string()),
         experience: z
             .string()
-            .min(1, 'Please enter years of experience.')
             .transform((s) => s.trim())
-            .refine((v) => /^\d+$/.test(v), 'Enter a number.'),
-        methods: z.array(z.string()).min(1, 'Please select at least one method.'),
+            .refine((v) => v === '' || /^\d+$/.test(v), 'Enter a number.'),
+        methods: z.array(z.string()),
         email: z.string().trim().min(1, 'Please enter your email.').email('Invalid email address.'),
         password: z.string().min(PASSWORD_MIN_LENGTH, 'Password must be at least 8 characters.'),
         confirmPassword: z.string(),

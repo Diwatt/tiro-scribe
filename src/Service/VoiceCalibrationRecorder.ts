@@ -83,64 +83,44 @@ export class VoiceCalibrationRecorder {
         const expectedSamples = (VoiceCalibrationRecorder.SAMPLE_RATE * duration) / 1000;
 
         try {
-            // Create the promise first, then register the listener that can resolve it.
             // Returns both the buffer and the actual number of samples written, because
             // the buffer is pre-allocated at expectedSamples length regardless of how
             // many real samples arrive.
-            const streamPromise = new Promise<{ buffer: Float32Array; writtenSamples: number }>(
-                (resolve, reject) => {
-                    // Use an async IIFE to handle the async addDecryptionListener
-                    (async () => {
-                        try {
-                            let offset = 0;
-                            const buffer = new Float32Array(expectedSamples);
+            const reader = await SecureRecorder.openDecryptedStream(encryptedFilePath);
+            const buffer = new Float32Array(expectedSamples);
+            let offset = 0;
 
-                            const subscription = await SecureRecorder.addDecryptionListener(
-                                (event) => {
-                                    const bytes = event.data as Uint8Array;
-                                    const int16Array = new Int16Array(
-                                        bytes.buffer,
-                                        bytes.byteOffset,
-                                        bytes.length / 2,
-                                    );
+            try {
+                let isLast = false;
+                while (!isLast) {
+                    const chunk = await reader.readNext();
+                    const int16Array = new Int16Array(
+                        chunk.data.buffer,
+                        chunk.data.byteOffset,
+                        chunk.data.length / 2,
+                    );
 
-                                    this.logger.debug(
-                                        '[VoiceCalibrationRecorder] decryption chunk',
-                                        {
-                                            bytes: bytes.length,
-                                            isLast: event.isLast,
-                                            offsetBefore: offset,
-                                        },
-                                    );
+                    this.logger.debug('[VoiceCalibrationRecorder] decryption chunk', {
+                        bytes: chunk.data.length,
+                        isLast: chunk.isLast,
+                        offsetBefore: offset,
+                    });
 
-                                    for (const sample of int16Array) {
-                                        if (offset < expectedSamples) {
-                                            buffer[offset++] =
-                                                sample / VoiceCalibrationRecorder.MAX_INT16;
-                                        }
-                                    }
-
-                                    this.logger.debug(
-                                        '[VoiceCalibrationRecorder] offset updated',
-                                        { offset },
-                                    );
-
-                                    if (event.isLast) {
-                                        subscription.remove();
-                                        resolve({ buffer, writtenSamples: offset });
-                                    }
-                                },
-                            );
-
-                            await SecureRecorder.stream(encryptedFilePath);
-                        } catch (error) {
-                            reject(error);
+                    for (const sample of int16Array) {
+                        if (offset < expectedSamples) {
+                            buffer[offset++] = sample / VoiceCalibrationRecorder.MAX_INT16;
                         }
-                    })();
-                },
-            );
+                    }
 
-            const { buffer: pcm, writtenSamples } = await streamPromise;
+                    this.logger.debug('[VoiceCalibrationRecorder] offset updated', { offset });
+
+                    isLast = chunk.isLast;
+                }
+            } finally {
+                await reader.close();
+            }
+
+            const writtenSamples = offset;
 
             // determine how many samples we really need; allow a 10% slack
             // because native audio buffers can come back slightly smaller than
@@ -181,10 +161,10 @@ export class VoiceCalibrationRecorder {
             if (writtenSamples < expectedSamples) {
                 // we have slightly fewer samples than anticipated, but not enough
                 // to fail. slice the buffer so callers don't see trailing zeros.
-                return pcm.subarray(0, writtenSamples);
+                return buffer.subarray(0, writtenSamples);
             }
 
-            return pcm;
+            return buffer;
         } catch (error: unknown) {
             this.logger.error('Voice calibration decryption failed.', {
                 encryptedFilePath,

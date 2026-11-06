@@ -173,7 +173,63 @@ Sur le graphe simplifié à dims constantes, tout était correct. Conséquences 
   fichiers (spec + `.pte` + artefacts), pas le code. On peut servir un modèle plus
   petit aux téléphones modestes sans branche de rétro-compatibilité.
 
-## 7. Cartographie du code
+## 7. Le threadpool XNNPACK : verdict du test (06/11/2026)
+
+**Question posée** : l'encoder Parakeet (~48-68 % du temps d'un segment) peut-il
+être accéléré en réglant le nombre de threads du threadpool ExecuTorch ? Le cas
+échéant, quel pool faut-il régler ?
+
+**Conclusion : aucun code de réglage n'est livré.** Le défaut du device (4
+threads = les cœurs performants du Tensor G4 sur Pixel 10a) est déjà optimal :
+toutes les valeurs alternatives testées (1, 2, 3, 6) sont égales ou pires. Le
+harnais de mesure temporaire (branche `test/threadpool-probe`) a été retiré
+après le test.
+
+### Quel pool exécute réellement les graphes ?
+
+- `libxnnpack_executorch_backend.so` contient **sa propre copie** du code du
+  threadpool : les wrappers C++ `get_threadpool()` des deux libs renvoient des
+  adresses distinctes. MAIS le backend n'est pas auto-contenu : ses relocations
+  `JUMP_SLOT` vers `get_pthreadpool` (et `pthreadpool_*`) sont **interposables**
+  (pas de `DT_SYMBOLIC`, `FLAGS=BIND_NOW`, symboles `GLOBAL DEFAULT`) et se
+  résolvent au chargement vers **`libexecutorch.so`** (première de l'ordre
+  `NEEDED`). Piège d'analyse : `nm -D --defined-only` montre les symboles
+  définis localement, ce qui ne prouve PAS qu'ils ne sont pas interposables —
+  seules les relocations (`objdump -R`) font foi.
+- Mesuré à l'exécution (sonde `dlopen`+`dlsym`, tag logcat `TP_PROBE`) : les
+  deux wrappers encapsulent **le même `pthreadpool_t`** — un seul pool effectif,
+  celui contrôlé par `libexecutorch.so`.
+- Preuve par le timing : réduire le pool du backend seul à 1 thread ne change
+  **rien** (1512 ms ≈ baseline 1540 ms) ; réduire le pool du runtime fait
+  **×2.04** (3142 ms). C'est donc le runtime qu'il faudrait cibler — mais le
+  verdict ci-dessous rend la question sans objet.
+
+### Mesures (Pixel 10a physique, segment plein de 28 s, 2 chauffes + 5 runs)
+
+| Config | encMedian | encMin/Max | decMedian | RTF |
+|---|---|---|---|---|
+| **Défaut (4 threads)** | **1540 ms** | 1474/1571 | 416 ms | 0.077 |
+| Backend=1 | 1512 ms | 1479/1541 | 424 ms | 0.077 |
+| Runtime=2 | 2135 ms | 1992/2217 | 353 ms | 0.096 |
+| Runtime=3 | 1753 ms | 1726/1788 | 409 ms | 0.084 |
+| Runtime=6 | 1575 ms | 1549/1619 | 463 ms | 0.080 |
+| Runtime=1 | 3142 ms | 3080/3345 | 369 ms | 0.131 |
+| Both=1 | 3203 ms | 3174/3427 | 360 ms | 0.134 |
+
+- **Aucune valeur ne bat 4 threads** (runtime:6 est dans le bruit, +2 %).
+- Le décodeur est ~10 % plus rapide à 1 thread (~50 ms sur 28 s, <2 % du
+  total) — insuffisant pour justifier un réglage, et de toute façon
+  inséparable de l'encoder (pool partagé).
+- Transcript **identique** entre toutes les configs : XNNPACK est déterministe
+  quel que soit le thread count.
+- Défaut observé sur Pixel 10a : 4 threads = cœurs performants du Tensor G4
+  (mesuré) — le fork `react-native-executorch` compile probablement le
+  threadpool avec les cœurs performants activés (déduit ; le défaut amont
+  d'ExecuTorch est « tous les cœurs logiques »).
+
+---
+
+## 8. Cartographie du code
 
 ### Couche ExecuTorch (`ExecuTorch/`) — le moteur
 
@@ -239,7 +295,7 @@ fichiers identifiés par un **rôle générique** (`encoder`, `decoder`, `joint`
 
 ---
 
-## 8. Fil conducteur : l'ajout d'un nouveau modèle
+## 9. Fil conducteur : l'ajout d'un nouveau modèle
 
 1. Exporter le modèle en `.pte` avec **toutes les dimensions constantes** et un
    front-end figé (mêmes paramètres que l'entraînement).

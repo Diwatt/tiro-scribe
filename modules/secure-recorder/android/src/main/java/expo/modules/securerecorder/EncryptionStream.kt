@@ -32,9 +32,6 @@ class EncryptionStream(
   private val inputBuffer = ByteArrayOutputStream()
   
   companion object {
-    private const val GCM_TAG_LENGTH = 128 // 128 bits = 16 bytes
-    private const val GCM_IV_LENGTH = 12 // 12 bytes (standard for GCM)
-    private const val CHUNK_SIZE_LENGTH = 4
     private const val ENCRYPTION_CHUNK_SIZE = 16 * 1024 // 16KB
   }
   
@@ -100,8 +97,8 @@ class EncryptionStream(
     cipher.init(Cipher.ENCRYPT_MODE, secretKey)
     val iv = cipher.iv // 12 bytes for GCM (standard)
 
-    require(iv.size == GCM_IV_LENGTH) {
-      "Invalid IV length: ${iv.size}, expected $GCM_IV_LENGTH"
+    require(iv.size == SealedAudioBlock.NONCE_LENGTH) {
+      "Invalid IV length: ${iv.size}, expected ${SealedAudioBlock.NONCE_LENGTH}"
     }
 
     // SECURITY: Encrypt this chunk with AES-256-GCM
@@ -113,7 +110,7 @@ class EncryptionStream(
 
     // SECURITY: Write complete sealed box to disk
     // Format: [4-byte chunk size][12-byte IV][encrypted data + 16-byte tag]
-    val sizeBuffer = ByteBuffer.allocate(CHUNK_SIZE_LENGTH).putInt(chunkSize).array()
+    val sizeBuffer = ByteBuffer.allocate(SealedAudioBlock.SIZE_HEADER_LENGTH).putInt(chunkSize).array()
     fileOutputStream.write(sizeBuffer)
     fileOutputStream.write(iv)
     fileOutputStream.write(encryptedData)

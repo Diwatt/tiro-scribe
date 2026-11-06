@@ -1,3 +1,4 @@
+import type { DecryptedChunk } from './DecryptedChunk';
 import type { RecordingStatus } from './RecordingStatus';
 
 /**
@@ -11,7 +12,9 @@ export interface NativeSecureRecorderModule {
     stop(): Promise<string>;
     getStatus(): Promise<RecordingStatus>;
     hasPermission(): Promise<boolean>;
-    stream(encryptedPath: string): Promise<void>;
+    openDecryptedStream(encryptedPath: string): Promise<string>;
+    readNextChunk(readerId: string): Promise<DecryptedChunk>;
+    closeDecryptedStream(readerId: string): Promise<void>;
     encryptFile(inputPath: string, outputPath: string): Promise<string>;
     encryptBytes(data: Uint8Array, outputPath: string): Promise<string>;
     addListener<TEventPayload = unknown>(

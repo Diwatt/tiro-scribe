@@ -1,14 +1,14 @@
 import type { EventSubscription } from 'expo-modules-core';
-import { DecryptionManager } from './DecryptionManager';
+import { DecryptedStreamReader } from './DecryptedStreamReader';
 import { ErrorCode } from './ErrorCode';
 import { ErrorNormalizer } from './ErrorNormalizer';
 import { PermissionManager } from './PermissionManager';
 import { RecorderState } from './RecorderState';
-import { type DecryptedChunkEvent, type RecordingStatus, SecureRecorderModule } from './SecureRecorderModule';
+import { type RecordingStatus, SecureRecorderModule } from './SecureRecorderModule';
 import type { EventEmitter, NativeRecorderModule, SecureRecorderError, StatusChangeEvent } from './Type';
 
-// Re-export DecryptedChunkEvent for convenience
-export type { DecryptedChunkEvent } from './SecureRecorderModule';
+// Re-export for convenience
+export type { DecryptedChunk } from './SecureRecorderModule';
 
 /**
  * Secure audio recorder with streaming AES-256-GCM encryption.
@@ -42,7 +42,6 @@ export class SecureRecorder {
     private _filePath: string | null = null;
 
     private static permissionManager: PermissionManager | null = null;
-    private static decryptionManager: DecryptionManager | null = null;
 
     /**
      * Event handler called when recording status changes.
@@ -271,53 +270,14 @@ export class SecureRecorder {
     }
 
     /**
-     * Subscribe to the streaming decryption events.
-     * MUST be called BEFORE calling stream().
+     * Opens a pull reader on an encrypted audio file: readNext() returns each
+     * decrypted block in stream order until the reader is exhausted. The
+     * reader id stays encapsulated inside the returned DecryptedStreamReader.
      *
-     * @param listener Callback function that receives decrypted chunks
-     * @returns Subscription object (call .remove() when done)
-     *
-     * @example
-     * const subscription = SecureRecorder.addDecryptionListener((event) => {
-     *   const pcmData = event.data; // Uint8Array
-     *   await onnxSession.processChunk(pcmData);
-     *   if (event.isLast) {
-     *     subscription.remove(); // Clean up when done
-     *   }
-     * });
-     *
-     * await SecureRecorder.stream(filePath);
+     * @throws {SecureRecorderError} if the file does not exist
      */
-    public static async addDecryptionListener(
-        listener: (event: DecryptedChunkEvent) => void,
-    ): Promise<EventSubscription> {
-        return await SecureRecorderModule.addListener(SecureRecorderModule.eventAudioChunkDecrypted, listener);
-    }
-
-    /**
-     * Stream decrypt encrypted audio file, emitting events for each chunk.
-     *
-     * MEMORY SAFE: Uses true streaming to read chunks incrementally from disk.
-     * Listen to 'onAudioChunkDecrypted' events to receive chunks as they're decrypted.
-     *
-     * IMPORTANT: Call addDecryptionListener() BEFORE calling stream() to receive events.
-     *
-     * @param encryptedPath Path to the encrypted audio file
-     * @returns Promise that resolves when decryption starts (events are emitted asynchronously)
-     *
-     * @example
-     * const subscription = SecureRecorder.addDecryptionListener((event) => {
-     *   const pcmData = event.data; // Uint8Array
-     *   await onnxSession.processChunk(pcmData);
-     *   if (event.isLast) {
-     *     subscription.remove();
-     *   }
-     * });
-     *
-     * await SecureRecorder.stream(filePath);
-     */
-    public static async stream(encryptedPath: string): Promise<void> {
-        return await SecureRecorder.getDecryptionManager().stream(encryptedPath);
+    public static async openDecryptedStream(encryptedPath: string): Promise<DecryptedStreamReader> {
+        return DecryptedStreamReader.open(SecureRecorderModule, encryptedPath);
     }
 
     /**
@@ -325,7 +285,7 @@ export class SecureRecorder {
      * used by the recording pipeline.
      *
      * Reads the input file in chunks and encrypts each chunk. The resulting
-     * `.dat` file can be decrypted via {@link SecureRecorder.stream}.
+     * `.dat` file can be decrypted via {@link SecureRecorder.openDecryptedStream}.
      *
      * DEV ONLY: This exists to seed test data without requiring microphone
      * recording. The encrypted file uses the hardware-bound key stored by
@@ -344,7 +304,7 @@ export class SecureRecorder {
      * Encrypt a byte array using the same AES-256-GCM key and chunk format
      * used by the recording pipeline.
      *
-     * The resulting `.dat` file can be decrypted via {@link SecureRecorder.stream}.
+     * The resulting `.dat` file can be decrypted via {@link SecureRecorder.openDecryptedStream}.
      *
      * DEV ONLY: Used after converting audio to the standard recording format
      * (16 kHz, mono, 16-bit PCM) so the encrypted output is indistinguishable
@@ -403,12 +363,5 @@ export class SecureRecorder {
         });
 
         return SecureRecorder.permissionManager;
-    }
-
-    // Static factory for DecryptionManager (for backward compatibility)
-    private static getDecryptionManager(): DecryptionManager {
-        SecureRecorder.decryptionManager ??= new DecryptionManager(SecureRecorderModule);
-
-        return SecureRecorder.decryptionManager;
     }
 }

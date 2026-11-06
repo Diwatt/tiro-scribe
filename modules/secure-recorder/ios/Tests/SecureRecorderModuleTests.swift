@@ -103,30 +103,6 @@ class SecureRecorderModuleTests: XCTestCase {
     XCTAssertEqual(status["filePath"] as? String, "", "FilePath should be empty")
   }
   
-  func testStreamDecryptionInternalThrowsWhenFileDoesNotExist() async {
-    let nonExistentPath = tempDir.appendingPathComponent("nonexistent.dat").path
-    
-    do {
-      try await module.stream(encryptedPath: nonExistentPath)
-      XCTFail("Should throw InitializationException when file not found")
-    } catch let error as SecureRecorderError {
-      XCTAssertEqual(error.code, "INITIALIZATION_FAILED", "Should throw initializationFailed")
-      XCTAssertTrue(error.localizedDescription.contains("not found"), "Error message should mention not found")
-    } catch {
-      XCTFail("Should throw SecureRecorderError, got: \(error)")
-    }
-  }
-  
-  func testStreamDecryptionInternalThrowsWhenEncryptedPathIsEmpty() async {
-    do {
-      try await module.stream(encryptedPath: "")
-      XCTFail("Should throw for empty path")
-    } catch {
-      // Expected - empty path should fail
-      XCTAssertNotNil(error)
-    }
-  }
-  
   // MARK: - O - One Cases (Happy Path)
   
   func testCreateOutputFileURLCreatesCorrectPath() throws {
@@ -267,22 +243,6 @@ class SecureRecorderModuleTests: XCTestCase {
     }
   }
   
-  func testStreamDecryptionInternalHandlesVeryLongPath() async {
-    let longPath = tempDir.appendingPathComponent(String(repeating: "a", count: 1000) + ".dat").path
-    let fileManager = FileManager.default
-    fileManager.createFile(atPath: longPath, contents: Data(), attributes: nil)
-    
-    do {
-      try await module.stream(encryptedPath: longPath)
-      // May fail due to decryption, but path should be handled
-    } catch {
-      // Expected - file may not be valid encrypted data
-      XCTAssertNotNil(error)
-    }
-    
-    try? FileManager.default.removeItem(atPath: longPath)
-  }
-  
   // MARK: - I - Interface Cases (Mock Verification)
   
   func testEmitStatusChangedSendsCorrectEventData() {
@@ -381,36 +341,7 @@ class SecureRecorderModuleTests: XCTestCase {
       XCTFail("Should throw SecureRecorderError")
     }
   }
-  
-  func testStreamDecryptionInternalThrowsInitializationFailedWhenKeyManagerFails() async {
-    let encryptedFile = tempDir.appendingPathComponent("encrypted.dat")
-    FileManager.default.createFile(atPath: encryptedFile.path, contents: Data(), attributes: nil)
-    
-    do {
-      try await module.stream(encryptedPath: encryptedFile.path)
-      // May fail due to invalid encrypted data
-    } catch let error as SecureRecorderError {
-      XCTAssertEqual(error.code, "INITIALIZATION_FAILED", "Should throw initializationFailed")
-    } catch {
-      // Other errors may occur
-    }
-    
-    try? FileManager.default.removeItem(at: encryptedFile)
-  }
-  
-  func testStreamDecryptionInternalHandlesFileShredderErrorsGracefully() async {
-    // Test that FileShredder errors are silently ignored
-    // Since FileShredder.shred() uses try?, errors are swallowed
-    
-    let encryptedFile = tempDir.appendingPathComponent("encrypted.dat")
-    FileManager.default.createFile(atPath: encryptedFile.path, contents: Data(), attributes: nil)
-    
-    // This test verifies that FileShredder errors don't propagate
-    // The try? in streamDecryptionInternal ensures errors are ignored
-    
-    try? FileManager.default.removeItem(at: encryptedFile)
-    XCTAssertTrue(true, "FileShredder errors are handled gracefully")
-  }
+}
   
   func testAllErrorsIncludeCodeProperty() {
     // Verify all SecureRecorderError cases have code property

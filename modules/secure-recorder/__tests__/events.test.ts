@@ -161,34 +161,6 @@ describe('SecureRecorder onerror', () => {
 
             await expect(recorder.stop()).rejects.toMatchObject({ code: 'NO_RECORDING_IN_PROGRESS' });
         });
-
-        it('addDecryptionListener should subscribe and stream should delegate', async () => {
-            const fake = createFakeNative();
-            // Monkey-patch static module/decryption manager usage by passing fake as SecureRecorderModule
-            // We can temporarily set addListener/stream on the actual module by using the class static methods
-            // but simpler here: use the static methods expecting global module. We simulate by replacing methods.
-            const { SecureRecorderModule } = jest.requireActual('../src/SecureRecorderModule');
-
-            const originalAdd = SecureRecorderModule.addListener.bind(SecureRecorderModule);
-            const originalStream = SecureRecorderModule.stream.bind(SecureRecorderModule);
-            try {
-                // Redirect to fake
-                (SecureRecorderModule as any).addListener = fake.addListener;
-                (SecureRecorderModule as any).stream = fake.stream;
-
-                const handler = jest.fn();
-                const sub = SecureRecorder.addDecryptionListener(handler);
-                expect(fake.addListener).toHaveBeenCalledWith('onAudioChunkDecrypted', handler);
-                expect(sub).toHaveProperty('remove');
-
-                await SecureRecorder.stream('/tmp/file.dat');
-                expect(fake.stream).toHaveBeenCalledWith('/tmp/file.dat');
-            } finally {
-                // Restore
-                (SecureRecorderModule as any).addListener = originalAdd;
-                (SecureRecorderModule as any).stream = originalStream;
-            }
-        });
     });
 });
 

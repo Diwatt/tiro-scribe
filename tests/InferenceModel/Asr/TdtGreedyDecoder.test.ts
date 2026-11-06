@@ -63,6 +63,8 @@ describe('TdtGreedyDecoder', () => {
         expect(result.tokenIds).toEqual([100, 200]);
         expect(result.frameIndexes).toEqual([0, 1]);
         expect(decoderStepCalls).toEqual([BLANK, 100, 200]);
+        expect(result.iterationCount).toBe(4);
+        expect(result.decoderSteps).toBe(3);
     });
 
     it('forces forward progress of one frame on a blank with zero duration', () => {
@@ -78,6 +80,8 @@ describe('TdtGreedyDecoder', () => {
         expect(result.tokenIds).toEqual([]);
         expect(result.frameIndexes).toEqual([]);
         expect(decoderStepCalls).toEqual([BLANK]);
+        expect(result.iterationCount).toBe(2);
+        expect(result.decoderSteps).toBe(1);
     });
 
     it('stops when the frame pointer reaches the last encoder frame', () => {
@@ -93,6 +97,8 @@ describe('TdtGreedyDecoder', () => {
         expect(result.tokenIds).toEqual([]);
         expect(result.frameIndexes).toEqual([]);
         expect(decoderStepCalls).toEqual([BLANK]);
+        expect(result.iterationCount).toBe(3);
+        expect(result.decoderSteps).toBe(1);
     });
 
     it('emits several tokens on the same frame through zero durations', () => {
@@ -110,5 +116,7 @@ describe('TdtGreedyDecoder', () => {
         expect(result.tokenIds).toEqual([10, 20]);
         expect(result.frameIndexes).toEqual([0, 0]);
         expect(decoderStepCalls).toEqual([BLANK, 10, 20]);
+        expect(result.iterationCount).toBe(5);
+        expect(result.decoderSteps).toBe(3);
     });
 });

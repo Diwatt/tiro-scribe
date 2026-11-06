@@ -116,7 +116,6 @@ jest.mock('expo-audio', () => ({
  */
 jest.mock('expo-sqlite', () => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('./tests/jest/mocks/expo/expo-sqlite.mock');
     return mod && mod.expoSqliteMock ? mod.expoSqliteMock : {
       openDatabaseSync: jest.fn(() => ({})),
@@ -141,7 +140,6 @@ jest.mock('expo-sqlite', () => {
  */
 jest.mock('expo-device', () => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('./tests/jest/mocks/expo/expo-device.mock');
     return mod && mod.expoDeviceMock ? mod.expoDeviceMock : { osName: 'iOS' };
   } catch (e) {
@@ -158,7 +156,6 @@ jest.mock('expo-device', () => {
  */
 jest.mock('expo-file-system', () => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('./tests/jest/mocks/expo/expo-file-system.mock');
     return mod && mod.expoFileSystemMock ? mod.expoFileSystemMock : {
       documentDirectory: '/documents/',

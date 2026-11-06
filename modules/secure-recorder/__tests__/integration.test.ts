@@ -34,16 +34,6 @@ describe('SecureRecorder Integration', () => {
             expect(SecureRecorder.requestPermission).toBeDefined();
             expect(typeof SecureRecorder.requestPermission).toBe('function');
         });
-
-        it('has static stream method', () => {
-            expect(SecureRecorder.stream).toBeDefined();
-            expect(typeof SecureRecorder.stream).toBe('function');
-        });
-
-        it('has static addDecryptionListener method', () => {
-            expect(SecureRecorder.addDecryptionListener).toBeDefined();
-            expect(typeof SecureRecorder.addDecryptionListener).toBe('function');
-        });
     });
 
     describe('Instance Properties', () => {

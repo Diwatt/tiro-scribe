@@ -33,3 +33,6 @@ patchedDependencies:
   '@mikro-orm/core@7.2.7': patches/@mikro-orm__core@7.2.7.patch
   '@mikro-orm/sql@7.2.7': patches/@mikro-orm__sql@7.2.7.patch
   'react-native-blob-util@0.25.1': patches/react-native-blob-util@0.25.1.patch
+
+minimumReleaseAgeExclude:
+  - "@swmansion/argent@0.32.0"

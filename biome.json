@@ -13,7 +13,7 @@
 			"**/modules/**",
 			"**/tests/**",
 			"!!src/Api/generated",
-			"!modules/secure-recorder/.eslintrc.js",
+
 			"!!tests",
 			"!**/__tests__",
 			"!**/*.test.ts",

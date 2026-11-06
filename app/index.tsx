@@ -8,12 +8,11 @@ import { observer } from '@legendapp/state/react';
 import { useRouter } from 'expo-router';
 import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
 import { Database } from '@/Database/Database';
 import { ENTITY_CLASSES } from '@/Entity';
+import { LaunchScreen } from '@/Screen/Start/LaunchScreen';
 import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
 
 async function hideSplash(): Promise<void> {
@@ -26,7 +25,6 @@ async function hideSplash(): Promise<void> {
 }
 
 export default observer(function GateScreen(): React.JSX.Element | null {
-    const theme = useTheme();
     const router = useRouter();
     const bootStarted = useRef(false);
     const startupOrchestrator = useMemo(() => Container.get(StartupOrchestrator), []);
@@ -76,17 +74,5 @@ export default observer(function GateScreen(): React.JSX.Element | null {
         }
     }, [state, router]);
 
-    return (
-        <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-    );
-});
-
-const styles = StyleSheet.create({
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    return <LaunchScreen />;
 });

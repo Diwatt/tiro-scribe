@@ -16,13 +16,11 @@ const mockLogger = {
 } as unknown as AppLogger;
 
 describe('VoiceCalibrationRecorder', () => {
-    let listenerCallback: (event: { data: Uint8Array; isLast: boolean }) => void;
-    const fakeChunks: Uint8Array[] = [];
+    let fakeChunks: Uint8Array[];
 
     beforeEach(() => {
         jest.clearAllMocks();
-        listenerCallback = () => {};
-        fakeChunks.length = 0;
+        fakeChunks = [];
 
         // Force the real-device path; the simulator test redefines this getter
         // (configurable: true) for its own scenario.
@@ -38,20 +36,19 @@ describe('VoiceCalibrationRecorder', () => {
         jest.spyOn(SecureRecorder, 'hasPermission').mockResolvedValue(true);
         jest.spyOn(SecureRecorder, 'requestPermission').mockResolvedValue(true); // stub for other tests that might call it
 
-        jest.spyOn(SecureRecorder, 'addDecryptionListener').mockImplementation(async (cb) => {
-            listenerCallback = cb as any;
-            return { remove: () => {} };
-        });
+        const fakeReader = {
+            readNext: jest.fn(async () => {
+                const data = fakeChunks.shift();
+                if (data !== undefined) {
+                    return { data, isLast: fakeChunks.length === 0 };
+                }
 
-        jest.spyOn(SecureRecorder, 'stream').mockImplementation(async () => {
-            // emit all fake chunks then a last event
-            for (const data of fakeChunks) {
-                listenerCallback({ data, isLast: false });
-            }
-            // final event
-            listenerCallback({ data: new Uint8Array(0), isLast: true });
-            return Promise.resolve();
-        });
+                return { data: new Uint8Array(0), isLast: true };
+            }),
+            close: jest.fn(async () => {}),
+        };
+
+        jest.spyOn(SecureRecorder, 'openDecryptedStream').mockResolvedValue(fakeReader as any);
     });
 
     it('implements the interface and returns PCM when decryption produces 16‑bit samples', async () => {
@@ -182,10 +179,10 @@ describe('VoiceCalibrationRecorder', () => {
         expect(Array.from(pcm).every((v) => v === 0)).toBe(true);
     });
 
-    it('forwards errors from SecureRecorder.stream', async () => {
+    it('forwards errors from the decrypted stream', async () => {
         const error = new Error('stream fail');
-        // override the default stream mock for this test only
-        jest.spyOn(SecureRecorder, 'stream').mockRejectedValueOnce(error);
+        // override the default reader mock for this test only
+        jest.spyOn(SecureRecorder, 'openDecryptedStream').mockRejectedValueOnce(error);
 
         const fakeRecorder = createFakeRecorder();
         const recorder = new VoiceCalibrationRecorder(mockLogger, (_: string) => fakeRecorder);

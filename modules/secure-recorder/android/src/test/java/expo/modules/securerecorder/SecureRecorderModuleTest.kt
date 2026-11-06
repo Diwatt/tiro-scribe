@@ -371,67 +371,6 @@ class SecureRecorderModuleTest {
     assertTrue(module.hasPermission())
   }
 
-  // MARK: - Stream
-
-  @Test
-  fun `stream throws InitializationException when the encrypted file does not exist`() {
-    val missingPath = File(androidContext.filesDir, "missing.dat").absolutePath
-
-    val exception = assertThrows(InitializationException::class.java) { module.stream(missingPath) }
-
-    assertEquals("Encrypted file not found: $missingPath", exception.message)
-  }
-
-  @Test
-  fun `stream propagates KeyStoreException when the key manager fails`() {
-    val encryptedFile = writeEncryptedFile(listOf(ByteArray(1024)))
-    every { mockKeyManager.getOrCreateKey(any()) } throws KeyStoreException("keystore failure")
-
-    assertThrows(KeyStoreException::class.java) { module.stream(encryptedFile.absolutePath) }
-
-    assertTrue(encryptedFile.exists())
-  }
-
-  @Test
-  fun `stream emits decrypted chunk events in order with last chunk flagged`() {
-    val chunk1 = ByteArray(16 * 1024) { 1 }
-    val chunk2 = ByteArray(16 * 1024) { 2 }
-    val encryptedFile = writeEncryptedFile(listOf(chunk1, chunk2))
-
-    module.stream(encryptedFile.absolutePath)
-
-    val chunkEvents = emittedEvents.filter { it.first == "onAudioChunkDecrypted" }
-    assertEquals(2, chunkEvents.size)
-    assertEquals(0, chunkEvents[0].second["index"])
-    assertFalse(chunkEvents[0].second["isLast"] as Boolean)
-    assertArrayEquals(chunk1, chunkEvents[0].second["data"] as ByteArray)
-    assertEquals(1, chunkEvents[1].second["index"])
-    assertTrue(chunkEvents[1].second["isLast"] as Boolean)
-    assertArrayEquals(chunk2, chunkEvents[1].second["data"] as ByteArray)
-  }
-
-  @Test
-  fun `stream shreds the encrypted file after successful streaming`() {
-    val encryptedFile = writeEncryptedFile(listOf(ByteArray(1024)))
-
-    module.stream(encryptedFile.absolutePath)
-
-    assertFalse("Encrypted file should be shredded after streaming", encryptedFile.exists())
-  }
-
-  @Test
-  fun `stream wraps decryption failures in InitializationException`() {
-    val corruptedFile = File(androidContext.filesDir, "corrupted_${System.currentTimeMillis()}.dat")
-    corruptedFile.writeBytes(byteArrayOf(0, 0, 0, 50, 1, 2, 3, 4))
-
-    val exception = assertThrows(InitializationException::class.java) {
-      module.stream(corruptedFile.absolutePath)
-    }
-
-    assertTrue(exception.message!!.contains("Failed to decrypt audio"))
-    assertTrue("Corrupted file should remain for retry", corruptedFile.exists())
-  }
-
   // MARK: - Helpers
 
   private fun startModuleSession(paused: Boolean = false) {

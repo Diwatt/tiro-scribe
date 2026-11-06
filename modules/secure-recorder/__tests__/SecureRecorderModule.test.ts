@@ -30,7 +30,6 @@ describe('SecureRecorderModule', () => {
             stopRecording: jest.fn(),
             getStatus: jest.fn(),
             hasPermission: jest.fn(),
-            stream: jest.fn(),
             addListener: jest.fn(),
             removeAllListeners: jest.fn(),
         };
@@ -74,18 +73,6 @@ describe('SecureRecorderModule', () => {
             await expect(SecureRecorderModule.startRecording('')).resolves.toBe('/path.dat');
             expect(mockNativeModule.startRecording).toHaveBeenCalledWith('');
         });
-
-        it('should handle null path in stream', async () => {
-            mockNativeModule.stream.mockResolvedValue(undefined);
-            await expect(SecureRecorderModule.stream(null as any)).resolves.toBeUndefined();
-            expect(mockNativeModule.stream).toHaveBeenCalledWith(null);
-        });
-
-        it('should handle empty string path in stream', async () => {
-            mockNativeModule.stream.mockResolvedValue(undefined);
-            await expect(SecureRecorderModule.stream('')).resolves.toBeUndefined();
-            expect(mockNativeModule.stream).toHaveBeenCalledWith('');
-        });
     });
 
     describe('O - One Cases (Happy Path)', () => {
@@ -124,13 +111,6 @@ describe('SecureRecorderModule', () => {
             const result = await SecureRecorderModule.hasPermission();
             expect(result).toBe(true);
             expect(mockNativeModule.hasPermission).toHaveBeenCalledWith();
-        });
-
-        it('stream should delegate to native module', async () => {
-            const filePath = '/tmp/test-session.dat';
-            mockNativeModule.stream.mockResolvedValue(undefined);
-            await SecureRecorderModule.stream(filePath);
-            expect(mockNativeModule.stream).toHaveBeenCalledWith(filePath);
         });
 
         it('addListener should delegate to native module', () => {
@@ -180,13 +160,6 @@ describe('SecureRecorderModule', () => {
             expect(result2).toEqual(status2);
         });
 
-        it('should handle multiple stream calls', async () => {
-            mockNativeModule.stream.mockResolvedValue(undefined);
-            await SecureRecorderModule.stream('/path1.dat');
-            await SecureRecorderModule.stream('/path2.dat');
-            expect(mockNativeModule.stream).toHaveBeenCalledTimes(2);
-        });
-
         it('should handle multiple addListener calls', () => {
             const listener1 = jest.fn();
             const listener2 = jest.fn();
@@ -218,13 +191,6 @@ describe('SecureRecorderModule', () => {
             mockNativeModule.startRecording.mockResolvedValue('/path.dat');
             await SecureRecorderModule.startRecording(unicodeSessionId);
             expect(mockNativeModule.startRecording).toHaveBeenCalledWith(unicodeSessionId);
-        });
-
-        it('stream should handle very long file path', async () => {
-            const longPath = `/very/long/path/${'a'.repeat(1000)}.dat`;
-            mockNativeModule.stream.mockResolvedValue(undefined);
-            await SecureRecorderModule.stream(longPath);
-            expect(mockNativeModule.stream).toHaveBeenCalledWith(longPath);
         });
 
         it('getStatus should handle all state values', async () => {
@@ -276,7 +242,6 @@ describe('SecureRecorderModule', () => {
                 reason: null,
             });
             mockNativeModule.hasPermission.mockResolvedValue(true);
-            mockNativeModule.stream.mockResolvedValue(undefined);
             const subscription = { remove: jest.fn() };
             mockNativeModule.addListener.mockReturnValue(subscription);
 
@@ -284,7 +249,6 @@ describe('SecureRecorderModule', () => {
             await SecureRecorderModule.stopRecording();
             await SecureRecorderModule.getStatus();
             await SecureRecorderModule.hasPermission();
-            await SecureRecorderModule.stream('/path.dat');
             SecureRecorderModule.addListener('event', jest.fn());
             SecureRecorderModule.removeAllListeners('event');
 
@@ -292,13 +256,8 @@ describe('SecureRecorderModule', () => {
             expect(mockNativeModule.stopRecording).toHaveBeenCalled();
             expect(mockNativeModule.getStatus).toHaveBeenCalled();
             expect(mockNativeModule.hasPermission).toHaveBeenCalled();
-            expect(mockNativeModule.stream).toHaveBeenCalled();
             expect(mockNativeModule.addListener).toHaveBeenCalled();
             expect(mockNativeModule.removeAllListeners).toHaveBeenCalled();
-        });
-
-        it('eventAudioChunkDecrypted should be defined', () => {
-            expect(SecureRecorderModule.eventAudioChunkDecrypted).toBe('onAudioChunkDecrypted');
         });
     });
 
@@ -344,12 +303,6 @@ describe('SecureRecorderModule', () => {
             const error = new Error('Native hasPermission failed');
             mockNativeModule.hasPermission.mockRejectedValue(error);
             await expect(SecureRecorderModule.hasPermission()).rejects.toThrow('Native hasPermission failed');
-        });
-
-        it('stream should propagate native module errors', async () => {
-            const error = new Error('Native stream failed');
-            mockNativeModule.stream.mockRejectedValue(error);
-            await expect(SecureRecorderModule.stream('/path.dat')).rejects.toThrow('Native stream failed');
         });
 
         it('addListener should propagate native module errors', () => {

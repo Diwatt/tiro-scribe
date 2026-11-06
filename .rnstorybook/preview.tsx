@@ -2,16 +2,18 @@ import type React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppTheme } from '../src/theme/AppTheme';
+import { APP_THEME } from '../src/theme/AppTheme';
+import { PaperInk } from '../src/theme/PaperInk';
 
 /**
  * Global decorators for all stories
- * Wraps stories with necessary providers (Theme, SafeArea, etc.)
+ * Wraps stories with necessary providers (Theme, SafeArea) on the paper background, edge to edge
+ * so full screens render as on device.
  */
 export const decorators = [
     (Story: React.ComponentType) => (
         <SafeAreaProvider>
-            <PaperProvider theme={AppTheme}>
+            <PaperProvider theme={APP_THEME}>
                 <View style={styles.container}>
                     <Story />
                 </View>
@@ -23,8 +25,7 @@ export const decorators = [
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 16,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: PaperInk.PAPER,
     },
 });
 

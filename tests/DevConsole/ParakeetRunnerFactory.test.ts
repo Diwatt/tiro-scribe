@@ -1,9 +1,12 @@
 import { Asr } from '@/InferenceModel/Model';
+import { AsrRunMetric } from '@/InferenceModel/Model/AsrRunMetric';
 import { ParakeetRunnerFactory } from '@/DevConsole/Benchmark/ParakeetRunnerFactory';
 import type { Runtime } from '@/InferenceModel/Runtime';
 
 const makeModel = (): { run: jest.Mock; dispose: jest.Mock } => ({
-    run: jest.fn().mockResolvedValue('Atomes et matière.'),
+    run: jest
+        .fn()
+        .mockResolvedValue(AsrRunMetric.create('Atomes et matière.', 1, 2, 3, 6, 4, 3, 4)),
     dispose: jest.fn().mockResolvedValue(undefined),
 });
 

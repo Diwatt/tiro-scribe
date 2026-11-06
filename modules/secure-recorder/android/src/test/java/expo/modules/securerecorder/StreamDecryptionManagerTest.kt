@@ -48,15 +48,11 @@ class StreamDecryptionManagerTest {
     val encryptedFile = File(tempDir, "single_chunk.dat")
     writeChunks(encryptedFile, listOf(testData))
 
-    val decryptedChunks = mutableListOf<ByteArray>()
-    StreamDecryptionManager(testKey, encryptedFile).stream { data, index, isLast ->
-      decryptedChunks.add(data)
-      assertEquals(0, index)
-      assertTrue(isLast)
-    }
+    val decryptedChunks = pullAll(StreamDecryptionManager(testKey, encryptedFile))
 
     assertEquals(1, decryptedChunks.size)
-    assertArrayEquals(testData, decryptedChunks[0])
+    assertArrayEquals(testData, decryptedChunks[0].data)
+    assertTrue(decryptedChunks[0].isLast)
   }
 
   @Test
@@ -65,23 +61,17 @@ class StreamDecryptionManagerTest {
     val encryptedFile = File(tempDir, "multiple_chunks.dat")
     writeChunks(encryptedFile, chunks.map { it.toByteArray() })
 
-    val decryptedChunks = mutableListOf<Triple<String, Int, Boolean>>()
-    StreamDecryptionManager(testKey, encryptedFile).stream { data, index, isLast ->
-      decryptedChunks.add(Triple(String(data), index, isLast))
-    }
+    val decryptedChunks = pullAll(StreamDecryptionManager(testKey, encryptedFile))
 
     assertEquals(3, decryptedChunks.size)
-    assertEquals("Chunk 1", decryptedChunks[0].first)
-    assertEquals(0, decryptedChunks[0].second)
-    assertFalse(decryptedChunks[0].third)
+    assertEquals("Chunk 1", String(decryptedChunks[0].data))
+    assertFalse(decryptedChunks[0].isLast)
 
-    assertEquals("Chunk 2", decryptedChunks[1].first)
-    assertEquals(1, decryptedChunks[1].second)
-    assertFalse(decryptedChunks[1].third)
+    assertEquals("Chunk 2", String(decryptedChunks[1].data))
+    assertFalse(decryptedChunks[1].isLast)
 
-    assertEquals("Chunk 3", decryptedChunks[2].first)
-    assertEquals(2, decryptedChunks[2].second)
-    assertTrue(decryptedChunks[2].third)
+    assertEquals("Chunk 3", String(decryptedChunks[2].data))
+    assertTrue(decryptedChunks[2].isLast)
   }
 
   @Test
@@ -89,8 +79,9 @@ class StreamDecryptionManagerTest {
     val encryptedFile = File(tempDir, "corrupted_size.dat")
     encryptedFile.writeBytes(byteArrayOf(0x00, 0x00))
 
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
     try {
-      StreamDecryptionManager(testKey, encryptedFile).stream { _, _, _ -> }
+      manager.readNext()
       fail("Expected IllegalStateException for incomplete chunk size header")
     } catch (e: IllegalStateException) {
       assertEquals("Corrupted file: incomplete chunk size header", e.message)
@@ -105,11 +96,14 @@ class StreamDecryptionManagerTest {
     buffer.put(ByteArray(5))
     encryptedFile.writeBytes(buffer.array())
 
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
     try {
-      StreamDecryptionManager(testKey, encryptedFile).stream { _, _, _ -> }
-      fail("Expected IllegalStateException for incomplete IV")
+      manager.readNext()
+      fail("Expected IllegalStateException for incomplete sealed block")
     } catch (e: IllegalStateException) {
-      assertEquals("Corrupted file: incomplete IV", e.message)
+      // The IV and the data are read as one sealed block, so a truncated IV
+      // is reported at block granularity.
+      assertEquals("Corrupted file: incomplete chunk", e.message)
     }
   }
 
@@ -121,8 +115,9 @@ class StreamDecryptionManagerTest {
     buffer.put(ByteArray(12))
     encryptedFile.writeBytes(buffer.array())
 
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
     try {
-      StreamDecryptionManager(testKey, encryptedFile).stream { _, _, _ -> }
+      manager.readNext()
       fail("Expected IllegalStateException for incomplete chunk data")
     } catch (e: IllegalStateException) {
       assertEquals("Corrupted file: incomplete chunk", e.message)
@@ -137,8 +132,9 @@ class StreamDecryptionManagerTest {
     buffer.put(ByteArray(10))
     encryptedFile.writeBytes(buffer.array())
 
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
     try {
-      StreamDecryptionManager(testKey, encryptedFile).stream { _, _, _ -> }
+      manager.readNext()
       fail("Expected IllegalStateException for invalid chunk size")
     } catch (e: IllegalStateException) {
       assertEquals("Invalid chunk size: 10", e.message)
@@ -155,12 +151,75 @@ class StreamDecryptionManagerTest {
     wrongKeyGen.init(256)
     val wrongKey = wrongKeyGen.generateKey()
 
+    val manager = StreamDecryptionManager(wrongKey, encryptedFile)
     try {
-      StreamDecryptionManager(wrongKey, encryptedFile).stream { _, _, _ -> }
+      manager.readNext()
       fail("Expected decryption failure with the wrong key")
     } catch (e: Exception) {
       assertTrue("GCM authentication should fail with the wrong key", e is javax.crypto.AEADBadTagException)
     }
+  }
+
+  @Test
+  fun testReadNextReturnsSingleBlockMarkedLast() {
+    val testData = "Hello, World!".toByteArray()
+    val encryptedFile = File(tempDir, "pull_single.dat")
+    writeChunks(encryptedFile, listOf(testData))
+
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
+    val first = manager.readNext()
+    val second = manager.readNext()
+
+    assertTrue(first != null)
+    assertArrayEquals(testData, first!!.data)
+    assertTrue(first!!.isLast)
+    assertEquals(null, second)
+  }
+
+  @Test
+  fun testReadNextReturnsBlocksInOrderUntilExhausted() {
+    val chunks = listOf("Chunk 1", "Chunk 2", "Chunk 3")
+    val encryptedFile = File(tempDir, "pull_multiple.dat")
+    writeChunks(encryptedFile, chunks.map { it.toByteArray() })
+
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
+    val first = manager.readNext()
+    val second = manager.readNext()
+    val third = manager.readNext()
+    val fourth = manager.readNext()
+
+    assertEquals("Chunk 1", String(first!!.data))
+    assertFalse(first!!.isLast)
+    assertEquals("Chunk 2", String(second!!.data))
+    assertFalse(second!!.isLast)
+    assertEquals("Chunk 3", String(third!!.data))
+    assertTrue(third!!.isLast)
+    assertEquals(null, fourth)
+  }
+
+  @Test
+  fun testCloseReleasesTheStreamEarly() {
+    val chunks = listOf("Chunk 1", "Chunk 2")
+    val encryptedFile = File(tempDir, "pull_closed.dat")
+    writeChunks(encryptedFile, chunks.map { it.toByteArray() })
+
+    val manager = StreamDecryptionManager(testKey, encryptedFile)
+    val first = manager.readNext()
+    manager.close()
+    val afterClose = manager.readNext()
+
+    assertFalse(first!!.isLast)
+    assertEquals(null, afterClose)
+  }
+
+  private fun pullAll(manager: StreamDecryptionManager): List<DecryptedChunk> {
+    val chunks = mutableListOf<DecryptedChunk>()
+    while (true) {
+      val chunk = manager.readNext() ?: break
+      chunks.add(chunk)
+    }
+
+    return chunks
   }
 
   private fun writeChunks(target: File, chunks: List<ByteArray>) {

@@ -22,6 +22,20 @@ describe('PcmSampleConverter', () => {
         });
     });
 
+    describe('bytesToInt16', () => {
+        it('decodes little-endian byte pairs into signed int16 samples', () => {
+            const bytes = new Uint8Array([0x00, 0x00, 0x00, 0x40, 0x00, 0xc0, 0xff, 0x7f]);
+
+            expect(Array.from(converter.bytesToInt16(bytes))).toEqual([0, 16384, -16384, 32767]);
+        });
+
+        it('decodes a subarray region from its own offset', () => {
+            const bytes = new Uint8Array([0xff, 0xff, 0x00, 0x40]);
+
+            expect(Array.from(converter.bytesToInt16(bytes.subarray(2)))).toEqual([16384]);
+        });
+    });
+
     describe('stereoToMono', () => {
         it('averages each left/right pair into a single sample', () => {
             const mono = converter.stereoToMono(Int16Array.from([16384, 0, -16384, 16384]));

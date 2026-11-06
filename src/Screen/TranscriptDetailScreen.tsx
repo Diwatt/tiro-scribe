@@ -1,121 +1,42 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Container } from '@/Core/Container';
-import { AppRouter } from '@/Core/AppRouter';
-import { ArrowLeft, Download, Share2 } from 'lucide-react-native';
+import { Share } from 'lucide-react-native';
 import type React from 'react';
-import { useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Chip, IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { StyleSheet, Text, View } from 'react-native';
+import { NavigationBar, Panel, RoundIconButton, ScreenFrame, Tag } from '@/Components/Kit';
+import { AppRouter } from '@/Core/AppRouter';
+import { Container } from '@/Core/Container';
 import { useLocalization } from '@/Localization';
-import type { ExtendedTheme } from '@/theme/AppTheme';
+import { PaperInk } from '@/theme/PaperInk';
+import { TypeScale } from '@/theme/TypeScale';
 
+/** Transcript modal opened from a route; params: transcript, biocode, date. */
 export function TranscriptDetailScreen(): React.JSX.Element {
-    const theme = useTheme<ExtendedTheme>();
-    const appRouter = Container.get(AppRouter);
     const { LL } = useLocalization();
-    const params = useLocalSearchParams<{
-        id?: string;
-        transcript?: string;
-        biocode?: string;
-        date?: string;
-    }>();
+    const params = useLocalSearchParams<{ transcript?: string; biocode?: string; date?: string }>();
+    const subject = Array.isArray(params.biocode) ? params.biocode.join(' ') : (params.biocode ?? '');
 
-    // Mock data – id from route, optional query params
-    const transcript =
-        params.transcript ||
-        'Patient reported feeling anxious about upcoming appointment. Discussed coping strategies and scheduled follow-up in two weeks.';
-
-    const biocode = params.biocode
-        ? Array.isArray(params.biocode)
-            ? JSON.stringify(params.biocode)
-            : params.biocode
-        : 'SUBJ-****-A3F2';
-    const date = params.date || '2 hours ago';
-
-    const handleBackPress = useCallback(() => {
-        appRouter.back();
-    }, [appRouter]);
-
-    const handleDownloadPress = useCallback(() => {
-        /* TODO: implement download */
-    }, []);
-
-    const handleSharePress = useCallback(() => {
-        /* TODO: implement share */
-    }, []);
     return (
-        <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
-            <Surface style={[STYLES.header, { backgroundColor: theme.colors.surface }]}>
-                <IconButton icon={ArrowLeft} size={24} onPress={handleBackPress} />
-                <View style={STYLES.headerContent}>
-                    <Text variant="titleMedium" style={[STYLES.title, { color: theme.colors.onSurface }]}>
-                        {LL.transcript.title()}
-                    </Text>
-                    <View style={STYLES.headerMeta}>
-                        <Chip mode="flat" compact style={STYLES.chip}>
-                            {biocode}
-                        </Chip>
-                        <Text variant="bodySmall" style={[STYLES.date, { color: theme.colors.onSurfaceVariant }]}>
-                            {date}
-                        </Text>
-                    </View>
-                </View>
-                <IconButton icon={Download} size={24} onPress={handleDownloadPress} />
-                <IconButton icon={Share2} size={24} onPress={handleSharePress} />
-            </Surface>
-
-            <ScrollView style={STYLES.scrollView} contentContainerStyle={STYLES.scrollContent}>
-                <Surface style={[STYLES.transcriptCard, { backgroundColor: theme.colors.surface }]}>
-                    <Text variant="bodyLarge" style={[STYLES.transcript, { color: theme.colors.onSurface }]}>
-                        {transcript}
-                    </Text>
-                </Surface>
-            </ScrollView>
-        </View>
+        <ScreenFrame>
+            <NavigationBar
+                backLabel={LL.shell.back()}
+                onBack={() => Container.get(AppRouter).back()}
+                trailing={<RoundIconButton icon={Share} label={LL.shell.export()} />}
+            />
+            <View style={STYLES.heading}>
+                {subject ? <Tag label={subject} /> : null}
+                <Text style={TypeScale.TITLE} accessibilityRole="header">
+                    {LL.transcript.title()}
+                </Text>
+                {params.date ? <Text style={TypeScale.CAPTION}>{params.date}</Text> : null}
+            </View>
+            <Panel>
+                <Text style={STYLES.transcript}>{params.transcript ?? ''}</Text>
+            </Panel>
+        </ScreenFrame>
     );
 }
 
 const STYLES = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 8,
-        elevation: 2,
-    },
-    headerContent: {
-        flex: 1,
-        marginLeft: 8,
-    },
-    title: {
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    headerMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    chip: {
-        height: 24,
-    },
-    date: {
-        opacity: 0.7,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        padding: 16,
-    },
-    transcriptCard: {
-        padding: 20,
-        borderRadius: 12,
-        elevation: 1,
-    },
-    transcript: {
-        lineHeight: 24,
-    },
+    heading: { gap: 6, paddingHorizontal: 4 },
+    transcript: { fontSize: 16, lineHeight: 24, color: PaperInk.TEXT_READING },
 });

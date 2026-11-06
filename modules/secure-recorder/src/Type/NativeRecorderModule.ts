@@ -1,4 +1,5 @@
 import type { RecordingStatus } from './RecordingStatus';
+import type { DecryptedChunk } from './DecryptedChunk';
 
 /**
  * Interface for native recorder module operations.
@@ -11,7 +12,9 @@ export interface NativeRecorderModule {
     stop(): Promise<string>;
     getStatus(): Promise<RecordingStatus>;
     hasPermission(): Promise<boolean>;
-    stream(encryptedPath: string): Promise<void>;
+    openDecryptedStream(encryptedPath: string): Promise<string>;
+    readNextChunk(readerId: string): Promise<DecryptedChunk>;
+    closeDecryptedStream(readerId: string): Promise<void>;
     addListener<TEventPayload = unknown>(
         event: string,
         listener: (data: TEventPayload) => void,

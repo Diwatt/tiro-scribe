@@ -3,7 +3,7 @@
     "compilerOptions": {
         "outDir": "./build",
         "rootDir": "./src",
-        "lib": ["ES2015", "ES2017", "DOM"],
+        "lib": ["ES2015", "ES2017", "ES2018", "DOM"],
         "skipLibCheck": true,
         "moduleResolution": "bundler",
         "resolveJsonModule": true

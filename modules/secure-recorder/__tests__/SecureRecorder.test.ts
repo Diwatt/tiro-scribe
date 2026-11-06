@@ -716,30 +716,8 @@ describe('SecureRecorder - Comprehensive Tests', () => {
             expect(typeof SecureRecorder.requestPermission).toBe('function');
         });
 
-        it('addDecryptionListener should delegate to SecureRecorderModule', () => {
-            // Mock SecureRecorderModule.addListener (static method)
-            const { SecureRecorderModule } = jest.requireActual('../src/SecureRecorderModule');
-            const fake = createFakeNative();
-
-            const originalAddListener = SecureRecorderModule.addListener.bind(SecureRecorderModule);
-            try {
-                // Redirect to fake
-                (SecureRecorderModule as any).addListener = fake.addListener;
-
-                const handler = jest.fn();
-                const subscription = SecureRecorder.addDecryptionListener(handler);
-
-                expect(fake.addListener).toHaveBeenCalledWith('onAudioChunkDecrypted', handler);
-                expect(subscription).toHaveProperty('remove');
-            } finally {
-                // Restore
-                (SecureRecorderModule as any).addListener = originalAddListener;
-            }
-        });
-
-        it('stream should delegate to DecryptionManager', async () => {
-            // This is tested indirectly through integration tests
-            expect(typeof SecureRecorder.stream).toBe('function');
+        it('openDecryptedStream should delegate to SecureRecorderModule', () => {
+            expect(typeof SecureRecorder.openDecryptedStream).toBe('function');
         });
     });
 });

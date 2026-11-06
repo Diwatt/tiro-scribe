@@ -21,6 +21,7 @@ export { InvalidMasterKeyException } from './InvalidMasterKeyException';
 export { NoActiveRecordingError, RecordingFilePathNotAvailableError } from './NoActiveRecordingError';
 export { NoActiveSubscriptionError } from './NoActiveSubscriptionError';
 export { PitchException } from './PitchException';
+export { PipelineException } from './PipelineException';
 export type { RecordingError } from './RecordingError';
 export { RecordingErrorType } from './RecordingErrorType';
 export { RecordingPermissionError } from './RecordingPermissionError';

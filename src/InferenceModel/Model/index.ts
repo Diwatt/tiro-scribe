@@ -1,5 +1,6 @@
 export { AbstractModel } from './AbstractModel';
 export { Asr } from './Asr';
+export { AsrRunMetric } from './AsrRunMetric';
 export type { InferenceModel } from './InferenceModel';
 export { Pitch } from './Pitch';
 export { PitchEstimate } from './PitchEstimate';

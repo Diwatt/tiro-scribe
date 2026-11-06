@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import type { AppLogger } from '@/Core/AppLogger';
 import { AsrException } from '@/Exception';
-import { PcmSampleConverter } from '@/Math';
+import type { PcmSampleConverter } from '@/Math';
 import { AsrVocabulary, TdtGreedyDecoder, TdtGreedyDecoderOptions } from '../Asr';
 import type { Downloader } from '../Downloader';
 import type { ExecuTorchRuntime } from '../ExecuTorch';
 import { ExecuTorchRunInput, FixedWindow } from '../ExecuTorch';
-import { LogMelSpectrogramOptions } from '../Spectrogram';
 import type { MelSpectrogramExtractorInterface } from '../Spectrogram';
+import { LogMelSpectrogramOptions } from '../Spectrogram';
 import { AbstractModel } from './AbstractModel';
+import { AsrRunMetric } from './AsrRunMetric';
 import type { InferenceModel } from './InferenceModel';
 
 interface AsrPipeline {
@@ -70,23 +71,51 @@ export class Asr extends AbstractModel implements InferenceModel {
         super(Asr.CAPABILITY, downloader, executorch, logger);
     }
 
-    public async run(samples: Float32Array): Promise<string> {
+    public async run(samples: Float32Array): Promise<AsrRunMetric> {
         const pipeline = this.pipeline;
         if (pipeline == null) {
             throw new AsrException('Asr model not initialized. Call initialize() first.');
         }
 
+        const startedAtMs = Date.now();
         const pcm16 = this.sampleConverter.float32ToInt16(samples);
+        const melStartedAtMs = Date.now();
         const spectrogram = await this.extractor.extractLogMelSpectrogram(pcm16, Asr.LOG_MEL_OPTIONS);
+        const melMs = Date.now() - melStartedAtMs;
         const window = FixedWindow.create(spectrogram.values, Asr.FIXED_MEL_FRAMES * Asr.NUM_MELS);
+        const encoderStartedAtMs = Date.now();
         const encoded = this.bundle.runProgram('encoder', [
             ExecuTorchRunInput.create(window, [1, Asr.FIXED_MEL_FRAMES, Asr.NUM_MELS]),
         ]);
+        const encoderMs = Date.now() - encoderStartedAtMs;
         this.decoderHiddenState = new Float32Array(Asr.HIDDEN_STATE_SIZE);
         this.decoderCellState = new Float32Array(Asr.HIDDEN_STATE_SIZE);
+        const decoderStartedAtMs = Date.now();
         const decoded = pipeline.decoder.decode(encoded[0]);
+        const decoderMs = Date.now() - decoderStartedAtMs;
+        const text = pipeline.vocabulary.decode(decoded.tokenIds);
+        const totalMs = Date.now() - startedAtMs;
 
-        return pipeline.vocabulary.decode(decoded.tokenIds);
+        this.logger.debug('[Asr] pipeline timings', {
+            melMs,
+            encoderMs,
+            decoderMs,
+            totalMs,
+            iterationCount: decoded.iterationCount,
+            decoderSteps: decoded.decoderSteps,
+            tokenCount: decoded.tokenIds.length,
+        });
+
+        return AsrRunMetric.create(
+            text,
+            melMs,
+            encoderMs,
+            decoderMs,
+            totalMs,
+            decoded.iterationCount,
+            decoded.decoderSteps,
+            decoded.tokenIds.length,
+        );
     }
 
     protected async loadBundle(): Promise<void> {
@@ -103,10 +132,10 @@ export class Asr extends AbstractModel implements InferenceModel {
         this.pipeline = null;
     }
 
-    private loadVocabulary(): Promise<AsrVocabulary> {
-        return this.readJsonArtifact('tokenizer', 'vocabulary', Asr.VOCABULARY_SCHEMA).then(
-            (pieces) => new AsrVocabulary(pieces),
-        );
+    private async loadVocabulary(): Promise<AsrVocabulary> {
+        const pieces = await this.readJsonArtifact('tokenizer', 'vocabulary', Asr.VOCABULARY_SCHEMA);
+
+        return new AsrVocabulary(pieces);
     }
 
     private async readJsonArtifact<T>(role: 'tokenizer', label: string, schema: z.ZodType<T>): Promise<T> {

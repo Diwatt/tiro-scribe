@@ -35,14 +35,19 @@ export class TdtGreedyDecoder {
         const frameCount = encoderFrames.length / this.encoderFrameSize;
         const tokenIds: number[] = [];
         const frameIndexes: number[] = [];
+        let iterationCount = 0;
+        let decoderSteps = 0;
         this.copyPredState(this.decoderStep(this.blankId));
+        decoderSteps += 1;
 
         let frameIndex = 0;
         let frameEmissions = 0;
         let lastToken = this.blankId;
         while (frameIndex < frameCount) {
+            iterationCount += 1;
             if (lastToken !== this.blankId) {
                 this.copyPredState(this.decoderStep(lastToken));
+                decoderSteps += 1;
             }
             this.predStateBuffer[this.encoderFrameSize] = frameEmissions;
             const frameStart = frameIndex * this.encoderFrameSize;
@@ -67,7 +72,7 @@ export class TdtGreedyDecoder {
             lastToken = token;
         }
 
-        return { tokenIds, frameIndexes };
+        return { tokenIds, frameIndexes, iterationCount, decoderSteps };
     }
 
     private copyPredState(projected: Float32Array): void {

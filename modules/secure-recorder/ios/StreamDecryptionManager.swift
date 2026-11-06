@@ -2,98 +2,134 @@ import Foundation
 import CryptoKit
 
 /**
- * Manages streaming decryption of encrypted audio files for iOS/iPadOS
- * 
- * Decrypts encrypted audio files using true streaming (FileHandle), emitting events
- * for each decrypted chunk without accumulating data in memory.
- * 
- * iOS/iPadOS SPECIFICITY:
- * - Uses CryptoKit (AES.GCM.open) for decryption
- * - Uses FileHandle for true streaming (reads chunks incrementally from disk)
- * - Int32(bigEndian) for chunk size parsing
- * - Uses SealedBox(combined:) to parse nonce + ciphertext + tag
- * 
+ * Decrypts encrypted audio files block by block with a pull cursor.
+ *
+ * readNext() decrypts and returns the next block, or nil once the file is
+ * exhausted. The block marked isLast is the last one carrying data; after it
+ * the reader is exhausted and closed. close() releases the open file handle
+ * early when the consumer abandons the stream.
+ *
+ * Block format (written by EncryptionStream):
+ * [4-byte size][12-byte IV][data + 16-byte tag]
+ *
  * MEMORY SAFETY: Zero accumulation, minimal RAM usage
- * - Each chunk: Read → Decrypt → Emit → Discard
- * - No temporary files
+ * - Each call: Read → Decrypt → Return
  * - Constant memory usage regardless of file size
- * - Only one chunk in memory at a time
  */
 class StreamDecryptionManager {
   private let secretKey: SymmetricKey
   private let encryptedFile: URL
-  
-  private static let chunkSizeLength = 4 // 4 bytes for Int32
-  private static let gcmNonceLength = 12 // 12 bytes
-  private static let gcmTagLength: Int = 16
-  
+  private var fileHandle: FileHandle?
+  private var bytesReadTotal: Int64 = 0
+  private var isExhausted = false
+
   internal init(secretKey: Data, encryptedFile: URL) {
     self.secretKey = SymmetricKey(data: secretKey)
     self.encryptedFile = encryptedFile
   }
-  
+
   /**
-   * Stream decrypt file chunk by chunk, emitting events for each decrypted chunk
-   * 
-   * Processes encrypted file sequentially using FileHandle for true streaming.
-   * Decrypts each chunk and immediately emits an event, then discards the data.
-   * 
-   * @param onChunk Event emitter callback: (Data, Int, Bool) -> Void
-   * @throws SecureRecorderError if decryption fails or file is corrupted
+   * Decrypts and returns the next block, or nil when the file is exhausted.
+   *
+   * @throws SecureRecorderError if the file is corrupted
+   * @throws CryptoKitError if decryption fails
    */
-  internal func stream(onChunk: (Data, Int, Bool) throws -> Void) throws {
-    // Open file handle for streaming read
-    let fileHandle = try FileHandle(forReadingFrom: encryptedFile)
-    defer {
-      fileHandle.closeFile()
+  internal func readNext() throws -> DecryptedChunk? {
+    if isExhausted {
+      return nil
     }
-    
-    // Get file size for last chunk detection
+
+    guard let sealedBoxData = try readNextBlock() else {
+      markExhausted()
+
+      return nil
+    }
+
+    let decryptedData = try decrypt(sealedBoxData)
+
     let fileSize = try FileManager.default.attributesOfItem(atPath: encryptedFile.path)[.size] as? Int64 ?? 0
-    
-    var chunkIndex = 0
-    
-    while true {
-      // Read chunk size (4 bytes, big-endian)
-      let chunkSizeData = fileHandle.readData(ofLength: Self.chunkSizeLength)
-      
-      // Check if we've reached end of file
-      if chunkSizeData.count == 0 {
-        // End of file reached naturally
-        break
-      }
-      
-      // If we read less than expected, file is corrupted
-      if chunkSizeData.count < Self.chunkSizeLength {
-        throw SecureRecorderError.stopFailed("Corrupted file: incomplete chunk size header")
-      }
-      
-      let chunkSize = Int32(bigEndian: chunkSizeData.withUnsafeBytes { $0.load(as: Int32.self) })
-      
-      // Validate chunk size
-      guard chunkSize >= Self.gcmNonceLength + Self.gcmTagLength else {
-        throw SecureRecorderError.stopFailed("Invalid chunk size: \(chunkSize)")
-      }
-      
-      // Read sealed box data (nonce + ciphertext + tag)
-      let sealedBoxData = fileHandle.readData(ofLength: Int(chunkSize))
-      
-      guard sealedBoxData.count == Int(chunkSize) else {
-        throw SecureRecorderError.stopFailed("Corrupted file: incomplete chunk")
-      }
-      
-      // SECURITY: Decrypt chunk with AES-256-GCM
-      let sealedBox = try AES.GCM.SealedBox(combined: sealedBoxData)
-      let decryptedChunk = try AES.GCM.open(sealedBox, using: secretKey)
-      
-      // Check if this is the last chunk
-      let currentOffset = Int64(fileHandle.offsetInFile)
-      let isLast = currentOffset >= fileSize
-      
-      // Emit event immediately, then discard data
-      try onChunk(decryptedChunk, chunkIndex, isLast)
-      
-      chunkIndex += 1
+    let isLast = bytesReadTotal >= fileSize
+    if isLast {
+      markExhausted()
     }
+
+    return DecryptedChunk(data: decryptedData, isLast: isLast)
+  }
+
+  /**
+   * Releases the open file handle early. Any further readNext() call returns
+   * nil, mirroring an exhausted stream.
+   */
+  internal func close() {
+    markExhausted()
+  }
+
+  /**
+   * Releases the open file handle early. Any further readNext() call returns
+   * nil, mirroring an exhausted stream.
+   */
+  private func readNextBlock() throws -> Data? {
+    let handle = try ensureOpenHandle()
+
+    guard let chunkSize = try readChunkSize(handle) else {
+      return nil
+    }
+
+    let sealedBoxData = handle.readData(ofLength: chunkSize)
+    guard sealedBoxData.count == chunkSize else {
+      throw SecureRecorderError.stopFailed("Corrupted file: incomplete chunk")
+    }
+    bytesReadTotal += Int64(chunkSize)
+
+    return sealedBoxData
+  }
+
+  /**
+   * Reads and validates the 4-byte big-endian block size header.
+   * Returns nil at end of file.
+   */
+  private func readChunkSize(_ handle: FileHandle) throws -> Int? {
+    let sizeHeader = handle.readData(ofLength: SealedAudioBlock.sizeHeaderLength)
+    if sizeHeader.count == 0 {
+      return nil
+    }
+    if sizeHeader.count < SealedAudioBlock.sizeHeaderLength {
+      throw SecureRecorderError.stopFailed("Corrupted file: incomplete chunk size header")
+    }
+    bytesReadTotal += Int64(sizeHeader.count)
+
+    let chunkSize = Int32(bigEndian: sizeHeader.withUnsafeBytes { $0.load(as: Int32.self) })
+    guard chunkSize >= SealedAudioBlock.minimumSize else {
+      throw SecureRecorderError.stopFailed("Invalid chunk size: \(chunkSize)")
+    }
+
+    return Int(chunkSize)
+  }
+
+  /**
+   * Decrypts a sealed block: [12-byte nonce][data + 16-byte GCM tag].
+   */
+  private func decrypt(_ sealedBoxData: Data) throws -> Data {
+    // SECURITY: Decrypt block with AES-256-GCM
+    let sealedBox = try AES.GCM.SealedBox(combined: sealedBoxData)
+
+    return try AES.GCM.open(sealedBox, using: secretKey)
+  }
+
+  private func ensureOpenHandle() throws -> FileHandle {
+    if let handle = fileHandle {
+      return handle
+    }
+
+    let handle = try FileHandle(forReadingFrom: encryptedFile)
+    fileHandle = handle
+
+    return handle
+  }
+
+  private func markExhausted() {
+    isExhausted = true
+    fileHandle?.closeFile()
+    fileHandle = nil
   }
 }

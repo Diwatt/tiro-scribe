@@ -225,9 +225,24 @@ describe('Asr', () => {
         const { recognizer } = createHarness();
         await recognizer.initialize();
 
-        const text = await recognizer.run(makeSignal(16000));
+        const result = await recognizer.run(makeSignal(16000));
 
-        expect(text).toBe('Atomes et matière.');
+        expect(result.text).toBe('Atomes et matière.');
+        expect(result.tokenCount).toBe(EMITTED_TOKENS.length);
+        expect(result.iterationCount).toBe(354);
+        expect(result.decoderSteps).toBe(EMITTED_TOKENS.length + 1);
+    });
+
+    it('reports per-phase timings on every run', async () => {
+        const { recognizer } = createHarness();
+        await recognizer.initialize();
+
+        const result = await recognizer.run(makeSignal(16000));
+
+        expect(result.melMs).toBeGreaterThanOrEqual(0);
+        expect(result.encoderMs).toBeGreaterThanOrEqual(0);
+        expect(result.decoderMs).toBeGreaterThanOrEqual(0);
+        expect(result.totalMs).toBeGreaterThanOrEqual(result.melMs + result.encoderMs + result.decoderMs);
     });
 
     it('runs the audio through the native front-end before the encoder', async () => {

@@ -17,6 +17,13 @@ export default function MainLayout(): React.JSX.Element {
                 }}
             />
             <Stack.Screen
+                name="session-saved"
+                options={{
+                    presentation: 'fullScreenModal',
+                    animation: 'fade',
+                }}
+            />
+            <Stack.Screen
                 name="transcript/[id]"
                 options={{
                     presentation: 'modal',

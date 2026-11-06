@@ -1,9 +1,8 @@
-import type { NativeSecureRecorderModule, RecordingStatus } from './Type';
+import type { DecryptedChunk, NativeSecureRecorderModule, RecordingStatus } from './Type';
 
-export type { DecryptedChunkEvent, RecordingStatus } from './Type';
+export type { DecryptedChunk, RecordingStatus } from './Type';
 
 class NativeSecureRecorder implements NativeSecureRecorderModule {
-    public readonly eventAudioChunkDecrypted = 'onAudioChunkDecrypted';
     private _nativeModule: NativeSecureRecorderModule | null = null;
 
     // Lazily loads the native module via await import() to prevent PlatformConstants
@@ -56,8 +55,16 @@ class NativeSecureRecorder implements NativeSecureRecorderModule {
         return this.getNativeModule().then((nativeModule) => nativeModule.hasPermission());
     }
 
-    public async stream(encryptedPath: string): Promise<void> {
-        return this.getNativeModule().then((nativeModule) => nativeModule.stream(encryptedPath));
+    public async openDecryptedStream(encryptedPath: string): Promise<string> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.openDecryptedStream(encryptedPath));
+    }
+
+    public async readNextChunk(readerId: string): Promise<DecryptedChunk> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.readNextChunk(readerId));
+    }
+
+    public async closeDecryptedStream(readerId: string): Promise<void> {
+        return this.getNativeModule().then((nativeModule) => nativeModule.closeDecryptedStream(readerId));
     }
 
     public async encryptFile(inputPath: string, outputPath: string): Promise<string> {

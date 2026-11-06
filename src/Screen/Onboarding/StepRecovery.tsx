@@ -1,122 +1,43 @@
 import { observer } from '@legendapp/state/react';
-import { Copy, FileText } from 'lucide-react-native';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import { Button, HelperText, Snackbar, useTheme } from 'react-native-paper';
-import { AsyncButton } from '@/Components';
-import { Checkbox } from '@/Components/Form';
 import { Container } from '@/Core/Container';
-import { useLocalization } from '@/Localization';
+import { RecoveryKitStepScreen } from '@/Screen/Start/RecoveryKitStepScreen';
 import type { OnboardingFormData } from '@/State/Onboarding';
 import { OnboardingState } from '@/State/Onboarding/State';
-import type { ExtendedTheme } from '@/theme/AppTheme';
 
-const RECOVERY_CODE_COPIED_DURATION_MS = 2000;
+interface Props {
+    step: number;
+    total: number;
+}
 
-export const StepRecovery = observer(function stepRecovery(): React.JSX.Element {
-    const theme = useTheme<ExtendedTheme>();
-    const { LL } = useLocalization();
-    const { control, getValues } = useFormContext<OnboardingFormData>();
+/** Onboarding recovery step bound to RecoveryState (PDF kit, clipboard, finalize). */
+export const StepRecovery = observer(function StepRecovery({ step, total }: Props): React.JSX.Element {
+    const { watch, setValue } = useFormContext<OnboardingFormData>();
     const onboarding = Container.get(OnboardingState);
-    const actions = theme.colors.actions;
-    const error = onboarding.recovery.error.get();
-    const recoveryCode = onboarding.recovery.recoveryCode.get();
+    const recovery = onboarding.recovery;
+    const isStored = Boolean(watch('recoveryCodeSaveConfirmed'));
+    const [isCopied, setIsCopied] = useState(false);
+    const codeGroups = recovery.recoveryCode.get().split(/[\s-]+/).filter(Boolean);
 
-    const [recoveryCodeCopied, setRecoveryCodeCopied] = useState(false);
-    const handleCopyRecoveryCode = useCallback(async () => {
-        await onboarding.recovery.copyRecoveryCodeToClipboard();
-        setRecoveryCodeCopied(true);
-        setTimeout(() => setRecoveryCodeCopied(false), RECOVERY_CODE_COPIED_DURATION_MS);
-    }, [onboarding.recovery]);
-    const handleSaveRecoveryKit = useCallback(
-        () => onboarding.recovery.generateAndShareRecoveryKit(),
-        [onboarding.recovery],
-    );
+    const handleCopy = useCallback(async () => {
+        await recovery.copyRecoveryCodeToClipboard();
+        setIsCopied(true);
+    }, [recovery]);
 
     return (
-        <View style={STYLES.stepRoot}>
-            <View style={STYLES.stepBody}>
-                <Text style={[STYLES.stepTitle, { color: theme.colors.onBackground }]}>
-                    {LL.onboarding.accountReady()}
-                </Text>
-                <Text style={[STYLES.body, { color: theme.colors.onSurfaceVariant }]}>
-                    {LL.onboarding.recoveryDesc()}
-                </Text>
-                <View style={[STYLES.codeBox, { backgroundColor: theme.colors.surfaceVariant }]}>
-                    <Text selectable style={[STYLES.codeText, { color: theme.colors.onSurface }]}>
-                        {recoveryCode}
-                    </Text>
-                </View>
-
-                <AsyncButton
-                    idleLabel={LL.onboarding.saveRecoveryKit()}
-                    pendingLabel={LL.onboarding.recoveryKitPending()}
-                    successLabel={LL.activity.done()}
-                    onPress={handleSaveRecoveryKit}
-                    icon={({ size, color }) => <FileText size={size} color={color} />}
-                    style={[STYLES.primaryButton, { backgroundColor: theme.colors.primary }]}
-                    contentStyle={STYLES.primaryButtonContent}
-                    labelStyle={{ color: theme.colors.onPrimary }}
-                />
-
-                <Button
-                    mode="outlined"
-                    onPress={handleCopyRecoveryCode}
-                    icon={({ size, color }) => <Copy size={size} color={color} />}
-                    style={STYLES.copyButton}
-                    contentStyle={STYLES.primaryButtonContent}
-                >
-                    {LL.onboarding.copyCode()}
-                </Button>
-
-                <Snackbar
-                    visible={recoveryCodeCopied}
-                    onDismiss={() => {
-                        /* Snackbar auto-dismisses */
-                    }}
-                    duration={2000}
-                    style={{ marginBottom: 16 }}
-                >
-                    {LL.onboarding.codeCopied()}
-                </Snackbar>
-
-                <Checkbox
-                    control={control}
-                    name="recoveryCodeSaveConfirmed"
-                    label={LL.onboarding.savedCodeChecked()}
-                    labelStyle={STYLES.checkboxLabel}
-                />
-                {error ? (
-                    <HelperText type="error" visible>
-                        {error}
-                    </HelperText>
-                ) : null}
-            </View>
-            <View style={STYLES.stepSpacer} />
-            <Button
-                mode="contained"
-                onPress={() => onboarding.recovery.finalize(!!getValues('recoveryCodeSaveConfirmed'))}
-                style={[STYLES.primaryButton, { backgroundColor: actions.success.background }]}
-                contentStyle={STYLES.primaryButtonContent}
-            >
-                {LL.onboarding.finish()}
-            </Button>
-        </View>
+        <RecoveryKitStepScreen
+            step={step}
+            total={total}
+            codeGroups={codeGroups}
+            isStored={isStored}
+            isCopied={isCopied}
+            error={recovery.error.get()}
+            onToggleStored={() => setValue('recoveryCodeSaveConfirmed', !isStored)}
+            onPrint={() => recovery.generateAndShareRecoveryKit()}
+            onCopy={handleCopy}
+            onContinue={() => recovery.finalize(isStored)}
+        />
     );
-});
-
-const STYLES = StyleSheet.create({
-    stepRoot: { flex: 1 },
-    stepBody: { flexGrow: 0 },
-    stepSpacer: { flex: 1, minHeight: 24 },
-    stepTitle: { fontSize: 22, fontWeight: '600', marginBottom: 20 },
-    body: { fontSize: 16, marginBottom: 24, lineHeight: 24 },
-    codeBox: { padding: 16, borderRadius: 8, marginBottom: 16 },
-    codeText: { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 16 },
-    primaryButton: { marginTop: 0 },
-    primaryButtonContent: { minHeight: 48 },
-    copyButton: { marginBottom: 8 },
-    checkboxLabel: { marginLeft: 8, fontSize: 16 },
 });

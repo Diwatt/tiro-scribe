@@ -396,8 +396,8 @@ importers:
         specifier: ^10.7.1
         version: 10.7.1(dc94959d8fbbad9ce8ec14f86c719a06)
       '@swmansion/argent':
-        specifier: ^0.31.1
-        version: 0.31.1(supports-color@8.1.1)(zod@4.6.7)
+        specifier: 0.32.0
+        version: 0.32.0(supports-color@8.1.1)(zod@4.6.7)
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -3118,8 +3118,8 @@ packages:
       typescript:
         optional: true
 
-  '@swmansion/argent@0.31.1':
-    resolution: {integrity: sha512-TOHGzGv7QlxVLh8LG5N17b3Pu5eF60Sz5zulYFeUJe2r/Lr6uteMIWAJAl766aQNw0+HTZ7fz4wpfaVwDCIR8g==}
+  '@swmansion/argent@0.32.0':
+    resolution: {integrity: sha512-pe5rgtfiY5K55Y8XhNQrxNiKLsZ3bomzyvvRkT6PxRXEOKVtK8Ythw0Gj0aJeZA4QFmnA732lJkAwca/u5ULiw==}
     engines: {node: '>=20.12.0'}
     hasBin: true
 
@@ -11933,7 +11933,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@swmansion/argent@0.31.1(supports-color@8.1.1)(zod@4.6.7)':
+  '@swmansion/argent@0.32.0(supports-color@8.1.1)(zod@4.6.7)':
     dependencies:
       '@fails-components/webtransport': 1.6.11(supports-color@8.1.1)
       '@fails-components/webtransport-transport-http3-quiche': 1.6.11(supports-color@8.1.1)

@@ -1,6 +1,6 @@
 export default {
     preset: 'jest-expo',
-    testEnvironment: 'node',
+    // Let jest-expo manage the test environment
     rootDir: '.',
     testMatch: ['**/__tests__/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
     transformIgnorePatterns: [

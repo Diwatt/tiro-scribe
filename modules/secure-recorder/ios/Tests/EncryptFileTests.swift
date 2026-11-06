@@ -63,8 +63,11 @@ class EncryptFileTests: XCTestCase {
     let manager = StreamDecryptionManager(secretKey: testKey, encryptedFile: encryptedURL)
     var chunks: [Data] = []
 
-    try manager.stream { data, _, _ in
-      chunks.append(data)
+    while true {
+      guard let chunk = try manager.readNext() else {
+        break
+      }
+      chunks.append(chunk.data)
     }
 
     return chunks

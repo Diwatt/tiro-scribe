@@ -132,10 +132,13 @@ class EncryptFileTest {
   }
 
   private fun decryptedChunks(encryptedFile: File): List<ByteArray> {
+    val manager = StreamDecryptionManager(secretKey, encryptedFile)
     val chunks = mutableListOf<ByteArray>()
-    StreamDecryptionManager(secretKey, encryptedFile).stream { data, _, _ ->
-      chunks.add(data)
+    while (true) {
+      val chunk = manager.readNext() ?: break
+      chunks.add(chunk.data)
     }
+
     return chunks
   }
 
