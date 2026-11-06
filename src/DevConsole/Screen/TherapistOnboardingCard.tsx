@@ -41,10 +41,11 @@ export const TherapistOnboardingCard = ({
         <Card>
             <Card.Content>
                 <Text variant="titleSmall" style={{ marginBottom: 8 }}>
-                    Dev Therapist Onboarding
+                    Voice ID – Therapist Profile
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
-                    Creates the dev therapist with a biocode from a voice-only segment of the source audio
+                    Pick a recording (wav/pcm) and the ~5 s window where only the therapist speaks. Creates the
+                    therapist biocode from that voice segment.
                 </Text>
                 <TextInput
                     mode="outlined"
@@ -82,7 +83,7 @@ export const TherapistOnboardingCard = ({
                     disabled={isLoading || !isFormValid}
                     icon={UserRoundButtonIcon}
                 >
-                    Create Dev Therapist
+                    Create Therapist Profile
                 </Button>
             </Card.Content>
         </Card>

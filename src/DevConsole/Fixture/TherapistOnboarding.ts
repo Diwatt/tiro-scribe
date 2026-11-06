@@ -8,6 +8,7 @@ import { MasterKeyVault } from '@/Security/MasterKeyVault';
 import type { CreateTherapistInput } from '@/Security/TherapistForge';
 import { TherapistForge } from '@/Security/TherapistForge';
 import type { AudioSegment } from '../Data/AudioSegment';
+import { AudioFileReader } from '../Ingest/AudioFileReader';
 import { AudioSegmentExtractor } from '../Ingest/AudioSegmentExtractor';
 import { SourceIngestException } from '../Ingest/SourceIngestException';
 
@@ -52,7 +53,7 @@ export class TherapistOnboarding {
         segment: AudioSegment,
         input: CreateTherapistInput,
     ): Promise<Therapist> {
-        const fileInfo = await getInfoAsync(rawAudioPath);
+        const fileInfo = await getInfoAsync(AudioFileReader.toFileUri(rawAudioPath));
         if (!fileInfo.exists) {
             throw new SourceIngestException(`Audio file not found: ${rawAudioPath}`, 'AUDIO_FILE_MISSING');
         }

@@ -48,4 +48,16 @@ describe('AudioFileReader', () => {
 
         expect(bytes).toEqual(new Uint8Array([1, 2, 3]));
     });
+
+    describe('toFileUri', () => {
+        it('prefixes raw device paths with the file scheme', () => {
+            expect(AudioFileReader.toFileUri(RAW_DEVICE_PATH)).toBe(`file://${RAW_DEVICE_PATH}`);
+        });
+
+        it('keeps paths that already carry the file scheme', () => {
+            const uri = `file://${RAW_DEVICE_PATH}`;
+
+            expect(AudioFileReader.toFileUri(uri)).toBe(uri);
+        });
+    });
 });

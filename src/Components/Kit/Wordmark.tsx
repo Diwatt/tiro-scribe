@@ -19,7 +19,7 @@ export function Wordmark({
     size,
     ink = PaperInk.BRAND_INK,
     ground = PaperInk.PAPER,
-    fill = PaperInk.BRAND_WATER,
+    fill = PaperInk.BRAND_GROUND,
 }: Props): React.JSX.Element {
     return (
         <View style={STYLES.row} accessibilityRole="header" accessibilityLabel="Tiro">

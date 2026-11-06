@@ -21,4 +21,5 @@ export { SourceIngestException } from './Ingest/SourceIngestException';
 export { WavHeader } from './Ingest/WavHeader';
 export { AudioScreen } from './Screen/AudioScreen';
 export { AudioState } from './State/AudioState';
+export { SessionTranscribe } from './State/SessionTranscribe';
 export { SpeechToTextBenchmark } from './State/SpeechToTextBenchmark';

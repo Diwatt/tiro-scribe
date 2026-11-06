@@ -46,7 +46,7 @@ const STYLES = StyleSheet.create({
         width: 96,
         height: 96,
         borderRadius: 24,
-        backgroundColor: PaperInk.BRAND_WATER,
+        backgroundColor: PaperInk.BRAND_GROUND,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,

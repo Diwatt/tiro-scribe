@@ -25,6 +25,10 @@ export const Home: Story = {
     ),
 };
 
+export const HomeEmpty: Story = {
+    render: () => <SessionsHomeScreen dateLabel="Thursday 5 November" recent={[]} />,
+};
+
 export const HomeFirstRun: Story = {
     render: () => <SessionsHomeScreen dateLabel="Thursday 5 November" recent={[]} isSetupNeeded />,
 };

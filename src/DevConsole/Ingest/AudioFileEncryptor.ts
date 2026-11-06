@@ -5,6 +5,7 @@ import { AppLogger } from '@/Core/AppLogger';
 import { Container } from '@/Core/Container';
 import { AudioIngest } from '../Data/AudioIngest';
 import { SourceFile } from '../Data/SourceFile';
+import { AudioFileReader } from './AudioFileReader';
 import { AudioSegmentExtractor } from './AudioSegmentExtractor';
 import { SourceIngestException } from './SourceIngestException';
 import { PcmSampleConverter } from '@/Math';
@@ -46,7 +47,7 @@ export class AudioFileEncryptor {
 
     public async encrypt(inputPath: string): Promise<AudioIngest> {
         const outputPath = this.buildOutputPath();
-        const inputInfo = await getInfoAsync(inputPath);
+        const inputInfo = await getInfoAsync(AudioFileReader.toFileUri(inputPath));
         if (!inputInfo.exists) {
             throw new SourceIngestException(`Input file not found: ${inputPath}`, 'INPUT_FILE_MISSING');
         }
@@ -75,8 +76,7 @@ export class AudioFileEncryptor {
             );
         }
 
-        // expo-file-system requires a file:// URI; outputPath is a bare native path for SecureRecorder.
-        const outputInfo = await getInfoAsync(`file://${outputPath}`);
+        const outputInfo = await getInfoAsync(AudioFileReader.toFileUri(outputPath));
         const outputSizeBytes = outputInfo.exists ? (outputInfo.size ?? 0) : 0;
 
         const inputFile = new SourceFile(inputPath, inputSizeBytes);

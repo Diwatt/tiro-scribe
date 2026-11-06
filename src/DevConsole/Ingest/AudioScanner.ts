@@ -1,6 +1,7 @@
 import { documentDirectory, getInfoAsync, readDirectoryAsync } from 'expo-file-system/legacy';
 import { Container } from '@/Core/Container';
 import { AudioFileEntry } from '../Data/AudioFileEntry';
+import { AudioFileReader } from './AudioFileReader';
 
 /**
  * AudioScanner – Discovers raw audio files in a directory and builds
@@ -12,12 +13,13 @@ export class AudioScanner {
     private static readonly AUDIO_EXTENSIONS = new Set(['.pcm', '.wav', '.aiff', '.aif', '.raw']);
 
     public async scan(directory: string): Promise<AudioFileEntry[]> {
-        const info = await getInfoAsync(directory);
+        const directoryUri = AudioFileReader.toFileUri(directory);
+        const info = await getInfoAsync(directoryUri);
         if (!info.exists) {
             return [];
         }
 
-        const entries = await readDirectoryAsync(directory);
+        const entries = await readDirectoryAsync(directoryUri);
         const sourcePaths = entries
             .filter((name) => {
                 const nameLower = name.toLowerCase();
@@ -30,10 +32,10 @@ export class AudioScanner {
         return Promise.all(
             sourcePaths.map(async (path) => {
                 const name = path.substring(path.lastIndexOf('/') + 1);
-                const fileInfo = await getInfoAsync(path);
+                const fileInfo = await getInfoAsync(AudioFileReader.toFileUri(path));
                 const encryptedName = `${name}.dat`;
                 const encryptedPath = `${docDir}${encryptedName}`;
-                const encryptedInfo = await getInfoAsync(encryptedPath);
+                const encryptedInfo = await getInfoAsync(AudioFileReader.toFileUri(encryptedPath));
 
                 return AudioFileEntry.create(
                     name,

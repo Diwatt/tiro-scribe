@@ -15,7 +15,7 @@ export function TiroMark({
     size,
     ink = PaperInk.BRAND_INK,
     fill = PaperInk.WHITE,
-    ground = PaperInk.BRAND_WATER,
+    ground = PaperInk.BRAND_GROUND,
 }: Props): React.JSX.Element {
     return (
         <Svg width={size} height={size} viewBox={TiroMarkShape.VIEW_BOX} accessibilityElementsHidden>

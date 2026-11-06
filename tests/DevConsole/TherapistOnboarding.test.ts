@@ -96,6 +96,7 @@ describe('TherapistOnboarding', () => {
         const therapist = await deps.onboarding.createFromAudio(SOURCE_AUDIO, SEGMENT, THERAPIST_INPUT);
 
         expect(deps.forge.create).toHaveBeenCalledWith(THERAPIST_INPUT);
+        expect(mockGetInfoAsync).toHaveBeenCalledWith(`file://${SOURCE_AUDIO}`);
         expect(deps.segmentExtractor.extract).toHaveBeenCalledWith(SOURCE_AUDIO, SEGMENT);
         expect(deps.calibrator.generateBiocode).toHaveBeenCalledWith(
             'master-key',

@@ -1,6 +1,6 @@
 /**
  * "Paper and ink" palette: the single source of raw colors for the V1 interface.
- * Brand colors (water green) are reserved for the logo; the interface uses the accent green.
+ * Brand colors (terracotta) are reserved for the logo; the interface uses the accent green.
  */
 export class PaperInk {
     public static readonly ACCENT = '#17735F';
@@ -8,8 +8,8 @@ export class PaperInk {
     public static readonly ACCENT_NIGHT = '#134D41';
     public static readonly ACCENT_ON_DARK = '#BFEBDD';
     public static readonly ACCENT_SOFT = '#D8EEE6';
-    public static readonly BRAND_INK = '#2C6E66';
-    public static readonly BRAND_WATER = '#D6EEEA';
+    public static readonly BRAND_INK = '#9A4A33';
+    public static readonly BRAND_GROUND = '#F2DCD2';
     public static readonly CARD = '#FFFDF9';
     public static readonly CHEVRON = '#6B5A4E';
     public static readonly CHIP = '#EDE6DC';
@@ -17,6 +17,7 @@ export class PaperInk {
     public static readonly DANGER_INK = '#8A2A1E';
     public static readonly DANGER_SOFT = '#F6DFDA';
     public static readonly INK = '#2A201B';
+    public static readonly INK_PRESSED = '#4A3B32';
     public static readonly LINE = '#E8E1D7';
     public static readonly LINE_STRONG = '#C9BCB0';
     public static readonly NIGHT = '#16120F';

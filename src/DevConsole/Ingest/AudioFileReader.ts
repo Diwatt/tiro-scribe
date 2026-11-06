@@ -11,17 +11,19 @@ import { Container } from '@/Core/Container';
 export class AudioFileReader {
     private static readonly FILE_SCHEME = 'file://';
 
+    /** expo-file-system APIs require a file:// URI; the console forms accept bare POSIX paths. */
+    public static toFileUri(path: string): string {
+        return path.startsWith(AudioFileReader.FILE_SCHEME) ? path : `${AudioFileReader.FILE_SCHEME}${path}`;
+    }
+
     public async readBytes(path: string): Promise<Uint8Array> {
-        const uri = path.startsWith(AudioFileReader.FILE_SCHEME) ? path : `${AudioFileReader.FILE_SCHEME}${path}`;
-        const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+        const base64 = await readAsStringAsync(AudioFileReader.toFileUri(path), { encoding: EncodingType.Base64 });
         const bytes = Buffer.from(base64, 'base64');
         return new Uint8Array(bytes);
     }
 
     public async readText(path: string): Promise<string> {
-        const uri = path.startsWith(AudioFileReader.FILE_SCHEME) ? path : `${AudioFileReader.FILE_SCHEME}${path}`;
-
-        return readAsStringAsync(uri, { encoding: EncodingType.UTF8 });
+        return readAsStringAsync(AudioFileReader.toFileUri(path), { encoding: EncodingType.UTF8 });
     }
 }
 

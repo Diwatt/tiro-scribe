@@ -16,7 +16,7 @@ type Story = StoryObj<typeof TiroMark>;
 export const Mark: Story = {
     render: (args) => (
         <View style={styles.center}>
-            <View style={[styles.tile, { backgroundColor: PaperInk.BRAND_WATER }]}>
+            <View style={[styles.tile, { backgroundColor: PaperInk.BRAND_GROUND }]}>
                 <TiroMark size={args.size} />
             </View>
             <View style={[styles.tile, { backgroundColor: PaperInk.BRAND_INK }]}>

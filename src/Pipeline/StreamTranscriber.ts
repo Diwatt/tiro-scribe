@@ -5,8 +5,10 @@ import type { AppLogger } from '@/Core/AppLogger';
 import { Utterance } from '@/Entity';
 import type { Asr, Vad } from '@/InferenceModel/Model';
 import type { PcmSampleConverter } from '@/Math';
+import { PipelineTimings } from './PipelineTimings';
 import { SpeechCutter } from './SpeechCutter';
 import type { SpeechSegment } from './SpeechSegment';
+import { StreamTranscription } from './StreamTranscription';
 import { WindowMerger } from './WindowMerger';
 
 /**
@@ -32,27 +34,33 @@ export class StreamTranscriber {
         this.logger = logger;
     }
 
-    public async transcribe(encryptedPath: string): Promise<Utterance[]> {
+    public async transcribe(encryptedPath: string): Promise<StreamTranscription> {
         const config = this.vad.getConfig();
         const merger = new WindowMerger(config.windowSamples);
         const cutter = new SpeechCutter(config.windowSamples, config.sampleRateHz);
         this.vad.reset();
 
+        const timings = new PipelineTimings();
         const speakerLabel = StreamTranscriber.createSpeakerLabel();
-        const utterances = await this.pullUtterances(encryptedPath, merger, cutter, speakerLabel);
+        const utterances = await this.pullUtterances(encryptedPath, merger, cutter, speakerLabel, timings);
 
         merger.takeLeftover();
         const finalSegment = cutter.endOfStream();
         if (finalSegment !== null) {
-            utterances.push(await this.transcribeSegment(finalSegment, speakerLabel));
+            utterances.push(await this.transcribeSegment(finalSegment, speakerLabel, timings));
         }
 
         this.logger.debug('[StreamTranscriber] done', {
             utteranceCount: utterances.length,
             speakerLabel,
+            decryptMs: timings.getDecryptMs(),
+            convertMs: timings.getConvertMs(),
+            vadMs: timings.getVadMs(),
+            cutMs: timings.getCutMs(),
+            asrMs: timings.getAsrMs(),
         });
 
-        return utterances;
+        return StreamTranscription.create(utterances, timings);
     }
 
     private static createSpeakerLabel(): string {
@@ -64,17 +72,21 @@ export class StreamTranscriber {
         merger: WindowMerger,
         cutter: SpeechCutter,
         speakerLabel: string,
+        timings: PipelineTimings,
     ): Promise<Utterance[]> {
         const reader = await SecureRecorder.openDecryptedStream(encryptedPath);
         const utterances: Utterance[] = [];
+        const pullStartedAt = Date.now();
 
         try {
             for await (const chunk of reader) {
-                utterances.push(...(await this.transcribeChunk(chunk, merger, cutter, speakerLabel)));
+                utterances.push(...(await this.transcribeChunk(chunk, merger, cutter, speakerLabel, timings)));
             }
         } finally {
             await reader.close();
         }
+
+        timings.addDecrypt(Date.now() - pullStartedAt - timings.getPhasesMs());
 
         return utterances;
     }
@@ -84,23 +96,39 @@ export class StreamTranscriber {
         merger: WindowMerger,
         cutter: SpeechCutter,
         speakerLabel: string,
+        timings: PipelineTimings,
     ): Promise<Utterance[]> {
+        const convertStartedAt = Date.now();
         const samples = this.sampleConverter.int16ToFloat32(this.sampleConverter.bytesToInt16(chunk.data));
+        timings.addConvert(Date.now() - convertStartedAt);
+
         const utterances: Utterance[] = [];
 
         for (const window of merger.frame(samples)) {
+            const vadStartedAt = Date.now();
             const speechProbability = await this.vad.run(window);
+            timings.addVad(Date.now() - vadStartedAt);
+
+            const cutStartedAt = Date.now();
             const segment = cutter.cut(window, speechProbability);
+            timings.addCut(Date.now() - cutStartedAt);
+
             if (segment !== null) {
-                utterances.push(await this.transcribeSegment(segment, speakerLabel));
+                utterances.push(await this.transcribeSegment(segment, speakerLabel, timings));
             }
         }
 
         return utterances;
     }
 
-    private async transcribeSegment(segment: SpeechSegment, speakerLabel: string): Promise<Utterance> {
+    private async transcribeSegment(
+        segment: SpeechSegment,
+        speakerLabel: string,
+        timings: PipelineTimings,
+    ): Promise<Utterance> {
+        const asrStartedAt = Date.now();
         const metric = await this.asr.run(segment.samples);
+        timings.addAsr(Date.now() - asrStartedAt);
 
         return new Utterance(
             uuidv4(),

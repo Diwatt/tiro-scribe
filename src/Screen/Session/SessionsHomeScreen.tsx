@@ -5,6 +5,7 @@ import { GroupedList, IconTile, LargeTitle, ListRow, Panel, ProgressBar, ScreenF
 import { useLocalization } from '@/Localization';
 import type { SessionPreview } from '@/Screen/Model';
 import { Metric } from '@/theme/Metric';
+import { FirstSessionGuide } from './FirstSessionGuide';
 import { PaperInk } from '@/theme/PaperInk';
 import { Tone } from '@/theme/Tone';
 
@@ -60,15 +61,23 @@ export function SessionsHomeScreen(props: Props): React.JSX.Element {
                 disabled={props.isRecordDisabled}
                 accessibilityRole="button"
                 accessibilityLabel={LL.homeScreen.start()}
-                style={({ pressed }) => [STYLES.hero, (pressed || props.isRecordDisabled) && STYLES.dimmed]}
+                style={({ pressed }) => [
+                    STYLES.hero,
+                    pressed && STYLES.heroPressed,
+                    props.isRecordDisabled && STYLES.dimmed,
+                ]}
             >
-                <View style={STYLES.recordOuter}>
-                    <View style={STYLES.recordDot} />
-                </View>
-                <View style={STYLES.flex}>
-                    <Text style={STYLES.heroTitle}>{LL.homeScreen.start()}</Text>
-                    <Text style={STYLES.heroDetail}>{LL.homeScreen.startDetail()}</Text>
-                </View>
+                {({ pressed }) => (
+                    <>
+                        <View style={[STYLES.recordOuter, pressed && STYLES.recordOuterPressed]}>
+                            <View style={[STYLES.recordDot, pressed && STYLES.recordDotPressed]} />
+                        </View>
+                        <View style={STYLES.flex}>
+                            <Text style={STYLES.heroTitle}>{LL.homeScreen.start()}</Text>
+                            <Text style={STYLES.heroDetail}>{LL.homeScreen.startDetail()}</Text>
+                        </View>
+                    </>
+                )}
             </Pressable>
             {hasQueue ? (
                 <>
@@ -96,23 +105,25 @@ export function SessionsHomeScreen(props: Props): React.JSX.Element {
                     </GroupedList>
                 </>
             ) : null}
-            <SectionLabel label={LL.homeScreen.recent()} />
             {props.recent.length === 0 ? (
-                <Text style={[STYLES.muted, STYLES.empty]}>{LL.homeScreen.empty()}</Text>
+                hasQueue ? null : <FirstSessionGuide />
             ) : (
-                <GroupedList>
-                    {props.recent.map((session) => (
-                        <ListRow
-                            key={session.id}
-                            title={session.subjectName}
-                            detail={session.excerpt}
-                            value={session.when}
-                            isTitleStrong
-                            leading={<Text style={STYLES.avatar}>{session.getInitial()}</Text>}
-                            onPress={() => props.onOpenSession?.(session.id)}
-                        />
-                    ))}
-                </GroupedList>
+                <>
+                    <SectionLabel label={LL.homeScreen.recent()} />
+                    <GroupedList>
+                        {props.recent.map((session) => (
+                            <ListRow
+                                key={session.id}
+                                title={session.subjectName}
+                                detail={session.excerpt}
+                                value={session.when}
+                                isTitleStrong
+                                leading={<Text style={STYLES.avatar}>{session.getInitial()}</Text>}
+                                onPress={() => props.onOpenSession?.(session.id)}
+                            />
+                        ))}
+                    </GroupedList>
+                </>
             )}
         </ScreenFrame>
     );
@@ -132,7 +143,6 @@ const STYLES = StyleSheet.create({
         lineHeight: 40,
     },
     dimmed: { opacity: 0.6 },
-    empty: { paddingHorizontal: 4 },
     flex: { flex: 1, gap: 4 },
     hero: {
         flexDirection: 'row',
@@ -147,11 +157,14 @@ const STYLES = StyleSheet.create({
         shadowOffset: { width: 0, height: 14 },
         elevation: 6,
     },
+    heroPressed: { backgroundColor: PaperInk.INK_PRESSED, transform: [{ scale: 0.98 }], shadowOpacity: 0.16 },
     heroDetail: { fontSize: 13, lineHeight: 18, color: PaperInk.NIGHT_TEXT_SOFT },
     heroTitle: { fontSize: 21, fontWeight: '700', color: PaperInk.WHITE },
     link: { fontSize: 15, fontWeight: '600', color: PaperInk.ACCENT },
     muted: { fontSize: 13, lineHeight: 18, color: PaperInk.TEXT_MUTED },
     recordDot: { width: 30, height: 30, borderRadius: 15, backgroundColor: PaperInk.RECORD },
+    recordDotPressed: { width: 34, height: 34, borderRadius: 17 },
+    recordOuterPressed: { borderColor: 'rgba(224,80,62,0.45)' },
     recordOuter: {
         width: 84,
         height: 84,

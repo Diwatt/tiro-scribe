@@ -9,13 +9,13 @@
  * E - Exceptions: model failures propagate out of transcribe
  */
 
-import { Utterance } from '@/Entity';
 import type { AppLogger } from '@/Core/AppLogger';
 import type { Asr, Vad } from '@/InferenceModel/Model';
 import { SecureRecorder } from 'secure-recorder';
 import type { DecryptedChunk, DecryptedStreamReader } from 'secure-recorder';
 import { AsrRunMetric } from '@/InferenceModel/Model/AsrRunMetric';
 import { PcmSampleConverter } from '@/Math';
+import type { StreamTranscription } from '../../src/Pipeline/StreamTranscription';
 import { StreamTranscriber } from '../../src/Pipeline/StreamTranscriber';
 
 const WINDOW_SAMPLES = 512;
@@ -104,7 +104,7 @@ async function transcribeSpecs(
     tailSamples?: number,
 ): Promise<{
     transcriber: StreamTranscriber;
-    utterances: Utterance[];
+    transcription: StreamTranscription;
     vad: ReturnType<typeof makeFakeVad>;
     asr: ReturnType<typeof makeFakeAsr>;
 }> {
@@ -127,9 +127,9 @@ async function transcribeSpecs(
         { debug: jest.fn(), error: jest.fn() } as unknown as AppLogger,
     );
 
-    const utterances = await transcriber.transcribe('/fixtures/session.dat');
+    const transcription = await transcriber.transcribe('/fixtures/session.dat');
 
-    return { transcriber, utterances, vad, asr };
+    return { transcriber, transcription, vad, asr };
 }
 
 describe('StreamTranscriber - ZOMBIE Tests', () => {
@@ -140,9 +140,9 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
                 probability: SILENT_PROBABILITY,
             }));
 
-            const { utterances } = await transcribeSpecs(specs, [100]);
+            const { transcription } = await transcribeSpecs(specs, [100]);
 
-            expect(utterances).toEqual([]);
+            expect(transcription.utterances).toEqual([]);
         });
     });
 
@@ -154,17 +154,34 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
                 ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
             ];
 
-            const { utterances, asr } = await transcribeSpecs(specs, [80, 83]);
+            const { transcription, asr } = await transcribeSpecs(specs, [80, 83]);
 
-            expect(utterances.length).toBe(1);
-            expect(utterances[0].startTime).toBe(50 * WINDOW_MS);
-            expect(utterances[0].endTime).toBe(163 * WINDOW_MS);
-            expect(utterances[0].text).toBe(TRANSCRIPT_ONE);
-            expect(utterances[0].speakerLabel).toMatch(/^spk_[a-z0-9]{4}$/);
-            expect(utterances[0].confidence).toBe(1);
+            expect(transcription.utterances.length).toBe(1);
+            expect(transcription.utterances[0].startTime).toBe(50 * WINDOW_MS);
+            expect(transcription.utterances[0].endTime).toBe(163 * WINDOW_MS);
+            expect(transcription.utterances[0].text).toBe(TRANSCRIPT_ONE);
+            expect(transcription.utterances[0].speakerLabel).toMatch(/^spk_[a-z0-9]{4}$/);
+            expect(transcription.utterances[0].confidence).toBe(1);
             expect(asr.run).toHaveBeenCalledTimes(1);
             const transcribedSamples = asr.run.mock.calls[0][0] as Float32Array;
             expect(transcribedSamples.length).toBe(113 * WINDOW_SAMPLES);
+        });
+
+        it('should return cumulative pipeline timings', async () => {
+            const specs = [
+                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
+                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+            ];
+
+            const { transcription } = await transcribeSpecs(specs, [163]);
+
+            expect(transcription.timings.getDecryptMs()).toBeGreaterThanOrEqual(0);
+            expect(transcription.timings.getConvertMs()).toBeGreaterThanOrEqual(0);
+            expect(transcription.timings.getVadMs()).toBeGreaterThanOrEqual(0);
+            expect(transcription.timings.getCutMs()).toBeGreaterThanOrEqual(0);
+            expect(transcription.timings.getAsrMs()).toBeGreaterThanOrEqual(0);
+            expect(transcription.timings.getTotalMs()).toBeGreaterThanOrEqual(transcription.timings.getAsrMs());
         });
 
         it('should emit the trailing open segment at end of stream', async () => {
@@ -173,11 +190,11 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
                 ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
             ];
 
-            const { utterances } = await transcribeSpecs(specs, [160]);
+            const { transcription } = await transcribeSpecs(specs, [160]);
 
-            expect(utterances.length).toBe(1);
-            expect(utterances[0].startTime).toBe(50 * WINDOW_MS);
-            expect(utterances[0].endTime).toBe(160 * WINDOW_MS);
+            expect(transcription.utterances.length).toBe(1);
+            expect(transcription.utterances[0].startTime).toBe(50 * WINDOW_MS);
+            expect(transcription.utterances[0].endTime).toBe(160 * WINDOW_MS);
         });
     });
 
@@ -191,7 +208,8 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
                 ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
             ];
 
-            const { utterances } = await transcribeSpecs(specs, [123, 123, 123]);
+            const { transcription } = await transcribeSpecs(specs, [123, 123, 123]);
+            const utterances = transcription.utterances;
 
             expect(utterances.length).toBe(2);
             expect(utterances[0].endTime).toBeLessThanOrEqual(utterances[1].startTime);
@@ -207,9 +225,9 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
                 ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
             ];
 
-            const { utterances, vad } = await transcribeSpecs(specs, [120, 43], 100);
+            const { transcription, vad } = await transcribeSpecs(specs, [120, 43], 100);
 
-            expect(utterances.length).toBe(1);
+            expect(transcription.utterances.length).toBe(1);
             expect(vad.run).toHaveBeenCalledTimes(163);
         });
     });

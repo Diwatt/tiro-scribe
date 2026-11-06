@@ -2,21 +2,33 @@ import { observer } from '@legendapp/state/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, IconButton, Snackbar, Surface, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, IconButton, SegmentedButtons, Snackbar, Surface, Text, useTheme } from 'react-native-paper';
 import { Container } from '@/Core/Container';
 import type { ExtendedTheme } from '@/theme/AppTheme';
 import { AudioState } from '../State/AudioState';
+import { SessionTranscribe } from '../State/SessionTranscribe';
 import { SpeechToTextBenchmark } from '../State/SpeechToTextBenchmark';
-import { VadPitchSmoke } from '../State/VadPitchSmoke';
 import { SpectrogramBench } from '../State/SpectrogramBench';
 import { SpectrogramParity } from '../State/SpectrogramParity';
+import { VadPitchSmoke } from '../State/VadPitchSmoke';
 import { AsrBenchmarkCard } from './AsrBenchmarkCard';
 import { AudioFilesCard } from './AudioFilesCard';
+import { SessionTranscribeCard } from './SessionTranscribeCard';
 import { SourceDirectoryCard } from './SourceDirectoryCard';
-import { TherapistOnboardingCard } from './TherapistOnboardingCard';
-import { VadPitchSmokeCard } from './VadPitchSmokeCard';
 import { SpectrogramBenchCard } from './SpectrogramBenchCard';
 import { SpectrogramParityCard } from './SpectrogramParityCard';
+import { TherapistOnboardingCard } from './TherapistOnboardingCard';
+import { VadPitchSmokeCard } from './VadPitchSmokeCard';
+
+type DevConsoleTab = 'psy' | 'sessions' | 'benchmark' | 'ingest';
+
+const TAB_DESCRIPTIONS: Record<DevConsoleTab, string> = {
+    psy: 'Voice ID: enroll the therapist profile from a recording segment, then sessions can be attributed to that voice',
+    sessions: 'Run an encrypted session (.dat) through the pull pipeline: native decryption, VAD segmentation, Parakeet ASR',
+    benchmark:
+        'Model benchmarks on device: ASR transcription latency (RTF), VAD/Pitch smoke checks, spectrogram latency and native/JS parity',
+    ingest: 'Fixture tooling: scan a device directory, encrypt raw audio into encrypted .dat fixtures, load encounter fixtures',
+};
 
 export const AudioScreen = observer((): React.JSX.Element => {
     const theme = useTheme<ExtendedTheme>();
@@ -26,6 +38,7 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const spectrogramParity = Container.get(SpectrogramParity);
     const asrBenchmark = Container.get(SpeechToTextBenchmark);
     const vadPitchSmoke = Container.get(VadPitchSmoke);
+    const sessionTranscribe = Container.get(SessionTranscribe);
 
     const isLoading = state.state$.isLoading.get();
     const files = state.state$.files.get();
@@ -49,9 +62,15 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const parityFiltersPath = spectrogramParity.filtersPath$.get();
     const paritySnapshot = spectrogramParity.state$.get();
 
+    const sessionDatPath = sessionTranscribe.datPath$.get();
+    const sessionSnapshot = sessionTranscribe.state$.get();
+
     const searchParams = useLocalSearchParams<{ autorun?: string }>();
     const autorunAsr = searchParams.autorun === 'asr';
     const autorunSmoke = searchParams.autorun === '1' || searchParams.autorun === 'smoke';
+    const [activeTab, setActiveTab] = React.useState<DevConsoleTab>(() =>
+        autorunAsr || autorunSmoke ? 'benchmark' : 'psy',
+    );
 
     // Stable reference required: the autorun effects below depend on these callbacks.
     const runAsrBenchmark = React.useCallback((): void => {
@@ -69,6 +88,10 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const runSpectrogramParity = React.useCallback((): void => {
         spectrogramParity.run().catch(() => undefined);
     }, [spectrogramParity]);
+
+    const runSessionTranscribe = React.useCallback((): void => {
+        sessionTranscribe.runFromForm().catch(() => undefined);
+    }, [sessionTranscribe]);
 
     React.useEffect(() => {
         if (autorunSmoke && !vadPitchSmoke.isLoading) {
@@ -102,6 +125,7 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const handleSmokeWavPathChange = (path: string): void => vadPitchSmoke.setVoiceWavPath(path);
     const handleParityWavPathChange = (path: string): void => spectrogramParity.setWavPath(path);
     const handleParityFiltersPathChange = (path: string): void => spectrogramParity.setFiltersPath(path);
+    const handleSessionDatPathChange = (path: string): void => sessionTranscribe.setDatPath(path);
     const handleDismissNotification = (): void => state.dismissNotification();
     const handleLoadFixture = (encryptedPath: string, durationMs: number): void => {
         state.loadEncounterFixture(encryptedPath, durationMs);
@@ -109,6 +133,88 @@ export const AudioScreen = observer((): React.JSX.Element => {
     const handleEncryptFile = (filePath: string): void => {
         state.encryptFile(filePath);
     };
+
+    const renderBenchmarkCards = (): React.JSX.Element => (
+        <>
+            <AsrBenchmarkCard
+                wavPath={asrWavPath}
+                language={asrLanguage}
+                isLoading={asrSnapshot.isLoading}
+                error={asrSnapshot.error}
+                result={asrSnapshot.result}
+                onWavPathChange={handleAsrWavPathChange}
+                onLanguageChange={handleAsrLanguageChange}
+                onTranscribe={runAsrBenchmark}
+            />
+
+            <VadPitchSmokeCard
+                voiceWavPath={smokeWavPath}
+                isLoading={smokeSnapshot.isLoading}
+                checks={smokeSnapshot.checks}
+                verdict={smokeSnapshot.verdict}
+                error={smokeSnapshot.error}
+                onWavPathChange={handleSmokeWavPathChange}
+                onRun={runVadPitchSmoke}
+            />
+
+            <SpectrogramBenchCard
+                isLoading={benchSnapshot.isLoading}
+                entries={benchSnapshot.entries}
+                error={benchSnapshot.error}
+                onRun={runSpectrogramBench}
+            />
+
+            <SpectrogramParityCard
+                wavPath={parityWavPath}
+                filtersPath={parityFiltersPath}
+                isLoading={paritySnapshot.isLoading}
+                result={paritySnapshot.result}
+                error={paritySnapshot.error}
+                onWavPathChange={handleParityWavPathChange}
+                onFiltersPathChange={handleParityFiltersPathChange}
+                onRun={runSpectrogramParity}
+            />
+        </>
+    );
+
+    const renderIngestSection = (): React.JSX.Element => (
+        <>
+            <SourceDirectoryCard
+                directory={inputPath}
+                isLoading={isLoading}
+                hasFiles={files.length > 0}
+                onDirectoryChange={handleSourceDirectoryChange}
+                onScan={handleScanDirectory}
+                onEncryptAll={handleEncryptAll}
+            />
+
+            {files.length > 0 && (
+                <AudioFilesCard
+                    files={files}
+                    isLoading={isLoading}
+                    onLoadFixture={handleLoadFixture}
+                    onEncryptFile={handleEncryptFile}
+                />
+            )}
+
+            {files.length === 0 && !isLoading && inputPath.length > 0 && (
+                <View style={STYLES.emptyState}>
+                    <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                        No audio files found in this directory.
+                    </Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.outline, marginTop: 4 }}>
+                        Supported: .pcm, .wav, .aiff, .aif, .raw
+                    </Text>
+                </View>
+            )}
+
+            {isLoading && files.length === 0 && (
+                <View style={STYLES.emptyState}>
+                    <ActivityIndicator size="large" />
+                </View>
+            )}
+        </>
+    );
 
     return (
         <View style={[STYLES.container, { backgroundColor: theme.colors.background }]}>
@@ -120,102 +226,60 @@ export const AudioScreen = observer((): React.JSX.Element => {
                     </Text>
                 </View>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Ingest raw audio files as encrypted fixtures and load encounter fixtures
+                    {TAB_DESCRIPTIONS[activeTab]}
                 </Text>
             </Surface>
+
+            <View style={STYLES.tabs}>
+                <SegmentedButtons
+                    value={activeTab}
+                    onValueChange={(value) => setActiveTab(value as DevConsoleTab)}
+                    buttons={[
+                        { value: 'psy', label: 'Psy' },
+                        { value: 'sessions', label: 'Sessions' },
+                        { value: 'benchmark', label: 'Benchmark' },
+                        { value: 'ingest', label: 'Ingest' },
+                    ]}
+                />
+            </View>
 
             <ScrollView
                 style={STYLES.content}
                 contentContainerStyle={STYLES.contentContainer}
                 keyboardShouldPersistTaps="handled"
             >
-                <SourceDirectoryCard
-                    directory={inputPath}
-                    isLoading={isLoading}
-                    hasFiles={files.length > 0}
-                    onDirectoryChange={handleSourceDirectoryChange}
-                    onScan={handleScanDirectory}
-                    onEncryptAll={handleEncryptAll}
-                />
-
-                {files.length > 0 && (
-                    <AudioFilesCard
-                        files={files}
+                {activeTab === 'psy' && (
+                    <TherapistOnboardingCard
+                        sourcePath={therapistSourcePath}
+                        segmentStart={segmentStart}
+                        segmentEnd={segmentEnd}
+                        firstUnencryptedPath={firstUnencryptedPath}
+                        isFormValid={isTherapistFormValid}
                         isLoading={isLoading}
-                        onLoadFixture={handleLoadFixture}
-                        onEncryptFile={handleEncryptFile}
+                        onSourcePathChange={handleTherapistSourceChange}
+                        onPickSource={handlePickTherapistSource}
+                        onSegmentStartChange={handleSegmentStartChange}
+                        onSegmentEndChange={handleSegmentEndChange}
+                        onCreate={handleCreateTherapistFromAudio}
                     />
                 )}
 
-                {files.length === 0 && !isLoading && inputPath.length > 0 && (
-                    <View style={STYLES.emptyState}>
-                        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                            No audio files found in this directory.
-                        </Text>
-                        <Text variant="bodySmall" style={{ color: theme.colors.outline, marginTop: 4 }}>
-                            Supported: .pcm, .wav, .aiff, .aif, .raw
-                        </Text>
-                    </View>
+                {activeTab === 'sessions' && (
+                    <SessionTranscribeCard
+                        datPath={sessionDatPath}
+                        isLoading={sessionSnapshot.isLoading}
+                        utterances={sessionSnapshot.utterances}
+                        elapsedMs={sessionSnapshot.elapsedMs}
+                        timings={sessionSnapshot.timings}
+                        error={sessionSnapshot.error}
+                        onDatPathChange={handleSessionDatPathChange}
+                        onTranscribe={runSessionTranscribe}
+                    />
                 )}
 
-                {isLoading && files.length === 0 && (
-                    <View style={STYLES.emptyState}>
-                        <ActivityIndicator size="large" />
-                    </View>
-                )}
+                {activeTab === 'benchmark' && renderBenchmarkCards()}
 
-                <SpectrogramBenchCard
-                    isLoading={benchSnapshot.isLoading}
-                    entries={benchSnapshot.entries}
-                    error={benchSnapshot.error}
-                    onRun={runSpectrogramBench}
-                />
-
-                <SpectrogramParityCard
-                    wavPath={parityWavPath}
-                    filtersPath={parityFiltersPath}
-                    isLoading={paritySnapshot.isLoading}
-                    result={paritySnapshot.result}
-                    error={paritySnapshot.error}
-                    onWavPathChange={handleParityWavPathChange}
-                    onFiltersPathChange={handleParityFiltersPathChange}
-                    onRun={runSpectrogramParity}
-                />
-
-                <VadPitchSmokeCard
-                    voiceWavPath={smokeWavPath}
-                    isLoading={smokeSnapshot.isLoading}
-                    checks={smokeSnapshot.checks}
-                    verdict={smokeSnapshot.verdict}
-                    error={smokeSnapshot.error}
-                    onWavPathChange={handleSmokeWavPathChange}
-                    onRun={runVadPitchSmoke}
-                />
-
-                <AsrBenchmarkCard
-                    wavPath={asrWavPath}
-                    language={asrLanguage}
-                    isLoading={asrSnapshot.isLoading}
-                    error={asrSnapshot.error}
-                    result={asrSnapshot.result}
-                    onWavPathChange={handleAsrWavPathChange}
-                    onLanguageChange={handleAsrLanguageChange}
-                    onTranscribe={runAsrBenchmark}
-                />
-
-                <TherapistOnboardingCard
-                    sourcePath={therapistSourcePath}
-                    segmentStart={segmentStart}
-                    segmentEnd={segmentEnd}
-                    firstUnencryptedPath={firstUnencryptedPath}
-                    isFormValid={isTherapistFormValid}
-                    isLoading={isLoading}
-                    onSourcePathChange={handleTherapistSourceChange}
-                    onPickSource={handlePickTherapistSource}
-                    onSegmentStartChange={handleSegmentStartChange}
-                    onSegmentEndChange={handleSegmentEndChange}
-                    onCreate={handleCreateTherapistFromAudio}
-                />
+                {activeTab === 'ingest' && renderIngestSection()}
             </ScrollView>
 
             <Snackbar
@@ -253,6 +317,10 @@ const STYLES = StyleSheet.create({
     },
     headerTitle: {
         flex: 1,
+    },
+    tabs: {
+        paddingHorizontal: 16,
+        paddingTop: 8,
     },
     emptyState: {
         alignItems: 'center',

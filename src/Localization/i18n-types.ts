@@ -402,6 +402,22 @@ type RootTranslation = {
         setupBody: string;
         /** Install */
         setupAction: string;
+        /** Your first session */
+        emptyTitle: string;
+        /** Sessions will appear here. Here is how it goes: */
+        emptyBody: string;
+        /** Record */
+        emptyRecordTitle: string;
+        /** Place the phone between you, then forget it. */
+        emptyRecordBody: string;
+        /** Plug in at night */
+        emptyChargeTitle: string;
+        /** Tiro transcribes while charging, then destroys the audio. */
+        emptyChargeBody: string;
+        /** Read it back */
+        emptyReadTitle: string;
+        /** Transcript, your notes and a mini summary on demand. */
+        emptyReadBody: string;
     };
     preSession: {
         /** Ready to record */
@@ -1125,6 +1141,22 @@ export type TranslationFunctions = {
         setupBody: () => LocalizedString;
         /** Install */
         setupAction: () => LocalizedString;
+        /** Your first session */
+        emptyTitle: () => LocalizedString;
+        /** Sessions will appear here. Here is how it goes: */
+        emptyBody: () => LocalizedString;
+        /** Record */
+        emptyRecordTitle: () => LocalizedString;
+        /** Place the phone between you, then forget it. */
+        emptyRecordBody: () => LocalizedString;
+        /** Plug in at night */
+        emptyChargeTitle: () => LocalizedString;
+        /** Tiro transcribes while charging, then destroys the audio. */
+        emptyChargeBody: () => LocalizedString;
+        /** Read it back */
+        emptyReadTitle: () => LocalizedString;
+        /** Transcript, your notes and a mini summary on demand. */
+        emptyReadBody: () => LocalizedString;
     };
     preSession: {
         /** Ready to record */
