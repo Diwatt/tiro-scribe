@@ -123,4 +123,15 @@ describe('OnboardingState', () => {
 
         expect(state.voice.isBusy.get()).toBe(false);
     });
+
+    it('opens the recovery step after a successful calibration', () => {
+        const state = Container.get(OnboardingState);
+        state.reset();
+
+        const handler = (state.voice as unknown as { onCalibrationSuccess?: () => void }).onCalibrationSuccess;
+        expect(typeof handler).toBe('function');
+        handler?.();
+
+        expect(state.step.get()).toBe(OnboardingStep.Recovery);
+    });
 });

@@ -162,6 +162,18 @@ const en: BaseTranslation = {
         start: 'Get started',
         restore: 'I have a recovery kit',
     },
+    restoreVault: {
+        title: 'Restore your vault',
+        subtitle: 'Enter the recovery code from your kit and choose a new master password.',
+        codeLabel: 'Recovery code',
+        passwordLabel: 'New master password',
+        confirmLabel: 'Confirm the new password',
+        submit: 'Restore my vault',
+        back: 'Back',
+        errorNoVault: 'No vault found on this device.',
+        errorInvalidCode: 'This recovery code does not match the vault on this device.',
+        errorGeneric: 'Failed to restore the vault.',
+    },
     vault: {
         step: 'Step {current} · Your vault',
         progress: 'Step {current} of {total}',

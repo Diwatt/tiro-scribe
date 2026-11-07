@@ -299,6 +299,28 @@ type RootTranslation = {
         /** I have a recovery kit */
         restore: string;
     };
+    restoreVault: {
+        /** Restore your vault */
+        title: string;
+        /** Enter the recovery code from your kit and choose a new master password. */
+        subtitle: string;
+        /** Recovery code */
+        codeLabel: string;
+        /** New master password */
+        passwordLabel: string;
+        /** Confirm the new password */
+        confirmLabel: string;
+        /** Restore my vault */
+        submit: string;
+        /** Back */
+        back: string;
+        /** No vault found on this device. */
+        errorNoVault: string;
+        /** This recovery code does not match the vault on this device. */
+        errorInvalidCode: string;
+        /** Failed to restore the vault. */
+        errorGeneric: string;
+    };
     vault: {
         /** Step {current} · Your vault */
         step: RequiredParams<'current'>;
@@ -1037,6 +1059,28 @@ export type TranslationFunctions = {
         start: () => LocalizedString;
         /** I have a recovery kit */
         restore: () => LocalizedString;
+    };
+    restoreVault: {
+        /** Restore your vault */
+        title: () => LocalizedString;
+        /** Enter the recovery code from your kit and choose a new master password. */
+        subtitle: () => LocalizedString;
+        /** Recovery code */
+        codeLabel: () => LocalizedString;
+        /** New master password */
+        passwordLabel: () => LocalizedString;
+        /** Confirm the new password */
+        confirmLabel: () => LocalizedString;
+        /** Restore my vault */
+        submit: () => LocalizedString;
+        /** Back */
+        back: () => LocalizedString;
+        /** No vault found on this device. */
+        errorNoVault: () => LocalizedString;
+        /** This recovery code does not match the vault on this device. */
+        errorInvalidCode: () => LocalizedString;
+        /** Failed to restore the vault. */
+        errorGeneric: () => LocalizedString;
     };
     vault: {
         /** Step {current} · Your vault */

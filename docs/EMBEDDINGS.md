@@ -233,8 +233,13 @@ Rôles du LLM : (a) reformuler la question en requête(s) d'embedding multi-thè
   dev builds).
 - **Implémentation** (étape 0, §10) :
   1. **Clé** : 256 bits aléatoires au premier lancement, stockées Keychain/Keystore
-     (expo-secure-store / couche crypto existante) — viser **une seule hiérarchie de
-     clés** audio + base.
+     via SecureStore — **même racine matérielle que la clé audio** (`secure_recorder_key`,
+     alias natif), mais **clé de domaine séparée volontairement** : sur Android la clé
+     audio est un objet KeyStore **non exportable** (impossible à passer à SQLCipher qui
+     exige les octets), et réutiliser la même clé brute pour deux domaines (fichiers
+     audio vs base) violerait la séparation des clés. Une vraie hiérarchie dérivée
+     (HKDF depuis un master wrappé natif) n'est justifiée que si le nombre de clés
+     explose — pas aujourd'hui.
   2. **Ouverture** : `PRAGMA key` doit être **la toute première instruction** après
      l'ouverture, avant toute requête. Point délicat MikroORM/kysely-expo : vérifier que
      le dialect accepte une connexion déjà ouverte ou un hook de connexion, sinon petit

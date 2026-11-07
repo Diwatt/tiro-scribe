@@ -26,8 +26,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
     const { locale } = useLocalization();
     const onboarding = Container.get(OnboardingState);
     const step = onboarding.step.get() ?? OnboardingStep.Account;
-    // Recovery is bypassed for now (voice success finalizes), so only two steps are counted.
-    const visibleSteps = [OnboardingStep.Account, OnboardingStep.Voice];
+    const visibleSteps = [OnboardingStep.Account, OnboardingStep.Voice, OnboardingStep.Recovery];
     const total = visibleSteps.length;
 
     const methods = useForm<OnboardingFormData>({
@@ -46,7 +45,7 @@ export const OnboardingScreen = observer((_props: OnboardingScreenProps): React.
                 {step === OnboardingStep.Voice ? (
                     <StepVoice step={2} total={total} />
                 ) : step === OnboardingStep.Recovery ? (
-                    <StepRecovery step={total + 1} total={total + 1} />
+                    <StepRecovery step={3} total={total} />
                 ) : (
                     <StepVault step={1} total={total} />
                 )}

@@ -162,6 +162,18 @@ const fr: Translation = {
         start: 'Commencer',
         restore: 'J\'ai un kit de récupération',
     },
+    restoreVault: {
+        title: 'Restaurer votre coffre',
+        subtitle: 'Entrez le code de récupération de votre kit et choisissez un nouveau mot de passe maître.',
+        codeLabel: 'Code de récupération',
+        passwordLabel: 'Nouveau mot de passe maître',
+        confirmLabel: 'Confirmez le nouveau mot de passe',
+        submit: 'Restaurer mon coffre',
+        back: 'Retour',
+        errorNoVault: 'Aucun coffre trouvé sur cet appareil.',
+        errorInvalidCode: 'Ce code de récupération ne correspond pas au coffre de cet appareil.',
+        errorGeneric: 'Échec de la restauration du coffre.',
+    },
     vault: {
         step: 'Étape {current} · Votre coffre',
         progress: 'Étape {current} sur {total}',

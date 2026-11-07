@@ -266,6 +266,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - **One Class Per File:** Filename must match class name exactly
   - Constants, enums, interfaces, and module-level exports are ALLOWED in the same file
   - DO NOT move constants/exports to separate files unless they are themselves classes
+- **No regex for domain formats:** a data format belongs to the class that owns it (public constants: alphabet, lengths, plus `isValidCode`/`canonicalize`-style helpers); schemas and states delegate to it. Never encode domain knowledge in a regex — the duplicated alphabet/pattern silently drifts.
 - **No "Utils" / Standalone Functions:** Logic belongs to a class (Service or Entity)
 - **Service Naming:** Use capability names (e.g. `VoiceCalibration`), NEVER append `*Service`
 - **No pattern-speak in class names:** never suffix a class with `Gateway`, `Resolver`, `Handler`, `Manager`, `Wrapper`, or similar organizational labels — name the capability it performs

@@ -11,6 +11,7 @@ import { ExpoDialect } from 'kysely-expo';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
 import { DatabaseException } from '@/Exception';
+import { SqlCipherConnection } from './SqlCipherConnection';
 
 export class Database {
     private static readonly errorCodeNotInitialized = 'DATABASE_NOT_INITIALIZED';
@@ -19,18 +20,25 @@ export class Database {
 
     private constructor(private readonly orm: InstanceType<typeof MikroORM>) {}
 
-    /** Idempotent. The caller supplies the entity list (production: ENTITY_CLASSES from @/Entity). */
+    /**
+     * Idempotent. The caller supplies the entity list (production: ENTITY_CLASSES from
+     * @/Entity). A custom dialect (test injection, e.g. SqlJsDialect) bypasses the
+     * SQLCipher open path — production always goes through SqlCipherConnection.
+     */
     public static async initialize(options: { dialect?: Dialect; entities: Options['entities'] }): Promise<Database> {
         if (Database.instance != null) {
             return Database.instance;
         }
 
         const appConfig = Container.get(AppConfig);
+        const dialect =
+            options.dialect ?? new ExpoDialect({ database: await SqlCipherConnection.open(appConfig.databaseName) });
+
         const orm = await MikroORM.init({
             driver: SqliteDriver,
             entities: options.entities,
             dbName: appConfig.databaseName,
-            driverOptions: options.dialect ?? new ExpoDialect({ database: appConfig.databaseName }),
+            driverOptions: dialect,
             // app-wide singleton EM (no request scoping in a local-first mobile app)
             allowGlobalContext: true,
         });

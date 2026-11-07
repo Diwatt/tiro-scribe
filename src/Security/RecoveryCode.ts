@@ -1,6 +1,6 @@
 /**
  * RecoveryCode – Vault recovery code format and key derivation.
- * Human-readable format XXXX-XXXX-XXXX. Uses expo-crypto for entropy.
+ * Human-readable canonical form XXXX-XXXX-XXXX. Uses expo-crypto for entropy.
  */
 
 import * as ExpoCrypto from 'expo-crypto';
@@ -8,29 +8,47 @@ import QuickCrypto from 'react-native-quick-crypto';
 import { Container } from '@/Core/Container';
 
 export class RecoveryCode {
-    private static readonly CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    private static readonly CHARSET_SIZE = 32;
+    public static readonly ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    public static readonly CODE_LENGTH = 12;
+    public static readonly GROUP_LENGTH = 4;
+
     private static readonly KEY_LEN = 32;
     private static readonly PBKDF2_ITERATIONS = 100_000;
-    private static readonly TOTAL_CHARS = 12;
+
+    /** True when the text carries exactly CODE_LENGTH alphabet characters (case and separators ignored). */
+    public static isValidCode(text: string): boolean {
+        return RecoveryCode.clean(text).length === RecoveryCode.CODE_LENGTH;
+    }
+
+    /** Canonical kit form XXXX-XXXX-XXXX from loose user input. */
+    public static canonicalize(text: string): string {
+        const cleaned = RecoveryCode.clean(text);
+        const groups: string[] = [];
+        for (let index = 0; index < cleaned.length; index += RecoveryCode.GROUP_LENGTH) {
+            groups.push(cleaned.slice(index, index + RecoveryCode.GROUP_LENGTH));
+        }
+
+        return groups.join('-');
+    }
 
     /**
      * Generates a recovery code in one pass using expo-crypto.
-     * Uniform character selection (no modulo bias).
+     * Uniform character selection (alphabet length is a power of two, no modulo bias).
      */
     public create(): string {
-        const bytes = new Uint8Array(RecoveryCode.TOTAL_CHARS);
+        const bytes = new Uint8Array(RecoveryCode.CODE_LENGTH);
         ExpoCrypto.getRandomValues(bytes);
 
         const parts: string[] = [];
-        for (let i = 0; i < RecoveryCode.TOTAL_CHARS; i += 4) {
+        for (let index = 0; index < RecoveryCode.CODE_LENGTH; index += RecoveryCode.GROUP_LENGTH) {
             let part = '';
-            for (let j = 0; j < 4; j++) {
-                const idx = bytes[i + j] % RecoveryCode.CHARSET_SIZE;
-                part += RecoveryCode.CHARS.charAt(idx);
+            for (let offset = 0; offset < RecoveryCode.GROUP_LENGTH; offset++) {
+                const byte = bytes[index + offset];
+                part += RecoveryCode.ALPHABET.charAt(byte % RecoveryCode.ALPHABET.length);
             }
             parts.push(part);
         }
+
         return parts.join('-');
     }
 
@@ -46,6 +64,10 @@ export class RecoveryCode {
             'SHA-256',
         );
         return derived.toString('hex');
+    }
+
+    private static clean(text: string): string {
+        return [...text.toUpperCase()].filter((character) => RecoveryCode.ALPHABET.includes(character)).join('');
     }
 }
 

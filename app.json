@@ -68,7 +68,13 @@
       "expo-localization",
       "expo-router",
       "expo-secure-store",
-      "expo-sqlite",
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true,
+          "enableFTS": true
+        }
+      ],
       "expo-sharing",
       "expo-splash-screen"
     ],

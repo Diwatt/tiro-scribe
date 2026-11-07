@@ -3,6 +3,7 @@
  */
 
 export { CryptoEngine } from './CryptoEngine';
+export { DatabaseKeyVault } from './DatabaseKeyVault';
 export {
     type CompatibilityMatrix,
     DeviceCompatibilityGate,

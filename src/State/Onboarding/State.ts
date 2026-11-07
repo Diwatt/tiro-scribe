@@ -98,11 +98,8 @@ export class OnboardingState implements PendingTherapistProvider {
         // callbacks that depend on `this`
         this.account.setOnSuccess(this.handleAccountSuccess.bind(this));
         this.voice.setPendingTherapistProvider(this);
-        // NOTE: Recovery step is temporarily disabled. After successful calibration we finalize onboarding directly.
         this.voice.setOnCalibrationSuccess(() => {
-            this.recovery.finalize(true).catch(() => {
-                // swallow; nothing actionable here during onboarding flow
-            });
+            this.goToStep(OnboardingStep.Recovery);
         });
         this.recovery.setPendingTherapistProvider(this);
 
