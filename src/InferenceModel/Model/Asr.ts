@@ -32,6 +32,7 @@ export class Asr extends AbstractModel implements InferenceModel {
     public static readonly VOCABULARY_SCHEMA = z.array(z.string());
     public static readonly NUM_MELS = LogMelSpectrogramOptions.DEFAULT_BAND_COUNT;
     public static readonly FIXED_MEL_FRAMES = 2800;
+    public static readonly ENCODER_FRAME_MS = 80;
     public static readonly ENCODER_FRAME_SIZE = 640;
     public static readonly HIDDEN_STATE_SIZE = 1280;
     private static readonly LOG_MEL_OPTIONS = LogMelSpectrogramOptions.create();
@@ -71,6 +72,15 @@ export class Asr extends AbstractModel implements InferenceModel {
         super(Asr.CAPABILITY, downloader, executorch, logger);
     }
 
+    public decodeTokenIds(tokenIds: readonly number[]): string {
+        const pipeline = this.pipeline;
+        if (pipeline == null) {
+            throw new AsrException('Asr model not initialized. Call initialize() first.');
+        }
+
+        return pipeline.vocabulary.decode(tokenIds);
+    }
+
     public async run(samples: Float32Array): Promise<AsrRunMetric> {
         const pipeline = this.pipeline;
         if (pipeline == null) {
@@ -108,13 +118,14 @@ export class Asr extends AbstractModel implements InferenceModel {
 
         return AsrRunMetric.create(
             text,
+            decoded.tokenIds,
+            decoded.frameIndexes,
             melMs,
             encoderMs,
             decoderMs,
             totalMs,
             decoded.iterationCount,
             decoded.decoderSteps,
-            decoded.tokenIds.length,
         );
     }
 

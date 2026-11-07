@@ -144,6 +144,12 @@ const fr: Translation = {
         faceId: 'Déverrouiller avec Face ID',
         password: 'Utiliser le mot de passe maître',
     },
+    unlockVault: {
+        masterPassword: 'Mot de passe maître',
+        submit: 'Déverrouiller',
+        errorWrongPassword: 'Mot de passe maître incorrect.',
+        errorKeyfile: 'Cet appareil ne peut pas lire son fichier de sécurité.',
+    },
     incompatible: {
         title: 'Ce téléphone ne peut pas faire tourner Tiro',
         subtitle: 'La transcription se fait entièrement sur l\'appareil. Elle demande un téléphone récent.',

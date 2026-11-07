@@ -8,6 +8,7 @@ export type { OnboardingScreenProps } from './Onboarding';
 export { OnboardingScreen } from './Onboarding';
 export { RecordingScreen } from './RecordingScreen';
 export { RestoreScreen } from './Start/RestoreScreen';
+export { UnlockGateScreen } from './Start/UnlockGateScreen';
 export { WelcomeScreen } from './Start/WelcomeScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { SubjectsScreen } from './SubjectsScreen';

@@ -1,34 +1,40 @@
 /**
  * StreamTranscriber Tests - ZOMBIE Methodology
  *
- * Z - Zero: silent stream produces no utterance
+ * Z - Zero: silent stream produces no utterance and never runs the ASR
  * O - One: a single closed segment becomes a single utterance
- * M - Many: successive segments, irregular chunks, leftover tail
- * B - Boundaries: absolute-clock offsets, samples handed to the ASR
+ * M - Many: segments grouped into one ASR run, tokens re-attributed to segments
+ * B - Boundaries: absolute-clock offsets, samples handed to the ASR, input cap
  * I - Interfaces: contract - VAD reset per stream, session speaker label
  * E - Exceptions: model failures propagate out of transcribe
  */
 
 import type { AppLogger } from '@/Core/AppLogger';
-import type { Asr, Vad } from '@/InferenceModel/Model';
-import { SecureRecorder } from 'secure-recorder';
-import type { DecryptedChunk, DecryptedStreamReader } from 'secure-recorder';
+import { Asr } from '@/InferenceModel/Model';
+import type { Vad } from '@/InferenceModel/Model';
 import { AsrRunMetric } from '@/InferenceModel/Model/AsrRunMetric';
 import { PcmSampleConverter } from '@/Math';
+import { SecureRecorder } from 'secure-recorder';
+import type { DecryptedChunk, DecryptedStreamReader } from 'secure-recorder';
 import type { StreamTranscription } from '../../src/Pipeline/StreamTranscription';
 import { StreamTranscriber } from '../../src/Pipeline/StreamTranscriber';
 
 const WINDOW_SAMPLES = 512;
 const SAMPLE_RATE_HZ = 16000;
 const WINDOW_MS = 32;
+const MAX_INPUT_SAMPLES = (28000 * SAMPLE_RATE_HZ) / 1000;
 const SILENCE_AMPLITUDE = 0;
 const SPEECH_AMPLITUDE = 1000;
 const SILENT_PROBABILITY = 0.1;
 const VOICED_PROBABILITY = 0.9;
 const TRANSCRIPT_ONE = 'Bonjour, ceci est un test.';
 const TRANSCRIPT_TWO = 'Deuxieme segment.';
+const TOKEN_ONE = 101;
+const TOKEN_TWO = 202;
+const ENCODER_FRAME_MS = 80;
 
 type WindowSpec = { amplitude: number; probability: number };
+type AsrRun = { readonly tokenIds: number[]; readonly frameIndexes: number[] };
 
 class FakeReader {
     public constructor(private readonly chunks: Uint8Array[]) {}
@@ -45,62 +51,77 @@ class FakeReader {
     public async close(): Promise<void> {}
 }
 
-function makeFakeReader(chunks: Uint8Array[]): DecryptedStreamReader {
-    return new FakeReader(chunks) as unknown as DecryptedStreamReader;
-}
+const makeFakeReader = (chunks: Uint8Array[]): DecryptedStreamReader => new FakeReader(chunks) as unknown as DecryptedStreamReader;
 
-function windowBytes(amplitude: number): Uint8Array {
+const windowBytes = (amplitude: number): Uint8Array => {
     const samples = new Int16Array(WINDOW_SAMPLES);
     samples.fill(amplitude);
 
     return new Uint8Array(samples.buffer);
-}
+};
 
-function makeChunks(specs: WindowSpec[], windowsPerChunk: number[]): Uint8Array[] {
+const makeChunks = (specs: WindowSpec[], windowsPerChunk: number[]): Uint8Array[] => {
     const chunks: Uint8Array[] = [];
     let offset = 0;
 
-    for (const windowCount of windowsPerChunk) {
-        const part = specs.slice(offset, offset + windowCount);
-        const sampleCount = part.length * WINDOW_SAMPLES;
-        const samples = new Int16Array(sampleCount);
+    for (const nbWindows of windowsPerChunk) {
+        const part = specs.slice(offset, offset + nbWindows);
+        const nbSamples = part.length * WINDOW_SAMPLES;
+        const samples = new Int16Array(nbSamples);
 
         part.forEach((spec, windowIndex) => {
             samples.fill(spec.amplitude, windowIndex * WINDOW_SAMPLES, (windowIndex + 1) * WINDOW_SAMPLES);
         });
 
         chunks.push(new Uint8Array(samples.buffer));
-        offset += windowCount;
+        offset += nbWindows;
     }
 
     return chunks;
-}
+};
 
-function makeFakeVad(specs: WindowSpec[]): { getConfig: () => { windowSamples: number; sampleRateHz: number }; reset: jest.Mock; run: jest.Mock } {
+const makeFakeVad = (specs: WindowSpec[]): { getConfig: () => { windowSamples: number; sampleRateHz: number }; reset: jest.Mock; run: jest.Mock } => {
     const script = specs.map((spec) => spec.probability);
     return {
         getConfig: () => ({ windowSamples: WINDOW_SAMPLES, sampleRateHz: SAMPLE_RATE_HZ }),
         reset: jest.fn(),
         run: jest.fn(async () => script.length > 0 ? script.shift() : 0.1),
     };
-}
+};
 
-function makeFakeAsr(transcripts: string[]): { run: jest.Mock } {
+const makeFakeAsr = (runs: AsrRun[]): { run: jest.Mock; decodeTokenIds: jest.Mock } => {
     let callIndex = 0;
 
     return {
         run: jest.fn(async () => {
-            const transcript = transcripts[Math.min(callIndex, transcripts.length - 1)] ?? '';
+            const run = runs[Math.min(callIndex, runs.length - 1)];
             callIndex += 1;
 
-            return AsrRunMetric.create(transcript, 1, 1, 1, 3, 1, 1, 1);
+            return AsrRunMetric.create('', run.tokenIds, run.frameIndexes, 1, 1, 1, 3, 1, 1);
+        }),
+        decodeTokenIds: jest.fn((tokenIds: readonly number[]) => {
+            if (tokenIds.includes(TOKEN_ONE)) {
+                return TRANSCRIPT_ONE;
+            }
+            if (tokenIds.includes(TOKEN_TWO)) {
+                return TRANSCRIPT_TWO;
+            }
+
+            return '';
         }),
     };
-}
+};
+
+const silentSpecs = (nbWindows: number): WindowSpec[] =>
+    Array.from({ length: nbWindows }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY }));
+
+const voicedSpecs = (nbWindows: number): WindowSpec[] =>
+    Array.from({ length: nbWindows }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY }));
 
 async function transcribeSpecs(
     specs: WindowSpec[],
     windowsPerChunk: number[],
+    runs: AsrRun[],
     tailSamples?: number,
 ): Promise<{
     transcriber: StreamTranscriber;
@@ -109,9 +130,8 @@ async function transcribeSpecs(
     asr: ReturnType<typeof makeFakeAsr>;
 }> {
     const vad = makeFakeVad(specs);
-    const asr = makeFakeAsr([TRANSCRIPT_ONE, TRANSCRIPT_TWO]);
-    const chunkSpecs = specs.slice();
-    const chunks = makeChunks(chunkSpecs, windowsPerChunk);
+    const asr = makeFakeAsr(runs);
+    const chunks = makeChunks(specs, windowsPerChunk);
 
     if (tailSamples !== undefined) {
         const tailSamplesArray = new Int16Array(tailSamples);
@@ -134,27 +154,27 @@ async function transcribeSpecs(
 
 describe('StreamTranscriber - ZOMBIE Tests', () => {
     describe('Z - Zero Tests', () => {
-        it('should return no utterance on a fully silent stream', async () => {
-            const specs = Array.from({ length: 100 }, () => ({
-                amplitude: SILENCE_AMPLITUDE,
-                probability: SILENT_PROBABILITY,
-            }));
+        it('should return no utterance on a fully silent stream and never run the ASR', async () => {
+            const specs = silentSpecs(100);
 
-            const { transcription } = await transcribeSpecs(specs, [100]);
+            const { transcription, asr } = await transcribeSpecs(specs, [100], []);
 
             expect(transcription.utterances).toEqual([]);
+            expect(asr.run).not.toHaveBeenCalled();
         });
     });
 
     describe('O - One Tests', () => {
         it('should transcribe one closed segment with absolute-clock boundaries', async () => {
             const specs = [
-                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
-                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
+                ...silentSpecs(3),
             ];
 
-            const { transcription, asr } = await transcribeSpecs(specs, [80, 83]);
+            const { transcription, asr } = await transcribeSpecs(specs, [80, 83], [
+                { tokenIds: [TOKEN_ONE, TOKEN_ONE], frameIndexes: [0, 1] },
+            ]);
 
             expect(transcription.utterances.length).toBe(1);
             expect(transcription.utterances[0].startTime).toBe(50 * WINDOW_MS);
@@ -169,12 +189,14 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
 
         it('should return cumulative pipeline timings', async () => {
             const specs = [
-                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
-                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
+                ...silentSpecs(3),
             ];
 
-            const { transcription } = await transcribeSpecs(specs, [163]);
+            const { transcription } = await transcribeSpecs(specs, [163], [
+                { tokenIds: [TOKEN_ONE], frameIndexes: [0] },
+            ]);
 
             expect(transcription.timings.getDecryptMs()).toBeGreaterThanOrEqual(0);
             expect(transcription.timings.getConvertMs()).toBeGreaterThanOrEqual(0);
@@ -186,11 +208,13 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
 
         it('should emit the trailing open segment at end of stream', async () => {
             const specs = [
-                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
             ];
 
-            const { transcription } = await transcribeSpecs(specs, [160]);
+            const { transcription } = await transcribeSpecs(specs, [160], [
+                { tokenIds: [TOKEN_ONE], frameIndexes: [0] },
+            ]);
 
             expect(transcription.utterances.length).toBe(1);
             expect(transcription.utterances[0].startTime).toBe(50 * WINDOW_MS);
@@ -199,33 +223,61 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
     });
 
     describe('M - Many Tests', () => {
-        it('should emit successive segments in stream order with a shared speaker label', async () => {
+        it('should group successive segments into one ASR run and re-attribute tokens to each segment', async () => {
             const specs = [
-                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
-                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 80 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
-                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
+                ...silentSpecs(3),
+                ...silentSpecs(20),
+                ...voicedSpecs(80),
+                ...silentSpecs(3),
             ];
 
-            const { transcription } = await transcribeSpecs(specs, [123, 123, 123]);
+            const { transcription, asr } = await transcribeSpecs(specs, [123, 123, 123], [
+                { tokenIds: [TOKEN_ONE, TOKEN_TWO], frameIndexes: [0, 90] },
+            ]);
             const utterances = transcription.utterances;
 
+            expect(asr.run).toHaveBeenCalledTimes(1);
+            expect(asr.run.mock.calls[0][0] as Float32Array).toHaveLength(206 * WINDOW_SAMPLES);
             expect(utterances.length).toBe(2);
-            expect(utterances[0].endTime).toBeLessThanOrEqual(utterances[1].startTime);
+            expect(utterances[0].startTime).toBe(50 * WINDOW_MS);
+            expect(utterances[0].endTime).toBe(163 * WINDOW_MS);
+            expect(utterances[0].text).toBe(TRANSCRIPT_ONE);
+            expect(utterances[1].startTime).toBe(173 * WINDOW_MS);
+            expect(utterances[1].endTime).toBe(266 * WINDOW_MS);
+            expect(utterances[1].text).toBe(TRANSCRIPT_TWO);
             expect(utterances[0].speakerLabel).toBe(utterances[1].speakerLabel);
             expect(utterances[0].id).not.toBe(utterances[1].id);
-            expect(utterances[1].text).toBe(TRANSCRIPT_TWO);
+        });
+
+        it('should emit one utterance per segment of the final run input', async () => {
+            const specs = [
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
+                ...silentSpecs(3),
+                ...silentSpecs(20),
+                ...voicedSpecs(80),
+                ...silentSpecs(3),
+            ];
+
+            const { transcription } = await transcribeSpecs(specs, [286], [
+                { tokenIds: [TOKEN_ONE, TOKEN_TWO], frameIndexes: [0, 90] },
+            ]);
+
+            expect(transcription.utterances.length).toBe(2);
         });
 
         it('should drop the leftover samples that never filled a whole window', async () => {
             const specs = [
-                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
-                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
+                ...silentSpecs(3),
             ];
 
-            const { transcription, vad } = await transcribeSpecs(specs, [120, 43], 100);
+            const { transcription, vad } = await transcribeSpecs(specs, [120, 43], [
+                { tokenIds: [TOKEN_ONE], frameIndexes: [0] },
+            ], 100);
 
             expect(transcription.utterances.length).toBe(1);
             expect(vad.run).toHaveBeenCalledTimes(163);
@@ -233,14 +285,38 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
     });
 
     describe('B - Boundary Tests', () => {
+        it('should emit one ASR run per full input on continuous voice past the input cap', async () => {
+            const specs = [
+                ...silentSpecs(60),
+                ...voicedSpecs(940),
+            ];
+
+            const { transcription, asr } = await transcribeSpecs(specs, [500, 500], [
+                { tokenIds: [TOKEN_ONE], frameIndexes: [0] },
+                { tokenIds: [TOKEN_TWO], frameIndexes: [0] },
+            ]);
+            const utterances = transcription.utterances;
+
+            expect(asr.run).toHaveBeenCalledTimes(2);
+            const firstRunInputSamples = asr.run.mock.calls[0][0] as Float32Array;
+            expect(firstRunInputSamples.length).toBeLessThanOrEqual(MAX_INPUT_SAMPLES);
+            expect(utterances.length).toBe(2);
+            expect(utterances[0].startTime).toBe(50 * WINDOW_MS);
+            expect(utterances[0].endTime).toBe(925 * WINDOW_MS);
+            expect(utterances[0].endTime - utterances[0].startTime).toBe(28000);
+            expect(utterances[0].text).toBe(TRANSCRIPT_ONE);
+            expect(utterances[1].startTime).toBe(925 * WINDOW_MS);
+            expect(utterances[1].text).toBe(TRANSCRIPT_TWO);
+        });
+
         it('should reset the VAD state at the start of every stream', async () => {
             const specs = [
-                ...Array.from({ length: 60 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
-                ...Array.from({ length: 100 }, () => ({ amplitude: SPEECH_AMPLITUDE, probability: VOICED_PROBABILITY })),
-                ...Array.from({ length: 3 }, () => ({ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY })),
+                ...silentSpecs(60),
+                ...voicedSpecs(100),
+                ...silentSpecs(3),
             ];
             const vad = makeFakeVad(specs);
-            const asr = makeFakeAsr([TRANSCRIPT_ONE]);
+            const asr = makeFakeAsr([{ tokenIds: [TOKEN_ONE], frameIndexes: [0] }]);
             jest.spyOn(SecureRecorder, 'openDecryptedStream').mockResolvedValue(makeFakeReader(makeChunks(specs, [163])));
             const transcriber = new StreamTranscriber(
                 vad as unknown as Vad,
@@ -260,7 +336,7 @@ describe('StreamTranscriber - ZOMBIE Tests', () => {
         it('should let VAD failures propagate out of transcribe', async () => {
             const vad = makeFakeVad([]);
             vad.run.mockRejectedValueOnce(new Error('VAD bundle failure'));
-            const asr = makeFakeAsr([TRANSCRIPT_ONE]);
+            const asr = makeFakeAsr([{ tokenIds: [TOKEN_ONE], frameIndexes: [0] }]);
             jest.spyOn(SecureRecorder, 'openDecryptedStream').mockResolvedValue(
                 makeFakeReader(makeChunks([{ amplitude: SILENCE_AMPLITUDE, probability: SILENT_PROBABILITY }], [1])),
             );

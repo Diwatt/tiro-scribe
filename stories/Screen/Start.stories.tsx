@@ -1,14 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-native';
-import { IncompatibleScreen } from '../../src/Screen/Start/IncompatibleScreen';
 import { LaunchScreen } from '../../src/Screen/Start/LaunchScreen';
-import { ModelsStepScreen } from '../../src/Screen/Start/ModelsStepScreen';
 import { RecoveryKitStepScreen } from '../../src/Screen/Start/RecoveryKitStepScreen';
-import { UnlockScreen } from '../../src/Screen/Start/UnlockScreen';
 import { VaultStepScreen } from '../../src/Screen/Start/VaultStepScreen';
 import { VoiceStepScreen } from '../../src/Screen/Start/VoiceStepScreen';
 import { WelcomeScreen } from '../../src/Screen/Start/WelcomeScreen';
 import { CalibrationStatus, LanguageOption } from '../../src/Screen/Model';
-import { StoryFixture } from '../Fixture/StoryFixture';
 
 const meta: Meta<typeof LaunchScreen> = {
     title: 'Screen/Start',
@@ -19,17 +15,6 @@ export default meta;
 type Story = StoryObj<typeof LaunchScreen>;
 
 export const Launch: Story = { render: () => <LaunchScreen /> };
-
-export const Incompatible: Story = {
-    render: () => (
-        <IncompatibleScreen
-            requirements={StoryFixture.REQUIREMENTS}
-            recommendedDevices={['iPhone 13 or later', 'Pixel 8 or later', 'Galaxy S23 or later']}
-        />
-    ),
-};
-
-export const Unlock: Story = { render: () => <UnlockScreen /> };
 
 export const Welcome: Story = { render: () => <WelcomeScreen /> };
 
@@ -52,8 +37,6 @@ export const VaultStep: Story = {
 export const RecoveryKitStep: Story = {
     render: () => <RecoveryKitStepScreen step={3} total={3} codeGroups={['XXXX', 'XXXX', 'XXXX', 'XXXX', 'XXXX', 'XXXX']} isStored={false} />,
 };
-
-export const ModelsStep: Story = { render: () => <ModelsStepScreen step={3} total={3} downloads={StoryFixture.DOWNLOADS} /> };
 
 export const VoiceStep: Story = { render: () => <VoiceStepScreen step={2} total={2} status={CalibrationStatus.Ready} /> };
 

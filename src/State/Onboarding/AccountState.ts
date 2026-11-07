@@ -12,6 +12,7 @@ import type { AccountSuccessHandler } from './Types';
 export interface AccountCreationResult {
     therapist: Therapist;
     recoveryCode: string;
+    password: string;
 }
 
 export class AccountState extends AbstractState {
@@ -39,7 +40,7 @@ export class AccountState extends AbstractState {
             await this.masterKeyVault.save(therapist.uuid, artifacts.masterKey);
 
             if (this.onSuccess) {
-                this.onSuccess({ therapist, recoveryCode: artifacts.recoveryCode });
+                this.onSuccess({ therapist, recoveryCode: artifacts.recoveryCode, password: data.password });
             }
         });
     }

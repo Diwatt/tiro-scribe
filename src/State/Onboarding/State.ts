@@ -10,11 +10,11 @@ import type { Therapist } from '@/Entity/Therapist';
 import { type AccountCreationResult, AccountState } from './AccountState';
 import { ProfileState } from './ProfileState';
 import { RecoveryState } from './RecoveryState';
-import { OnboardingStep, type PendingTherapistProvider } from './Types';
+import { OnboardingStep, type PendingPasswordProvider, type PendingTherapistProvider } from './Types';
 import { VoiceState } from './VoiceState';
 
 /** Re-export for consumers. */
-export type { OnboardingStep, PendingTherapistProvider, ValidationResult } from './Types';
+export type { OnboardingStep, PendingPasswordProvider, PendingTherapistProvider, ValidationResult } from './Types';
 
 /** Number of steps in the onboarding wizard (progress UI). */
 export const ONBOARDING_STEPS = Object.keys(OnboardingStep).length / 2; // enum has both keys and values
@@ -27,6 +27,7 @@ export class OnboardingState implements PendingTherapistProvider {
     public readonly isBusy: ObservableComputed<boolean>;
 
     private readonly pendingTherapist = observable<Therapist | null>(null);
+    private readonly pendingPassword = observable<string | null>(null);
 
     public constructor(
         public readonly account: AccountState,
@@ -59,6 +60,13 @@ export class OnboardingState implements PendingTherapistProvider {
         return this.pendingTherapist.get();
     }
 
+    /**
+     * Implements PendingPasswordProvider contract.
+     */
+    public getPendingPassword(): string | null {
+        return this.pendingPassword.get();
+    }
+
     public goToStep(step: OnboardingStep): void {
         this.logger.debug('[OnboardingState] goToStep', { step, stepBefore: this.step.get() });
         this.step.set(step);
@@ -74,6 +82,7 @@ export class OnboardingState implements PendingTherapistProvider {
         this.logger.debug('[OnboardingState] reset', { stepBefore: this.step.get() });
         this.step.set(OnboardingStep.Account);
         this.pendingTherapist.set(null);
+        this.pendingPassword.set(null);
         this.account.reset();
         this.profile.reset();
         this.voice.reset();
@@ -82,6 +91,7 @@ export class OnboardingState implements PendingTherapistProvider {
 
     public handleAccountSuccess(result: AccountCreationResult): void {
         this.pendingTherapist.set(result.therapist);
+        this.pendingPassword.set(result.password);
         this.recovery.recoveryCode.set(result.recoveryCode);
         this.step.set(OnboardingStep.Voice);
         this.voice.checkPermission().catch(() => {});
@@ -102,6 +112,7 @@ export class OnboardingState implements PendingTherapistProvider {
             this.goToStep(OnboardingStep.Recovery);
         });
         this.recovery.setPendingTherapistProvider(this);
+        this.recovery.setPendingPasswordProvider(this);
 
         // nothing else to wire at the root level any more
     }

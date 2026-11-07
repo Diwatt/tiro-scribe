@@ -15,24 +15,32 @@ import { SqlCipherConnection } from './SqlCipherConnection';
 
 export class Database {
     private static readonly errorCodeNotInitialized = 'DATABASE_NOT_INITIALIZED';
+    private static readonly errorCodeKeyUnavailable = 'DATABASE_KEY_UNAVAILABLE';
 
     private static instance: Database | null = null;
+    private static databaseKey: string | null = null;
 
     private constructor(private readonly orm: InstanceType<typeof MikroORM>) {}
 
     /**
      * Idempotent. The caller supplies the entity list (production: ENTITY_CLASSES from
-     * @/Entity). A custom dialect (test injection, e.g. SqlJsDialect) bypasses the
-     * SQLCipher open path — production always goes through SqlCipherConnection.
+     * @/Entity) and the RAM-held dbKey (decrypted keyfile or onboarding bootstrap). A
+     * custom dialect (test injection, e.g. SqlJsDialect) bypasses the SQLCipher open
+     * path — production always goes through SqlCipherConnection.
      */
-    public static async initialize(options: { dialect?: Dialect; entities: Options['entities'] }): Promise<Database> {
+    public static async initialize(options: {
+        dialect?: Dialect;
+        entities: Options['entities'];
+        dbKey: string;
+    }): Promise<Database> {
         if (Database.instance != null) {
             return Database.instance;
         }
 
         const appConfig = Container.get(AppConfig);
         const dialect =
-            options.dialect ?? new ExpoDialect({ database: await SqlCipherConnection.open(appConfig.databaseName) });
+            options.dialect ??
+            new ExpoDialect({ database: await SqlCipherConnection.open(appConfig.databaseName, options.dbKey) });
 
         const orm = await MikroORM.init({
             driver: SqliteDriver,
@@ -45,7 +53,20 @@ export class Database {
         await orm.schema.update();
 
         Database.instance = new Database(orm);
+        Database.databaseKey = options.dbKey;
         return Database.instance;
+    }
+
+    /** The RAM-held SQLCipher key: needed once more at onboarding finalize to write the keyfile. */
+    public static getDatabaseKey(): string {
+        if (Database.databaseKey == null) {
+            throw new DatabaseException(
+                'Database key unavailable. The database is not initialized.',
+                Database.errorCodeKeyUnavailable,
+            );
+        }
+
+        return Database.databaseKey;
     }
 
     public static getInstance(): Database {
@@ -69,6 +90,7 @@ export class Database {
         const appConfig = Container.get(AppConfig);
         await deleteDatabaseAsync(appConfig.databaseName);
         Database.instance = null;
+        Database.databaseKey = null;
     }
 
     public static async close(): Promise<void> {
@@ -76,5 +98,6 @@ export class Database {
             await Database.instance.orm.close(true);
             Database.instance = null;
         }
+        Database.databaseKey = null;
     }
 }

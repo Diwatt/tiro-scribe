@@ -1,34 +1,34 @@
 import { PipelineException } from '@/Exception';
 
 /**
- * WindowMerger - merges stream chunks of arbitrary size into whole VAD
- * windows (windowSamples each), carrying leftover samples across chunks so
- * nothing is lost or duplicated. The final leftover samples are returned by
+ * VadWindowFramer - frames free-size stream chunks into whole VAD windows
+ * (windowSamples each), carrying leftover samples across chunks so nothing is
+ * lost or duplicated. The final leftover samples are returned by
  * takeLeftover() at the end of the stream.
  */
-export class WindowMerger {
+export class VadWindowFramer {
     private leftover: Float32Array = new Float32Array(0);
     private readonly windowSamples: number;
 
     public constructor(windowSamples: number) {
         if (windowSamples <= 0) {
-            throw new PipelineException(`WindowMerger requires a positive window size, got ${windowSamples}`);
+            throw new PipelineException(`VadWindowFramer requires a positive window size, got ${windowSamples}`);
         }
 
         this.windowSamples = windowSamples;
     }
 
     public frame(samples: Float32Array): Float32Array[] {
-        const merged = this.leftover.length === 0 ? samples : WindowMerger.concat([this.leftover, samples]);
-        const windowCount = Math.floor(merged.length / this.windowSamples);
+        const merged = this.leftover.length === 0 ? samples : VadWindowFramer.concat([this.leftover, samples]);
+        const nbWindows = Math.floor(merged.length / this.windowSamples);
         const windows: Float32Array[] = [];
 
-        for (let index = 0; index < windowCount; index += 1) {
+        for (let index = 0; index < nbWindows; index += 1) {
             const start = index * this.windowSamples;
             windows.push(merged.subarray(start, start + this.windowSamples));
         }
 
-        this.leftover = WindowMerger.copy(merged.subarray(windowCount * this.windowSamples));
+        this.leftover = VadWindowFramer.copy(merged.subarray(nbWindows * this.windowSamples));
 
         return windows;
     }
@@ -49,7 +49,11 @@ export class WindowMerger {
     }
 
     private static concat(parts: Float32Array[]): Float32Array {
-        const total = parts.reduce((sum, part) => sum + part.length, 0);
+        let total = 0;
+        for (const part of parts) {
+            total += part.length;
+        }
+
         const merged = new Float32Array(total);
         let offset = 0;
 

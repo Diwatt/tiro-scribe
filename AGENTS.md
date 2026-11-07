@@ -314,6 +314,7 @@ The iOS (Swift) and Android (Kotlin) implementations MUST be structurally identi
 - Do not repeat the folder name in identifiers (e.g. in `Entity/`, use `primaryKey` not `entityPrimaryKey`)
 - **No plurals in type names:** a type grouping several things takes a singular role name (`Bootstrap`, never `RuntimeAssets`). Same for directories: `Tool/`, never `Tools/`
 - **Booleans read like sentences:** prefix boolean values with `is`/`has` (`isComplete`, `hasOverrides`)
+- **Counts read `nb{Item}s`:** a counter is `nbSamples`, `nbWindows`, `nbSegments` — `nb` prefix + plural item, never a `*Count` suffix (`sampleCount`, `windowCount`)
 - **Getters carry the verb:** a value getter reads `getExpiresAt()`, never `expiresAt()`; boolean predicates stay `is*`/`has*`
 - **Enums over literal unions:** for discriminants/tags, prefer a TypeScript enum (PascalCase members, values = wire tags) over a union of string literals (`ExecuTorchDimensionKind.Constant`, not `'constant'`)
 - **Method verbs describe the real contract:** no generic domain verbs — name the destination and the purpose (`fillUntilDelimiter`, not `readNext`). A callee never borrows the caller's vocabulary

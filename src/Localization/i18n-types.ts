@@ -267,6 +267,16 @@ type RootTranslation = {
         /** Use the master password */
         password: string;
     };
+    unlockVault: {
+        /** Master password */
+        masterPassword: string;
+        /** Unlock */
+        submit: string;
+        /** Wrong master password. */
+        errorWrongPassword: string;
+        /** This device cannot read its security keyfile. */
+        errorKeyfile: string;
+    };
     incompatible: {
         /** This phone cannot run Tiro */
         title: string;
@@ -1027,6 +1037,16 @@ export type TranslationFunctions = {
         faceId: () => LocalizedString;
         /** Use the master password */
         password: () => LocalizedString;
+    };
+    unlockVault: {
+        /** Master password */
+        masterPassword: () => LocalizedString;
+        /** Unlock */
+        submit: () => LocalizedString;
+        /** Wrong master password. */
+        errorWrongPassword: () => LocalizedString;
+        /** This device cannot read its security keyfile. */
+        errorKeyfile: () => LocalizedString;
     };
     incompatible: {
         /** This phone cannot run Tiro */

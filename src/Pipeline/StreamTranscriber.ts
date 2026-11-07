@@ -3,21 +3,24 @@ import { SecureRecorder } from 'secure-recorder';
 import { v4 as uuidv4 } from 'uuid';
 import type { AppLogger } from '@/Core/AppLogger';
 import { Utterance } from '@/Entity';
-import type { Asr, Vad } from '@/InferenceModel/Model';
+import type { Vad } from '@/InferenceModel/Model';
+import { Asr } from '@/InferenceModel/Model';
 import type { PcmSampleConverter } from '@/Math';
+import type { AsrRunInput } from './AsrRunInput';
+import { AsrRunInputBuilder } from './AsrRunInputBuilder';
+import { AudioCutter } from './AudioCutter';
 import { PipelineTimings } from './PipelineTimings';
-import { SpeechCutter } from './SpeechCutter';
-import type { SpeechSegment } from './SpeechSegment';
 import { StreamTranscription } from './StreamTranscription';
-import { WindowMerger } from './WindowMerger';
+import { VadWindowFramer } from './VadWindowFramer';
 
 /**
- * StreamTranscriber - runs the push pipeline on an encrypted recording:
- * decrypted chunks are framed into VAD windows, speech segments are cut from
- * the VAD probabilities and transcribed into utterances on the absolute
- * sample clock of the stream. One instance can transcribe several streams
- * one after the other; the partial window left at the end of the stream is
- * never inferred.
+ * StreamTranscriber - runs the pull pipeline on an encrypted recording:
+ * decrypted chunks are framed into VAD windows, the AudioCutter cuts voice
+ * segments and the AsrRunInputBuilder builds ASR run inputs, one ASR run per
+ * input; the tokens are then re-attributed to their original segments so
+ * every utterance keeps its absolute stream-time boundaries. One instance can
+ * transcribe several streams one after the other; the partial window left at
+ * the end of the stream is never inferred.
  */
 export class StreamTranscriber {
     public static readonly GREEDY_CONFIDENCE = 1;
@@ -36,22 +39,23 @@ export class StreamTranscriber {
 
     public async transcribe(encryptedPath: string): Promise<StreamTranscription> {
         const config = this.vad.getConfig();
-        const merger = new WindowMerger(config.windowSamples);
-        const cutter = new SpeechCutter(config.windowSamples, config.sampleRateHz);
+        const framer = new VadWindowFramer(config.windowSamples);
+        const builder = new AsrRunInputBuilder(config.windowSamples, config.sampleRateHz);
+        const cutter = new AudioCutter(config.windowSamples, config.sampleRateHz, builder);
         this.vad.reset();
 
         const timings = new PipelineTimings();
         const speakerLabel = StreamTranscriber.createSpeakerLabel();
-        const utterances = await this.pullUtterances(encryptedPath, merger, cutter, speakerLabel, timings);
+        const utterances = await this.pullUtterances(encryptedPath, framer, cutter, speakerLabel, timings);
 
-        merger.takeLeftover();
-        const finalSegment = cutter.endOfStream();
-        if (finalSegment !== null) {
-            utterances.push(await this.transcribeSegment(finalSegment, speakerLabel, timings));
+        framer.takeLeftover();
+        const finalInput = cutter.endOfStream();
+        if (finalInput !== null) {
+            utterances.push(...(await this.transcribeRunInput(finalInput, speakerLabel, timings)));
         }
 
         this.logger.debug('[StreamTranscriber] done', {
-            utteranceCount: utterances.length,
+            nbUtterances: utterances.length,
             speakerLabel,
             decryptMs: timings.getDecryptMs(),
             convertMs: timings.getConvertMs(),
@@ -69,8 +73,8 @@ export class StreamTranscriber {
 
     private async pullUtterances(
         encryptedPath: string,
-        merger: WindowMerger,
-        cutter: SpeechCutter,
+        framer: VadWindowFramer,
+        cutter: AudioCutter,
         speakerLabel: string,
         timings: PipelineTimings,
     ): Promise<Utterance[]> {
@@ -80,7 +84,7 @@ export class StreamTranscriber {
 
         try {
             for await (const chunk of reader) {
-                utterances.push(...(await this.transcribeChunk(chunk, merger, cutter, speakerLabel, timings)));
+                utterances.push(...(await this.transcribeChunk(chunk, framer, cutter, speakerLabel, timings)));
             }
         } finally {
             await reader.close();
@@ -93,8 +97,8 @@ export class StreamTranscriber {
 
     private async transcribeChunk(
         chunk: DecryptedChunk,
-        merger: WindowMerger,
-        cutter: SpeechCutter,
+        framer: VadWindowFramer,
+        cutter: AudioCutter,
         speakerLabel: string,
         timings: PipelineTimings,
     ): Promise<Utterance[]> {
@@ -104,39 +108,50 @@ export class StreamTranscriber {
 
         const utterances: Utterance[] = [];
 
-        for (const window of merger.frame(samples)) {
+        for (const window of framer.frame(samples)) {
             const vadStartedAt = Date.now();
             const speechProbability = await this.vad.run(window);
             timings.addVad(Date.now() - vadStartedAt);
 
             const cutStartedAt = Date.now();
-            const segment = cutter.cut(window, speechProbability);
+            const input = cutter.cut(window, speechProbability);
             timings.addCut(Date.now() - cutStartedAt);
 
-            if (segment !== null) {
-                utterances.push(await this.transcribeSegment(segment, speakerLabel, timings));
+            if (input !== null) {
+                utterances.push(...(await this.transcribeRunInput(input, speakerLabel, timings)));
             }
         }
 
         return utterances;
     }
 
-    private async transcribeSegment(
-        segment: SpeechSegment,
+    private async transcribeRunInput(
+        input: AsrRunInput,
         speakerLabel: string,
         timings: PipelineTimings,
-    ): Promise<Utterance> {
+    ): Promise<Utterance[]> {
         const asrStartedAt = Date.now();
-        const metric = await this.asr.run(segment.samples);
+        const metric = await this.asr.run(input.getSamples());
         timings.addAsr(Date.now() - asrStartedAt);
 
-        return new Utterance(
-            uuidv4(),
-            segment.startMs,
-            segment.endMs,
-            metric.text,
-            speakerLabel,
-            StreamTranscriber.GREEDY_CONFIDENCE,
-        );
+        const segmentBuckets = input.getSegments().map((): number[] => []);
+        metric.tokenIds.forEach((tokenId, tokenIndex) => {
+            const frameIndex = metric.frameIndexes[tokenIndex] * Asr.ENCODER_FRAME_MS;
+            segmentBuckets[input.segmentIndexAt(input.absoluteMsAt(frameIndex))].push(tokenId);
+        });
+
+        return input
+            .getSegments()
+            .map(
+                (segment, segmentIndex) =>
+                    new Utterance(
+                        uuidv4(),
+                        segment.startMs,
+                        segment.endMs,
+                        this.asr.decodeTokenIds(segmentBuckets[segmentIndex]),
+                        speakerLabel,
+                        StreamTranscriber.GREEDY_CONFIDENCE,
+                    ),
+            );
     }
 }

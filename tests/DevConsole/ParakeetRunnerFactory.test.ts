@@ -6,7 +6,7 @@ import type { Runtime } from '@/InferenceModel/Runtime';
 const makeModel = (): { run: jest.Mock; dispose: jest.Mock } => ({
     run: jest
         .fn()
-        .mockResolvedValue(AsrRunMetric.create('Atomes et matière.', 1, 2, 3, 6, 4, 3, 4)),
+        .mockResolvedValue(AsrRunMetric.create('Atomes et matière.', [12, 13, 14, 15], [0, 0, 0, 0], 1, 2, 3, 6, 4, 3)),
     dispose: jest.fn().mockResolvedValue(undefined),
 });
 

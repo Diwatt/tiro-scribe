@@ -21,13 +21,14 @@ export function TiroMark({
         <Svg width={size} height={size} viewBox={TiroMarkShape.VIEW_BOX} accessibilityElementsHidden>
             <G transform={TiroMarkShape.transform()}>
                 <Path
-                    d={TiroMarkShape.STEM}
+                    d={TiroMarkShape.QUILL}
+                    fill={ink}
                     stroke={ink}
-                    strokeWidth={TiroMarkShape.strokeWidth(3.8, size)}
-                    strokeLinecap="round"
+                    strokeWidth={TiroMarkShape.strokeWidth(1.2, size)}
+                    strokeLinejoin="round"
                 />
                 <Path
-                    d={TiroMarkShape.TUFT}
+                    d={TiroMarkShape.DOWN}
                     stroke={ink}
                     strokeWidth={TiroMarkShape.strokeWidth(2.2, size)}
                     strokeLinecap="round"

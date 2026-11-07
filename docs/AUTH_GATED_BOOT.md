@@ -13,14 +13,14 @@ keyfile.json   (quelques octets, zéro PII, à côté de la base)
 {
   "version": 1,
   "slots": {
-    "password": { "salt": "scribe_dbkey_password_<uuid>", "wrapped": "<AES-GCM(dbKey, keyFromPassword(password, salt))>" },
-    "recovery": { "salt": "scribe_dbkey_recovery_<uuid>", "wrapped": "<AES-GCM(dbKey, keyFromCode(code, salt))>" },
-    "biometry": { "alias": "...", "wrapped": "..." }
+    "password": { "salt": "scribe_dbkey_password_<uuid>", "encrypted": "<AES-GCM(dbKey, keyFromPassword(password, salt))>" },
+    "recovery": { "salt": "scribe_dbkey_recovery_<uuid>", "encrypted": "<AES-GCM(dbKey, keyFromCode(code, salt))>" },
+    "biometry": { "alias": "...", "encrypted": "..." }
   }
 }
 ```
 
-- `dbKey` = la clé SQLCipher random actuelle (hex 64). Elle n'existe qu'en RAM après unwrap.
+- `dbKey` = la clé SQLCipher random actuelle (hex 64). Elle n'existe qu'en RAM après decrypt.
 - **v1 : slots `password` + `recovery` seulement** (décision 07/11 — password seul d'abord). Le slot `biometry` est réservé dans le format (champ Zod optionnel), implémenté en v2 — Face ID sur iOS, empreinte sur Android, via une clé Keystore/Enclave gated *user presence*.
 - L'entrée SecureStore `scribe_db_cipher` disparaît — c'est elle qui permettait à l'app d'ouvrir la base sans personne.
 - Le masterKey (`scribe_master_<uuid>`, en clair dans SecureStore aujourd'hui) devra suivre le même chemin plus tard — non bloquant pour v1.
@@ -33,14 +33,14 @@ flowchart TD
     B --> C["keyfile present ?"]
     C -- "non (1ere install)" --> D["Onboarding : dbKey random en RAM, creation DB, wizard, keyfile ecrit au finalize"]
     C -- "oui" --> E["Unlock screen : password (v1) / biometrie (v2) / lien kit"]
-    E -- "password ou code" --> F["Unwrap dbKey (RAM)"]
+    E -- "password ou code" --> F["Decrypt dbKey (RAM)"]
     F --> G["Ouvrir la DB (SqlCipherConnection avec la cle RAM)"]
     G --> H["hasActiveSession -> main"]
 ```
 
 - **Chicken-egg résolu** : le routing ne lit plus la DB avant auth. La présence du keyfile remplace `hasActiveSession` comme signal « un vault existe ».
 - **Onboarding** : la base est créée avec un `dbKey` random tenu en RAM pendant le wizard ; le keyfile est écrit quand password et code existent (fin du wizard). App tuée en cours d'onboarding = pas de keyfile = onboarding repart de zéro, comme aujourd'hui pour un therapist non persisté.
-- **Écran d'unlock** : champ password (v1), lien « J'ai un kit de récupération » → slot `recovery` → la base s'ouvre → re-wrap sous nouveau password (même mécanique que le `RestoreState` livré). **Changement de password** = réécriture des slots du keyfile, **jamais de `PRAGMA rekey`** — la clé DB est random et ne change jamais.
+- **Écran d'unlock** : champ password (v1), lien « J'ai un kit de récupération » → slot `recovery` → la base s'ouvre → re-chiffrement du slot password sous le nouveau password (même mécanique que le `RestoreState` livré). **Changement de password** = réécriture des slots du keyfile, **jamais de `PRAGMA rekey`** — la clé DB est random et ne change jamais.
 
 ## 4. Traitement différé sous auth — « processé, ingéré uniquement quand authentifié »
 
@@ -52,7 +52,7 @@ L'audio reste stocké chiffré (`.dat`, AES-GCM natif) et la queue `ToProcess` s
 
 ## 5. Menaces & limites assumées
 
-- **Téléphone volé rooté** : le dump trouve des blobs wrappés (keyfile) + la base chiffrée. Brute-force offline du password (entropie utilisateur) ou du code (60 bits uniformes). C'est le gain du Design A — la clé ne dort nulle part.
+- **Téléphone volé rooté** : le dump trouve des blobs chiffrés (keyfile) + la base chiffrée. Brute-force offline du password (entropie utilisateur) ou du code (60 bits uniformes). C'est le gain du Design A — la clé ne dort nulle part.
 - **UX** : premier écran = unlock, à chaque lancement (v1 sans biométrie). La biométrie v2 est la réponse au coût de friction.
 - **Brute-force en ligne** : impossible (tout est offline, local-first).
 - Restore in-device et restore d'un bundle (cf. `BACKUP_RESTORE.md`) deviennent le même mécanisme : obtenir le `dbKey` (slot code/password) → ouvrir.

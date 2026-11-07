@@ -26,16 +26,35 @@ describe('Database (v2)', () => {
         expect(() => Database.getEntityManager()).toThrow(DatabaseException);
     });
 
+    it('getDatabaseKey throws DATABASE_KEY_UNAVAILABLE before initialize', () => {
+        expect(() => Database.getDatabaseKey()).toThrow(DatabaseException);
+    });
+
     it('initialize is idempotent and returns the same instance', async () => {
         const engine = await initSqlJs();
-        const first = await Database.initialize({ dialect: new SqlJsDialect(engine), entities: [ProbeSchema] });
-        const second = await Database.initialize({ dialect: new SqlJsDialect(engine), entities: [ProbeSchema] });
+        const first = await Database.initialize({
+            dialect: new SqlJsDialect(engine),
+            entities: [ProbeSchema],
+            dbKey: 'k'.repeat(64),
+        });
+        const second = await Database.initialize({
+            dialect: new SqlJsDialect(engine),
+            entities: [ProbeSchema],
+            dbKey: 'k'.repeat(64),
+        });
         expect(second).toBe(first);
+    });
+
+    it('holds the RAM dbKey after initialize', async () => {
+        const engine = await initSqlJs();
+        await Database.initialize({ dialect: new SqlJsDialect(engine), entities: [ProbeSchema], dbKey: 'a'.repeat(64) });
+
+        expect(Database.getDatabaseKey()).toBe('a'.repeat(64));
     });
 
     it('getEntityManager returns a working repository after initialize', async () => {
         const engine = await initSqlJs();
-        await Database.initialize({ dialect: new SqlJsDialect(engine), entities: [ProbeSchema] });
+        await Database.initialize({ dialect: new SqlJsDialect(engine), entities: [ProbeSchema], dbKey: 'b'.repeat(64) });
 
         const probe = new Probe();
         probe.uuid = uuidv4();

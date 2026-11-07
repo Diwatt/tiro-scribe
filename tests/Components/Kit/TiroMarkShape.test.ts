@@ -20,6 +20,6 @@ describe('TiroMarkShape', () => {
     });
 
     it('places the feather on the 45 degree diagonal', () => {
-        expect(TiroMarkShape.transform()).toBe('translate(17.61 46.39) rotate(45) scale(0.84)');
+        expect(TiroMarkShape.transform()).toBe('translate(20.42 47.35) rotate(45) scale(0.84)');
     });
 });

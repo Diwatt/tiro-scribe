@@ -228,9 +228,23 @@ describe('Asr', () => {
         const result = await recognizer.run(makeSignal(16000));
 
         expect(result.text).toBe('Atomes et matière.');
-        expect(result.tokenCount).toBe(EMITTED_TOKENS.length);
+        expect(result.tokenIds).toEqual(EMITTED_TOKENS);
+        expect(result.frameIndexes).toEqual([0, 0, 0, 0]);
         expect(result.iterationCount).toBe(354);
         expect(result.decoderSteps).toBe(EMITTED_TOKENS.length + 1);
+    });
+
+    it('decodes token ids through the shipped vocabulary', async () => {
+        const { recognizer } = createHarness();
+        await recognizer.initialize();
+
+        expect(recognizer.decodeTokenIds(EMITTED_TOKENS)).toBe('Atomes et matière.');
+    });
+
+    it('rejects decodeTokenIds before initialize', async () => {
+        const { recognizer } = createHarness();
+
+        expect(() => recognizer.decodeTokenIds(EMITTED_TOKENS)).toThrow(AsrException);
     });
 
     it('reports per-phase timings on every run', async () => {

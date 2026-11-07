@@ -10,8 +10,11 @@ import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppConfig } from '@/Core/AppConfig';
 import { Container } from '@/Core/Container';
+import { CryptoEngine } from '@/Security';
 import { Database } from '@/Database/Database';
+import { DatabaseKeyfile } from '@/Security';
 import { ENTITY_CLASSES } from '@/Entity';
+import { DeviceCompatibilityGate } from '@/Security/DeviceCompatibilityGate';
 import { LaunchScreen } from '@/Screen/Start/LaunchScreen';
 import { StartupOrchestrator, StartupState } from '../src/State/StartupOrchestrator';
 
@@ -48,10 +51,28 @@ export default observer(function GateScreen(): React.JSX.Element | null {
                 }
             }
 
-            await Database.initialize({ entities: ENTITY_CLASSES });
+            if (!Container.get(DeviceCompatibilityGate).isCompatible()) {
+                router.replace('/incompatible');
+                await hideSplash();
+                return;
+            }
+
+            // Auth-gated boot (cf. docs/AUTH_GATED_BOOT.md): no database access before
+            // user auth. Keyfile present -> unlock screen decrypts the dbKey first.
+            const keyfile = Container.get(DatabaseKeyfile);
+            if (await keyfile.exists()) {
+                router.replace('/unlock');
+                await hideSplash();
+                return;
+            }
+
+            // First install: bootstrap a RAM-held dbKey; the keyfile is written at
+            // onboarding finalize (password + recovery code known by then).
+            const dbKey = Container.get(CryptoEngine).randomKey(32);
+            await Database.initialize({ entities: ENTITY_CLASSES, dbKey });
             await startupOrchestrator.run();
         })();
-    }, [startupOrchestrator.run]);
+    }, [router, startupOrchestrator.run]);
 
     const state = startupOrchestrator.stateObservable.get();
 

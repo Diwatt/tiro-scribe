@@ -22,7 +22,11 @@
       "package": "com.tiroscribe.app",
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F2DCD2"
+      }
     },
     "plugins": [
       [
@@ -76,7 +80,15 @@
         }
       ],
       "expo-sharing",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 132,
+          "backgroundColor": "#F5F1EA",
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "extra": {
       "eas": {

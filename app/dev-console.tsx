@@ -14,6 +14,8 @@ import { StyleSheet, View } from 'react-native';
 import { Database } from '@/Database/Database';
 import { ENTITY_CLASSES } from '@/Entity';
 import { AudioScreen } from '@/DevConsole';
+import { Container } from '@/Core/Container';
+import { CryptoEngine, DatabaseKeyfile } from '@/Security';
 
 export default function DevConsoleRoute(): React.JSX.Element {
     const theme = useTheme();
@@ -21,13 +23,28 @@ export default function DevConsoleRoute(): React.JSX.Element {
     const [failureMessage, setFailureMessage] = useState<string | null>(null);
 
     useEffect(() => {
-        Database.initialize({ entities: ENTITY_CLASSES }).then(
-            () => setIsDatabaseReady(true),
-            (error: unknown) => {
-                const message = error instanceof Error ? error.message : String(error);
-                setFailureMessage(message);
-            },
-        );
+        (async () => {
+            try {
+                // Deep links bypass the GateScreen auth: reuse the RAM key when a normal
+                // boot already unlocked, refuse when the vault is still locked, bootstrap
+                // on a fresh install.
+                let dbKey = '';
+                try {
+                    dbKey = Database.getDatabaseKey();
+                } catch {
+                    if (await Container.get(DatabaseKeyfile).exists()) {
+                        setFailureMessage('Database locked: unlock the app once before using the dev console.');
+                        return;
+                    }
+                    dbKey = Container.get(CryptoEngine).randomKey(32);
+                }
+
+                await Database.initialize({ entities: ENTITY_CLASSES, dbKey });
+                setIsDatabaseReady(true);
+            } catch (error: unknown) {
+                setFailureMessage(error instanceof Error ? error.message : String(error));
+            }
+        })();
     }, []);
 
     if (!isDatabaseReady) {

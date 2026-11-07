@@ -17,6 +17,7 @@ export { InferenceModelDownloaderException } from './InferenceModelDownloaderExc
 export { InvalidAudioFormatError } from './InvalidAudioFormatError';
 export { InvalidAudioParametersException } from './InvalidAudioParametersException';
 export { InvalidDimensionError } from './InvalidDimensionError';
+export { InvalidKeyfileException } from './InvalidKeyfileException';
 export { InvalidMasterKeyException } from './InvalidMasterKeyException';
 export { NoActiveRecordingError, RecordingFilePathNotAvailableError } from './NoActiveRecordingError';
 export { NoActiveSubscriptionError } from './NoActiveSubscriptionError';

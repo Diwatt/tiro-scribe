@@ -144,6 +144,12 @@ const en: BaseTranslation = {
         faceId: 'Unlock with Face ID',
         password: 'Use the master password',
     },
+    unlockVault: {
+        masterPassword: 'Master password',
+        submit: 'Unlock',
+        errorWrongPassword: 'Wrong master password.',
+        errorKeyfile: 'This device cannot read its security keyfile.',
+    },
     incompatible: {
         title: 'This phone cannot run Tiro',
         subtitle: 'Transcription runs entirely on the device. It needs a recent phone.',

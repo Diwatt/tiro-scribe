@@ -1,26 +1,25 @@
 /**
  * SqlCipherConnection – Opens an expo-sqlite connection encrypted with SQLCipher:
- * applies the vault key as the very first statement on the connection. The
- * database file stays unreadable on disk without the keystore-held key.
- * Build-time invariants (cipher active, FTS5 available) are verified on dev
- * startups only; production ships the committed, verified gradle config.
+ * applies the RAM-held key as the very first statement on the connection. The
+ * key comes from the caller — decrypted from the keyfile after user auth, or
+ * generated in RAM during onboarding (cf. docs/AUTH_GATED_BOOT.md). The
+ * database file stays unreadable on disk without that key. Build-time
+ * invariants (cipher active, FTS5 available) are verified on dev startups
+ * only; production ships the committed, verified gradle config.
  */
 
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
-import { Container } from '@/Core/Container';
 import { DatabaseException } from '@/Exception';
-import { DatabaseKeyVault } from '@/Security';
 
 export class SqlCipherConnection {
     private static readonly errorCodeFts5Unavailable = 'DATABASE_FTS5_UNAVAILABLE';
     private static readonly errorCodeNotEncrypted = 'DATABASE_NOT_ENCRYPTED';
 
-    public static async open(databaseName: string): Promise<SQLiteDatabase> {
+    public static async open(databaseName: string, dbKeyHex: string): Promise<SQLiteDatabase> {
         const database = await openDatabaseAsync(databaseName);
-        const key = await Container.get(DatabaseKeyVault).getKey();
 
         // SQLCipher: the key must be the very first statement on the connection.
-        await database.execAsync(`PRAGMA key = "x'${key}'"`);
+        await database.execAsync(`PRAGMA key = "x'${dbKeyHex}'"`);
 
         if (__DEV__) {
             await SqlCipherConnection.verifyBuild(database);

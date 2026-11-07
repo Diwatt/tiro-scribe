@@ -1,5 +1,5 @@
 /**
- * WindowMerger Tests - ZOMBIE Methodology
+ * VadWindowFramer Tests - ZOMBIE Methodology
  *
  * Z - Zero: empty input, no leftover
  * O - One: exactly one window
@@ -10,7 +10,7 @@
  */
 
 import { PipelineException } from '@/Exception';
-import { WindowMerger } from '../../src/Pipeline/WindowMerger';
+import { VadWindowFramer } from '../../src/Pipeline/VadWindowFramer';
 
 const WINDOW_SAMPLES = 512;
 
@@ -25,7 +25,11 @@ function samplesOf(length: number): Float32Array {
 }
 
 function concat(parts: Float32Array[]): Float32Array {
-    const total = parts.reduce((sum, part) => sum + part.length, 0);
+    let total = 0;
+    for (const part of parts) {
+        total += part.length;
+    }
+
     const merged = new Float32Array(total);
     let offset = 0;
 
@@ -45,54 +49,54 @@ function equals(left: Float32Array, right: Float32Array): boolean {
     return left.every((value, index) => value === right[index]);
 }
 
-describe('WindowMerger - ZOMBIE Tests', () => {
+describe('VadWindowFramer - ZOMBIE Tests', () => {
     describe('Z - Zero Tests', () => {
         it('should emit no window when the chunk is smaller than the window size', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
 
-            expect(merger.frame(samplesOf(100))).toEqual([]);
+            expect(framer.frame(samplesOf(100))).toEqual([]);
         });
 
         it('should emit no window on an empty chunk', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
 
-            expect(merger.frame(new Float32Array(0))).toEqual([]);
+            expect(framer.frame(new Float32Array(0))).toEqual([]);
         });
 
         it('should return an empty leftover when nothing is pending', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
 
-            expect(merger.takeLeftover().length).toBe(0);
+            expect(framer.takeLeftover().length).toBe(0);
         });
     });
 
     describe('O - One Tests', () => {
         it('should emit exactly one window for a chunk of exact window size', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
             const chunk = samplesOf(WINDOW_SAMPLES);
 
-            const windows = merger.frame(chunk);
+            const windows = framer.frame(chunk);
 
             expect(windows.length).toBe(1);
             expect(equals(windows[0], chunk)).toBe(true);
-            expect(merger.takeLeftover().length).toBe(0);
+            expect(framer.takeLeftover().length).toBe(0);
         });
     });
 
     describe('M - Many Tests', () => {
         it('should merge multiple windows across irregular chunks with no lost or duplicated sample', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
             const source = samplesOf(5000);
             const chunkSizes = [100, 1000, 37, 2000, 500, 1363];
             const windows: Float32Array[] = [];
             let offset = 0;
 
             for (const size of chunkSizes) {
-                windows.push(...merger.frame(source.subarray(offset, offset + size)));
+                windows.push(...framer.frame(source.subarray(offset, offset + size)));
                 offset += size;
             }
 
-            const leftover = merger.takeLeftover();
+            const leftover = framer.takeLeftover();
             windows.push(leftover);
 
             expect(offset).toBe(5000);
@@ -105,14 +109,14 @@ describe('WindowMerger - ZOMBIE Tests', () => {
         });
 
         it('should keep accepting chunks after taking the leftover without contamination', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
             const first = samplesOf(WINDOW_SAMPLES + 200);
 
-            merger.frame(first);
-            merger.takeLeftover();
+            framer.frame(first);
+            framer.takeLeftover();
 
             const second = samplesOf(WINDOW_SAMPLES);
-            const windows = merger.frame(second);
+            const windows = framer.frame(second);
 
             expect(windows.length).toBe(1);
             expect(equals(windows[0], second)).toBe(true);
@@ -121,30 +125,30 @@ describe('WindowMerger - ZOMBIE Tests', () => {
 
     describe('B - Boundary Tests', () => {
         it('should return the exact leftover size', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
 
-            merger.frame(samplesOf(WINDOW_SAMPLES * 2 + 137));
+            framer.frame(samplesOf(WINDOW_SAMPLES * 2 + 137));
 
-            const leftover = merger.takeLeftover();
+            const leftover = framer.takeLeftover();
 
             expect(leftover.length).toBe(137);
         });
 
         it('should return nothing on a second take (destructive)', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
 
-            merger.frame(samplesOf(100));
-            merger.takeLeftover();
+            framer.frame(samplesOf(100));
+            framer.takeLeftover();
 
-            expect(merger.takeLeftover().length).toBe(0);
+            expect(framer.takeLeftover().length).toBe(0);
         });
     });
 
     describe('I - Interface Tests', () => {
         it('should emit windows of exactly windowSamples length', () => {
-            const merger = new WindowMerger(WINDOW_SAMPLES);
+            const framer = new VadWindowFramer(WINDOW_SAMPLES);
 
-            const windows = merger.frame(samplesOf(WINDOW_SAMPLES * 4));
+            const windows = framer.frame(samplesOf(WINDOW_SAMPLES * 4));
 
             expect(windows.length).toBe(4);
             expect(windows.every((window) => window.length === WINDOW_SAMPLES)).toBe(true);
@@ -153,11 +157,11 @@ describe('WindowMerger - ZOMBIE Tests', () => {
 
     describe('E - Exception Tests', () => {
         it('should reject a zero window size', () => {
-            expect(() => new WindowMerger(0)).toThrow(PipelineException);
+            expect(() => new VadWindowFramer(0)).toThrow(PipelineException);
         });
 
         it('should reject a negative window size', () => {
-            expect(() => new WindowMerger(-64)).toThrow(PipelineException);
+            expect(() => new VadWindowFramer(-64)).toThrow(PipelineException);
         });
     });
 });

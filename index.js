@@ -42,9 +42,11 @@ function setupCrashLogging() {
 
 setupCrashLogging();
 
-// Storybook: when enabled, register Storybook UI; otherwise use Expo Router
+// Storybook: baked into the bundle at build time (STORYBOOK_ENABLED is inlined
+// by Babel), so a bundle built with STORYBOOK_ENABLED=true runs standalone
+// (release, no Metro); normal builds never set it and register Expo Router.
 let StorybookUIRoot = null;
-if (typeof __DEV__ !== 'undefined' && __DEV__ && process.env.STORYBOOK_ENABLED === 'true') {
+if (process.env.STORYBOOK_ENABLED === 'true') {
     try {
         StorybookUIRoot = require('./.rnstorybook').default;
     } catch (_e) {}

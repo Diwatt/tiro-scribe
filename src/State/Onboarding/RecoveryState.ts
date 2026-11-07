@@ -4,20 +4,23 @@ import { Container } from '@/Core/Container';
 import { Database } from '@/Database/Database';
 import { Therapist } from '@/Entity/Therapist';
 import { Localization } from '@/Localization';
+import { DatabaseKeyfile } from '@/Security';
 import { RecoveryKit } from '@/Security';
 import { ActivityStatus, GlobalActivityStatus } from '@/State/GlobalActivityStatus';
 import { StartupOrchestrator } from '@/State/StartupOrchestrator';
 import { AbstractState } from './AbstractState';
-import type { PendingTherapistProvider } from './Types';
+import type { PendingPasswordProvider, PendingTherapistProvider } from './Types';
 import { AppRouter } from '@/Core/AppRouter';
 
 export class RecoveryState extends AbstractState {
     public readonly recoveryCode = observable<string>('');
     private pendingTherapistProvider: PendingTherapistProvider | null = null;
+    private pendingPasswordProvider: PendingPasswordProvider | null = null;
 
     public constructor(
         logger: AppLogger,
         private readonly recoveryKit: RecoveryKit,
+        private readonly keyfile: DatabaseKeyfile,
         private readonly globalActivityStatus: GlobalActivityStatus,
         private readonly localization: Localization,
         private readonly startupOrchestrator: StartupOrchestrator,
@@ -27,6 +30,10 @@ export class RecoveryState extends AbstractState {
 
     public setPendingTherapistProvider(provider: PendingTherapistProvider): void {
         this.pendingTherapistProvider = provider;
+    }
+
+    public setPendingPasswordProvider(provider: PendingPasswordProvider): void {
+        this.pendingPasswordProvider = provider;
     }
 
     public async copyRecoveryCodeToClipboard(): Promise<void> {
@@ -77,6 +84,33 @@ export class RecoveryState extends AbstractState {
             return;
         }
 
+        const password = this.pendingPasswordProvider?.getPendingPassword();
+        if (password == null) {
+            this.error.set(ll.onboarding.errorSessionLost());
+            return;
+        }
+
+        // The keyfile must exist before the vault is considered created: without it
+        // the next boot cannot decrypt the database (cf. docs/AUTH_GATED_BOOT.md).
+        let dbKey: string;
+        try {
+            dbKey = Database.getDatabaseKey();
+            await this.keyfile.write(
+                this.keyfile.create({
+                    dbKey,
+                    password,
+                    recoveryCode: this.recoveryCode.get(),
+                    therapistUuid: therapist.getUuid(),
+                }),
+            );
+        } catch (error: unknown) {
+            this.logger.error('[RecoveryState] keyfile write failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            this.error.set(ll.onboarding.errorSaveAccount());
+            return;
+        }
+
         try {
             await Database.getEntityManager().getRepository(Therapist).persist(therapist);
 
@@ -112,9 +146,10 @@ export class RecoveryState extends AbstractState {
 Container.register(RecoveryState, () => {
     const logger = Container.get(AppLogger);
     const recoveryKit = new RecoveryKit(logger);
+    const keyfile = Container.get(DatabaseKeyfile);
     const globalActivityStatus = Container.get(GlobalActivityStatus);
     const localization = Container.get(Localization);
     const startupOrchestrator = Container.get(StartupOrchestrator);
 
-    return new RecoveryState(logger, recoveryKit, globalActivityStatus, localization, startupOrchestrator);
+    return new RecoveryState(logger, recoveryKit, keyfile, globalActivityStatus, localization, startupOrchestrator);
 });

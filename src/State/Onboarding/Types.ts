@@ -25,6 +25,14 @@ export interface PendingTherapistProvider {
 }
 
 /**
+ * Interface for providing the clear master password held during onboarding,
+ * needed once at finalize to write the database keyfile (cf. docs/AUTH_GATED_BOOT.md).
+ */
+export interface PendingPasswordProvider {
+    getPendingPassword(): string | null;
+}
+
+/**
  * Callback interface for handling successful account creation.
  * Called when account creation completes to transition to the next step.
  */
